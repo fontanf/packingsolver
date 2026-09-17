@@ -206,7 +206,6 @@ struct SequentialOneDimensionalRectangleSubproblemOutput
 SequentialOneDimensionalRectangleSubproblemOutput sequential_onedimensional_rectangle_subproblem(
         const Instance& instance,
         const SequentialOneDimensionalRectangleParameters& parameters,
-        NodeId rectangle_queue_size,
         SequentialOneDimensionalRectangleOutput& sor_output,
         AlgorithmFormatter& sor_algorithm_formatter,
         const Solution& fixed_items,
@@ -230,8 +229,8 @@ SequentialOneDimensionalRectangleSubproblemOutput sequential_onedimensional_rect
     treesearchsolver::IterativeBeamSearch2Parameters<rectangle::BranchingScheme> ibs_parameters;
     ibs_parameters.verbosity_level = 0;
     ibs_parameters.timer = parameters.timer;
-    ibs_parameters.minimum_size_of_the_queue = rectangle_queue_size;
-    ibs_parameters.maximum_size_of_the_queue = rectangle_queue_size;
+    ibs_parameters.minimum_size_of_the_queue = parameters.rectangle_queue_size;
+    ibs_parameters.maximum_size_of_the_queue = parameters.rectangle_queue_size;
     auto rectangle_begin = std::chrono::steady_clock::now();
     auto rectangle_output = treesearchsolver::iterative_beam_search_2<rectangle::BranchingScheme>(
             rectangle_branching_scheme,
@@ -419,8 +418,7 @@ SequentialOneDimensionalRectangleSubproblemOutput sequential_onedimensional_rect
     // Save the solution if feasible.
     if (solution.compute_weight_constraints_violation() == 0) {
         std::stringstream ss;
-        ss << "it " << sor_output.number_of_iterations
-            << " q " << rectangle_queue_size;
+        ss << "iteration " << sor_output.number_of_iterations;
         sor_algorithm_formatter.update_solution(solution, ss.str());
         parameters.new_solution_callback(sor_output);
     }
@@ -442,16 +440,6 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
     AlgorithmFormatter algorithm_formatter(instance, parameters, output);
     algorithm_formatter.start();
     algorithm_formatter.print_header();
-
-    // Queue sizes to try for the rectangle subproblem. In 'Anytime' mode,
-    // grow the queue from 1 up to 'rectangle_queue_size' (as the box tree
-    // search does), reporting the best solution found at each size; in
-    // other modes, run a single pass at 'rectangle_queue_size', as before.
-    std::vector<NodeId> rectangle_queue_sizes;
-    if (parameters.optimization_mode == OptimizationMode::Anytime)
-        for (NodeId size = 1; size < parameters.rectangle_queue_size; size *= 2)
-            rectangle_queue_sizes.push_back(size);
-    rectangle_queue_sizes.push_back(parameters.rectangle_queue_size);
 
     const BinType& bin_type = instance.bin_type(0);
     Length yi = bin_type.box.y;
@@ -819,7 +807,7 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
                 for (int rotation = 0; rotation < 3; ++rotation)
                     stack_area += stackability_group.x * stackability_group.y * stackability_group.stacks[rotation].size();
             }
-            const bool try_to_pack_all_items_base
+            bool try_to_pack_all_items
                 = stack_area <= instance.bin_type(0).area()
                 && instance.item_weight() <= instance.bin_weight();
 
@@ -959,284 +947,257 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
             bool failed_middle_axle_weight_constraint_cur = false;
             bool failed_rear_axle_weight_constraint_cur = false;
 
-            // Anytime variant: run the whole guide-selection logic below at
-            // growing queue sizes (1, 2, 4, ..., 'rectangle_queue_size'),
-            // reporting the best solution found at each size, so that a time
-            // limit shorter than the full-size pass still leaves a complete
-            // pass rather than a truncated one. In not-anytime mode,
-            // 'rectangle_queue_sizes' only contains 'rectangle_queue_size' and
-            // this loop runs once, exactly as before.
-            for (NodeId rectangle_queue_size: rectangle_queue_sizes) {
-                bool rectangle_queue_size_is_last = (rectangle_queue_size == rectangle_queue_sizes.back());
-                bool try_to_pack_all_items = try_to_pack_all_items_base;
-                failed_middle_axle_weight_constraint_cur = false;
-                failed_rear_axle_weight_constraint_cur = false;
+            if (try_to_pack_all_items) {
 
-                if (try_to_pack_all_items) {
+                // First we try to pack all items with guides 0 and 1. This the
+                // guides that will most likely lead to the best solution if axle
+                // weight constraints are not critical.
+                // If the solution is not full, it might be
+                // - Because of axle weight constraints
+                //   In this case, we try again to pack all items but with
+                //   guide 8.
+                // - Because of geometric constraints (area)
+                //   In this case we give up on trying to pack all items and try
+                //   again with guides 4 and 5.
+                //   If axle weight constraints happen to be critical, we try
+                //   again with guide 8.
 
-                    // First we try to pack all items with guides 0 and 1. This the
-                    // guides that will most likely lead to the best solution if axle
-                    // weight constraints are not critical.
-                    // If the solution is not full, it might be
-                    // - Because of axle weight constraints
-                    //   In this case, we try again to pack all items but with
-                    //   guide 8.
-                    // - Because of geometric constraints (area)
-                    //   In this case we give up on trying to pack all items and try
-                    //   again with guides 4 and 5.
-                    //   If axle weight constraints happen to be critical, we try
-                    //   again with guide 8.
-
-                    {
-                        rectangle::BranchingScheme::Parameters rectangle_parameters;
-                        rectangle_parameters.guide_id = 0;
-                        rectangle_parameters.predecessor_strategy = 0;
-                        rectangle_parameters.group_guiding_strategy = 1;
-                        rectangle_parameters.staircase = false;
-                        rectangle_parameters.fixed_items = &rectangle_fixed_items;
-                        auto subproblem_output = sequential_onedimensional_rectangle_subproblem(
-                                instance,
-                                parameters,
-                                rectangle_queue_size,
-                                output,
-                                algorithm_formatter,
-                                fixed_items,
-                                stackability_groups,
-                                rectangle_instance,
-                                rectangle2boxstacks,
-                                rectangle_parameters);
-                        if (subproblem_output.solution.full())
-                            x_max = (std::min)(x_max, subproblem_output.solution.x_max());
-                        failed_middle_axle_weight_constraint_cur |= (subproblem_output.solution.compute_middle_axle_weight_constraints_violation() > 0);
-                        failed_rear_axle_weight_constraint_cur |= (subproblem_output.solution.compute_rear_axle_weight_constraints_violation() > 0);
-                        if (output.solution_pool.best().full()) {
-                            FFOT_LOG_FOLD_END(logger, "");
-                            FFOT_LOG_FOLD_END(logger, "");
-                            algorithm_formatter.end();
-                            return output;
-                        }
-                    }
-
-                    {
-                        rectangle::BranchingScheme::Parameters rectangle_parameters;
-                        rectangle_parameters.guide_id = 1;
-                        rectangle_parameters.predecessor_strategy = 0;
-                        rectangle_parameters.group_guiding_strategy = 1;
-                        rectangle_parameters.staircase = false;
-                        rectangle_parameters.fixed_items = &rectangle_fixed_items;
-                        auto subproblem_output = sequential_onedimensional_rectangle_subproblem(
-                                instance,
-                                parameters,
-                                rectangle_queue_size,
-                                output,
-                                algorithm_formatter,
-                                fixed_items,
-                                stackability_groups,
-                                rectangle_instance,
-                                rectangle2boxstacks,
-                                rectangle_parameters);
-                        if (subproblem_output.solution.full())
-                            x_max = (std::min)(x_max, subproblem_output.solution.x_max());
-                        failed_middle_axle_weight_constraint_cur |= (subproblem_output.solution.compute_middle_axle_weight_constraints_violation() > 0);
-                        failed_rear_axle_weight_constraint_cur |= (subproblem_output.solution.compute_rear_axle_weight_constraints_violation() > 0);
-                        if (output.solution_pool.best().full()) {
-                            FFOT_LOG_FOLD_END(logger, "");
-                            FFOT_LOG_FOLD_END(logger, "");
-                            algorithm_formatter.end();
-                            return output;
-                        }
-                    }
-
-                    if (failed_middle_axle_weight_constraint_cur) {
-
-                        rectangle::BranchingScheme::Parameters rectangle_parameters;
-                        rectangle_parameters.guide_id = 8;
-                        rectangle_parameters.predecessor_strategy = 1;
-                        rectangle_parameters.group_guiding_strategy = 1;
-                        rectangle_parameters.staircase = false;
-                        rectangle_parameters.fixed_items = &rectangle_fixed_items;
-                        auto subproblem_output = sequential_onedimensional_rectangle_subproblem(
-                                instance,
-                                parameters,
-                                rectangle_queue_size,
-                                output,
-                                algorithm_formatter,
-                                fixed_items,
-                                stackability_groups,
-                                rectangle_instance,
-                                rectangle2boxstacks,
-                                rectangle_parameters);
-                        if (output.solution_pool.best().full()) {
-                            FFOT_LOG_FOLD_END(logger, "");
-                            FFOT_LOG_FOLD_END(logger, "");
-                            algorithm_formatter.end();
-                            return output;
-                        }
-
-                    } else if (failed_rear_axle_weight_constraint_cur) {
-
-                        rectangle::BranchingScheme::Parameters rectangle_parameters;
-                        rectangle_parameters.guide_id = 9;
-                        rectangle_parameters.predecessor_strategy = 2;
-                        rectangle_parameters.group_guiding_strategy = 1;
-                        rectangle_parameters.staircase = false;
-                        rectangle_parameters.fixed_items = &rectangle_fixed_items;
-                        auto subproblem_output = sequential_onedimensional_rectangle_subproblem(
-                                instance,
-                                parameters,
-                                rectangle_queue_size,
-                                output,
-                                algorithm_formatter,
-                                fixed_items,
-                                stackability_groups,
-                                rectangle_instance,
-                                rectangle2boxstacks,
-                                rectangle_parameters);
-                        if (output.solution_pool.best().full()) {
-                            FFOT_LOG_FOLD_END(logger, "");
-                            FFOT_LOG_FOLD_END(logger, "");
-                            algorithm_formatter.end();
-                            return output;
-                        }
-
-                    } else {
-                        try_to_pack_all_items = false;
+                {
+                    rectangle::BranchingScheme::Parameters rectangle_parameters;
+                    rectangle_parameters.guide_id = 0;
+                    rectangle_parameters.predecessor_strategy = 0;
+                    rectangle_parameters.group_guiding_strategy = 1;
+                    rectangle_parameters.staircase = false;
+                    rectangle_parameters.fixed_items = &rectangle_fixed_items;
+                    auto subproblem_output = sequential_onedimensional_rectangle_subproblem(
+                            instance,
+                            parameters,
+                            output,
+                            algorithm_formatter,
+                            fixed_items,
+                            stackability_groups,
+                            rectangle_instance,
+                            rectangle2boxstacks,
+                            rectangle_parameters);
+                    if (subproblem_output.solution.full())
+                        x_max = (std::min)(x_max, subproblem_output.solution.x_max());
+                    failed_middle_axle_weight_constraint_cur |= (subproblem_output.solution.compute_middle_axle_weight_constraints_violation() > 0);
+                    failed_rear_axle_weight_constraint_cur |= (subproblem_output.solution.compute_rear_axle_weight_constraints_violation() > 0);
+                    if (output.solution_pool.best().full()) {
+                        FFOT_LOG_FOLD_END(logger, "");
+                        FFOT_LOG_FOLD_END(logger, "");
+                        algorithm_formatter.end();
+                        return output;
                     }
                 }
 
-                if (!try_to_pack_all_items) {
+                {
+                    rectangle::BranchingScheme::Parameters rectangle_parameters;
+                    rectangle_parameters.guide_id = 1;
+                    rectangle_parameters.predecessor_strategy = 0;
+                    rectangle_parameters.group_guiding_strategy = 1;
+                    rectangle_parameters.staircase = false;
+                    rectangle_parameters.fixed_items = &rectangle_fixed_items;
+                    auto subproblem_output = sequential_onedimensional_rectangle_subproblem(
+                            instance,
+                            parameters,
+                            output,
+                            algorithm_formatter,
+                            fixed_items,
+                            stackability_groups,
+                            rectangle_instance,
+                            rectangle2boxstacks,
+                            rectangle_parameters);
+                    if (subproblem_output.solution.full())
+                        x_max = (std::min)(x_max, subproblem_output.solution.x_max());
+                    failed_middle_axle_weight_constraint_cur |= (subproblem_output.solution.compute_middle_axle_weight_constraints_violation() > 0);
+                    failed_rear_axle_weight_constraint_cur |= (subproblem_output.solution.compute_rear_axle_weight_constraints_violation() > 0);
+                    if (output.solution_pool.best().full()) {
+                        FFOT_LOG_FOLD_END(logger, "");
+                        FFOT_LOG_FOLD_END(logger, "");
+                        algorithm_formatter.end();
+                        return output;
+                    }
+                }
 
-                    // All items do not fit in the bin. We try to maximize the profit
-                    // of the packed items.
-                    // First we try to pack with guides 4 and 5.
-                    // If the axle weight constraints happened to be critical, then we
-                    // try again with guide 8.
+                if (failed_middle_axle_weight_constraint_cur) {
 
-                    {
-                        rectangle::BranchingScheme::Parameters rectangle_parameters;
-                        rectangle_parameters.guide_id = 4;
-                        rectangle_parameters.predecessor_strategy = 0;
-                        rectangle_parameters.group_guiding_strategy = 1;
-                        rectangle_parameters.staircase = false;
-                        rectangle_parameters.fixed_items = &rectangle_fixed_items;
-                        auto subproblem_output = sequential_onedimensional_rectangle_subproblem(
-                                instance,
-                                parameters,
-                                rectangle_queue_size,
-                                output,
-                                algorithm_formatter,
-                                fixed_items,
-                                stackability_groups,
-                                rectangle_instance,
-                                rectangle2boxstacks,
-                                rectangle_parameters);
-                        failed_middle_axle_weight_constraint_cur |= (subproblem_output.solution.compute_middle_axle_weight_constraints_violation() > 0);
-                        failed_rear_axle_weight_constraint_cur |= (subproblem_output.solution.compute_rear_axle_weight_constraints_violation() > 0);
-                        if (output.solution_pool.best().full()) {
-                            FFOT_LOG_FOLD_END(logger, "");
-                            FFOT_LOG_FOLD_END(logger, "");
-                            algorithm_formatter.end();
-                            return output;
-                        }
+                    rectangle::BranchingScheme::Parameters rectangle_parameters;
+                    rectangle_parameters.guide_id = 8;
+                    rectangle_parameters.predecessor_strategy = 1;
+                    rectangle_parameters.group_guiding_strategy = 1;
+                    rectangle_parameters.staircase = false;
+                    rectangle_parameters.fixed_items = &rectangle_fixed_items;
+                    auto subproblem_output = sequential_onedimensional_rectangle_subproblem(
+                            instance,
+                            parameters,
+                            output,
+                            algorithm_formatter,
+                            fixed_items,
+                            stackability_groups,
+                            rectangle_instance,
+                            rectangle2boxstacks,
+                            rectangle_parameters);
+                    if (output.solution_pool.best().full()) {
+                        FFOT_LOG_FOLD_END(logger, "");
+                        FFOT_LOG_FOLD_END(logger, "");
+                        algorithm_formatter.end();
+                        return output;
                     }
 
-                    {
-                        rectangle::BranchingScheme::Parameters rectangle_parameters;
-                        rectangle_parameters.guide_id = 5;
-                        rectangle_parameters.predecessor_strategy = 0;
-                        rectangle_parameters.group_guiding_strategy = 1;
-                        rectangle_parameters.staircase = false;
-                        rectangle_parameters.fixed_items = &rectangle_fixed_items;
-                        auto subproblem_output = sequential_onedimensional_rectangle_subproblem(
-                                instance,
-                                parameters,
-                                rectangle_queue_size,
-                                output,
-                                algorithm_formatter,
-                                fixed_items,
-                                stackability_groups,
-                                rectangle_instance,
-                                rectangle2boxstacks,
-                                rectangle_parameters);
-                        if (output.solution_pool.best().full()) {
-                            FFOT_LOG_FOLD_END(logger, "");
-                            FFOT_LOG_FOLD_END(logger, "");
-                            algorithm_formatter.end();
-                            return output;
-                        }
-                        failed_middle_axle_weight_constraint_cur |= (subproblem_output.solution.compute_middle_axle_weight_constraints_violation() > 0);
-                        failed_rear_axle_weight_constraint_cur |= (subproblem_output.solution.compute_rear_axle_weight_constraints_violation() > 0);
+                } else if (failed_rear_axle_weight_constraint_cur) {
+
+                    rectangle::BranchingScheme::Parameters rectangle_parameters;
+                    rectangle_parameters.guide_id = 9;
+                    rectangle_parameters.predecessor_strategy = 2;
+                    rectangle_parameters.group_guiding_strategy = 1;
+                    rectangle_parameters.staircase = false;
+                    rectangle_parameters.fixed_items = &rectangle_fixed_items;
+                    auto subproblem_output = sequential_onedimensional_rectangle_subproblem(
+                            instance,
+                            parameters,
+                            output,
+                            algorithm_formatter,
+                            fixed_items,
+                            stackability_groups,
+                            rectangle_instance,
+                            rectangle2boxstacks,
+                            rectangle_parameters);
+                    if (output.solution_pool.best().full()) {
+                        FFOT_LOG_FOLD_END(logger, "");
+                        FFOT_LOG_FOLD_END(logger, "");
+                        algorithm_formatter.end();
+                        return output;
                     }
 
-                    if (!failed_middle_axle_weight_constraint_cur
-                            && !failed_rear_axle_weight_constraint_cur
-                            && fixed_items_solutions_pos == 0
-                            && output.number_of_stack_splits == 0) {
-                        // Genuine geometric/weight capacity limit, unrelated to
-                        // axle weight: only give up once the largest queue size
-                        // has been tried, otherwise keep growing.
-                        if (rectangle_queue_size_is_last) {
-                            FFOT_LOG_FOLD_END(logger, "");
-                            FFOT_LOG_FOLD_END(logger, "");
-                            algorithm_formatter.end();
-                            return output;
-                        }
+                } else {
+                    try_to_pack_all_items = false;
+                }
+            }
+
+            if (!try_to_pack_all_items) {
+
+                // All items do not fit in the bin. We try to maximize the profit
+                // of the packed items.
+                // First we try to pack with guides 4 and 5.
+                // If the axle weight constraints happened to be critical, then we
+                // try again with guide 8.
+
+                {
+                    rectangle::BranchingScheme::Parameters rectangle_parameters;
+                    rectangle_parameters.guide_id = 4;
+                    rectangle_parameters.predecessor_strategy = 0;
+                    rectangle_parameters.group_guiding_strategy = 1;
+                    rectangle_parameters.staircase = false;
+                    rectangle_parameters.fixed_items = &rectangle_fixed_items;
+                    auto subproblem_output = sequential_onedimensional_rectangle_subproblem(
+                            instance,
+                            parameters,
+                            output,
+                            algorithm_formatter,
+                            fixed_items,
+                            stackability_groups,
+                            rectangle_instance,
+                            rectangle2boxstacks,
+                            rectangle_parameters);
+                    failed_middle_axle_weight_constraint_cur |= (subproblem_output.solution.compute_middle_axle_weight_constraints_violation() > 0);
+                    failed_rear_axle_weight_constraint_cur |= (subproblem_output.solution.compute_rear_axle_weight_constraints_violation() > 0);
+                    if (output.solution_pool.best().full()) {
+                        FFOT_LOG_FOLD_END(logger, "");
+                        FFOT_LOG_FOLD_END(logger, "");
+                        algorithm_formatter.end();
+                        return output;
+                    }
+                }
+
+                {
+                    rectangle::BranchingScheme::Parameters rectangle_parameters;
+                    rectangle_parameters.guide_id = 5;
+                    rectangle_parameters.predecessor_strategy = 0;
+                    rectangle_parameters.group_guiding_strategy = 1;
+                    rectangle_parameters.staircase = false;
+                    rectangle_parameters.fixed_items = &rectangle_fixed_items;
+                    auto subproblem_output = sequential_onedimensional_rectangle_subproblem(
+                            instance,
+                            parameters,
+                            output,
+                            algorithm_formatter,
+                            fixed_items,
+                            stackability_groups,
+                            rectangle_instance,
+                            rectangle2boxstacks,
+                            rectangle_parameters);
+                    if (output.solution_pool.best().full()) {
+                        FFOT_LOG_FOLD_END(logger, "");
+                        FFOT_LOG_FOLD_END(logger, "");
+                        algorithm_formatter.end();
+                        return output;
+                    }
+                    failed_middle_axle_weight_constraint_cur |= (subproblem_output.solution.compute_middle_axle_weight_constraints_violation() > 0);
+                    failed_rear_axle_weight_constraint_cur |= (subproblem_output.solution.compute_rear_axle_weight_constraints_violation() > 0);
+                }
+
+                if (!failed_middle_axle_weight_constraint_cur
+                        && !failed_rear_axle_weight_constraint_cur
+                        && fixed_items_solutions_pos == 0
+                        && output.number_of_stack_splits == 0) {
+                    FFOT_LOG_FOLD_END(logger, "");
+                    FFOT_LOG_FOLD_END(logger, "");
+                    algorithm_formatter.end();
+                    return output;
+                }
+
+                if (failed_middle_axle_weight_constraint_cur) {
+
+                    rectangle::BranchingScheme::Parameters rectangle_parameters;
+                    rectangle_parameters.guide_id = 8;
+                    rectangle_parameters.predecessor_strategy = 1;
+                    rectangle_parameters.group_guiding_strategy = 1;
+                    rectangle_parameters.staircase = false;
+                    rectangle_parameters.fixed_items = &rectangle_fixed_items;
+                    auto subproblem_output = sequential_onedimensional_rectangle_subproblem(
+                            instance,
+                            parameters,
+                            output,
+                            algorithm_formatter,
+                            fixed_items,
+                            stackability_groups,
+                            rectangle_instance,
+                            rectangle2boxstacks,
+                            rectangle_parameters);
+                    if (output.solution_pool.best().full()) {
+                        FFOT_LOG_FOLD_END(logger, "");
+                        FFOT_LOG_FOLD_END(logger, "");
+                        algorithm_formatter.end();
+                        return output;
                     }
 
-                    if (failed_middle_axle_weight_constraint_cur) {
+                } else if (failed_rear_axle_weight_constraint) {
 
-                        rectangle::BranchingScheme::Parameters rectangle_parameters;
-                        rectangle_parameters.guide_id = 8;
-                        rectangle_parameters.predecessor_strategy = 1;
-                        rectangle_parameters.group_guiding_strategy = 1;
-                        rectangle_parameters.staircase = false;
-                        rectangle_parameters.fixed_items = &rectangle_fixed_items;
-                        auto subproblem_output = sequential_onedimensional_rectangle_subproblem(
-                                instance,
-                                parameters,
-                                rectangle_queue_size,
-                                output,
-                                algorithm_formatter,
-                                fixed_items,
-                                stackability_groups,
-                                rectangle_instance,
-                                rectangle2boxstacks,
-                                rectangle_parameters);
-                        if (output.solution_pool.best().full()) {
-                            FFOT_LOG_FOLD_END(logger, "");
-                            FFOT_LOG_FOLD_END(logger, "");
-                            algorithm_formatter.end();
-                            return output;
-                        }
-
-                    } else if (failed_rear_axle_weight_constraint) {
-
-                        rectangle::BranchingScheme::Parameters rectangle_parameters;
-                        rectangle_parameters.guide_id = 9;
-                        rectangle_parameters.predecessor_strategy = 2;
-                        rectangle_parameters.group_guiding_strategy = 1;
-                        rectangle_parameters.staircase = false;
-                        rectangle_parameters.fixed_items = &rectangle_fixed_items;
-                        auto subproblem_output = sequential_onedimensional_rectangle_subproblem(
-                                instance,
-                                parameters,
-                                rectangle_queue_size,
-                                output,
-                                algorithm_formatter,
-                                fixed_items,
-                                stackability_groups,
-                                rectangle_instance,
-                                rectangle2boxstacks,
-                                rectangle_parameters);
-                        if (output.solution_pool.best().full()) {
-                            FFOT_LOG_FOLD_END(logger, "");
-                            algorithm_formatter.end();
-                            return output;
-                        }
-
+                    rectangle::BranchingScheme::Parameters rectangle_parameters;
+                    rectangle_parameters.guide_id = 9;
+                    rectangle_parameters.predecessor_strategy = 2;
+                    rectangle_parameters.group_guiding_strategy = 1;
+                    rectangle_parameters.staircase = false;
+                    rectangle_parameters.fixed_items = &rectangle_fixed_items;
+                    auto subproblem_output = sequential_onedimensional_rectangle_subproblem(
+                            instance,
+                            parameters,
+                            output,
+                            algorithm_formatter,
+                            fixed_items,
+                            stackability_groups,
+                            rectangle_instance,
+                            rectangle2boxstacks,
+                            rectangle_parameters);
+                    if (output.solution_pool.best().full()) {
+                        FFOT_LOG_FOLD_END(logger, "");
+                        algorithm_formatter.end();
+                        return output;
                     }
 
                 }
+
             }
 
             failed_middle_axle_weight_constraint |= failed_middle_axle_weight_constraint_cur;

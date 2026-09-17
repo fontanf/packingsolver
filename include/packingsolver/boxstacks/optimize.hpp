@@ -193,6 +193,31 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
     NodeId column_generation_subproblem_tree_search_queue_size = 512;
 
     /*
+     * Parameters for anytime mode
+     */
+
+    /**
+     * Initial size of the queue of the boxstacks branching scheme's 3D
+     * fallback inside the sequential_onedimensional_rectangle algorithm,
+     * grown from there - see 'optimize_sequential_onedimensional_rectangle()'.
+     */
+    NodeId anytime_tree_search_initial_queue_size = 1;
+
+    /**
+     * Initial size of the queue of the rectangle subproblem inside the
+     * sequential_onedimensional_rectangle algorithm, grown from there - see
+     * 'optimize_sequential_onedimensional_rectangle()'.
+     *
+     * Twice 'anytime_tree_search_initial_queue_size' by default, matching
+     * the ratio between 'not_anytime_sequential_onedimensional_rectangle_rectangle_tree_search_queue_size'
+     * (1024) and 'not_anytime_tree_search_queue_size' (512), so that both
+     * queues reach their respective non-anytime size at the same level as
+     * they grow together, instead of one finishing growing well before the
+     * other.
+     */
+    NodeId anytime_sequential_onedimensional_rectangle_rectangle_initial_queue_size = 2;
+
+    /*
      * Parameters for non-anytime mode
      */
 
@@ -204,6 +229,15 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
      * single knapsack algorithm.
      */
     NodeId not_anytime_sequential_single_knapsack_subproblem_tree_search_queue_size = 512;
+
+    /**
+     * Size of the queue of the rectangle subproblem inside the
+     * sequential_onedimensional_rectangle algorithm - see
+     * 'optimize_sequential_onedimensional_rectangle()'. The boxstacks
+     * branching scheme's own 3D fallback there uses
+     * 'not_anytime_tree_search_queue_size' instead.
+     */
+    NodeId not_anytime_sequential_onedimensional_rectangle_rectangle_tree_search_queue_size = 1024;
 
     /** Number of iterations of the sequential value correction algorithm. */
     Counter not_anytime_sequential_value_correction_number_of_iterations = 32;

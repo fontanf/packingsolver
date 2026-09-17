@@ -68,18 +68,14 @@ struct SequentialOneDimensionalRectangleParameters: packingsolver::Parameters<In
     onedimensional::OptimizeParameters onedimensional_parameters;
 
     /**
-     * Optimization mode of the rectangle subproblem.
+     * Size of the queue in the rectangle subproblem.
      *
-     * When 'Anytime', the rectangle subproblem is solved at growing queue
-     * sizes (1, 2, 4, ..., 'rectangle_queue_size'), reporting the best
-     * solution found at each size, so that a time limit shorter than the
-     * full-size pass still leaves a complete pass instead of a truncated
-     * one. Otherwise, a single pass of size 'rectangle_queue_size' is
-     * performed, as usual.
+     * A single pass of this size is performed. Growing it across successive
+     * calls to get an anytime behavior is the caller's responsibility - see
+     * 'boxstacks::optimize_sequential_onedimensional_rectangle()', which
+     * also interleaves it with growing the boxstacks branching scheme's own
+     * queue size.
      */
-    OptimizationMode optimization_mode = OptimizationMode::NotAnytime;
-
-    /** Size of the queue in the rectangle subproblem. */
     NodeId rectangle_queue_size = 1024;
 
     bool move_intra_shift = false;
