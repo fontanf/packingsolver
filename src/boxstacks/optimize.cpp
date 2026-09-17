@@ -10,6 +10,7 @@
 #include "packingsolver/onedimensional/instance_builder.hpp"
 #include "packingsolver/onedimensional/optimize.hpp"
 
+#include "algorithms/dichotomic_search.hpp"
 #include "algorithms/sequential_value_correction.hpp"
 
 using namespace packingsolver;
@@ -357,6 +358,163 @@ void optimize_sequential_onedimensional_rectangle(
     }
 }
 
+// Multi-bin 'BinPacking' fallback for when the sequential value correction
+// algorithm below takes too long to reach a first feasible solution: solves
+// a sequence of single-bin knapsack subproblems (one bin filled at a time,
+// like sequential value correction, but with a single, unadjusted pass -
+// see 'SequentialValueCorrectionParameters::maximum_number_of_iterations'
+// and 'initial_profit_exponent' below) at a queue size that grows in
+// 'Anytime' mode, the same shape as every other problem type's own
+// 'optimize_sequential_single_knapsack'.
+void optimize_sequential_single_knapsack(
+        const Instance& instance,
+        const OptimizeParameters& parameters,
+        AlgorithmFormatter& algorithm_formatter,
+        boxstacks::Output& output)
+{
+    for (Counter growth_factor = 1;;) {
+        // Each subproblem call recurses into a single-bin 'optimize()',
+        // which goes through 'optimize_sequential_onedimensional_rectangle()'
+        // - so, like that function's own loop, this grows both the
+        // subproblem's rectangle and tree search queue sizes together, from
+        // their own 'anytime_*_initial_queue_size', rather than from a
+        // shared '1'.
+        NodeId rectangle_queue_size
+            = parameters.anytime_sequential_onedimensional_rectangle_rectangle_initial_queue_size
+            * growth_factor;
+        NodeId tree_search_queue_size
+            = parameters.anytime_tree_search_initial_queue_size
+            * growth_factor;
+        if (parameters.optimization_mode != OptimizationMode::Anytime) {
+            rectangle_queue_size = parameters
+                .not_anytime_sequential_single_knapsack_subproblem_rectangle_tree_search_queue_size;
+            tree_search_queue_size = parameters
+                .not_anytime_sequential_single_knapsack_subproblem_tree_search_queue_size;
+        }
+
+        SequentialValueCorrectionFunction<Instance, Solution> kp_solve
+            = [&algorithm_formatter, &parameters, &output, &rectangle_queue_size, &tree_search_queue_size](
+                    const Instance& kp_instance)
+            {
+                OptimizeParameters kp_parameters;
+                kp_parameters.verbosity_level = 0;
+                kp_parameters.timer = parameters.timer;
+                kp_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+                kp_parameters.optimization_mode
+                    = (parameters.optimization_mode == OptimizationMode::NotAnytimeSequential)?
+                    OptimizationMode::NotAnytimeSequential:
+                    OptimizationMode::NotAnytimeDeterministic;
+                kp_parameters.not_anytime_sequential_onedimensional_rectangle_rectangle_tree_search_queue_size
+                    = rectangle_queue_size;
+                kp_parameters.not_anytime_tree_search_queue_size = tree_search_queue_size;
+                kp_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
+                auto kp_output = optimize(kp_instance, kp_parameters);
+
+                // Update output.
+                output.sequential_onedimensional_rectangle_time += kp_output.sequential_onedimensional_rectangle_time;
+                output.sequential_onedimensional_rectangle_rectangle_time += kp_output.sequential_onedimensional_rectangle_rectangle_time;
+                output.sequential_onedimensional_rectangle_onedimensional_time += kp_output.sequential_onedimensional_rectangle_onedimensional_time;
+                output.tree_search_time += kp_output.tree_search_time;
+                output.number_of_sequential_onedimensional_rectangle_calls += kp_output.number_of_sequential_onedimensional_rectangle_calls;
+                output.number_of_sequential_onedimensional_rectangle_perfect += kp_output.number_of_sequential_onedimensional_rectangle_perfect;
+                output.number_of_sequential_onedimensional_rectangle_good += kp_output.number_of_sequential_onedimensional_rectangle_good;
+                output.number_of_tree_search_calls += kp_output.number_of_tree_search_calls;
+                output.number_of_tree_search_perfect += kp_output.number_of_tree_search_perfect;
+                output.number_of_tree_search_better += kp_output.number_of_tree_search_better;
+                return kp_output.solution_pool;
+            };
+        SequentialValueCorrectionParameters<Instance, Solution, boxstacks::Output> svc_parameters;
+        svc_parameters.verbosity_level = 0;
+        svc_parameters.timer = parameters.timer;
+        svc_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+        svc_parameters.maximum_number_of_iterations = 1;
+        // No later iteration to adjust profits away from this initial
+        // value - see 'SequentialValueCorrectionParameters::
+        // initial_profit_exponent''s own doc comment.
+        svc_parameters.initial_profit_exponent = 1.0;
+        svc_parameters.new_solution_callback = [&algorithm_formatter, &growth_factor](
+                const boxstacks::Output& ps_output)
+            {
+                const SequentialValueCorrectionOutput<Instance, Solution, boxstacks::Output>& pssvc_output
+                    = static_cast<const SequentialValueCorrectionOutput<Instance, Solution, boxstacks::Output>&>(ps_output);
+                std::stringstream ss;
+                ss << "SSK it " << pssvc_output.number_of_iterations
+                    << " g " << growth_factor;
+                algorithm_formatter.update_solution(pssvc_output.solution_pool.best(), ss.str());
+            };
+        sequential_value_correction<Instance, InstanceBuilder, Solution, AlgorithmFormatter, boxstacks::Output>(
+                instance, kp_solve, svc_parameters);
+
+        // Check end.
+        if (algorithm_formatter.end_boolean())
+            break;
+        if (parameters.timer.needs_to_end())
+            break;
+        if (parameters.optimization_mode != OptimizationMode::Anytime)
+            break;
+
+        growth_factor = std::max(
+                growth_factor + 1,
+                (Counter)(growth_factor * 2));
+    }
+}
+
+void optimize_sequential_value_correction(
+        const Instance& instance,
+        const OptimizeParameters& parameters,
+        AlgorithmFormatter& algorithm_formatter,
+        boxstacks::Output& output)
+{
+    SequentialValueCorrectionFunction<Instance, Solution> kp_solve
+        = [&algorithm_formatter, &parameters, &output](const Instance& kp_instance)
+        {
+            OptimizeParameters kp_parameters;
+            kp_parameters.verbosity_level = 0;
+            kp_parameters.timer = parameters.timer;
+            kp_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+            kp_parameters.optimization_mode
+                = (parameters.optimization_mode == OptimizationMode::NotAnytimeSequential)?
+                OptimizationMode::NotAnytimeSequential:
+                OptimizationMode::NotAnytimeDeterministic;
+            kp_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
+            kp_parameters.not_anytime_tree_search_queue_size
+                = parameters.sequential_value_correction_subproblem_tree_search_queue_size;
+            auto kp_output = optimize(kp_instance, kp_parameters);
+
+            // Update output.
+            output.sequential_onedimensional_rectangle_time += kp_output.sequential_onedimensional_rectangle_time;
+            output.sequential_onedimensional_rectangle_rectangle_time += kp_output.sequential_onedimensional_rectangle_rectangle_time;
+            output.sequential_onedimensional_rectangle_onedimensional_time += kp_output.sequential_onedimensional_rectangle_onedimensional_time;
+            output.tree_search_time += kp_output.tree_search_time;
+            output.number_of_sequential_onedimensional_rectangle_calls += kp_output.number_of_sequential_onedimensional_rectangle_calls;
+            output.number_of_sequential_onedimensional_rectangle_perfect += kp_output.number_of_sequential_onedimensional_rectangle_perfect;
+            output.number_of_sequential_onedimensional_rectangle_good += kp_output.number_of_sequential_onedimensional_rectangle_good;
+            output.number_of_tree_search_calls += kp_output.number_of_tree_search_calls;
+            output.number_of_tree_search_perfect += kp_output.number_of_tree_search_perfect;
+            output.number_of_tree_search_better += kp_output.number_of_tree_search_better;
+            return kp_output.solution_pool;
+        };
+    SequentialValueCorrectionParameters<Instance, Solution, boxstacks::Output> svc_parameters;
+    svc_parameters.verbosity_level = 0;
+    svc_parameters.timer = parameters.timer;
+    svc_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+    if (parameters.optimization_mode != OptimizationMode::Anytime) {
+        svc_parameters.maximum_number_of_iterations
+            = parameters.not_anytime_sequential_value_correction_number_of_iterations;
+    }
+    svc_parameters.new_solution_callback = [&algorithm_formatter](
+            const boxstacks::Output& ps_output)
+        {
+            const SequentialValueCorrectionOutput<Instance, Solution, boxstacks::Output>& pssvc_output
+                = static_cast<const SequentialValueCorrectionOutput<Instance, Solution, boxstacks::Output>&>(ps_output);
+            std::stringstream ss;
+            ss << "SVC it " << pssvc_output.number_of_iterations;
+            algorithm_formatter.update_solution(pssvc_output.solution_pool.best(), ss.str());
+        };
+    sequential_value_correction<Instance, InstanceBuilder, Solution, AlgorithmFormatter, boxstacks::Output>(
+            instance, kp_solve, svc_parameters);
+}
+
 }
 
 packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
@@ -440,50 +598,52 @@ packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
 
     } else {
 
-        SequentialValueCorrectionFunction<Instance, Solution> kp_solve
-            = [&algorithm_formatter, &parameters, &output](const Instance& kp_instance)
-            {
-                OptimizeParameters kp_parameters;
-                kp_parameters.verbosity_level = 0;
-                kp_parameters.timer = parameters.timer;
-                kp_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
-                kp_parameters.optimization_mode
-                    = (parameters.optimization_mode == OptimizationMode::NotAnytimeSequential)?
-                    OptimizationMode::NotAnytimeSequential:
-                    OptimizationMode::NotAnytimeDeterministic;
-                kp_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
-                kp_parameters.not_anytime_tree_search_queue_size
-                    = parameters.sequential_value_correction_subproblem_tree_search_queue_size;
-                //kp_parameters.sequential_onedimensional_rectangle_parameters.rectangle_queue_size = parameters.sequential_value_correction_queue_size;
-                auto kp_output = optimize(kp_instance, kp_parameters);
+        // Select algorithms to run. Only automated for 'BinPacking' for now
+        // - variable-sized bin packing and multi-bin knapsack keep their
+        // previous, sequential-value-correction-only behavior.
+        bool use_sequential_single_knapsack = parameters.use_sequential_single_knapsack;
+        bool use_sequential_value_correction = parameters.use_sequential_value_correction;
+        if (instance.objective() != Objective::BinPacking) {
+            use_sequential_value_correction = true;
+        } else if (!use_sequential_single_knapsack
+                && !use_sequential_value_correction) {
+            // Same criterion as every other problem type's own automatic
+            // selection (e.g. 'box::optimize()'): an instance with "many"
+            // copies of "few" item types relative to how many items fit per
+            // bin looks knapsack-heavy, so prefer filling one bin at a time
+            // (sequential single knapsack) once bins are additionally
+            // "large" enough for that per-bin search to be worthwhile;
+            // otherwise sequential value correction's incremental profit
+            // adjustment is cheaper per iteration.
+            ItemPos mean_number_of_items_in_bins
+                = largest_bin_space(instance) / mean_item_space(instance);
+            Counter threshold
+                = (mean_item_type_copies(instance)
+                        > parameters.many_item_type_copies_factor
+                        * mean_number_of_items_in_bins)?
+                parameters.many_items_in_bins_threshold:
+                parameters.many_items_in_bins_threshold_2;
+            if (mean_number_of_items_in_bins > threshold) {
+                use_sequential_single_knapsack = true;
+            } else {
+                use_sequential_value_correction = true;
+            }
+        }
 
-                // Update output.
-                output.sequential_onedimensional_rectangle_time += kp_output.sequential_onedimensional_rectangle_time;
-                output.sequential_onedimensional_rectangle_rectangle_time += kp_output.sequential_onedimensional_rectangle_rectangle_time;
-                output.sequential_onedimensional_rectangle_onedimensional_time += kp_output.sequential_onedimensional_rectangle_onedimensional_time;
-                output.tree_search_time += kp_output.tree_search_time;
-                output.number_of_sequential_onedimensional_rectangle_calls += kp_output.number_of_sequential_onedimensional_rectangle_calls;
-                output.number_of_sequential_onedimensional_rectangle_perfect += kp_output.number_of_sequential_onedimensional_rectangle_perfect;
-                output.number_of_sequential_onedimensional_rectangle_good += kp_output.number_of_sequential_onedimensional_rectangle_good;
-                output.number_of_tree_search_calls += kp_output.number_of_tree_search_calls;
-                output.number_of_tree_search_perfect += kp_output.number_of_tree_search_perfect;
-                output.number_of_tree_search_better += kp_output.number_of_tree_search_better;
-                return kp_output.solution_pool;
-            };
-        SequentialValueCorrectionParameters<Instance, Solution, boxstacks::Output> svc_parameters;
-        svc_parameters.verbosity_level = 0;
-        svc_parameters.timer = parameters.timer;
-        svc_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
-        svc_parameters.new_solution_callback = [&algorithm_formatter](
-                const boxstacks::Output& ps_output)
-        {
-            const SequentialValueCorrectionOutput<Instance, Solution, boxstacks::Output>& pssvc_output
-                = static_cast<const SequentialValueCorrectionOutput<Instance, Solution, boxstacks::Output>&>(ps_output);
-            std::stringstream ss;
-            ss << "iteration " << pssvc_output.number_of_iterations;
-            algorithm_formatter.update_solution(pssvc_output.solution_pool.best(), ss.str());
-        };
-        auto svc_output = sequential_value_correction<Instance, InstanceBuilder, Solution, AlgorithmFormatter, boxstacks::Output>(instance, kp_solve, svc_parameters);
+        if (use_sequential_single_knapsack) {
+            optimize_sequential_single_knapsack(
+                    instance,
+                    parameters,
+                    algorithm_formatter,
+                    output);
+        }
+        if (use_sequential_value_correction) {
+            optimize_sequential_value_correction(
+                    instance,
+                    parameters,
+                    algorithm_formatter,
+                    output);
+        }
 
     }
 

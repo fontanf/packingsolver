@@ -177,8 +177,25 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
     /** Use sequential single knapsack algorithm. */
     bool use_sequential_single_knapsack = false;
 
+    /** Use sequential value correction algorithm. */
+    bool use_sequential_value_correction = false;
+
     /** Guides used in the tree search algorithm. */
     std::vector<GuideId> tree_search_guides;
+
+    /**
+     * Threshold to consider that a bin contains "many" items - see the
+     * automatic selection between 'use_sequential_single_knapsack' and
+     * 'use_sequential_value_correction' for multi-bin 'BinPacking' instances
+     * in 'optimize()'.
+     */
+    Counter many_items_in_bins_threshold = 16;
+
+    /** Threshold to consider that a bin contains "many" items. */
+    Counter many_items_in_bins_threshold_2 = 64;
+
+    /** Factor to consider that the number of copies of items is "high". */
+    Counter many_item_type_copies_factor = 1;
 
     /**
      * Size of the queue for the pricing knapsack subproblem of the sequential
@@ -225,10 +242,21 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
     NodeId not_anytime_tree_search_queue_size = 512;
 
     /**
-     * Size of the queue in the single knapsack subproblem of the sequential
-     * single knapsack algorithm.
+     * Size of the queue of the boxstacks branching scheme's 3D fallback
+     * inside the single knapsack subproblem of the sequential single
+     * knapsack algorithm (each subproblem call recurses into a single-bin
+     * 'optimize()', which goes through
+     * 'optimize_sequential_onedimensional_rectangle()' - see there).
      */
     NodeId not_anytime_sequential_single_knapsack_subproblem_tree_search_queue_size = 512;
+
+    /**
+     * Size of the queue of the rectangle subproblem inside the single
+     * knapsack subproblem of the sequential single knapsack algorithm - see
+     * 'not_anytime_sequential_single_knapsack_subproblem_tree_search_queue_size'
+     * above.
+     */
+    NodeId not_anytime_sequential_single_knapsack_subproblem_rectangle_tree_search_queue_size = 1024;
 
     /**
      * Size of the queue of the rectangle subproblem inside the
