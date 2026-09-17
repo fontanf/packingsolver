@@ -235,6 +235,8 @@ SequentialOneDimensionalRectangleSubproblemOutput sequential_onedimensional_rect
     auto rectangle_output = treesearchsolver::iterative_beam_search_2<rectangle::BranchingScheme>(
             rectangle_branching_scheme,
             ibs_parameters);
+    if (sor_output.number_of_iterations == 0 && rectangle_output.optimal)
+        sor_output.rectangle_subproblem_explored_exhaustively = true;
     auto rectangle_end = std::chrono::steady_clock::now();
     std::chrono::duration<double> rectangle_time_span
         = std::chrono::duration_cast<std::chrono::duration<double>>(rectangle_end - rectangle_begin);

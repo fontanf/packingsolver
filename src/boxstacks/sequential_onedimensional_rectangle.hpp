@@ -58,6 +58,22 @@ struct SequentialOneDimensionalRectangleOutput: Output
 
     /** Time spent in the rectangle subproblem. */
     double rectangle_time = 0.0;
+
+    /**
+     * True if, on the first iteration (see 'number_of_iterations'), at
+     * least one rectangle branching scheme call explored its whole reachable
+     * search space without the queue size ever being the limiting factor
+     * (the underlying 'iterative_beam_search_2' call's own 'optimal' output
+     * field) - i.e. a larger queue size is guaranteed to yield the exact
+     * same rectangle subproblem result.
+     *
+     * Lets a caller growing the queue size across successive calls (see
+     * 'boxstacks::optimize_sequential_onedimensional_rectangle()') detect
+     * that growing further is pointless - which on a small/easy instance can
+     * otherwise happen so many times, so fast, that the queue size overflows
+     * - without having to pick an arbitrary cap.
+     */
+    bool rectangle_subproblem_explored_exhaustively = false;
 };
 
 struct SequentialOneDimensionalRectangleParameters: packingsolver::Parameters<Instance, Solution, Output>

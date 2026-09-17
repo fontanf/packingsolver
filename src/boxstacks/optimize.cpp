@@ -254,7 +254,7 @@ void optimize_sequential_onedimensional_rectangle(
         if (!sor_output.solution_pool.best().full())
             output.sequential_onedimensional_rectangle_failed = sor_output.failed;
 
-        bool full = (output.solution_pool.best().number_of_items() == instance.number_of_items());
+        bool run_boxstacks_branching_scheme = false;
 
         // The boxstacks branching scheme is significantly more expensive than
         // SOR above. Run it, once this level's whole 1D + rectangle process
@@ -263,10 +263,12 @@ void optimize_sequential_onedimensional_rectangle(
         //   reason to expect tree_search would do better otherwise).
         // - The weight of every unpacked item is greater than the remaining
         //   capacity (no way to pack more regardless of geometry).
-        if (!full
-                && !algorithm_formatter.end_boolean()
+        // A full pack already sets 'end_boolean()' on its own (every
+        // 'update_solution()' call checks 'is_proven_optimal()'), so no
+        // separate check for it is needed here.
+        if (!algorithm_formatter.end_boolean()
                 && !parameters.timer.needs_to_end()) {
-            bool run_boxstacks_branching_scheme = sor_output.failed;
+            run_boxstacks_branching_scheme = sor_output.failed;
             bool no_lighter_item = true;
             for (ItemTypeId item_type_id = 0;
                     item_type_id < instance.number_of_item_types();
@@ -298,6 +300,16 @@ void optimize_sequential_onedimensional_rectangle(
                         ss << "TS " << ts_output.solution_pool.best_label()
                             << " g " << growth_factor;
                         algorithm_formatter.update_solution(ts_output.solution_pool.best(), ss.str());
+                        // Forward any bound tree_search's own exhaustively-
+                        // explored guides proved (see its 'local_outputs'/
+                        // 'tssibs_output.optimal' handling): once it matches
+                        // the best profit/cost found, this sets
+                        // 'end_boolean()' the same way a full pack already
+                        // does, letting the loop below stop growing on a
+                        // genuinely axle-weight-infeasible instance instead
+                        // of only being able to give up when tree_search
+                        // isn't tried at all.
+                        algorithm_formatter.update_bounds(ts_output);
                     };
                 tree_search(instance, ts_parameters);
 
@@ -305,8 +317,7 @@ void optimize_sequential_onedimensional_rectangle(
                 output.tree_search_time += std::chrono::duration_cast<
                     std::chrono::duration<double>>(bs_end - bs_begin).count();
                 output.number_of_tree_search_calls++;
-                full = (output.solution_pool.best().number_of_items() == instance.number_of_items());
-                if (full) {
+                if (output.solution_pool.best().number_of_items() == instance.number_of_items()) {
                     output.number_of_tree_search_perfect++;
                 } else if (output.solution_pool.best().profit() > sor_output.solution_pool.best().profit()) {
                     output.number_of_tree_search_better++;
@@ -316,17 +327,28 @@ void optimize_sequential_onedimensional_rectangle(
             }
         }
 
-        if (full && growth_factor == 1)
+        if (growth_factor == 1
+                && output.solution_pool.best().number_of_items() == instance.number_of_items())
             output.number_of_sequential_onedimensional_rectangle_perfect++;
 
         // Check end.
-        if (full)
-            break;
         if (algorithm_formatter.end_boolean())
             break;
         if (parameters.timer.needs_to_end())
             break;
         if (parameters.optimization_mode != OptimizationMode::Anytime)
+            break;
+        // A larger rectangle queue size is guaranteed not to change SOR's
+        // result (see 'rectangle_subproblem_explored_exhaustively''s own
+        // doc comment). That alone isn't enough to stop, though: tree_search
+        // (a distinct search space) may still benefit from growing further,
+        // so only stop here when it isn't even being tried - otherwise
+        // growing further would be pointless on both fronts, and on a
+        // small/easy instance could otherwise keep doubling long after
+        // every call above returns in microseconds, until 'growth_factor'
+        // overflows.
+        if (!run_boxstacks_branching_scheme
+                && sor_output.rectangle_subproblem_explored_exhaustively)
             break;
 
         growth_factor = std::max(
