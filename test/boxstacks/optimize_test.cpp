@@ -94,3 +94,39 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "boxstacks" / "tests" / "variable_sized_bin_packing_two_pallet_types_time_limit" / "solution.csv",
                 3.0,
             }}));
+
+TEST(BoxStacksOptimize, AnytimeQueueGrowthStopsAtNotAnytimeSizes)
+{
+    // A 40' HQ container with five cargo types and 1036 items, knapsack: the
+    // best known packing has 1022 items, so no level packs everything, no
+    // bound proves optimality, and the rectangle search does not exhaust its
+    // tree at these sizes, so 'rectangle_subproblem_explored_exhaustively'
+    // never fires either. The only thing that ends the anytime growth loop
+    // of 'optimize_sequential_onedimensional_rectangle' is reaching the
+    // 'not_anytime_*' queue sizes. Lowered here to 64 / 32, the levels are
+    // the growth factors 1, 2, 4, 8, 16 and 32 (rectangle queues 2 to 64,
+    // tree search queues 1 to 32): six SOR calls, a couple of seconds. Without
+    // that bound the loop keeps doubling both queues until the safety time
+    // limit below, and would never return without one.
+    InstanceBuilder instance_builder;
+    instance_builder.read_item_types((fs::path("data") / "boxstacks" / "tests" / "knapsack_forty_hq_five_cargo_types" / "items.csv").string());
+    instance_builder.read_bin_types((fs::path("data") / "boxstacks" / "tests" / "knapsack_forty_hq_five_cargo_types" / "bins.csv").string());
+    instance_builder.read_parameters((fs::path("data") / "boxstacks" / "tests" / "knapsack_forty_hq_five_cargo_types" / "parameters.csv").string());
+    Instance instance = instance_builder.build();
+
+    OptimizeParameters optimize_parameters;
+    optimize_parameters.optimization_mode = packingsolver::OptimizationMode::Anytime;
+    // The algorithm counters live on the 'Output' of the solve that runs the
+    // algorithms; with the reduction wrapper on, the top-level 'Output' only
+    // receives its solutions and bounds. Nothing is reducible here anyway.
+    optimize_parameters.reduction_parameters.reduce = false;
+    optimize_parameters.not_anytime_sequential_onedimensional_rectangle_rectangle_tree_search_queue_size = 64;
+    optimize_parameters.not_anytime_tree_search_queue_size = 32;
+    optimize_parameters.timer.set_time_limit(60);
+    Output output = optimize(instance, optimize_parameters);
+
+    EXPECT_EQ(output.number_of_sequential_onedimensional_rectangle_calls, 6);
+    EXPECT_LT(output.time, 60.0);
+    EXPECT_GT(output.solution_pool.best().number_of_items(), 0);
+    EXPECT_LT(output.solution_pool.best().number_of_items(), instance.number_of_items());
+}

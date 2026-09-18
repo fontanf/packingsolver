@@ -202,17 +202,35 @@ void optimize_sequential_onedimensional_rectangle(
         AlgorithmFormatter& algorithm_formatter,
         boxstacks::Output& output)
 {
+    // The 'not_anytime_*' sizes are the largest queues ever run: the
+    // non-anytime modes run a single pass at them, and in 'Anytime' mode the
+    // growth below stops once both queues have reached them, the level at
+    // those sizes being the last one. Without this bound, an instance that
+    // does not pack fully and whose rectangle search does not exhaust its
+    // tree at these sizes has no other exit signal, so the loop would keep
+    // doubling the queues past them until the time limit, and forever
+    // without one.
+    NodeId rectangle_queue_size_maximum
+        = parameters.not_anytime_sequential_onedimensional_rectangle_rectangle_tree_search_queue_size;
+    NodeId tree_search_queue_size_maximum
+        = parameters.not_anytime_tree_search_queue_size;
     for (Counter growth_factor = 1;;) {
-        NodeId rectangle_queue_size
-            = parameters.anytime_sequential_onedimensional_rectangle_rectangle_initial_queue_size
-            * growth_factor;
-        NodeId tree_search_queue_size
-            = parameters.anytime_tree_search_initial_queue_size
-            * growth_factor;
+        NodeId rectangle_queue_size = std::min(
+                rectangle_queue_size_maximum,
+                parameters.anytime_sequential_onedimensional_rectangle_rectangle_initial_queue_size
+                * growth_factor);
+        NodeId tree_search_queue_size = std::min(
+                tree_search_queue_size_maximum,
+                parameters.anytime_tree_search_initial_queue_size
+                * growth_factor);
         if (parameters.optimization_mode != OptimizationMode::Anytime) {
-            rectangle_queue_size = parameters.not_anytime_sequential_onedimensional_rectangle_rectangle_tree_search_queue_size;
-            tree_search_queue_size = parameters.not_anytime_tree_search_queue_size;
+            rectangle_queue_size = rectangle_queue_size_maximum;
+            tree_search_queue_size = tree_search_queue_size_maximum;
         }
+        bool last_level
+            = (parameters.optimization_mode != OptimizationMode::Anytime)
+            || (rectangle_queue_size >= rectangle_queue_size_maximum
+                    && tree_search_queue_size >= tree_search_queue_size_maximum);
 
         auto sor_begin = std::chrono::steady_clock::now();
 
@@ -336,7 +354,7 @@ void optimize_sequential_onedimensional_rectangle(
             break;
         if (parameters.timer.needs_to_end())
             break;
-        if (parameters.optimization_mode != OptimizationMode::Anytime)
+        if (last_level)
             break;
         // A larger rectangle queue size is guaranteed not to change SOR's
         // result (see 'rectangle_subproblem_explored_exhaustively''s own
