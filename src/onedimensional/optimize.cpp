@@ -255,6 +255,8 @@ void optimize_dynamic_programming(
 
     knapsacksolver::DynamicProgrammingPrimalDualParameters kp_parameters;
     kp_parameters.verbosity_level = 0;
+    kp_parameters.timer = parameters.timer;
+    kp_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
     auto kp_output = knapsacksolver::dynamic_programming_primal_dual(
             kp_instance,
             kp_parameters);
