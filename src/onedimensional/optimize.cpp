@@ -257,6 +257,19 @@ void optimize_dynamic_programming(
     kp_parameters.verbosity_level = 0;
     kp_parameters.timer = parameters.timer;
     kp_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+    // The items here always come from a bounded-multiplicity item type
+    // encoded as 0/1 items via binary/geometric decomposition (see the
+    // 'copies *= 2' loop above): every chunk of one original item type
+    // shares the exact same profit/weight ratio, so none of their achievable
+    // partial sums dominate one another and the algorithm's live-state list
+    // can blow up to encompass nearly every combination instead of staying
+    // small. 'pairing' is an existing (off-by-default, no-op below its size
+    // thresholds) mechanism in knapsacksolver's own algorithm for pulling in
+    // a promising item from outside the current core to close the value/bound
+    // gap once the state list grows large - exactly this situation - so it's
+    // enabled unconditionally here rather than only for this instance shape,
+    // since it costs nothing when the list stays small.
+    kp_parameters.pairing = true;
     auto kp_output = knapsacksolver::dynamic_programming_primal_dual(
             kp_instance,
             kp_parameters);
