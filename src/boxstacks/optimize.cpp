@@ -102,6 +102,13 @@ void optimize_box_bound(
         box_instance_builder.set_bin_type_copies_min(box_bin_type_id, bin_type.copies_min);
         box_instance_builder.set_bin_type_maximum_weight(box_bin_type_id, bin_type.maximum_weight);
     }
+    // Propagate 'instance's own weight tolerance rather than letting it be
+    // recomputed from this relaxation's bin types alone: axle weight limits
+    // (dropped here) can be what actually drives 'instance.weight_tolerance()'
+    // when 'bin_type.maximum_weight' itself is left infinite, in which case
+    // self-computing from only the (infinite) 'maximum_weight' above would
+    // wrongly collapse to the tiny absolute fallback tolerance.
+    box_instance_builder.set_weight_tolerance(instance.weight_tolerance());
     for (ItemTypeId item_type_id = 0;
             item_type_id < instance.number_of_item_types();
             ++item_type_id) {

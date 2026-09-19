@@ -112,7 +112,10 @@ void Solution::update_indicators(
     // Bin 'bin_pos' has just been sized above, so its total weight and axle
     // weight feasibility can be checked and accumulated now.
     total_weight_feasible_ = total_weight_feasible_
-        && !(bin.weight.front() > bin_type.maximum_weight * PSTOL);
+        && !strictly_greater_weight(
+                bin.weight.front(),
+                bin_type.maximum_weight,
+                instance().weight_tolerance());
     axle_weights_feasible_ = axle_weights_feasible_ && feasible_axle_weights(bin_pos);
 
     // Aggregate feasibility, recomputed (not accumulated) on every call since
@@ -132,9 +135,15 @@ bool Solution::feasible_axle_weights(BinPos bin_pos) const
             continue;
         std::pair<double, double> axle_weights = bin_type.semi_trailer_truck_data.compute_axle_weights(
                 bin.weight_weighted_sum[group_id], bin.weight[group_id]);
-        if (axle_weights.first > bin_type.semi_trailer_truck_data.middle_axle_maximum_weight * PSTOL)
+        if (strictly_greater_weight(
+                    axle_weights.first,
+                    bin_type.semi_trailer_truck_data.middle_axle_maximum_weight,
+                    instance().weight_tolerance()))
             return false;
-        if (axle_weights.second > bin_type.semi_trailer_truck_data.rear_axle_maximum_weight * PSTOL)
+        if (strictly_greater_weight(
+                    axle_weights.second,
+                    bin_type.semi_trailer_truck_data.rear_axle_maximum_weight,
+                    instance().weight_tolerance()))
             return false;
     }
     return true;
@@ -330,7 +339,10 @@ Weight Solution::compute_middle_axle_weight_constraints_violation(
             continue;
         std::pair<double, double> axle_weights = bin_type.semi_trailer_truck_data.compute_axle_weights(
                 bin_weight_weighted_sum[group_id], bin_weight[group_id]);
-        if (axle_weights.first > bin_type.semi_trailer_truck_data.middle_axle_maximum_weight * PSTOL)
+        if (strictly_greater_weight(
+                    axle_weights.first,
+                    bin_type.semi_trailer_truck_data.middle_axle_maximum_weight,
+                    instance().weight_tolerance()))
             violation += (group_id + 1) * (axle_weights.first - bin_type.semi_trailer_truck_data.middle_axle_maximum_weight);
     }
 
@@ -351,7 +363,10 @@ Weight Solution::compute_rear_axle_weight_constraints_violation(
             continue;
         std::pair<double, double> axle_weights = bin_type.semi_trailer_truck_data.compute_axle_weights(
                 bin_weight_weighted_sum[group_id], bin_weight[group_id]);
-        if (axle_weights.second > bin_type.semi_trailer_truck_data.rear_axle_maximum_weight * PSTOL)
+        if (strictly_greater_weight(
+                    axle_weights.second,
+                    bin_type.semi_trailer_truck_data.rear_axle_maximum_weight,
+                    instance().weight_tolerance()))
             violation += (group_id + 1) * (axle_weights.second - bin_type.semi_trailer_truck_data.rear_axle_maximum_weight);
     }
 

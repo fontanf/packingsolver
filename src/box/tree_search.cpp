@@ -582,7 +582,10 @@ void BranchingScheme::insertion_item(
     double last_bin_weight = (new_bin == 0)?  // Same bin
         parent->last_bin_weight + item_type.weight:
         item_type.weight;
-    if (last_bin_weight > bin_type.maximum_weight * PSTOL) {
+    if (strictly_greater_weight(
+                last_bin_weight,
+                bin_type.maximum_weight,
+                instance.weight_tolerance())) {
         //std::cout << "maximum_weight" << std::endl;
         return;
     }

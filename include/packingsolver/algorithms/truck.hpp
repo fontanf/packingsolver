@@ -44,10 +44,10 @@ struct SemiTrailerTruckData
     Length trailer_start_harness_distance = 0;
 
     /** Maximum weight on the rear axle of the trailer. */
-    Weight rear_axle_maximum_weight = std::numeric_limits<Weight>::max();
+    Weight rear_axle_maximum_weight = std::numeric_limits<Weight>::infinity();
 
     /** Maximum weight on the middle axle of the trailer. */
-    Weight middle_axle_maximum_weight = std::numeric_limits<Weight>::max();
+    Weight middle_axle_maximum_weight = std::numeric_limits<Weight>::infinity();
 
     std::pair<Weight, Weight> compute_axle_weights(
             double weight_weighted_sum,

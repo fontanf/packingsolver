@@ -138,7 +138,10 @@ std::vector<StackSet> generate_all_stacks(
 
                         // Check maximum weight.
                         Weight weight = current_stack_weight.back() + item_type.weight;
-                        if (weight > stack_maximum_weight * PSTOL) {
+                        if (strictly_greater_weight(
+                                    weight,
+                                    stack_maximum_weight,
+                                    instance.weight_tolerance())) {
                             continue;
                         }
 
@@ -452,7 +455,10 @@ BranchingScheme::BranchingScheme(
             //    << " rear_axle_weight " << axle_weights.second
             //    << " / " << bin_type.rear_axle_maximum_weight
             //    << std::endl;
-            if (axle_weights.first > bin_type.semi_trailer_truck_data.middle_axle_maximum_weight * PSTOL) {
+            if (strictly_greater_weight(
+                        axle_weights.first,
+                        bin_type.semi_trailer_truck_data.middle_axle_maximum_weight,
+                        instance.weight_tolerance())) {
                 //std::cout << "group " << group_id
                 //    << " middle_axle_weight " << axle_weights.first
                 //    << std::endl;
@@ -711,9 +717,15 @@ BranchingScheme::Node BranchingScheme::child_tmp(
             continue;
         std::pair<double, double> axle_weights = bin_type.semi_trailer_truck_data.compute_axle_weights(
                 node.groups[group_id].last_bin_weight_weighted_sum, node.groups[group_id].last_bin_weight);
-        if (axle_weights.first > bin_type.semi_trailer_truck_data.middle_axle_maximum_weight * PSTOL)
+        if (strictly_greater_weight(
+                    axle_weights.first,
+                    bin_type.semi_trailer_truck_data.middle_axle_maximum_weight,
+                    instance.weight_tolerance()))
             node.middle_axle_overweight += axle_weights.first - bin_type.semi_trailer_truck_data.middle_axle_maximum_weight;
-        if (axle_weights.second > bin_type.semi_trailer_truck_data.rear_axle_maximum_weight * PSTOL)
+        if (strictly_greater_weight(
+                    axle_weights.second,
+                    bin_type.semi_trailer_truck_data.rear_axle_maximum_weight,
+                    instance.weight_tolerance()))
             node.rear_axle_overweight += axle_weights.second - bin_type.semi_trailer_truck_data.rear_axle_maximum_weight;
         //if (parent.parent == nullptr)
         //    std::cout << "j " << node.j
@@ -1017,7 +1029,10 @@ void BranchingScheme::insertion_item_above(
     }
     // Check maximum weight.
     double last_bin_weight = parent->groups.front().last_bin_weight + item_type.weight;
-    if (last_bin_weight > bin_type.maximum_weight * PSTOL) {
+    if (strictly_greater_weight(
+                last_bin_weight,
+                bin_type.maximum_weight,
+                instance.weight_tolerance())) {
         return;
     }
     // Check maximum stack density.
@@ -1055,10 +1070,16 @@ void BranchingScheme::insertion_item_above(
                 + ((double)xs + (double)(xe - xs) / 2) * item_type.weight;
             std::pair<double, double> axle_weights = bin_type.semi_trailer_truck_data.compute_axle_weights(
                     last_bin_weight_weighted_sum, last_bin_weight);
-            if (axle_weights.first > bin_type.semi_trailer_truck_data.middle_axle_maximum_weight * PSTOL) {
+            if (strictly_greater_weight(
+                        axle_weights.first,
+                        bin_type.semi_trailer_truck_data.middle_axle_maximum_weight,
+                        instance.weight_tolerance())) {
                 return;
             }
-            if (axle_weights.second > bin_type.semi_trailer_truck_data.rear_axle_maximum_weight * PSTOL) {
+            if (strictly_greater_weight(
+                        axle_weights.second,
+                        bin_type.semi_trailer_truck_data.rear_axle_maximum_weight,
+                        instance.weight_tolerance())) {
                 return;
             }
         }
@@ -1117,7 +1138,10 @@ void BranchingScheme::insertion_item(
     double last_bin_weight = (new_bin == 0)?  // tmt
         parent->groups.front().last_bin_weight + item_type.weight:
         item_type.weight;
-    if (last_bin_weight > bin_type.maximum_weight * PSTOL) {
+    if (strictly_greater_weight(
+                last_bin_weight,
+                bin_type.maximum_weight,
+                instance.weight_tolerance())) {
         //std::cout << "maximum_weight" << std::endl;
         return;
     }
@@ -1223,9 +1247,15 @@ void BranchingScheme::insertion_item(
                 ((double)xs + (double)(xe - xs) / 2) * item_type.weight;
             std::pair<double, double> axle_weights = bin_type.semi_trailer_truck_data.compute_axle_weights(
                     last_bin_weight_weighted_sum, last_bin_weight);
-            if (axle_weights.second > bin_type.semi_trailer_truck_data.rear_axle_maximum_weight * PSTOL)
+            if (strictly_greater_weight(
+                        axle_weights.second,
+                        bin_type.semi_trailer_truck_data.rear_axle_maximum_weight,
+                        instance.weight_tolerance()))
                 return;
-            if (axle_weights.first > bin_type.semi_trailer_truck_data.middle_axle_maximum_weight * PSTOL)
+            if (strictly_greater_weight(
+                        axle_weights.first,
+                        bin_type.semi_trailer_truck_data.middle_axle_maximum_weight,
+                        instance.weight_tolerance()))
                 return;
         }
     }
@@ -1282,7 +1312,10 @@ void BranchingScheme::insertion_item_left(
     }
     // Check maximum weight.
     double last_bin_weight = parent->groups.front().last_bin_weight + item_type.weight;
-    if (last_bin_weight > bin_type.maximum_weight * PSTOL) {
+    if (strictly_greater_weight(
+                last_bin_weight,
+                bin_type.maximum_weight,
+                instance.weight_tolerance())) {
         //std::cout << "maximum_weight" << std::endl;
         return;
     }
@@ -1366,11 +1399,17 @@ void BranchingScheme::insertion_item_left(
                 + ((double)xs + (double)(xe - xs) / 2) * item_type.weight;
             std::pair<double, double> axle_weights = bin_type.semi_trailer_truck_data.compute_axle_weights(
                     last_bin_weight_weighted_sum, last_bin_weight);
-            if (axle_weights.second > bin_type.semi_trailer_truck_data.rear_axle_maximum_weight * PSTOL) {
+            if (strictly_greater_weight(
+                        axle_weights.second,
+                        bin_type.semi_trailer_truck_data.rear_axle_maximum_weight,
+                        instance.weight_tolerance())) {
                 //std::cout << "rear_axle_weight" << std::endl;
                 return;
             }
-            if (axle_weights.first > bin_type.semi_trailer_truck_data.middle_axle_maximum_weight * PSTOL) {
+            if (strictly_greater_weight(
+                        axle_weights.first,
+                        bin_type.semi_trailer_truck_data.middle_axle_maximum_weight,
+                        instance.weight_tolerance())) {
                 //std::cout << "middle_axle_weight" << std::endl;
                 return;
             }

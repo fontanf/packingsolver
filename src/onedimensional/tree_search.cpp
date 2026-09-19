@@ -218,7 +218,10 @@ void BranchingScheme::insertion_item_same_bin(
     if (parent->last_bin_length + item_type.length - item_type.nesting_length > bin_type.length)
         return;
     // Check maximum weight.
-    if (parent->last_bin_weight + item_type.weight > bin_type.maximum_weight * PSTOL)
+    if (strictly_greater_weight(
+                parent->last_bin_weight + item_type.weight,
+                bin_type.maximum_weight,
+                instance().weight_tolerance()))
         return;
     // Check maximum stackability.
     ItemPos last_bin_maximum_number_of_items = std::min(
@@ -227,7 +230,10 @@ void BranchingScheme::insertion_item_same_bin(
     if (parent->last_bin_number_of_items + 1 > last_bin_maximum_number_of_items)
         return;
     // Check maximum weight above.
-    if (item_type.weight > parent->last_bin_remaining_weight * PSTOL)
+    if (strictly_greater_weight(
+                item_type.weight,
+                parent->last_bin_remaining_weight,
+                instance().weight_tolerance()))
         return;
     // Check resource capacity. 'penalize' resources never block an
     // insertion (see 'Resource::penalize'); the corresponding penalty is
@@ -268,7 +274,10 @@ void BranchingScheme::insertion_item_new_bin(
     if (item_type.length > bin_type.length)
         return;
     // Check maximum weight.
-    if (item_type.weight > bin_type.maximum_weight * PSTOL)
+    if (strictly_greater_weight(
+                item_type.weight,
+                bin_type.maximum_weight,
+                instance().weight_tolerance()))
         return;
     // Check resource capacity (this item is the first copy of its type in
     // the new bin). 'penalize' resources never block an insertion (see

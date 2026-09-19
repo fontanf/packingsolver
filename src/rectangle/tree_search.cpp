@@ -423,9 +423,15 @@ BranchingScheme::Node BranchingScheme::child_tmp(
                 node.groups[group_id].last_bin_weight_weighted_sum, node.groups[group_id].last_bin_weight);
         node.groups[group_id].last_bin_middle_axle_weight = axle_weights.first;
         node.groups[group_id].last_bin_rear_axle_weight = axle_weights.second;
-        if (axle_weights.first > bin_type.semi_trailer_truck_data.middle_axle_maximum_weight * PSTOL)
+        if (strictly_greater_weight(
+                    axle_weights.first,
+                    bin_type.semi_trailer_truck_data.middle_axle_maximum_weight,
+                    instance.weight_tolerance()))
             node.middle_axle_overweight += axle_weights.first - bin_type.semi_trailer_truck_data.middle_axle_maximum_weight;
-        if (axle_weights.second > bin_type.semi_trailer_truck_data.rear_axle_maximum_weight * PSTOL)
+        if (strictly_greater_weight(
+                    axle_weights.second,
+                    bin_type.semi_trailer_truck_data.rear_axle_maximum_weight,
+                    instance.weight_tolerance()))
             node.rear_axle_overweight += axle_weights.second - bin_type.semi_trailer_truck_data.rear_axle_maximum_weight;
     }
 
@@ -878,7 +884,10 @@ void BranchingScheme::insertion_item(
     double last_bin_weight = (new_bin == 0)?
         parent->groups.front().last_bin_weight + item_type.weight:
         item_type.weight;
-    if (last_bin_weight > bin_type.maximum_weight * PSTOL)
+    if (strictly_greater_weight(
+                last_bin_weight,
+                bin_type.maximum_weight,
+                instance.weight_tolerance()))
         return;
 
     // Check resource capacity. 'penalize' resources never block an
@@ -1049,7 +1058,10 @@ void BranchingScheme::insertion_item_fixed(
         return;
     // Check maximum weight.
     double last_bin_weight = parent->groups.front().last_bin_weight + item_type.weight;
-    if (last_bin_weight > bin_type.maximum_weight * PSTOL)
+    if (strictly_greater_weight(
+                last_bin_weight,
+                bin_type.maximum_weight,
+                instance.weight_tolerance()))
         return;
 
     // Check intersections with other packed items.
