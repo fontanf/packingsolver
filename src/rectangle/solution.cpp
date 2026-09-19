@@ -85,9 +85,15 @@ void Solution::update_indicators(
             std::pair<double, double> axle_weights = bin_type.semi_trailer_truck_data.compute_axle_weights(
                     bin.weight_weighted_sum[group_id], bin.weight[group_id]);
             // Update axle overweight.
-            if (axle_weights.first > bin_type.semi_trailer_truck_data.middle_axle_maximum_weight * PSTOL)
+            if (strictly_greater_weight(
+                        axle_weights.first,
+                        bin_type.semi_trailer_truck_data.middle_axle_maximum_weight,
+                        instance().weight_tolerance()))
                 this->middle_axle_overweight_ += axle_weights.first - bin_type.semi_trailer_truck_data.middle_axle_maximum_weight;
-            if (axle_weights.second > bin_type.semi_trailer_truck_data.rear_axle_maximum_weight * PSTOL)
+            if (strictly_greater_weight(
+                        axle_weights.second,
+                        bin_type.semi_trailer_truck_data.rear_axle_maximum_weight,
+                        instance().weight_tolerance()))
                 this->rear_axle_overweight_ += axle_weights.second - bin_type.semi_trailer_truck_data.rear_axle_maximum_weight;
         }
 

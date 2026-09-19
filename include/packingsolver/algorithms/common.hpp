@@ -128,6 +128,41 @@ inline bool equal_cost(double v1, double v2)
     return !strictly_greater_cost(v1, v2) && !strictly_greater_cost(v2, v1);
 }
 
+/**
+ * Absolute-tolerance comparisons for weight.
+ *
+ * Unlike '*_profit' / '*_cost' above, a weight comparison is typically
+ * against a fixed bin capacity (or 0, e.g. a remaining capacity going
+ * negative), not two computed solution values against each other - so there
+ * is no meaningful "larger/smaller of the two" to self-derive a relative
+ * gap's denominator from the way '*_profit' / '*_cost' do (a near-zero
+ * remaining capacity would make that denominator spuriously tiny or zero,
+ * rejecting any tolerance right when it is needed most). Instead,
+ * 'weight_tolerance' is passed in explicitly - see 'Parameters::weight_tolerance'
+ * (in each problem type that has a bin weight concept): an absolute tolerance
+ * precomputed once by 'InstanceBuilder::build()' as 1e-9 relative to the
+ * highest non-infinite maximum weight among the instance's bin types (or a
+ * plain 1e-9 if there is none), so the same tolerance applies consistently
+ * across every bin/resource comparison in a solve, rather than varying with
+ * whichever specific capacity happens to be checked or being recomputed (and
+ * potentially drifting) for every sub-instance of a decomposition.
+ */
+inline bool strictly_greater_weight(double v1, double v2, double weight_tolerance)
+{
+    return v1 - v2 > weight_tolerance;
+}
+
+inline bool strictly_lesser_weight(double v1, double v2, double weight_tolerance)
+{
+    return strictly_greater_weight(v2, v1, weight_tolerance);
+}
+
+inline bool equal_weight(double v1, double v2, double weight_tolerance)
+{
+    return !strictly_greater_weight(v1, v2, weight_tolerance)
+        && !strictly_greater_weight(v2, v1, weight_tolerance);
+}
+
 template<typename T>
 double largest_power_of_two_lesser_or_equal(T value)
 {

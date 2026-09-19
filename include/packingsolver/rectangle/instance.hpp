@@ -313,6 +313,19 @@ struct Parameters
      * to a larger or equal group.
      */
     std::vector<bool> check_weight_constraints;
+
+    /**
+     * Absolute tolerance used by 'strictly_greater_weight' / 'strictly_lesser_weight'
+     * / 'equal_weight' for bin weight comparisons.
+     *
+     * Computed once by 'InstanceBuilder::build()' from the highest
+     * non-infinite maximum weight among the instance's bin types, including
+     * semi-trailer truck axle weight limits where set (or left untouched if
+     * a non-zero value was already propagated from a parent instance's
+     * parameters via 'InstanceBuilder::set_parameters()', e.g. when building
+     * a sub-instance of a decomposition) - not meant to be set directly.
+     */
+    Weight weight_tolerance = 0.0;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -395,6 +408,9 @@ public:
 
     /** Get the largest cost of the bins. */
     inline Profit largest_bin_cost() const { return largest_bin_cost_; }
+
+    /** Get the absolute tolerance for bin weight comparisons. */
+    inline Weight weight_tolerance() const { return parameters_.weight_tolerance; }
 
     /** Get the number of defects. */
     inline DefectId number_of_defects() const { return number_of_defects_; }

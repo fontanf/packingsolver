@@ -50,7 +50,10 @@ void Solution::update_indicators(
 
         // Update bin.weight.
         bin.weight += item_type.weight;
-        if (bin.weight > bin_type.maximum_weight) {
+        if (strictly_greater_weight(
+                    bin.weight,
+                    bin_type.maximum_weight,
+                    instance().weight_tolerance())) {
             weight_feasible_ = false;
         }
 
@@ -106,7 +109,7 @@ void Solution::update_indicators(
         if (number_of_items_in_bin > bin.maximum_number_of_items) {
             stackability_feasible_ = false;
         }
-        if (bin.remaining_weight < 0) {
+        if (strictly_lesser_weight(bin.remaining_weight, 0.0, instance().weight_tolerance())) {
             maximum_weight_after_feasible_ = false;
         }
 

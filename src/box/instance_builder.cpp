@@ -921,6 +921,7 @@ Instance InstanceBuilder::build()
     instance_.bin_area_ = 0;
     instance_.bin_weight_ = 0;
     Volume previous_bins_volume = 0;
+    Weight highest_bin_weight = 0.0;
     for (BinTypeId bin_type_id = 0;
             bin_type_id < instance_.number_of_bin_types();
             ++bin_type_id) {
@@ -943,6 +944,19 @@ Instance InstanceBuilder::build()
         // Update largest_bin_cost_.
         if (instance_.largest_bin_cost_ < bin_type.cost)
             instance_.largest_bin_cost_ = bin_type.cost;
+        // Update highest_bin_weight.
+        if (std::isfinite(bin_type.maximum_weight)
+                && highest_bin_weight < bin_type.maximum_weight) {
+            highest_bin_weight = bin_type.maximum_weight;
+        }
+    }
+    // Update parameters_.weight_tolerance, unless a non-zero value was
+    // already propagated from a parent instance via 'set_parameters()' (see
+    // 'Parameters::weight_tolerance' doc comment).
+    if (instance_.parameters_.weight_tolerance == 0.0) {
+        instance_.parameters_.weight_tolerance = (highest_bin_weight != 0.0)?
+            highest_bin_weight * 1e-9:
+            1e-9;
     }
 
     if (instance_.objective() == Objective::OpenDimensionX

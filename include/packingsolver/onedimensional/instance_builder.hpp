@@ -47,6 +47,17 @@ public:
     /** Set parameters. */
     void set_parameters(const Parameters& parameters) { instance_.parameters_ = parameters; }
 
+    /**
+     * Set the absolute tolerance for bin weight comparisons (see
+     * 'Parameters::weight_tolerance').
+     *
+     * Use this when building a onedimensional sub-instance from an instance
+     * of a different problem type (so 'set_parameters()', which only copies
+     * a same-type 'Parameters', can't be used to propagate it) - pass the
+     * parent instance's own weight tolerance so both stay consistent.
+     */
+    void set_weight_tolerance(Weight weight_tolerance) { instance_.parameters_.weight_tolerance = weight_tolerance; }
+
     /** Set the feasibility callback. */
     void set_feasibility_callback(const FeasibilityCallback& feasibility_callback) { instance_.feasibility_callback_ = feasibility_callback; }
 
