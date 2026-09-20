@@ -1,6 +1,7 @@
 #include "irregular/rotations.hpp"
 
 #include "shape/convex_hull.hpp"
+#include "shape/approximation.hpp"
 #include "shape/shape.hpp"
 
 #include <algorithm>
@@ -108,9 +109,19 @@ std::vector<std::vector<std::vector<ItemTypeRotation>>> packingsolver::irregular
             item_type_id < instance.number_of_item_types();
             ++item_type_id) {
         const ItemType& item_type = instance.item_type(item_type_id);
-        for (const ItemShape& item_shape: item_type.shapes)
+        for (const ItemShape& item_shape: item_type.shapes) {
+            // 'convex_hull' only supports polygons: approximate any circular
+            // arc by line segments first (harmless for a shape that is
+            // already a polygon, but skipped in that case to leave its exact
+            // geometry untouched).
+            Shape item_shape_polygon = item_shape.shape_scaled.shape;
+            if (!item_shape_polygon.is_polygon()) {
+                item_shape_polygon = shape::approximate_by_line_segments(
+                        item_shape.shape_scaled, 1.0).shape;
+            }
             item_shapes_convex_hulls[item_type_id].push_back(
-                    shape::convex_hull(item_shape.shape_scaled.shape));
+                    shape::convex_hull(item_shape_polygon));
+        }
     }
 
     // Compute candidate rotations: (angle, mirror) pairs where the angle makes

@@ -700,11 +700,19 @@ BranchingScheme::BranchingScheme(
             item_type_id < instance.number_of_item_types();
             ++item_type_id) {
         const ItemType& item_type = instance.item_type(item_type_id);
+        const SimplifiedItemType& simplified_item_type = simplified_instance_.item_types[item_type_id];
         for (ItemShapePos item_shape_pos = 0;
                 item_shape_pos < (ItemShapePos)item_type.shapes.size();
                 ++item_shape_pos) {
-            const auto& item_shape = item_type.shapes[item_shape_pos];
-            Shape convex_hull = shape::convex_hull(item_shape.shape_scaled.shape);
+            // 'convex_hull' only supports polygons: use the already-computed
+            // 'simplified_instance_' shape instead of the original 'instance'
+            // shape, which is always a polygon (any circular arc already
+            // approximated by line segments - see 'shape_simplification()'),
+            // rather than approximating it again here, and consistent with
+            // the geometry the rest of the search (e.g. the trapezoid sets
+            // below) actually branches over.
+            const Shape& item_shape_polygon = simplified_item_type.shapes[item_shape_pos].shape.shape;
+            Shape convex_hull = shape::convex_hull(item_shape_polygon);
             AreaDbl convex_hull_area = convex_hull.compute_area();
             item_types_convex_hull_area_[item_type_id] += convex_hull_area;
         }
