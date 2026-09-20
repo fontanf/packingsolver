@@ -5,6 +5,7 @@
 #include "packingsolver/irregular/optimize.hpp"
 
 #include "shape/convex_hull.hpp"
+#include "shape/approximation.hpp"
 
 #include <sstream>
 
@@ -31,7 +32,16 @@ LargeItemFirstOutput packingsolver::irregular::large_item_first(
         if (item_type.copies <= item_type.copies_fixed)
             continue;
         for (const ItemShape& item_shape: item_type.shapes) {
-            Shape convex_hull = shape::convex_hull(item_shape.shape_scaled.shape);
+            // 'convex_hull' only supports polygons: approximate any circular
+            // arc by line segments first (harmless for a shape that is
+            // already a polygon, but skipped in that case to leave its exact
+            // geometry untouched).
+            Shape item_shape_polygon = item_shape.shape_scaled.shape;
+            if (!item_shape_polygon.is_polygon()) {
+                item_shape_polygon = shape::approximate_by_line_segments(
+                        item_shape.shape_scaled, 1.0).shape;
+            }
+            Shape convex_hull = shape::convex_hull(item_shape_polygon);
             item_type_convex_hull_areas[item_type_id] += convex_hull.compute_area();
         }
         if (item_type_convex_hull_areas[item_type_id] > max_non_fixed_convex_hull_area)
