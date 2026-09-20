@@ -171,9 +171,6 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
      */
     bool use_box_bounds = true;
 
-    /** Use tree search algorithm. */
-    bool use_tree_search = false;
-
     /** Use sequential single knapsack algorithm. */
     bool use_sequential_single_knapsack = false;
 

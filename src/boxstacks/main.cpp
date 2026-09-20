@@ -90,9 +90,24 @@ int main(int argc, char *argv[])
 
             ("linear-programming-solver,", po::value<columngenerationsolver::SolverName>(), "set linear programming solver")
             ("optimization-mode,", po::value<OptimizationMode>(), "set optimization mode")
+            ("reduce,", po::value<bool>(), "enable/disable instance reduction (preprocessing)")
+            ("use-box-bounds,", po::value<bool>(), "enable/disable the box relaxation bound")
+            ("use-sequential-single-knapsack,", po::value<bool>(), "enable sequential-single-knapsack")
+            ("use-sequential-value-correction,", po::value<bool>(), "enable sequential-value-correction")
+            ("many-items-in-bins-threshold,", po::value<Counter>(), "")
+            ("many-items-in-bins-threshold-2,", po::value<Counter>(), "")
+            ("many-item-type-copies-factor,", po::value<Counter>(), "")
+            ("sequential-value-correction-subproblem-tree-search-queue-size,", po::value<NodeId>(), "set sequential value correction subproblem queue size")
+            ("column-generation-subproblem-tree-search-queue-size,", po::value<NodeId>(), "set column generation subproblem queue size")
+            ("anytime-tree-search-initial-queue-size,", po::value<NodeId>(), "")
+            ("anytime-sequential-onedimensional-rectangle-rectangle-initial-queue-size,", po::value<NodeId>(), "")
+            ("not-anytime-tree-search-queue-size,", po::value<NodeId>(), "")
+            ("not-anytime-sequential-single-knapsack-subproblem-tree-search-queue-size,", po::value<NodeId>(), "")
+            ("not-anytime-sequential-single-knapsack-subproblem-rectangle-tree-search-queue-size,", po::value<NodeId>(), "")
+            ("not-anytime-sequential-onedimensional-rectangle-rectangle-tree-search-queue-size,", po::value<NodeId>(), "")
+            ("not-anytime-sequential-value-correction-number-of-iterations,", po::value<Counter>(), "")
 
             ("group-identical-bins,", po::value<bool>(), "")
-            ("reduce,", po::value<bool>(), "enable/disable instance reduction (preprocessing)")
             ;
         po::variables_map vm;
         po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -190,6 +205,36 @@ int main(int argc, char *argv[])
             parameters.memory_limit_megabytes = vm["memory-limit"].as<Megabytes>();
         if (vm.count("reduce"))
             parameters.reduction_parameters.reduce = vm["reduce"].as<bool>();
+        if (vm.count("use-box-bounds"))
+            parameters.use_box_bounds = vm["use-box-bounds"].as<bool>();
+        if (vm.count("use-sequential-single-knapsack"))
+            parameters.use_sequential_single_knapsack = vm["use-sequential-single-knapsack"].as<bool>();
+        if (vm.count("use-sequential-value-correction"))
+            parameters.use_sequential_value_correction = vm["use-sequential-value-correction"].as<bool>();
+        if (vm.count("many-items-in-bins-threshold"))
+            parameters.many_items_in_bins_threshold = vm["many-items-in-bins-threshold"].as<Counter>();
+        if (vm.count("many-items-in-bins-threshold-2"))
+            parameters.many_items_in_bins_threshold_2 = vm["many-items-in-bins-threshold-2"].as<Counter>();
+        if (vm.count("many-item-type-copies-factor"))
+            parameters.many_item_type_copies_factor = vm["many-item-type-copies-factor"].as<Counter>();
+        if (vm.count("sequential-value-correction-subproblem-tree-search-queue-size"))
+            parameters.sequential_value_correction_subproblem_tree_search_queue_size = vm["sequential-value-correction-subproblem-tree-search-queue-size"].as<NodeId>();
+        if (vm.count("column-generation-subproblem-tree-search-queue-size"))
+            parameters.column_generation_subproblem_tree_search_queue_size = vm["column-generation-subproblem-tree-search-queue-size"].as<NodeId>();
+        if (vm.count("anytime-tree-search-initial-queue-size"))
+            parameters.anytime_tree_search_initial_queue_size = vm["anytime-tree-search-initial-queue-size"].as<NodeId>();
+        if (vm.count("anytime-sequential-onedimensional-rectangle-rectangle-initial-queue-size"))
+            parameters.anytime_sequential_onedimensional_rectangle_rectangle_initial_queue_size = vm["anytime-sequential-onedimensional-rectangle-rectangle-initial-queue-size"].as<NodeId>();
+        if (vm.count("not-anytime-tree-search-queue-size"))
+            parameters.not_anytime_tree_search_queue_size = vm["not-anytime-tree-search-queue-size"].as<NodeId>();
+        if (vm.count("not-anytime-sequential-single-knapsack-subproblem-tree-search-queue-size"))
+            parameters.not_anytime_sequential_single_knapsack_subproblem_tree_search_queue_size = vm["not-anytime-sequential-single-knapsack-subproblem-tree-search-queue-size"].as<NodeId>();
+        if (vm.count("not-anytime-sequential-single-knapsack-subproblem-rectangle-tree-search-queue-size"))
+            parameters.not_anytime_sequential_single_knapsack_subproblem_rectangle_tree_search_queue_size = vm["not-anytime-sequential-single-knapsack-subproblem-rectangle-tree-search-queue-size"].as<NodeId>();
+        if (vm.count("not-anytime-sequential-onedimensional-rectangle-rectangle-tree-search-queue-size"))
+            parameters.not_anytime_sequential_onedimensional_rectangle_rectangle_tree_search_queue_size = vm["not-anytime-sequential-onedimensional-rectangle-rectangle-tree-search-queue-size"].as<NodeId>();
+        if (vm.count("not-anytime-sequential-value-correction-number-of-iterations"))
+            parameters.not_anytime_sequential_value_correction_number_of_iterations = vm["not-anytime-sequential-value-correction-number-of-iterations"].as<Counter>();
 
         const boxstacks::Output output = optimize(instance, parameters);
 
