@@ -548,17 +548,38 @@ SequentialValueCorrectionOutput<Instance, Solution, Output> sequential_value_cor
             //std::cout << "item_type_id " << item_type_id
             //    << " adjusted_space " << item_type_adjusted_space[item_type_id]
             //    << " profit " << profits[item_type_id];
-            item_type_adjusted_space[item_type_id]
-                += 100 * lbs * (item_type.copies - item_type.copies_fixed
-                        - (solution.item_copies(item_type_id) - partial_fixed_copies[item_type_id]));
+            // For 'BinPacking' / 'VariableSizedBinPacking', every copy of
+            // every item type must eventually be packed, so an item type
+            // left unpacked is always a shortfall to correct - the "+=" term
+            // below feeds that pressure into 'item_type_adjusted_space' (and
+            // so into 'profit_new'), rising the longer the item type stays
+            // unpacked.
+            //
+            // For 'Knapsack', being left unpacked is not a shortfall: it may
+            // simply be the correct call (this item type's profit isn't
+            // competitive enough for the space/weight it uses against the
+            // other item types packed instead), so that same shortfall term
+            // does not apply here - 'item_type_adjusted_space' is left to
+            // only the per-bin waste/ratio term already accumulated for it
+            // above (in the main loop, common to every objective). An item
+            // type left entirely unpacked never gets any such contribution
+            // either (its packed copies are 0 in every bin considered), so
+            // 'item_type_adjusted_space' is still exactly 0 for it here -
+            // skip the division below for that case instead of computing
+            // 0 / 0.
             Profit profit_new = 0.0;
             if (instance.objective() == Objective::Knapsack) {
+                if (solution.item_copies(item_type_id) == 0)
+                    continue;
                 profit_new
                     = item_type.profit
                     / item_type.space()
                     * item_type_adjusted_space[item_type_id]
                     / solution.item_copies(item_type_id);
             } else {
+                item_type_adjusted_space[item_type_id]
+                    += 100 * lbs * (item_type.copies - item_type.copies_fixed
+                            - (solution.item_copies(item_type_id) - partial_fixed_copies[item_type_id]));
                 profit_new
                     = item_type_adjusted_space[item_type_id]
                     / item_type.copies;

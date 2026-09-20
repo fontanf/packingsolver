@@ -2,6 +2,7 @@ add_executable(PackingSolver_boxstacks_test)
 target_sources(PackingSolver_boxstacks_test PRIVATE
     boxstacks_test.cpp
     sequential_onedimensional_rectangle_test.cpp
+    sequential_value_correction_test.cpp
     optimize_test.cpp
     reduction_test.cpp)
 target_include_directories(PackingSolver_boxstacks_test PRIVATE
