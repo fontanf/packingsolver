@@ -22,6 +22,8 @@ void read_args(
         parameters.verbosity_level = vm["verbosity-level"].as<int>();
     if (vm.count("log"))
         parameters.log_path = vm["log"].as<std::string>();
+    if (vm.count("mps-prefix"))
+        parameters.mps_prefix = vm["mps-prefix"].as<std::string>();
     parameters.log_to_stderr = vm.count("log-to-stderr");
     if (vm.count("output"))
         parameters.write_json_output = true;
@@ -75,6 +77,7 @@ int main(int argc, char *argv[])
             ("output,o", po::value<std::string>(), "Output path")
             ("certificate,c", po::value<std::string>(), "Certificate path")
             ("log,l", po::value<std::string>(), "Log path")
+            ("mps-prefix,", po::value<std::string>(), "Prefix of the MPS file(s) to export the model(s) of every MILP solved during the search to, before solving each one")
             ("time-limit,t", po::value<double>(), "Time limit in seconds")
             ("seed,s", po::value<Seed>(), "Seed (not used)")
             ("only-write-at-the-end,e", "Only write output and certificate files at the end")
@@ -173,7 +176,6 @@ int main(int argc, char *argv[])
         Instance instance = instance_builder.build();
 
         // Read algorithm parameters.
-
         OptimizeParameters parameters;
         read_args(parameters, vm);
         if (vm.count("linear-programming-solver"))

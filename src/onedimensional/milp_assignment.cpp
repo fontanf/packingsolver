@@ -4,6 +4,8 @@
 #include "packingsolver/onedimensional/instance_builder.hpp"
 #include "onedimensional/solution_builder.hpp"
 
+#include "mathoptsolverscmake/mathopt_mps.hpp"
+
 #ifdef CBC_FOUND
 #include "mathoptsolverscmake/mathopt_cbc.hpp"
 #endif
@@ -1497,6 +1499,10 @@ MilpAssignmentOutput packingsolver::onedimensional::milp_assignment(
             sub_parameters.verbosity_level = 0;
             sub_parameters.timer = parameters.timer;
             sub_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+            if (!parameters.mps_prefix.empty()) {
+                sub_parameters.mps_prefix = parameters.mps_prefix
+                    + "_feasibility_" + std::to_string(number_of_bins);
+            }
             MilpAssignmentOutput sub_output = milp_assignment(sub_instance, sub_parameters);
 
             if (sub_output.solution_pool.best().feasible()) {
@@ -1581,6 +1587,19 @@ MilpAssignmentOutput packingsolver::onedimensional::milp_assignment(
 
     MilpModel milp_model = build_milp_model(
             instance, bin_type_upper_bounds, output.solution_pool.best());
+
+    // Export the model to an MPS file before solving it, if requested (see
+    // 'Parameters::mps_prefix') - 'parameters.mps_prefix' already carries
+    // the full chain of suffixes contributed by every caller by this point
+    // (e.g. 'optimize_milp_assignment()' appends '_milp_assignment', the
+    // sequential feasibility loop above further appends
+    // '_feasibility_<number_of_bins>' for each of its own recursive calls),
+    // so nothing more needs to be appended here.
+    if (!parameters.mps_prefix.empty()) {
+        mathoptsolverscmake::write_mps(
+                milp_model.model,
+                parameters.mps_prefix + ".mps");
+    }
 
     // Solve.
     std::vector<double> milp_solution;

@@ -678,6 +678,22 @@ struct Parameters: optimizationtools::Parameters
 
     /** JSON search tree path. */
     std::string json_search_tree_path;
+
+    /**
+     * Prefix of the MPS file(s) to export the model(s) of every MILP
+     * solved during the search to, before solving each one (left empty,
+     * the default, to not export anything).
+     *
+     * An algorithm that solves a MILP appends its own suffix to this
+     * prefix - at least its own name, and, where it solves more than one
+     * MILP itself (e.g. a sequential scheme trying successive candidate
+     * bin counts), whatever distinguishes each one - then writes to
+     * '<prefix><its own suffix>.mps'. An algorithm that calls into another
+     * MILP-solving algorithm forwards this prefix, extended with its own
+     * suffix, into that algorithm's own parameters, so the full chain ends
+     * up encoded in the final file name.
+     */
+    std::string mps_prefix;
 };
 
 template <typename Instance>
