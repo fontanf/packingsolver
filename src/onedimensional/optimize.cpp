@@ -532,6 +532,16 @@ void optimize_column_generation(
     cg_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
     cg_parameters.optimization_mode = parameters.optimization_mode;
     cg_parameters.internal_diving = columngenerationsolver::Activation::Never;
+    // The inline rounding heuristic runs at every column generation
+    // iteration (unlike 'internal_diving', which only runs once, at the
+    // root - see 'ColumnGenerationParameters::rounding_heuristic''s own
+    // doc comment), so its per-iteration overhead is only worth paying
+    // when the master LP itself is comparatively expensive. Here, pricing
+    // is a 1D knapsack subproblem cheap enough that the heuristic's own
+    // cost regularly dominates the whole solve instead of shortening it -
+    // disabled outright rather than left at the library's own 'Initial'
+    // default.
+    cg_parameters.rounding_heuristic = columngenerationsolver::Activation::Never;
     cg_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
     // Unlike the other domains, this one already has its own dedicated,
     // purpose-built sequential feasibility scheme for 'BinPacking' (see

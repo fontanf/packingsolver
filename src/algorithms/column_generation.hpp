@@ -1321,6 +1321,19 @@ struct ColumnGenerationParameters: packingsolver::Parameters<Instance, Solution,
 {
     OptimizationMode optimization_mode = OptimizationMode::Anytime;
     columngenerationsolver::Activation internal_diving = columngenerationsolver::Activation::Initial;
+
+    /**
+     * Enable the limited discrepancy search's inline rounding heuristic --
+     * see 'columngenerationsolver::Activation' and 'Parameters::
+     * rounding_heuristic''s own doc comment there (it runs at every column
+     * generation iteration, not just once like 'internal_diving' does at
+     * 'Initial', so it can add real per-iteration overhead on an instance
+     * where the master LP is itself cheap relative to it - see
+     * 'onedimensional::optimize_column_generation', which disables it for
+     * exactly that reason).
+     */
+    columngenerationsolver::Activation rounding_heuristic = columngenerationsolver::Activation::Initial;
+
     columngenerationsolver::SolverName linear_programming_solver_name
         = columngenerationsolver::SolverName::CLP;
 
@@ -1549,6 +1562,7 @@ Output column_generation(
             sub_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
             sub_parameters.optimization_mode = parameters.optimization_mode;
             sub_parameters.internal_diving = parameters.internal_diving;
+            sub_parameters.rounding_heuristic = parameters.rounding_heuristic;
             sub_parameters.use_cutting_planes = parameters.use_cutting_planes;
             sub_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
             sub_parameters.pricing_function_has_dual_bound = parameters.pricing_function_has_dual_bound;
@@ -1601,7 +1615,7 @@ Output column_generation(
     cgslds_parameters.timer = parameters.timer;
     cgslds_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
     cgslds_parameters.internal_diving = parameters.internal_diving;
-    cgslds_parameters.rounding_heuristic = columngenerationsolver::Activation::Initial;
+    cgslds_parameters.rounding_heuristic = parameters.rounding_heuristic;
     if (parameters.optimization_mode != OptimizationMode::Anytime)
         cgslds_parameters.automatic_stop = true;
     cgslds_parameters.new_solution_callback = [&instance, &algorithm_formatter](
