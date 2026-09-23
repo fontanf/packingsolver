@@ -362,6 +362,9 @@ void SolutionBuilder::read(
         line = optimizationtools::split(tmp, ',');
 
         SolutionNode node;
+        // A root node has an empty 'PARENT', which 'split' drops when it is
+        // the last field of its line, so it may not be read below at all.
+        node.f = -1;
         Length width = -1;
         Length height = -1;
         BinPos bin_pos = -1;

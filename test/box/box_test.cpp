@@ -47,6 +47,26 @@ TEST_P(BoxOptimizeTest, BoxOptimize)
 
     EXPECT_EQ(!(output.solution_pool.best() < solution), true);
     EXPECT_EQ(!(solution < output.solution_pool.best()), true);
+
+    // The bound must not exceed the value of the reference solution, which
+    // is feasible.
+    switch (instance.objective()) {
+    case packingsolver::Objective::BinPacking:
+        EXPECT_LE(output.bin_packing_bound, solution.number_of_bins());
+        break;
+    case packingsolver::Objective::VariableSizedBinPacking:
+        EXPECT_FALSE(packingsolver::strictly_lesser_cost(
+                    solution.cost(),
+                    output.variable_sized_bin_packing_bound));
+        break;
+    case packingsolver::Objective::Knapsack:
+        EXPECT_FALSE(packingsolver::strictly_greater_profit(
+                    solution.profit(),
+                    output.knapsack_bound));
+        break;
+    default:
+        break;
+    }
 }
 
 INSTANTIATE_TEST_SUITE_P(
@@ -54,6 +74,19 @@ INSTANTIATE_TEST_SUITE_P(
         BoxOptimizeTest,
         testing::ValuesIn(std::vector<BoxOptimizeTestParams>{
             {
+                // The lower bound of 'VariableSizedBinPacking' (the
+                // one-dimensional trivial bound, which every problem type
+                // uses through its one-dimensional relaxation) used to
+                // require the optional bins alone to cover the items,
+                // ignoring that the mandatory bins of a bin type with a
+                // positive 'copies_min' hold items too. No two items fit in
+                // the same bin: the optimum uses three bins of type 1
+                // (cost 3), but the bound was 4.
+                fs::path("data") / "box" / "tests" / "variable_sized_bin_packing_mandatory_bins" / "items.csv",
+                fs::path("data") / "box" / "tests" / "variable_sized_bin_packing_mandatory_bins" / "bins.csv",
+                fs::path("data") / "box" / "tests" / "variable_sized_bin_packing_mandatory_bins" / "parameters.csv",
+                fs::path("data") / "box" / "tests" / "variable_sized_bin_packing_mandatory_bins" / "solution.csv",
+            }, {
                 fs::path("data") / "box" / "tests" / "variable_sized_bin_packing_two_bin_types" / "items.csv",
                 fs::path("data") / "box" / "tests" / "variable_sized_bin_packing_two_bin_types" / "bins.csv",
                 fs::path("data") / "box" / "tests" / "variable_sized_bin_packing_two_bin_types" / "parameters.csv",
