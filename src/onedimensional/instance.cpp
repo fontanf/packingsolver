@@ -64,6 +64,27 @@ bool Instance::item_type_fits_bin_type(
     return true;
 }
 
+bool Instance::weight_matters() const
+{
+    if (number_of_bin_types() != 1)
+        return false;
+    if (bin_type(0).maximum_weight == std::numeric_limits<Weight>::infinity())
+        return false;
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < number_of_item_types();
+            ++item_type_id) {
+        if (item_type(item_type_id).weight != 0)
+            return true;
+    }
+    return false;
+}
+
+bool Instance::resources_matter() const
+{
+    return number_of_bin_types() == 1
+        && bin_type(0).number_of_resources() > 0;
+}
+
 std::ostream& Instance::format(
         std::ostream& os,
         int verbosity_level) const

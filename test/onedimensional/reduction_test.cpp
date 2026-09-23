@@ -45,15 +45,30 @@ void expect_instances_equal(const Instance& actual, const Instance& expected)
     }
 }
 
+/**
+ * Default parameters, minus the given operations - for scenarios isolating
+ * one operation on an instance another one would otherwise already reduce.
+ */
+ReductionParameters parameters_without(
+        const std::vector<bool ReductionParameters::*>& disabled_operations)
+{
+    ReductionParameters parameters;
+    for (bool ReductionParameters::* operation: disabled_operations)
+        parameters.*operation = false;
+    return parameters;
+}
+
 }
 
 /**
  * One 'Reduction' scenario, read from 'data/onedimensional/tests/<name>/' -
- * mirrors 'rectangle::RectangleReductionTestParams', minus
- * 'expected_proven_infeasible' ('onedimensional::Reduction' never proves
- * infeasibility on its own, unlike 'rectangle::Reduction': this class only
- * ever trims or merges item types, never sets bins aside or shrinks bin
- * capacity).
+ * mirrors 'rectangle::RectangleReductionTestParams' (minus its
+ * 'expected_output_infeasible'/'use_json': every scenario here is provably
+ * infeasible by the reduction alone, if at all, since a finite single bin
+ * type's own copies is the only way 'BinPacking' can be infeasible here,
+ * and that is always exactly what 'reduce_full_bin_items'/
+ * 'reduce_perfect_pairs' - the only operations that ever consume bin
+ * copies - already check for themselves).
  */
 struct OneDimensionalReductionTestParams
 {
@@ -88,6 +103,8 @@ struct OneDimensionalReductionTestParams
      * one per original item type actually involved).
      */
     BinPos expected_number_of_different_bins = -1;
+    /** 'Reduction::proven_infeasible()' alone proves the instance infeasible. */
+    bool expected_proven_infeasible = false;
 };
 
 inline std::ostream& operator<<(
@@ -115,6 +132,14 @@ TEST_P(OneDimensionalReductionTest, OneDimensionalReduction)
     Instance instance = instance_builder.build();
 
     Reduction reduction(instance, test_params.reduction_parameters);
+    EXPECT_EQ(reduction.proven_infeasible(), test_params.expected_proven_infeasible);
+    if (test_params.expected_proven_infeasible) {
+        OptimizeParameters optimize_parameters;
+        optimize_parameters.reduction_parameters = test_params.reduction_parameters;
+        onedimensional::Output output = optimize(instance, optimize_parameters);
+        EXPECT_TRUE(output.is_proven_infeasible);
+        return;
+    }
 
     InstanceBuilder expected_instance_builder;
     if (test_params.use_json) {
@@ -162,7 +187,7 @@ INSTANTIATE_TEST_SUITE_P(
                 // property 'items_mergeable' checks: they merge into a
                 // single item type with the combined copies.
                 fs::path("data") / "onedimensional" / "tests" / "bin_packing_merge_identical_items",
-                ReductionParameters(),
+                parameters_without({&ReductionParameters::reduce_dominant_sets}),
             }, {
                 // Same as above, but the two item types have different
                 // profit - not compared by 'items_mergeable' for
@@ -171,9 +196,12 @@ INSTANTIATE_TEST_SUITE_P(
                 // copy's own true original profit regardless of merging),
                 // so these two still merge.
                 fs::path("data") / "onedimensional" / "tests" / "bin_packing_merge_identical_items_different_profit_still_merges",
-                ReductionParameters(),
+                parameters_without({&ReductionParameters::reduce_dominant_sets}),
             }, {
-                // Bin length 100, 'Knapsack' objective. Item types 0 and 1
+                // Bin length 100, 2 copies, 'Knapsack' objective (2 bins,
+                // so not a classical knapsack, for which merging is skipped
+                // - see 'knapsack_single_bin_only_removes_negative_profit_items').
+                // Item types 0 and 1
                 // (both length 4, profit 5) are identical including profit
                 // and merge; item type 2 (also length 4, profit 10) is
                 // identical on every *other* property but must stay
@@ -183,6 +211,24 @@ INSTANTIATE_TEST_SUITE_P(
                 // profit for every copy and let the solve choose a
                 // suboptimal subset on wrong information.
                 fs::path("data") / "onedimensional" / "tests" / "knapsack_merge_identical_items_requires_matching_profit",
+                ReductionParameters(),
+            }, {
+                // Bin length 100, 1 copy, 'Knapsack' objective, no other
+                // constraint: a classical knapsack, which only gets
+                // 'remove_negative_profit_items'.
+                // Item type 2 (profit -3, fully optional) is removed, but
+                // item types 0 and 1 (both length 4, profit 5) are not
+                // merged, although they are identical.
+                fs::path("data") / "onedimensional" / "tests" / "knapsack_single_bin_only_removes_negative_profit_items",
+                ReductionParameters(),
+            }, {
+                // Bin length 100, 1 copy, 'Knapsack' objective, but every
+                // item type has a 'maximum_stackability' of 3, which
+                // 'knapsacksolver::dynamic_programming_primal_dual' ignores:
+                // not a classical knapsack, so item types 0 and 1 (both
+                // length 4, profit 5) are still merged. At most 3 items fit
+                // in the bin (profit 15).
+                fs::path("data") / "onedimensional" / "tests" / "knapsack_single_bin_with_side_constraint_still_merges",
                 ReductionParameters(),
             }, {
                 // Bin length 100, 'Knapsack' objective. Item 0 (length 4,
@@ -244,7 +290,7 @@ INSTANTIATE_TEST_SUITE_P(
                 // analogous "must not silently swap" property - so they
                 // must not merge.
                 fs::path("data") / "onedimensional" / "tests" / "bin_packing_merge_identical_items_requires_matching_eligibility",
-                ReductionParameters(),
+                parameters_without({&ReductionParameters::remove_dominated_bin_types}),
                 true,
             }, {
                 // Bin length 100 with one resource. Item types 0 and 1
@@ -255,20 +301,25 @@ INSTANTIATE_TEST_SUITE_P(
                 ReductionParameters(),
                 true,
             }, {
-                // Bin length 20 (exactly two items' worth, unlike
-                // rectangle's 2D case there is no companion/full-span
-                // mechanism here to entangle with). Item types 0 and 1
-                // (both length 10, 1 copy each) are identical and merge
-                // into a single reduced item type with 2 copies; placing
-                // both reduced copies side by side and unreducing must
-                // recover a valid solution using original item type ids 0
-                // and 1, each exactly once.
+                // Bin length 20 (exactly two items' worth). Item types 0
+                // and 1 (both length 10, 1 copy each) are identical and
+                // would merge into a single reduced item type with 2
+                // copies - but 'reduce_perfect_pairs' (which now runs
+                // ahead of 'merge_identical_items' - see this class's own
+                // doc comment in 'reduction.hpp') claims them first as a
+                // dedicated bin instead, leaving an empty reduced
+                // instance: unreducing that dedicated-bin reservation must
+                // still recover a valid solution using original item type
+                // ids 0 and 1, each exactly once.
                 fs::path("data") / "onedimensional" / "tests" / "bin_packing_merge_identical_items_unreduce_solution_round_trip",
                 ReductionParameters(),
             }, {
                 // Bin length 4, holding exactly one item per bin. Item
                 // types 0 (30 copies) and 1 (20 copies), both length 4,
-                // merge into a single reduced item type with 50 copies.
+                // would merge into a single reduced item type with 50
+                // copies - but 'reduce_full_bin_items' (see the comment
+                // above) claims every copy of both as its own dedicated
+                // bin first, leaving an empty reduced instance.
                 // Regression test: 'unreduce_solution' must recognize that
                 // every physical bin resolving to original item type 0
                 // forms one contiguous run (and likewise for type 1), and
@@ -276,12 +327,163 @@ INSTANTIATE_TEST_SUITE_P(
                 // then 20, or vice versa) - not one entry per physical
                 // bin (50), which is what an earlier, unconditionally-
                 // splitting version of this class actually did whenever a
-                // merged pattern was reused across more than one physical
+                // reused pattern was shared across more than one physical
                 // bin.
                 fs::path("data") / "onedimensional" / "tests" / "bin_packing_merge_identical_items_unequal_copies_produces_compact_groups",
                 ReductionParameters(),
                 false,
                 false,
                 2,
+            }, {
+                // Bin length 10, copies 5 (BinPacking, single bin type).
+                // Item type 0 (length 10, 3 copies) exactly matches the
+                // bin's own length: 'reduce_full_bin_items' reserves all 3
+                // copies as their own dedicated bins, leaving an empty
+                // reduced instance and folding the bin type's own copies
+                // down to 5 - 3 = 2.
+                fs::path("data") / "onedimensional" / "tests" / "bin_packing_full_bin_item",
+                ReductionParameters(),
+            }, {
+                // Bin length 10, copies 6. Item types 0 (length 6, 4
+                // copies) and 1 (length 4, 4 copies) sum exactly to the
+                // bin's own length: 'reduce_perfect_pairs' reserves
+                // min(4, 4) = 4 dedicated bins, consuming every copy of
+                // both, leaving an empty reduced instance and folding the
+                // bin type's own copies down to 6 - 4 = 2.
+                fs::path("data") / "onedimensional" / "tests" / "bin_packing_perfect_pair",
+                ReductionParameters(),
+            }, {
+                // Bin length 10, copies 10. Item type 0 (length 5, 6
+                // copies): 2 of its own copies already sum exactly to the
+                // bin's own length, so 'reduce_perfect_pairs' pairs it
+                // with itself, reserving 6 / 2 = 3 dedicated bins (two
+                // copies each), consuming every copy and leaving an empty
+                // reduced instance, folding the bin type's own copies down
+                // to 10 - 3 = 7.
+                fs::path("data") / "onedimensional" / "tests" / "bin_packing_perfect_pair_same_item_type",
+                ReductionParameters(),
+            }, {
+                // Bin length 10, copies 2 (finite). Item type 0 (length
+                // 10, 2 copies) exactly matches the bin's own length:
+                // 'reduce_full_bin_items' reserves both copies as their
+                // own dedicated bins, exhausting the bin type's entire
+                // (finite) 'copies' - but item type 1 (length 3, 5 copies)
+                // still needs bin capacity that no longer exists, so the
+                // reduction alone already proves the instance infeasible
+                // (see 'Reduction::proven_infeasible').
+                fs::path("data") / "onedimensional" / "tests" / "bin_packing_full_bin_item_proven_infeasible",
+                ReductionParameters(),
+                false,
+                false,
+                -1,
+                true,
+            }, {
+                // Bin length 10, copies 5. Item type 0 (length 6, 3
+                // copies), item type 1 (length 3, 1 copy), item type 2
+                // (length 1, 1 copy). 'reduce_dominant_sets', rule 0: the
+                // first copy of item type 0 leaves 10 - 6 = 4 beside it,
+                // and everything fitting there (3 + 1 = 4) fits together,
+                // so they share a dedicated bin. The other two copies of
+                // item type 0 then have nothing left to fit beside them, so
+                // each gets its own dedicated bin - both grouped into a
+                // single two-copy bin record. Everything is reserved,
+                // folding the bin type's own copies down to 5 - 3 = 2.
+                fs::path("data") / "onedimensional" / "tests" / "bin_packing_dominant_set_all_fit",
+                ReductionParameters(),
+                false,
+                false,
+                2,
+            }, {
+                // Bin length 20, copies 5. Item type 0 (length 6, 1 copy)
+                // is the only item type with exactly one remaining copy:
+                // 'lift_item_lengths' checks whether item type 1 (length 3,
+                // 2 copies) could ever reach into its own leftover space
+                // (20 - 6 = 14) - the largest achievable combination of
+                // item type 1's own copies is 3 + 3 = 6, strictly less
+                // than 14, so the remaining 14 - 6 = 8 is provably always
+                // wasted regardless of arrangement: item type 0's own
+                // declared length is grown to 20 - 6 = 14 in the reduced
+                // instance. Item type 1 is untouched (2 copies, not
+                // eligible on its own). The reduced instance's own optimal
+                // solve (14 + 3 + 3 = 20, an exact fit) matches the
+                // original instance's own true optimal (6 + 3 + 3 = 12,
+                // leaving 8 waste) once 'unreduce_solution' restores item
+                // type 0's true length.
+                fs::path("data") / "onedimensional" / "tests" / "bin_packing_lift_item_length",
+                parameters_without({
+                        &ReductionParameters::reduce_dominant_sets,
+                        &ReductionParameters::shrink_bin}),
+            }, {
+                // Bin length 20, copies 5. Item type 0 (length 6, 1 copy)
+                // leaves 20 - 6 = 14 beside it. Item type 1 (length 10,
+                // nesting length 3, 2 copies) only takes 10 - 3 = 7 once
+                // it follows another item, so both of its copies do reach
+                // exactly 14 (6 + 7 + 7 = 20): 'lift_item_lengths' must
+                // leave item type 0 untouched, and the reduced instance is
+                // the original one.
+                fs::path("data") / "onedimensional" / "tests" / "bin_packing_lift_item_length_nesting",
+                ReductionParameters(),
+            }, {
+                // Bin length 10, copies 5. Item type 0 (length 7, 1 copy),
+                // item type 1 (length 2, 7 copies). 'reduce_dominant_sets',
+                // rule 1: beside item type 0 (10 - 7 = 3), no two copies of
+                // item type 1 fit together (2 + 2 > 3), so one copy of it
+                // dominates and they share a dedicated bin. The remaining 6
+                // copies of item type 1 match no rule (5 other copies do
+                // not all fit beside one, and three of them fit together),
+                // so they stay in the reduced instance, with 5 - 1 = 4 bin
+                // copies left.
+                fs::path("data") / "onedimensional" / "tests" / "bin_packing_dominant_set_single",
+                ReductionParameters(),
+            }, {
+                // Bin length 10, copies 5. Item type 0 (length 5, 1 copy),
+                // item type 1 (length 3, 2 copies), item type 2 (length 2,
+                // 1 copy). 'reduce_dominant_sets', rule 2, for item type 0
+                // (5 left beside it): 'a' = 3, 'b' = 2 (the longest other
+                // copy fitting beside both), no three copies fit together
+                // (2 + 3 + 3 > 5), and no two copies longer than 'b' do
+                // either (3 + 3 > 5), so '{3, 2}' dominates and they share
+                // a dedicated bin. The last copy of item type 1 then has
+                // nothing left beside it (rule 0) and gets its own
+                // dedicated bin, folding the bin type's own copies down to
+                // 5 - 2 = 3.
+                fs::path("data") / "onedimensional" / "tests" / "bin_packing_dominant_set_pair",
+                ReductionParameters(),
+            }, {
+                // Bin length 10, copies 10. Item types 0 (length 6) and 1
+                // (length 4) form a perfect pair, but item type 2 (length
+                // 7, nesting length 3, 2 copies) only takes 4 when it
+                // follows another item: reserving '{6, 4}' would leave the
+                // two copies of item type 2 needing a bin each (7 + 4 >
+                // 10), 3 bins in total, while '{6, 7}' and '{4, 7}' only
+                // need 2. 'full_bin_reduction_applies' is 'false' (an item
+                // type has a nesting length), so nothing is reserved and
+                // the reduced instance is the original one.
+                fs::path("data") / "onedimensional" / "tests" / "bin_packing_perfect_pair_nesting_elsewhere",
+                ReductionParameters(),
+            }, {
+                // Bin length 10, copies 5. Item type 0 (length 4, 2
+                // copies). The largest combination of the items' lengths
+                // is 4 + 4 = 8, so the bin shrinks to 8, and the two copies
+                // form a perfect pair of the shrunk bin: 'reduce_perfect_pairs'
+                // reserves them a dedicated bin, folding the bin type's own
+                // copies down to 5 - 1 = 4. ('reduce_dominant_sets', which
+                // would find the same bin on its own, is disabled.)
+                fs::path("data") / "onedimensional" / "tests" / "bin_packing_shrink_bin_perfect_pair",
+                parameters_without({&ReductionParameters::reduce_dominant_sets}),
+            }, {
+                // 'VariableSizedBinPacking'. Bin type 0 (length 10, cost 2,
+                // 10 copies) dominates bin type 1 (length 8, cost 3): at
+                // least as long, at most as costly, and enough copies (10)
+                // to replace every bin a solution could use (2 items).
+                // Bin type 2 (length 12, cost 3) is longer than bin type 0,
+                // and bin type 0 is cheaper than bin type 2, so neither
+                // dominates the other. Bin type 1 is left out of the
+                // reduced instance. The optimal solution puts both items
+                // (length 6, 2 copies) in one bin of type 2 (cost 3, vs 4
+                // for two bins of type 0) - bin type 1 in the reduced
+                // instance, which 'unreduce_solution' maps back to 2.
+                fs::path("data") / "onedimensional" / "tests" / "variable_sized_bin_packing_remove_dominated_bin_types",
+                ReductionParameters(),
             },
         }));

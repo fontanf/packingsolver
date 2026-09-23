@@ -153,6 +153,11 @@ public:
     ItemTypeId add_item_type(
             Length length);
 
+    /** Set the length of an item type. */
+    void set_item_type_length(
+            ItemTypeId item_type_id,
+            Length length);
+
     /** Set the weight of an item type. */
     void set_item_type_weight(
             ItemTypeId item_type_id,

@@ -328,6 +328,25 @@ public:
     /** Get the item type precedences; see 'Precedence'. */
     inline const std::vector<Precedence>& precedences() const { return precedences_; }
 
+    /**
+     * Return 'true' iff the instance has a single bin type with a finite
+     * maximum weight and at least one item type with a nonzero weight -
+     * i.e. iff its weight capacity is an actual, non-trivial per-bin
+     * aggregate constraint (see 'Reduction::full_bin_reduction_applies'
+     * for why this matters there: a per-bin aggregate is invisible to a
+     * dedicated-bin reservation that only ever checks a single item
+     * type's/pair's own length).
+     */
+    bool weight_matters() const;
+
+    /**
+     * Return 'true' iff the instance has a single bin type with at least
+     * one resource - i.e. iff it has an actual, non-trivial per-bin
+     * aggregate constraint beyond length and weight (see 'weight_matters'
+     * and 'Reduction::full_bin_reduction_applies').
+     */
+    bool resources_matter() const;
+
     /*
      * Export
      */
