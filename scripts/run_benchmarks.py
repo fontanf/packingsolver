@@ -1240,7 +1240,7 @@ if __name__ == "__main__":
                         + "  --items \"" + instance_path + "\""
                         + " --bin-infinite-copies"
                         + " --objective bin-packing"
-                        + "  --time-limit 60"
+                        + "  --time-limit 300"
                         + "  --output \"" + json_output_path + "\""
                         + " --certificate \"" + certificate_path + "\"")
                 run_command(command)
