@@ -38,7 +38,7 @@ set(SHAPE_BUILD_TEST OFF)
 FetchContent_Declare(
     shape
     GIT_REPOSITORY https://github.com/fontanf/shape.git
-    GIT_TAG ea5dc545fe8f801be425cf8631fd50a82749e133
+    GIT_TAG b34724970e044fe961a0c1ab5acd1b550c0ed7d7
     #SOURCE_DIR "${PROJECT_SOURCE_DIR}/../shape/"
     EXCLUDE_FROM_ALL)
 FetchContent_MakeAvailable(shape)
