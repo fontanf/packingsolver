@@ -508,7 +508,8 @@ void optimize_column_generation(
         const Instance& instance,
         const OptimizeParameters& parameters,
         AlgorithmFormatter& algorithm_formatter,
-        onedimensional::Output* local_output)
+        onedimensional::Output* local_output,
+        BinPos lower_bound)
 {
     ColumnGenerationPricingFunction<Instance, InstanceBuilder, Solution, onedimensional::Output> pricing_function
         = [&parameters](const Instance& kp_instance, PricingType)
@@ -543,6 +544,7 @@ void optimize_column_generation(
     // default.
     cg_parameters.rounding_heuristic = columngenerationsolver::Activation::Never;
     cg_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
+    cg_parameters.use_cutting_planes = columngenerationsolver::Activation::Never;
     // Unlike the other domains, this one already has its own dedicated,
     // purpose-built sequential feasibility scheme for 'BinPacking' (see
     // 'optimize_milp_assignment'/'MilpAssignmentParameters::
@@ -567,7 +569,8 @@ void optimize_column_generation(
             algorithm_formatter.update_bounds(ps_output);
         }
     };
-    column_generation<Instance, InstanceBuilder, Solution, AlgorithmFormatter, onedimensional::Output>(instance, pricing_function, cg_parameters);
+    column_generation<Instance, InstanceBuilder, Solution, AlgorithmFormatter, onedimensional::Output>(
+            instance, pricing_function, cg_parameters, lower_bound);
 }
 
 void optimize_milp_assignment(
@@ -945,13 +948,15 @@ packingsolver::onedimensional::Output packingsolver::onedimensional::optimize(
         std::unique_ptr<onedimensional::Output> local_output;
         if (deterministic)
             local_output = std::make_unique<onedimensional::Output>(instance);
-        tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter, local_output = local_output.get()]() {
+        BinPos column_generation_lower_bound = output.bin_packing_bound;
+        tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter, local_output = local_output.get(), column_generation_lower_bound]() {
             wrapper<decltype(&optimize_column_generation), optimize_column_generation>(
                     exception_ptr,
                     instance,
                     parameters,
                     algorithm_formatter,
-                    local_output);
+                    local_output,
+                    column_generation_lower_bound);
         });
         local_outputs.push_back(std::move(local_output));
     }
