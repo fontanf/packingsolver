@@ -153,9 +153,14 @@ DichotomicSearchOutput<Instance, Solution, Output> dichotomic_search(
         //std::cout << "bin_space " << bin_space << std::endl;
         //std::cout << "bin_min_space " << bin_min_space << std::endl;
         //std::cout << "item_space " << item_space << std::endl;
+        // The bins used must cover the item space (plus the estimated
+        // waste), and the mandatory ones (copies_min) contribute to it too:
+        // the optional bins left unused can total up to 'bin_space -
+        // max(bin_min_space, needed space)'.
         knapsacksolver::Weight kp_capacity = bin_space
-            - bin_min_space
-            - (item_space * (1 + output.waste_percentage));
+            - (std::max)(
+                    (knapsacksolver::Weight)bin_min_space,
+                    (knapsacksolver::Weight)(item_space * (1 + output.waste_percentage)));
         kp_capacity = std::max(kp_capacity, (knapsacksolver::Weight)0);
         kp_instance_builder.set_capacity(kp_capacity);
         // Add knapsack items which are PackingSolver bins.

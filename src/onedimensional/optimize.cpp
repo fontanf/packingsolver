@@ -163,7 +163,14 @@ void optimize_trivial_bound(
                 * (item_type.length - std::max(item_type.nesting_length, (Length)0));
         }
 
-        Length kp_capacity = bin_length - bin_min_length - item_length;
+        // The bins used must cover the item lengths, and the mandatory ones
+        // (copies_min) hold items too: the optional bins left unused can
+        // total up to 'bin_length - bin_min_length' minus what the optional
+        // bins used must still cover, 'item_length - bin_min_length' (if
+        // positive), i.e. 'bin_length - max(bin_min_length, item_length)'.
+        // (Requiring the optional bins alone to cover the item lengths
+        // overestimated the bound.)
+        Length kp_capacity = bin_length - (std::max)(bin_min_length, item_length);
         if (kp_capacity <= 0) {
             // No bin can be left unused: they are all needed just to cover
             // the item lengths.

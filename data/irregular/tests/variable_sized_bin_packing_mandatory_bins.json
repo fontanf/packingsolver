@@ -1,0 +1,139 @@
+{
+ "objective": "variable-sized-bin-packing",
+ "bin_types": [
+  {
+   "type": "polygon",
+   "vertices": [
+    {
+     "x": 0,
+     "y": 0
+    },
+    {
+     "x": 11,
+     "y": 0
+    },
+    {
+     "x": 11,
+     "y": 1
+    },
+    {
+     "x": 0,
+     "y": 1
+    }
+   ],
+   "cost": 2,
+   "copies": 4,
+   "copies_min": 0
+  },
+  {
+   "type": "polygon",
+   "vertices": [
+    {
+     "x": 0,
+     "y": 0
+    },
+    {
+     "x": 14,
+     "y": 0
+    },
+    {
+     "x": 14,
+     "y": 1
+    },
+    {
+     "x": 0,
+     "y": 1
+    }
+   ],
+   "cost": 1,
+   "copies": 4,
+   "copies_min": 1
+  }
+ ],
+ "item_types": [
+  {
+   "type": "polygon",
+   "vertices": [
+    {
+     "x": 0,
+     "y": 0
+    },
+    {
+     "x": 7,
+     "y": 0
+    },
+    {
+     "x": 7,
+     "y": 1
+    },
+    {
+     "x": 0,
+     "y": 1
+    }
+   ],
+   "copies": 1,
+   "allowed_rotations": [
+    {
+     "start": 0,
+     "end": 0
+    }
+   ]
+  },
+  {
+   "type": "polygon",
+   "vertices": [
+    {
+     "x": 0,
+     "y": 0
+    },
+    {
+     "x": 10,
+     "y": 0
+    },
+    {
+     "x": 10,
+     "y": 1
+    },
+    {
+     "x": 0,
+     "y": 1
+    }
+   ],
+   "copies": 1,
+   "allowed_rotations": [
+    {
+     "start": 0,
+     "end": 0
+    }
+   ]
+  },
+  {
+   "type": "polygon",
+   "vertices": [
+    {
+     "x": 0,
+     "y": 0
+    },
+    {
+     "x": 12,
+     "y": 0
+    },
+    {
+     "x": 12,
+     "y": 1
+    },
+    {
+     "x": 0,
+     "y": 1
+    }
+   ],
+   "copies": 1,
+   "allowed_rotations": [
+    {
+     "start": 0,
+     "end": 0
+    }
+   ]
+  }
+ ]
+}
