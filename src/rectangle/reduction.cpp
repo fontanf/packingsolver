@@ -1994,7 +1994,7 @@ Length Reduction::max_achievable_dimension_sum(
     multiplechoicesubsetsumsolver::Instance mcss_instance = mcss_instance_builder.build();
     multiplechoicesubsetsumsolver::Parameters mcss_parameters;
     mcss_parameters.verbosity_level = 0;
-    auto mcss_output = multiplechoicesubsetsumsolver::dynamic_programming_bellman_array(
+    auto mcss_output = multiplechoicesubsetsumsolver::dynamic_programming_bellman_word_ram(
             mcss_instance,
             mcss_parameters);
     return mcss_output.bound;
