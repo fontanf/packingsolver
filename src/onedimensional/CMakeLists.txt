@@ -20,6 +20,7 @@ target_link_libraries(PackingSolver_onedimensional PUBLIC
     PackingSolver_algorithms
     TreeSearchSolver::treesearchsolver
     MathOptSolversCMake::mathopt
+    SubsetSumSolver::dynamic_programming_bellman
     Threads::Threads)
 # Resource limits: the portable RSS reader in
 # include/packingsolver/algorithms/thread_pool.hpp uses GetProcessMemoryInfo on

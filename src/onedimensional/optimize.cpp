@@ -627,19 +627,44 @@ packingsolver::onedimensional::Output packingsolver::onedimensional::optimize(
         reduction_parameters.timer = parameters.timer;
         Reduction reduction(instance, reduction_parameters);
 
-        // Unlike rectangle's own six-operation 'Reduction', neither
-        // operation here can ever hide items in a dedicated bin or prove
-        // the instance infeasible by itself, so there is no
-        // 'proven_infeasible()'/'number_of_dedicated_bins()' bound
-        // translation needed - every bound found for the reduced instance
-        // already is the original instance's own bound, unchanged.
+        if (reduction.proven_infeasible()) {
+            // The reduction alone already proves the instance infeasible
+            // (a 'BinPacking' instance's single bin type had its dedicated
+            // bins - see 'Reduction::reduce_full_bin_items'/
+            // 'reduce_perfect_pairs'/'reduce_dominant_sets' - exhaust its
+            // own finite 'copies' while real items were still left over):
+            // 'reduction.instance()'
+            // is not meaningful to solve at all, so skip straight to
+            // reporting the answer.
+            algorithm_formatter.update_is_proven_infeasible();
+            algorithm_formatter.end();
+            return output;
+        }
+        // Forwards a solution/bound found for the reduced instance to the
+        // original 'algorithm_formatter', in original-instance
+        // coordinates. Most bounds need no reduction-specific translation
+        // at all: removing items via this reduction never changes them
+        // (profit, feasibility, ...), so 'reduced_output's bounds already
+        // are the original instance's bounds, in exactly 'Output's own
+        // field layout. The one exception is the dedicated bins set aside
+        // outside the reduced instance (see
+        // 'Reduction::number_of_dedicated_bins' - 'BinPacking' only, see
+        // 'Reduction::full_bin_reduction_applies'): entirely absent from
+        // the reduced instance, so no solve on it can ever count them -
+        // add them back onto the bin-count bound, in a local copy, before
+        // letting 'update_bounds' read off the one relevant to the
+        // current objective.
         auto report_reduced_output = [&reduction, &algorithm_formatter](
                 const onedimensional::Output& reduced_output)
             {
                 algorithm_formatter.update_solution(
                         reduction.unreduce_solution(reduced_output.solution_pool.best()),
                         reduced_output.solution_pool.best_label());
-                algorithm_formatter.update_bounds(reduced_output);
+                onedimensional::Output translated_output(reduced_output);
+                BinPos number_of_dedicated_bins = reduction.number_of_dedicated_bins();
+                if (number_of_dedicated_bins > 0)
+                    translated_output.bin_packing_bound += number_of_dedicated_bins;
+                algorithm_formatter.update_bounds(translated_output);
             };
 
         OptimizeParameters reduced_parameters = parameters;
