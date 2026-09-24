@@ -266,6 +266,21 @@ ItemTypeId InstanceBuilder::add_item_type(
     return instance_.item_types_.size() - 1;
 }
 
+void InstanceBuilder::set_item_type_length(
+        ItemTypeId item_type_id,
+        Length length)
+{
+    if (item_type_id < 0 || item_type_id >= (ItemTypeId)instance_.item_types_.size()) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "invalid 'item_type_id'; "
+                "item_type_id: " + std::to_string(item_type_id) + "; "
+                "instance_.item_types_.size(): " + std::to_string(instance_.item_types_.size()) + ".");
+    }
+
+    instance_.item_types_[item_type_id].length = length;
+}
+
 void InstanceBuilder::set_item_type_weight(
         ItemTypeId item_type_id,
         Weight weight)

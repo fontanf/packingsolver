@@ -91,6 +91,17 @@ FetchContent_Declare(
     EXCLUDE_FROM_ALL)
 FetchContent_MakeAvailable(multiplechoicesubsetsumsolver)
 
+# Fetch fontanf/subsetsumsolver.
+set(SUBSETSUMSOLVER_BUILD_MAIN OFF)
+set(SUBSETSUMSOLVER_BUILD_TEST OFF)
+FetchContent_Declare(
+    subsetsumsolver
+    GIT_REPOSITORY https://github.com/fontanf/subsetsumsolver.git
+    GIT_TAG 2ba9d52e87cf01d0dd80df082db5539d5d5850b8
+    #SOURCE_DIR "${PROJECT_SOURCE_DIR}/../subsetsumsolver/"
+    EXCLUDE_FROM_ALL)
+FetchContent_MakeAvailable(subsetsumsolver)
+
 # Fetch fontanf/treesearchsolver.
 set(TREESEARCHSOLVER_BUILD_TEST OFF)
 set(TREESEARCHSOLVER_BUILD_EXAMPLES OFF)
