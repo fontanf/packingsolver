@@ -4,6 +4,7 @@
 
 #include "optimizationtools/utils/utils.hpp"
 
+#include <limits>
 #include <sstream>
 
 namespace packingsolver
@@ -80,6 +81,9 @@ public:
 
         /** Squared item length. */
         Volume squared_item_length = 0;
+
+        /** Nested item length (see 'BranchingScheme::nested_item_length_'). */
+        Volume nested_item_length = 0;
 
         /** Current length. */
         Volume current_length = 0;
@@ -266,6 +270,19 @@ private:
     /** Total length of the bins preceding each position, in the same order as 'bin_type_ids_'. */
     std::vector<Length> previous_bins_length_;
 
+    /**
+     * Sum, over all items, of 'length - max(nesting_length, 0)': the
+     * smallest length each item can add to a bin once nested.
+     */
+    Volume nested_item_length_ = 0;
+
+    /**
+     * Largest 'profit / (length - max(nesting_length, 0))' over all item
+     * types; infinite if some item type with a positive profit has a
+     * non-positive nested length.
+     */
+    double largest_nested_efficiency_ = 0.0;
+
     mutable Counter node_id_ = 0;
 
     mutable std::vector<Insertion> insertions_;
@@ -332,15 +349,14 @@ std::ostream& operator<<(
 
 Profit BranchingScheme::ubkp(const Node& node) const
 {
-    Area remaining_item_length = instance_.item_length() - node.item_length;
+    // Remaining items may nest, so each one only needs its nested length.
+    Area remaining_item_length = nested_item_length_ - node.nested_item_length;
     Area remaining_length = instance_.bin_length() - node.current_length;
-    if (remaining_length >= remaining_item_length) {
+    if (remaining_length >= remaining_item_length
+            || largest_nested_efficiency_ == std::numeric_limits<double>::infinity()) {
         return instance_.item_profit();
     } else {
-        ItemTypeId item_type_id = instance_.largest_efficiency_item_type_id();
-        return node.profit + remaining_length
-            * instance_.item_type(item_type_id).profit
-            / instance_.item_type(item_type_id).length;
+        return node.profit + remaining_length * largest_nested_efficiency_;
     }
 }
 
