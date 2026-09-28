@@ -49,6 +49,24 @@ BranchingScheme::BranchingScheme(
             previous_bin_length += bin_type.length;
         }
     }
+
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance.number_of_item_types();
+            ++item_type_id) {
+        const ItemType& item_type = instance.item_type(item_type_id);
+        Length nested_length = item_type.length
+            - (std::max)(item_type.nesting_length, (Length)0);
+        nested_item_length_ += item_type.copies * nested_length;
+        if (item_type.profit <= 0)
+            continue;
+        if (nested_length <= 0) {
+            largest_nested_efficiency_ = std::numeric_limits<double>::infinity();
+        } else {
+            largest_nested_efficiency_ = (std::max)(
+                    largest_nested_efficiency_,
+                    (double)item_type.profit / nested_length);
+        }
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -82,6 +100,8 @@ BranchingScheme::Node BranchingScheme::child_tmp(
     node.number_of_items = parent.number_of_items + 1;
     node.item_length = parent.item_length + item_type.length;
     node.squared_item_length = parent.squared_item_length + item_type.length * item_type.length;
+    node.nested_item_length = parent.nested_item_length
+        + item_type.length - (std::max)(item_type.nesting_length, (Length)0);
     node.profit = parent.profit + item_type.profit;
 
     // Update number_of_bins and last_bin_direction.
@@ -411,7 +431,10 @@ bool BranchingScheme::bound(
         if (!leaf(node_2))
             return false;
         BinPos bin_pos = -1;
-        Area a = instance_.item_length() + node_1->waste;
+        // Remaining items may nest, so each one adds at least its nested
+        // length (not its full length) to the packing.
+        Area a = node_1->current_length
+            + nested_item_length_ - node_1->nested_item_length;
         while (a > 0) {
             bin_pos++;
             if (bin_pos >= instance_.number_of_bins())
