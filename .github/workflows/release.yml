@@ -16,7 +16,13 @@ permissions:
 jobs:
 
   build:
-    if: github.event.workflow_run.conclusion == 'success'
+    # 'workflow_run' only filters on the branch name: also require a push to
+    # this repository, so that a pull request from a fork's 'master' branch
+    # never replaces the published binaries.
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
 
     runs-on: ${{ matrix.os }}
 
