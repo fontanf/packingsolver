@@ -4,6 +4,8 @@
 
 #include "optimizationtools/utils/parameters.hpp"
 
+#include "columngenerationsolver/commons.hpp"
+
 namespace packingsolver
 {
 namespace rectangle
@@ -118,6 +120,14 @@ struct ReductionParameters: optimizationtools::Parameters
      * checks (see 'Reduction').
      */
     NodeId subproblem_queue_size = 32;
+
+    /**
+     * Linear programming solver of the feasibility check subproblems.
+     *
+     * Set by 'optimize' from 'OptimizeParameters::linear_programming_solver_name'.
+     */
+    columngenerationsolver::SolverName linear_programming_solver_name
+        = columngenerationsolver::SolverName::CLP;
 };
 
 /**

@@ -46,6 +46,10 @@ struct ConservativeScalesParameters: packingsolver::Parameters<Instance, Solutio
      * default is our own choice.
      */
     Counter number_of_iterations = 5;
+
+    /** Linear programming solver of the knapsack subproblems. */
+    columngenerationsolver::SolverName linear_programming_solver_name
+        = columngenerationsolver::SolverName::CLP;
 };
 
 /**

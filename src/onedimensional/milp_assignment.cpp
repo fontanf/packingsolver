@@ -94,6 +94,7 @@ BinPos compute_bin_instance_upper_bound(
         OptimizationMode::NotAnytimeSequential:
         OptimizationMode::NotAnytimeDeterministic;
     sub_parameters.use_column_generation = true;
+    sub_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
     auto sub_output = optimize(sub_instance, sub_parameters);
 
     bool is_whole_instance = (instance.number_of_bin_types() == 1)
@@ -1337,6 +1338,7 @@ std::vector<BinPos> compute_bin_type_upper_bounds_bin_packing(
         = (parameters.optimization_mode == OptimizationMode::NotAnytimeSequential)?
         OptimizationMode::NotAnytimeSequential:
         OptimizationMode::NotAnytimeDeterministic;
+    sub_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
     if (instance.number_of_bin_types() == 1) {
         sub_parameters.use_column_generation = true;
     } else {
@@ -1496,6 +1498,7 @@ MilpAssignmentOutput packingsolver::onedimensional::milp_assignment(
 
             MilpAssignmentParameters sub_parameters;
             sub_parameters.solver = parameters.solver;
+            sub_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
             sub_parameters.verbosity_level = 0;
             sub_parameters.timer = parameters.timer;
             sub_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());

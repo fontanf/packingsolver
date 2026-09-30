@@ -141,6 +141,10 @@ struct BendersDecompositionParameters: packingsolver::Parameters<Instance, Solut
     /** MILP solver. */
     mathoptsolverscmake::SolverName solver = mathoptsolverscmake::SolverName::Highs;
 
+    /** Linear programming solver of the master problem and subproblems. */
+    columngenerationsolver::SolverName linear_programming_solver_name
+        = columngenerationsolver::SolverName::CLP;
+
     /** Optimization mode. */
     OptimizationMode optimization_mode = OptimizationMode::Anytime;
 

@@ -39,14 +39,16 @@ public:
             const std::vector<RowIdx>& row_cap_row,
             const std::vector<RowIdx>& col_cap_row,
             const std::vector<std::vector<RowIdx>>& link1_row,
-            const std::vector<std::vector<RowIdx>>& link2_row):
+            const std::vector<std::vector<RowIdx>>& link2_row,
+            columngenerationsolver::SolverName linear_programming_solver_name):
         instance_(instance),
         variants_(variants),
         eligible_variants_(eligible_variants),
         row_cap_row_(row_cap_row),
         col_cap_row_(col_cap_row),
         link1_row_(link1_row),
-        link2_row_(link2_row)
+        link2_row_(link2_row),
+        linear_programming_solver_name_(linear_programming_solver_name)
     { }
 
     // 'solve_feasibility' unused: every dynamically priced column here
@@ -93,6 +95,9 @@ private:
     const std::vector<RowIdx>& col_cap_row_;
     const std::vector<std::vector<RowIdx>>& link1_row_;
     const std::vector<std::vector<RowIdx>>& link2_row_;
+
+    /** Linear programming solver of the knapsack subproblems. */
+    columngenerationsolver::SolverName linear_programming_solver_name_;
 
 };
 
@@ -158,6 +163,7 @@ double BarRelaxationPricingSolver::price_bars(
         onedimensional::OptimizeParameters kp_parameters;
         kp_parameters.verbosity_level = 0;
         kp_parameters.optimization_mode = OptimizationMode::NotAnytime;
+        kp_parameters.linear_programming_solver_name = linear_programming_solver_name_;
         onedimensional::Output kp_output = onedimensional::optimize(kp_instance, kp_parameters);
         const onedimensional::Solution& kp_solution = kp_output.solution_pool.best();
         for (ItemTypeId kp_item_type_id = 0;
@@ -564,7 +570,8 @@ BarRelaxationOutput packingsolver::rectangle::bar_relaxation(
                 row_cap_row,
                 col_cap_row,
                 link1_row,
-                link2_row));
+                link2_row,
+                parameters.linear_programming_solver_name));
 
     columngenerationsolver::ColumnGenerationParameters cgs_parameters;
     cgs_parameters.verbosity_level = 0;

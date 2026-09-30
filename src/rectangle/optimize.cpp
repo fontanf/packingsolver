@@ -253,6 +253,7 @@ void optimize_conservative_scales(
 {
     ConservativeScalesParameters cs_parameters;
     cs_parameters.verbosity_level = 0;
+    cs_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
     cs_parameters.timer = parameters.timer;
     cs_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
     cs_parameters.new_solution_callback
@@ -602,6 +603,7 @@ void optimize_benders_decomposition(
 {
     BendersDecompositionParameters bd_parameters;
     bd_parameters.verbosity_level = 0;
+    bd_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
     bd_parameters.timer = parameters.timer;
     bd_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
     bd_parameters.optimization_mode = parameters.optimization_mode;
@@ -685,6 +687,7 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
     if (parameters.reduction_parameters.reduce) {
         ReductionParameters reduction_parameters = parameters.reduction_parameters;
         reduction_parameters.timer = parameters.timer;
+        reduction_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
         Reduction reduction(instance, reduction_parameters);
 
         if (reduction.proven_infeasible()) {
@@ -1302,6 +1305,7 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
         last_bin_parameters.timer = parameters.timer;
         last_bin_parameters.optimization_mode = parameters.optimization_mode;
         last_bin_parameters.not_anytime_tree_search_queue_size = parameters.not_anytime_tree_search_queue_size;
+        last_bin_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
         last_bin_parameters.tree_search_guides = {2, 3};
         auto last_bin_output = optimize(last_bin_instance, last_bin_parameters);
 

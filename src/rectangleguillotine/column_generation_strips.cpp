@@ -761,6 +761,7 @@ void ColumnGenerationPricingSolver::generate_1e_patterns(
             // Solve one-dimensional knapsack problem.
             onedimensional::OptimizeParameters kp_parameters;
             kp_parameters.verbosity_level = 0;
+            kp_parameters.linear_programming_solver_name = parameters_.linear_programming_solver_name;
             auto kp_output = optimize(kp_instance, kp_parameters);
             if (parameters_.timer.needs_to_end())
                 break;
@@ -931,6 +932,7 @@ void ColumnGenerationPricingSolver::generate_1n_patterns(
         // Solve one-dimensional knapsack problem.
         onedimensional::OptimizeParameters kp_parameters;
         kp_parameters.verbosity_level = 0;
+        kp_parameters.linear_programming_solver_name = parameters_.linear_programming_solver_name;
         auto kp_output = optimize(kp_instance, kp_parameters);
         if (parameters_.timer.needs_to_end())
             break;
@@ -1187,6 +1189,7 @@ void ColumnGenerationPricingSolver::generate_1ro_patterns(
         // Solve one-dimensional knapsack problem.
         onedimensional::OptimizeParameters kp_parameters;
         kp_parameters.verbosity_level = 0;
+        kp_parameters.linear_programming_solver_name = parameters_.linear_programming_solver_name;
         auto kp_output = optimize(kp_instance, kp_parameters);
         if (parameters_.timer.needs_to_end())
             break;
@@ -1437,6 +1440,7 @@ void ColumnGenerationPricingSolver::generate_2ho_patterns(
         // Solve one-dimensional knapsack problem.
         onedimensional::OptimizeParameters kp_parameters;
         kp_parameters.verbosity_level = 0;
+        kp_parameters.linear_programming_solver_name = parameters_.linear_programming_solver_name;
         auto kp_output = optimize(kp_instance, kp_parameters);
         if (parameters_.timer.needs_to_end())
             break;
@@ -2155,6 +2159,7 @@ void column_generation_strips_vertical(
     cgslds_parameters.timer = parameters.timer;
     cgslds_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
     cgslds_parameters.internal_diving = columngenerationsolver::Activation::Never;
+    cgslds_parameters.column_generation_parameters.solver_name = parameters.linear_programming_solver_name;
     cgslds_parameters.automatic_stop = (parameters.optimization_mode != OptimizationMode::Anytime);
     cgslds_parameters.new_solution_callback = [&instance, &algorithm_formatter, local_output](
             const columngenerationsolver::Output& cgs_output)
