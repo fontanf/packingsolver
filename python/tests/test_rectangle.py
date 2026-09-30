@@ -3,6 +3,7 @@ import gc
 import math
 import os
 import random
+import re
 import threading
 
 import pytest
@@ -26,10 +27,8 @@ def bin_packing_instance(item_copies):
     """'item_copies' 5x5 squares in 10x10 bins."""
     instance_builder = psr.InstanceBuilder()
     instance_builder.set_objective(psr.Objective.BinPacking)
-    bin_type_id = instance_builder.add_bin_type(10, 10)
-    instance_builder.set_bin_type_copies(bin_type_id, 10)
-    item_type_id = instance_builder.add_item_type(5, 5)
-    instance_builder.set_item_type_copies(item_type_id, item_copies)
+    instance_builder.add_bin_type(10, 10, copies=10)
+    instance_builder.add_item_type(5, 5, copies=item_copies)
     return instance_builder.build()
 
 
@@ -39,9 +38,9 @@ def large_knapsack_instance(number_of_item_types, seed=0):
     instance_builder.set_objective(psr.Objective.Knapsack)
     instance_builder.add_bin_type(1000, 1000)
     for _ in range(number_of_item_types):
-        item_type_id = instance_builder.add_item_type(
-                rng.randint(20, 200), rng.randint(20, 200))
-        instance_builder.set_item_type_profit(item_type_id, rng.randint(1, 1000))
+        x = rng.randint(20, 200)
+        y = rng.randint(20, 200)
+        instance_builder.add_item_type(x, y, profit=rng.randint(1, 1000))
     return instance_builder.build()
 
 
@@ -67,6 +66,191 @@ def test_instance_builder_invalid_argument():
     instance_builder = psr.InstanceBuilder()
     with pytest.raises(ValueError):
         instance_builder.add_item_type(-1, 5)
+
+
+INSTANCE_BUILDER_HEADER = os.path.join(
+        os.path.dirname(__file__), "..", "..",
+        "include", "packingsolver", "rectangle", "instance_builder.hpp")
+
+# C++ per-type setters/adders whose Python keyword is not the plain suffix of
+# the method name.
+RENAMED_KEYWORDS = {
+    "set_item_type_group": "group_id",
+    "set_item_type_eligibility": "eligibility_id",
+    "add_bin_type_eligibility": "eligibility_ids",
+}
+
+# C++ per-type setters/adders deliberately not exposed as keywords.
+NOT_BOUND = {
+    "set_bin_type_rect": "the dimensions are the positional arguments of 'add_bin_type'",
+    "set_bin_type_semi_trailer_truck_parameters": "'SemiTrailerTruckData' is not bound in Python",
+    "add_bin_type_resource": "creates a resource with its own id; kept as a method",
+}
+
+
+def keyword_arguments(function):
+    """Names of the keyword-only arguments of a nanobind function."""
+    names = set()
+    signatures = getattr(function, "__nb_signature__", None)
+    if signatures is not None:
+        signatures = [signature[0] for signature in signatures]
+    else:
+        signatures = [
+            line for line in function.__doc__.splitlines()
+            if "(" in line and "->" in line]
+    for signature in signatures:
+        if "*," not in signature:
+            continue
+        keywords = signature[signature.index("*,") + 2:signature.rindex(")")]
+        names.update(re.findall(r"(\w+)\s*:", keywords))
+    return names
+
+
+def test_add_item_type_keywords():
+    instance_builder = psr.InstanceBuilder()
+    instance_builder.set_objective(psr.Objective.Knapsack)
+    instance_builder.add_bin_type(1000, 700, eligibility_ids=[2])
+    item_type_id = instance_builder.add_item_type(
+            250, 200,
+            oriented=True,
+            group_id=1,
+            weight=3.5,
+            eligibility_id=2,
+            profit=30,
+            copies=4,
+            copies_min=1)
+    assert item_type_id == 0
+    instance = instance_builder.build()
+    item_type = instance.item_type(0)
+    assert item_type.x == 250
+    assert item_type.y == 200
+    assert item_type.oriented
+    assert item_type.group_id == 1
+    assert item_type.weight == 3.5
+    assert item_type.eligibility_id == 2
+    assert item_type.profit == 30
+    assert item_type.copies == 4
+    assert item_type.copies_min == 1
+
+
+def test_add_item_type_defaults():
+    instance_builder = psr.InstanceBuilder()
+    instance_builder.set_objective(psr.Objective.BinPacking)
+    instance_builder.add_bin_type(1000, 700)
+    instance_builder.add_item_type(250, 200)
+    instance_builder.add_item_type(250, 200, copies=3)
+    instance = instance_builder.build()
+    item_type = instance.item_type(0)
+    assert not item_type.oriented
+    assert item_type.group_id == 0
+    assert item_type.eligibility_id == -1
+    assert item_type.profit == 250 * 200
+    assert item_type.copies == 1
+    # 'copies_min' is resolved in 'build()' from the objective and 'copies'.
+    assert item_type.copies_min == 1
+    assert instance.item_type(1).copies_min == 3
+
+
+def test_add_bin_type_keywords():
+    instance_builder = psr.InstanceBuilder()
+    bin_type_id = instance_builder.add_bin_type(
+            1000, 700,
+            cost=10,
+            maximum_weight=100.0,
+            eligibility_ids=[0, 2],
+            copies=5,
+            copies_min=2)
+    assert bin_type_id == 0
+    instance_builder.add_item_type(250, 200)
+    instance = instance_builder.build()
+    bin_type = instance.bin_type(0)
+    assert bin_type.x == 1000
+    assert bin_type.y == 700
+    assert bin_type.cost == 10
+    assert bin_type.maximum_weight == 100.0
+    assert list(bin_type.eligibility_ids) == [0, 2]
+    assert bin_type.copies == 5
+    assert bin_type.copies_min == 2
+
+
+def test_add_bin_type_defaults():
+    instance_builder = psr.InstanceBuilder()
+    instance_builder.add_bin_type(1000, 700)
+    instance_builder.add_item_type(250, 200)
+    instance = instance_builder.build()
+    bin_type = instance.bin_type(0)
+    assert bin_type.cost == 1000 * 700
+    assert list(bin_type.eligibility_ids) == []
+    assert bin_type.copies == 1
+    assert bin_type.copies_min == 0
+
+
+def test_add_type_invalid_keyword():
+    instance_builder = psr.InstanceBuilder()
+    with pytest.raises(ValueError):
+        instance_builder.add_item_type(5, 5, copies=0)
+    with pytest.raises(ValueError):
+        instance_builder.add_bin_type(5, 5, copies=2, copies_min=3)
+    with pytest.raises(TypeError):
+        instance_builder.add_item_type(5, 5, unknown=1)
+    # Only the dimensions are positional.
+    with pytest.raises(TypeError):
+        instance_builder.add_item_type(5, 5, True)
+
+
+def test_removed_setters():
+    for name in [
+            "set_item_type_group",
+            "set_item_type_weight",
+            "set_item_type_eligibility",
+            "set_item_type_profit",
+            "set_item_type_copies",
+            "set_item_type_copies_min",
+            "set_bin_type_cost",
+            "set_bin_type_maximum_weight",
+            "add_bin_type_eligibility",
+            "set_bin_type_copies",
+            "set_bin_type_copies_min"]:
+        assert not hasattr(psr.InstanceBuilder, name), name
+    # Kept methods.
+    for name in [
+            "add_defect",
+            "add_bin_type_resource",
+            "add_resource_consumption",
+            "set_group_weight_constraints",
+            "set_item_types_infinite_copies",
+            "set_bin_types_infinite_copies"]:
+        assert hasattr(psr.InstanceBuilder, name), name
+
+
+def test_instance_builder_keywords_in_sync_with_cpp():
+    """Every C++ per-type setter/adder is a keyword or listed in NOT_BOUND."""
+    with open(INSTANCE_BUILDER_HEADER) as header_file:
+        header = header_file.read()
+    methods = set(re.findall(
+            r"\b((?:set|add)_(?:item|bin)_type_\w+)\s*\(\s*"
+            r"(?:const\s+)?\w+\s*&?\s*(?:item|bin)_type_id\b",
+            header))
+    assert "set_item_type_copies" in methods
+    assert "add_bin_type_eligibility" in methods
+    keywords = {
+        "item": keyword_arguments(psr.InstanceBuilder.add_item_type),
+        "bin": keyword_arguments(psr.InstanceBuilder.add_bin_type),
+    }
+    assert "copies" in keywords["item"]
+    assert "copies" in keywords["bin"]
+    for method in sorted(methods):
+        if method in NOT_BOUND:
+            continue
+        kind = "item" if "_item_type_" in method else "bin"
+        prefix = method.split("_")[0] + "_" + kind + "_type_"
+        keyword = RENAMED_KEYWORDS.get(method, method[len(prefix):])
+        assert keyword in keywords[kind], (
+                "C++ method '" + method + "' is neither the keyword '"
+                + keyword + "' of 'add_" + kind + "_type' nor in NOT_BOUND.")
+    for method in list(NOT_BOUND) + list(RENAMED_KEYWORDS):
+        assert method in methods, (
+                "'" + method + "' is not a C++ per-type method anymore.")
 
 
 def test_build_resets_builder():
@@ -107,8 +291,7 @@ def test_knapsack():
     # Only one of the two 10x6 items fits; the one with the largest profit
     # must be selected, together with the 10x4 item.
     for x, y, profit in [(10, 6, 5), (10, 6, 7), (10, 4, 3)]:
-        item_type_id = instance_builder.add_item_type(x, y, oriented=True)
-        instance_builder.set_item_type_profit(item_type_id, profit)
+        instance_builder.add_item_type(x, y, oriented=True, profit=profit)
     output = psr.optimize(instance_builder.build(), quiet_parameters())
     assert output.solution.profit() == 10
     assert output.solution.item_copies(1) == 1
@@ -222,11 +405,9 @@ def test_linear_programming_algorithms(algorithm):
     """Algorithms solving LPs, including in nested subproblems."""
     instance_builder = psr.InstanceBuilder()
     instance_builder.set_objective(psr.Objective.BinPacking)
-    bin_type_id = instance_builder.add_bin_type(100, 100)
-    instance_builder.set_bin_type_copies(bin_type_id, 50)
+    instance_builder.add_bin_type(100, 100, copies=50)
     for x, y, copies in [(30, 40, 20), (50, 20, 15), (70, 35, 8)]:
-        item_type_id = instance_builder.add_item_type(x, y, oriented=True)
-        instance_builder.set_item_type_copies(item_type_id, copies)
+        instance_builder.add_item_type(x, y, oriented=True, copies=copies)
     parameters = quiet_parameters(time_limit=30.0)
     setattr(parameters, algorithm, True)
     output = psr.optimize(instance_builder.build(), parameters)

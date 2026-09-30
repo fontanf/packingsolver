@@ -19,6 +19,7 @@
 
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/function.h>
+#include <nanobind/stl/optional.h>
 #include <nanobind/stl/shared_ptr.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
@@ -192,10 +193,46 @@ OptimizeParameters default_optimize_parameters()
     return parameters;
 }
 
-/** Bind the members shared by every problem type's 'OptimizeParameters'. */
+/**
+ * Garbage collector support of 'OptimizeParameters': it can own a Python
+ * callable (the new solution callback), which usually references the
+ * parameters object back through its globals. Without these slots, the
+ * garbage collector can't see that reference, and such cycles are never
+ * collected.
+ */
 template <typename Output, typename OptimizeParameters>
-void bind_parameters_base(nb::class_<OptimizeParameters>& cls)
+int parameters_tp_traverse(PyObject* self, visitproc visit, void* arg)
 {
+    Py_VISIT(Py_TYPE(self));
+    if (!nb::inst_ready(self))
+        return 0;
+    const OptimizeParameters* parameters = nb::inst_ptr<OptimizeParameters>(self);
+    auto* callback = parameters->new_solution_callback.template target<PythonNewSolutionCallback<Output>>();
+    if (callback != nullptr)
+        Py_VISIT(callback->function->ptr());
+    return 0;
+}
+
+template <typename Output, typename OptimizeParameters>
+int parameters_tp_clear(PyObject* self)
+{
+    OptimizeParameters* parameters = nb::inst_ptr<OptimizeParameters>(self);
+    parameters->new_solution_callback = [](const Output&) { };
+    return 0;
+}
+
+/**
+ * Create a problem type's 'OptimizeParameters' class, with the members shared
+ * by every problem type.
+ */
+template <typename Output, typename OptimizeParameters>
+nb::class_<OptimizeParameters> bind_parameters_base(nb::module_& m)
+{
+    static PyType_Slot slots[] = {
+        {Py_tp_traverse, (void*)parameters_tp_traverse<Output, OptimizeParameters>},
+        {Py_tp_clear, (void*)parameters_tp_clear<Output, OptimizeParameters>},
+        {0, nullptr}};
+    nb::class_<OptimizeParameters> cls(m, "OptimizeParameters", nb::type_slots(slots));
     cls.def(
             "__init__",
             [](OptimizeParameters* parameters) {
@@ -231,6 +268,7 @@ void bind_parameters_base(nb::class_<OptimizeParameters>& cls)
             },
             nb::for_setter(nb::arg("function").none()),
             "Callable 'f(output)' called each time a new best solution is found.");
+    return cls;
 }
 
 /**

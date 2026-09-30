@@ -13,13 +13,6 @@ PackingSolver solves the following problem types:
 [`onedimensional`](#onedimensional-solver)<ul><li>Items: one-dimensional items</li></ul>  |  <img src="https://github.com/fontanf/packingsolver/blob/master/img/onedimensional.png" align=center width="512">
 [`irregular`](#irregular-solver)<ul><li>Items: two-dimensional polygons</li></ul>  |  <img src="https://github.com/fontanf/packingsolver/blob/master/img/irregular.png" align=center width="512">
 
-## Compilation
-
-```shell
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build --config Release --parallel && cmake --install build --config Release --prefix install
-```
-
 ## Python interface
 
 Python bindings are available for every solver. Install them from PyPI (Python >= 3.12; a new release is published for each commit on `master`):
@@ -30,54 +23,167 @@ pip install packingsolver
 
 Or build them from a local checkout with `pip install .`.
 
-The Python API mirrors the C++ one: one submodule per problem type, with the same `InstanceBuilder`, `Instance`, `OptimizeParameters`, `optimize` and `Output` names. C++ methods are Python methods, and C++ struct members are Python attributes. The submodules are conventionally imported as:
+### `rectangleguillotine` solver
 
 ```python
 import packingsolver.rectangleguillotine as psg
-import packingsolver.rectangle as psr
-import packingsolver.box as psb
-import packingsolver.boxstacks as psbs
-import packingsolver.onedimensional as pso
-import packingsolver.irregular as psi
+
+instance_builder = psg.InstanceBuilder()
+instance_builder.set_objective(psg.Objective.BinPackingWithLeftovers)
+instance_builder.add_bin_type(1000, 700, copies=5)
+instance_builder.add_item_type(250, 200, copies=2)
+instance_builder.add_item_type(150, 300, copies=2)
+instance_builder.add_item_type(200, 150, copies=3)
+instance = instance_builder.build()
+
+parameters = psg.OptimizeParameters()
+parameters.time_limit = 5
+output = psg.optimize(instance, parameters)
+
+psg.visualize(output.solution).show()
 ```
 
-For example:
+<img src="https://raw.githubusercontent.com/fontanf/packingsolver/master/img/python_rectangleguillotine.png" width="512">
+
+### `rectangle` solver
 
 ```python
 import packingsolver.rectangle as psr
 
 instance_builder = psr.InstanceBuilder()
-instance_builder.set_objective(psr.Objective.BinPacking)
-bin_type_id = instance_builder.add_bin_type(100, 100)
-instance_builder.set_bin_type_copies(bin_type_id, 10)
-item_type_id = instance_builder.add_item_type(30, 40)
-instance_builder.set_item_type_copies(item_type_id, 20)
+instance_builder.set_objective(psr.Objective.BinPackingWithLeftovers)
+instance_builder.add_bin_type(1000, 500, copies=10)
+instance_builder.add_item_type(300, 200, copies=10)
+instance_builder.add_item_type(250, 150, copies=10)
 instance = instance_builder.build()
 
 parameters = psr.OptimizeParameters()
-parameters.time_limit = 10
-parameters.new_solution_callback = lambda output: print(output.solution.number_of_bins())
+parameters.time_limit = 5
 output = psr.optimize(instance, parameters)
 
-print(output.solution.number_of_bins(), output.bin_packing_bound)
-for bin_pos in range(output.solution.number_of_different_bins()):
-    solution_bin = output.solution.bin(bin_pos)
-    for item in solution_bin.items:
-        print(bin_pos, item.item_type_id, item.x, item.y, item.rotate)
-output.solution.write("solution.csv")
+psr.visualize(output.solution).show()
 ```
 
-`Ctrl+C` interrupts `optimize` and raises `KeyboardInterrupt`.
+<img src="https://raw.githubusercontent.com/fontanf/packingsolver/master/img/python_rectangle.png" width="512">
 
-`Solution.write` also accepts a text stream, e.g. `io.StringIO`, to get the certificate without writing a file. Each submodule has a `visualize` function that returns a [plotly](https://plotly.com/python/) figure of a solution, without writing any file; it requires `pip install packingsolver[visualization]`:
+### `box` solver
 
 ```python
-psr.visualize(output.solution).show()  # renders inline in Jupyter
+import packingsolver.box as psb
+
+instance_builder = psb.InstanceBuilder()
+instance_builder.set_objective(psb.Objective.Knapsack)
+instance_builder.add_bin_type(216, 173, 110)
+instance_builder.add_item_type(108, 76, 30, copies=20)
+instance_builder.add_item_type(110, 43, 25, copies=20)
+instance_builder.add_item_type(92, 81, 55, copies=20)
+instance = instance_builder.build()
+
+parameters = psb.OptimizeParameters()
+parameters.time_limit = 5
+output = psb.optimize(instance, parameters)
+
+psb.visualize(output.solution).show()
 ```
 
-It takes the figure options of the corresponding `scripts/visualize_<type>.py` script as keyword arguments (the export options `-o`, `--width`, `--height` and `--scale` are left to plotly's `write_image`), e.g. `psr.visualize(output.solution, item_color="GROUP_ID", columns=2)`.
+<img src="https://raw.githubusercontent.com/fontanf/packingsolver/master/img/python_box.png" width="512">
 
-## `rectangleguillotine` solver
+### `boxstacks` solver
+
+```python
+import packingsolver.boxstacks as psbs
+
+instance_builder = psbs.InstanceBuilder()
+instance_builder.set_objective(psbs.Objective.Knapsack)
+instance_builder.add_bin_type(7500, 2400, 3000)
+instance_builder.add_item_type(2500, 800, 750, stackability_id=0, copies=10)
+instance_builder.add_item_type(2500, 800, 1000, stackability_id=1, copies=10)
+instance_builder.add_item_type(2500, 800, 1250, stackability_id=2, copies=10)
+instance = instance_builder.build()
+
+parameters = psbs.OptimizeParameters()
+parameters.time_limit = 5
+output = psbs.optimize(instance, parameters)
+
+psbs.visualize(output.solution).show()
+```
+
+<img src="https://raw.githubusercontent.com/fontanf/packingsolver/master/img/python_boxstacks.png" width="512">
+
+### `onedimensional` solver
+
+```python
+import packingsolver.onedimensional as pso
+
+instance_builder = pso.InstanceBuilder()
+instance_builder.set_objective(pso.Objective.BinPacking)
+instance_builder.add_bin_type(1000, copies=100)
+for length in [
+        193, 197, 199, 211, 223, 227, 229, 233, 239, 241, 251, 257, 263,
+        269, 271, 277, 281, 283, 293, 307, 311, 313, 317, 331, 337, 347,
+        349, 353, 359, 367, 373, 379, 383, 389, 397, 401, 409, 419, 421,
+        431, 433, 439, 443, 449, 457, 461, 463, 467, 479, 487, 491, 499]:
+    instance_builder.add_item_type(length)
+instance = instance_builder.build()
+
+parameters = pso.OptimizeParameters()
+parameters.time_limit = 5
+output = pso.optimize(instance, parameters)
+
+pso.visualize(output.solution).show()
+```
+
+<img src="https://raw.githubusercontent.com/fontanf/packingsolver/master/img/python_onedimensional.png" width="512">
+
+### `irregular` solver
+
+```python
+import packingsolver.irregular as psi
+
+bar = [(0, 0), (80, 0), (80, 20), (0, 20)]
+square = [(0, 0), (40, 0), (40, 40), (0, 40)]
+t_shape = [(0, 0), (60, 0), (60, 20), (40, 20), (40, 40), (20, 40), (20, 20), (0, 20)]
+s_shape = [(20, 0), (60, 0), (60, 20), (40, 20), (40, 40), (0, 40), (0, 20), (20, 20)]
+z_shape = [(0, 0), (40, 0), (40, 20), (60, 20), (60, 40), (20, 40), (20, 20), (0, 20)]
+l_shape = [(0, 0), (40, 0), (40, 20), (20, 20), (20, 60), (0, 60)]
+j_shape = [(0, 0), (40, 0), (40, 60), (20, 60), (20, 20), (0, 20)]
+cross = [
+    (20, 0), (40, 0), (40, 20), (60, 20), (60, 40), (40, 40),
+    (40, 60), (20, 60), (20, 40), (0, 40), (0, 20), (20, 20)]
+rotations = [(0, 0, False), (90, 90, False), (180, 180, False), (270, 270, False)]
+
+instance_builder = psi.InstanceBuilder()
+instance_builder.set_objective(psi.Objective.BinPacking)
+instance_builder.add_bin_type(psi.build_rectangle(0, 180, 0, 160), copies=3)
+instance_builder.add_item_type(psi.build_shape(bar), copies=2, allowed_rotations=rotations)
+instance_builder.add_item_type(psi.build_shape(square), copies=2)
+instance_builder.add_item_type(psi.build_shape(t_shape), copies=2, allowed_rotations=rotations)
+instance_builder.add_item_type(psi.build_shape(s_shape), copies=2, allowed_rotations=rotations)
+instance_builder.add_item_type(psi.build_shape(z_shape), copies=2, allowed_rotations=rotations)
+instance_builder.add_item_type(psi.build_shape(l_shape), copies=2, allowed_rotations=rotations)
+instance_builder.add_item_type(psi.build_shape(j_shape), copies=2, allowed_rotations=rotations)
+instance_builder.add_item_type(psi.build_shape(cross), copies=3)
+instance = instance_builder.build()
+
+parameters = psi.OptimizeParameters()
+parameters.time_limit = 5
+output = psi.optimize(instance, parameters)
+
+psi.visualize(output.solution).show()
+```
+
+<img src="https://raw.githubusercontent.com/fontanf/packingsolver/master/img/python_irregular.png" width="512">
+
+## Command-line interface
+
+### Compilation
+
+```shell
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --config Release --parallel && cmake --install build --config Release --prefix install
+```
+
+### `rectangleguillotine` solver
 
 Features:
 * Objectives:
@@ -225,7 +331,7 @@ Visualize solution:
 python3 scripts/visualize_rectangleguillotine.py solution_rectangleguillotine.csv
 ```
 
-## `rectangle` solver
+### `rectangle` solver
 
 Features:
 * Objectives:
@@ -354,7 +460,7 @@ Visualize solution:
 python3 scripts/visualize_rectangle.py solution_rectangle.csv
 ```
 
-## `box` solver
+### `box` solver
 
 Features:
 * Objectives:
@@ -624,7 +730,7 @@ Visualize solution:
 python3 scripts/visualize_box.py solution_box.csv
 ```
 
-## `boxstacks` solver
+### `boxstacks` solver
 
 Features:
 * Objectives:
@@ -719,7 +825,7 @@ Visualize solution:
 python3 scripts/visualize_boxstacks.py solution_boxstacks.csv
 ```
 
-## `onedimensional` solver
+### `onedimensional` solver
 
 Features:
 * Objectives:
@@ -823,7 +929,7 @@ Visualize:
 python3 scripts/visualize_onedimensional.py solution_onedimensional.csv
 ```
 
-## `irregular` solver
+### `irregular` solver
 
 Features:
 * Objectives:

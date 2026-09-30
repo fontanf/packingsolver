@@ -1,11 +1,44 @@
 #include "common.hpp"
 
+#include <nanobind/stl/tuple.h>
+#include <nanobind/stl/variant.h>
+
 #include "packingsolver/irregular/instance_builder.hpp"
 #include "packingsolver/irregular/optimize.hpp"
 
 using namespace packingsolver;
 using namespace packingsolver::python;
 using namespace packingsolver::irregular;
+
+namespace
+{
+
+/**
+ * Shapes of an item type, as accepted by 'InstanceBuilder.add_item_type': a
+ * list of item shapes, or a single item shape, shape with holes or shape.
+ */
+using ItemShapes = std::variant<
+    std::vector<ItemShape>,
+    ItemShape,
+    shape::ShapeWithHoles,
+    shape::Shape>;
+
+std::vector<ItemShape> to_item_shapes(const ItemShapes& shapes)
+{
+    if (const auto* item_shapes = std::get_if<std::vector<ItemShape>>(&shapes))
+        return *item_shapes;
+    ItemShape item_shape;
+    if (const auto* single_item_shape = std::get_if<ItemShape>(&shapes)) {
+        item_shape = *single_item_shape;
+    } else if (const auto* shape_with_holes = std::get_if<shape::ShapeWithHoles>(&shapes)) {
+        item_shape.shape_orig = *shape_with_holes;
+    } else {
+        item_shape.shape_orig.shape = std::get<shape::Shape>(shapes);
+    }
+    return {item_shape};
+}
+
+}
 
 void bind_irregular(nb::module_& m)
 {
@@ -410,38 +443,94 @@ void bind_irregular(nb::module_& m)
         .def("set_leftover_mode", &InstanceBuilder::set_leftover_mode, nb::arg("leftover_mode"))
         // Bin types.
         .def("add_bin_type",
-                nb::overload_cast<const shape::Shape&>(&InstanceBuilder::add_bin_type),
-                nb::arg("shape"))
-        .def("set_bin_type_cost", &InstanceBuilder::set_bin_type_cost,
-                nb::arg("bin_type_id"), nb::arg("cost"))
+                [](InstanceBuilder& instance_builder,
+                    const shape::Shape& shape,
+                    std::optional<Profit> cost,
+                    std::optional<LengthDbl> item_bin_minimum_spacing,
+                    std::optional<BinPos> copies,
+                    std::optional<BinPos> copies_min)
+                {
+                    BinTypeId bin_type_id = instance_builder.add_bin_type(shape);
+                    if (cost.has_value())
+                        instance_builder.set_bin_type_cost(bin_type_id, *cost);
+                    if (item_bin_minimum_spacing.has_value())
+                        instance_builder.set_item_bin_minimum_spacing(bin_type_id, *item_bin_minimum_spacing);
+                    if (copies.has_value())
+                        instance_builder.set_bin_type_copies(bin_type_id, *copies);
+                    if (copies_min.has_value())
+                        instance_builder.set_bin_type_copies_min(bin_type_id, *copies_min);
+                    return bin_type_id;
+                },
+                nb::arg("shape"),
+                nb::kw_only(),
+                nb::arg("cost") = nb::none(),
+                nb::arg("item_bin_minimum_spacing") = nb::none(),
+                nb::arg("copies") = nb::none(),
+                nb::arg("copies_min") = nb::none(),
+                "Add a bin type and return its id.\n"
+                "\n"
+                "Keyword arguments (when omitted, the C++ default is kept):\n"
+                "- cost: the cost of the bin type (default: its area; -1 also means its area).\n"
+                "- item_bin_minimum_spacing: the item-bin minimum spacing.\n"
+                "- copies: the number of copies of the bin type (-1 for infinite).\n"
+                "- copies_min: the minimum number of copies of the bin type.")
         .def("add_defect", &InstanceBuilder::add_defect,
                 nb::arg("bin_type_id"), nb::arg("type"), nb::arg("shape"))
-        .def("set_item_bin_minimum_spacing", &InstanceBuilder::set_item_bin_minimum_spacing,
-                nb::arg("bin_type_id"), nb::arg("item_bin_minimum_spacing"))
         .def("set_item_defect_minimum_spacing", &InstanceBuilder::set_item_defect_minimum_spacing,
                 nb::arg("bin_type_id"), nb::arg("defect_id"), nb::arg("item_defect_minimum_spacing"))
         .def("add_bin_type_resource", &InstanceBuilder::add_bin_type_resource,
                 nb::arg("bin_type_id"), nb::arg("capacity"), nb::arg("penalize") = false, nb::arg("penalty") = 0.0)
         .def("add_resource_consumption", &InstanceBuilder::add_resource_consumption,
                 nb::arg("bin_type_id"), nb::arg("resource_id"), nb::arg("item_type_id"), nb::arg("schedule"))
-        .def("set_bin_type_copies", &InstanceBuilder::set_bin_type_copies,
-                nb::arg("bin_type_id"), nb::arg("copies"))
-        .def("set_bin_type_copies_min", &InstanceBuilder::set_bin_type_copies_min,
-                nb::arg("bin_type_id"), nb::arg("copies_min"))
         .def("set_bin_types_infinite_copies", &InstanceBuilder::set_bin_types_infinite_copies)
         .def("set_bin_types_unweighted", &InstanceBuilder::set_bin_types_unweighted)
         // Item types.
         .def("add_item_type",
-                nb::overload_cast<const std::vector<ItemShape>&>(&InstanceBuilder::add_item_type),
-                nb::arg("shapes"))
-        .def("add_item_type_allowed_rotation", &InstanceBuilder::add_item_type_allowed_rotation,
-                nb::arg("item_type_id"), nb::arg("start_angle"), nb::arg("end_angle"), nb::arg("mirror"))
-        .def("set_item_type_profit", &InstanceBuilder::set_item_type_profit,
-                nb::arg("item_type_id"), nb::arg("profit"))
-        .def("set_item_type_copies", &InstanceBuilder::set_item_type_copies,
-                nb::arg("item_type_id"), nb::arg("copies"))
-        .def("set_item_type_copies_min", &InstanceBuilder::set_item_type_copies_min,
-                nb::arg("item_type_id"), nb::arg("copies_min"))
+                [](InstanceBuilder& instance_builder,
+                    const ItemShapes& shapes,
+                    std::optional<std::vector<std::tuple<Angle, Angle, bool>>> allowed_rotations,
+                    std::optional<Profit> profit,
+                    std::optional<ItemPos> copies,
+                    std::optional<ItemPos> copies_min)
+                {
+                    ItemTypeId item_type_id = instance_builder.add_item_type(to_item_shapes(shapes));
+                    if (allowed_rotations.has_value()) {
+                        for (const auto& allowed_rotation: *allowed_rotations) {
+                            instance_builder.add_item_type_allowed_rotation(
+                                    item_type_id,
+                                    std::get<0>(allowed_rotation),
+                                    std::get<1>(allowed_rotation),
+                                    std::get<2>(allowed_rotation));
+                        }
+                    }
+                    if (profit.has_value())
+                        instance_builder.set_item_type_profit(item_type_id, *profit);
+                    if (copies.has_value())
+                        instance_builder.set_item_type_copies(item_type_id, *copies);
+                    if (copies_min.has_value())
+                        instance_builder.set_item_type_copies_min(item_type_id, *copies_min);
+                    return item_type_id;
+                },
+                nb::arg("shapes"),
+                nb::kw_only(),
+                nb::arg("allowed_rotations") = nb::none(),
+                nb::arg("profit") = nb::none(),
+                nb::arg("copies") = nb::none(),
+                nb::arg("copies_min") = nb::none(),
+                "Add an item type and return its id.\n"
+                "\n"
+                "'shapes' is the shape of the item type: a 'Shape', a 'ShapeWithHoles'\n"
+                "or an 'ItemShape', or a list of 'ItemShape' for an item type made of\n"
+                "several shapes.\n"
+                "\n"
+                "Keyword arguments (when omitted, the C++ default is kept):\n"
+                "- allowed_rotations: list of '(start_angle, end_angle, mirror)' tuples, each\n"
+                "  an allowed continuous rotation range [start_angle, end_angle] with the\n"
+                "  given mirror flag. When given, it replaces the default '[(0, 0, False)]'.\n"
+                "- profit: the profit of the item type (default: its area).\n"
+                "- copies: the number of copies of the item type (-1 for infinite).\n"
+                "- copies_min: the minimum number of copies to pack of the item type\n"
+                "  (default: resolved in 'build()' from the objective).")
         .def("set_item_types_unweighted", &InstanceBuilder::set_item_types_unweighted)
         .def("set_item_types_continuous_rotations", &InstanceBuilder::set_item_types_continuous_rotations)
         .def("build",
@@ -555,8 +644,7 @@ void bind_irregular(nb::module_& m)
         .def_rw("remove_negative_profit_items", &ReductionParameters::remove_negative_profit_items)
         .def_rw("merge_identical_items", &ReductionParameters::merge_identical_items);
 
-    nb::class_<OptimizeParameters> parameters(m, "OptimizeParameters");
-    bind_parameters_base<irregular::Output>(parameters);
+    nb::class_<OptimizeParameters> parameters = bind_parameters_base<irregular::Output, OptimizeParameters>(m);
     parameters
         .def_rw("optimization_mode", &OptimizeParameters::optimization_mode)
         .def_rw("memory_limit_megabytes", &OptimizeParameters::memory_limit_megabytes)
