@@ -1,0 +1,130 @@
+name: Python
+
+# Builds and tests the Python wheels, and publishes them to PyPI every time the
+# Build workflow succeeds on master (so a broken master never gets published).
+# Each commit of master gets its own release: its version is the base version
+# of 'python/packingsolver/_version.py' followed by the number of commits.
+#
+# Pull requests touching the bindings or their packaging only build and test
+# the wheels.
+
+on:
+  workflow_run:
+    workflows: ["Build"]
+    branches: [master]
+    types: [completed]
+  pull_request:
+    branches: [master]
+    paths:
+      - "python/**"
+      - "pyproject.toml"
+      - "CMakeLists.txt"
+      - ".github/workflows/python.yml"
+  workflow_dispatch:
+
+# Cancel the run of a pull request when a new commit is pushed to it. Runs
+# for master commits are never cancelled: each one publishes a release.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.event.workflow_run.head_sha || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+
+  version:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v6
+      with:
+        ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+        fetch-depth: 0
+        persist-credentials: false
+    - name: Compute version
+      id: version
+      run: |
+        base=$(sed -n 's/^__version__ = "\([0-9]*\.[0-9]*\)\..*"$/\1/p' python/packingsolver/_version.py)
+        echo "version=${base}.$(git rev-list --count HEAD)" >> "$GITHUB_OUTPUT"
+
+  build_wheels:
+    needs: version
+    name: Build wheels (${{ matrix.os }})
+    runs-on: ${{ matrix.runs-on }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: linux-x86_64
+            runs-on: ubuntu-latest
+          - os: linux-aarch64
+            runs-on: ubuntu-24.04-arm
+          - os: windows-x86_64
+            runs-on: windows-latest
+          - os: macos-x86_64
+            runs-on: macos-15-intel
+          - os: macos-arm64
+            runs-on: macos-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v6
+      with:
+        ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+        persist-credentials: false
+    - name: Set version
+      shell: bash
+      run: printf '__version__ = "%s"\n' "${{ needs.version.outputs.version }}" > python/packingsolver/_version.py
+    - name: Build wheels
+      uses: pypa/cibuildwheel@v4.2.1
+      env:
+        # One job per CPU: the Apple Silicon runners have 3 CPUs and 7 GB of
+        # memory, and swap with more jobs.
+        CMAKE_BUILD_PARALLEL_LEVEL: ${{ (runner.os == 'macOS' && runner.arch == 'ARM64') && 3 || 4 }}
+        CIBW_ENVIRONMENT_PASS_LINUX: CMAKE_BUILD_PARALLEL_LEVEL
+    - name: Upload wheels
+      uses: actions/upload-artifact@v4
+      with:
+        name: cibw-wheels-${{ matrix.os }}
+        path: ./wheelhouse/*.whl
+
+  build_sdist:
+    needs: version
+    name: Build source distribution
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v6
+      with:
+        ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+        persist-credentials: false
+    - name: Set version
+      run: printf '__version__ = "%s"\n' "${{ needs.version.outputs.version }}" > python/packingsolver/_version.py
+    - name: Build sdist
+      run: pipx run build --sdist
+    - name: Upload sdist
+      uses: actions/upload-artifact@v4
+      with:
+        name: cibw-sdist
+        path: dist/*.tar.gz
+
+  publish:
+    needs: [build_wheels, build_sdist]
+    if: github.event_name == 'workflow_run'
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/packingsolver
+    permissions:
+      id-token: write
+    steps:
+    - name: Download wheels and sdist
+      uses: actions/download-artifact@v5
+      with:
+        pattern: cibw-*
+        path: dist
+        merge-multiple: true
+    - name: Publish to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1

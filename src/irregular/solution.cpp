@@ -453,7 +453,12 @@ void Solution::write(
                 FUNC_SIGNATURE + ": "
                 "unable to open file \"" + certificate_path + "\".");
     }
+    write(file);
+}
 
+void Solution::write(
+        std::ostream& os) const
+{
     nlohmann::json json;
     for (BinPos bin_pos = 0; bin_pos < number_of_different_bins(); ++bin_pos) {
         const SolutionBin& bin = bins_[bin_pos];
@@ -599,7 +604,7 @@ void Solution::write(
         }
     }
 
-    file << std::setw(4) << json << std::endl;
+    os << std::setw(4) << json << std::endl;
 }
 
 void Solution::write_svg(

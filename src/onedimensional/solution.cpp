@@ -279,12 +279,17 @@ void Solution::write(
                 FUNC_SIGNATURE + ": "
                 "unable to open file \"" + certificate_path + "\".");
     }
+    write(file);
+}
 
-    file << "TYPE,ID,COPIES,BIN,X,LX" << std::endl;
+void Solution::write(
+        std::ostream& os) const
+{
+    os << "TYPE,ID,COPIES,BIN,X,LX" << std::endl;
     for (BinPos bin_pos = 0; bin_pos < number_of_different_bins(); ++bin_pos) {
         const SolutionBin& bin = bins_[bin_pos];
         BinTypeId bin_type_id = bin.bin_type_id;
-        file
+        os
             << "BIN,"
             << bin_type_id << ","
             << bin.copies << ","
@@ -294,7 +299,7 @@ void Solution::write(
 
         for (const SolutionItem& item: bin.items) {
             const ItemType& item_type = instance().item_type(item.item_type_id);
-            file
+            os
                 << "ITEM,"
                 << item.item_type_id << ","
                 << bin.copies << ","

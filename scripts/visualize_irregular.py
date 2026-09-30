@@ -1,63 +1,14 @@
 import argparse
-import json
-import plotly.graph_objects as go
-import plotly.express as px
-import plotly.subplots
-import numpy as np
-import math
+import importlib.util
+import os
 
-
-def shape_path(path_x, path_y, shape, is_hole=False):
-    # How to draw a filled circle segment?
-    # https://community.plotly.com/t/how-to-draw-a-filled-circle-segment/59583
-    # https://stackoverflow.com/questions/70965145/can-plotly-for-python-plot-a-polygon-with-one-or-multiple-holes-in-it
-    for element in (shape if not is_hole else reversed(shape)):
-        t = element["type"]
-        xs = element["xs"]
-        ys = element["ys"]
-        xe = element["xe"]
-        ye = element["ye"]
-        if t == "CircularArc":
-            xc = element["xc"]
-            yc = element["yc"]
-            orientation = element["orientation"]
-            rc = math.sqrt((xc - xs)**2 + (yc - ys)**2)
-
-        if is_hole:
-            xs, ys, xe, ye = xe, ye, xs, ys
-
-        if len(path_x) == 0 or path_x[-1] is None:
-            path_x.append(xs)
-            path_y.append(ys)
-
-        if t == "LineSegment":
-            path_x.append(xe)
-            path_y.append(ye)
-        elif t == "CircularArc":
-            start_cos = (xs - xc) / rc
-            start_sin = (ys - yc) / rc
-            start_angle = math.atan2(start_sin, start_cos)
-            end_cos = (xe - xc) / rc
-            end_sin = (ye - yc) / rc
-            end_angle = math.atan2(end_sin, end_cos)
-            if orientation in ["Full", "full", "F", "f"]:
-                end_angle += 2 * math.pi
-            if (orientation in ["Anticlockwise", "anticlockwise", "A", "a"]
-                    and end_angle <= start_angle):
-                end_angle += 2 * math.pi
-            if (orientation in ["Clockwise", "clockwise", "C", "c"]
-                    and end_angle >= start_angle):
-                end_angle -= 2 * math.pi
-
-            t = np.linspace(start_angle, end_angle, 1024)
-            x = xc + rc * np.cos(t)
-            y = yc + rc * np.sin(t)
-            for xa, ya in zip(x[1:], y[1:]):
-                path_x.append(xa)
-                path_y.append(ya)
-    path_x.append(None)
-    path_y.append(None)
-
+spec = importlib.util.spec_from_file_location(
+        "packingsolver_visualize_irregular",
+        os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "..", "python", "packingsolver", "visualize", "irregular.py"))
+visualize = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(visualize)
 
 parser = argparse.ArgumentParser(description='')
 parser.add_argument('csvpath', help='path to JSON file')
@@ -69,139 +20,18 @@ parser.add_argument('--columns', type=int, default=None, help='number of columns
 parser.add_argument('--scale', type=float, default=1.0, help='scale factor for cell dimensions')
 args = parser.parse_args()
 
-if args.itemcolor not in ["SAME", "ID"]:
-    raise ValueError(f"color palette {args.itemcolor} is unknown, please use one of the following: 'SAME', 'ID'")
+fig = visualize.figure(
+        args.csvpath,
+        item_color=args.itemcolor,
+        columns=args.columns)
 
-bins_x = []
-bins_y = []
-defects_x = []
-defects_y = []
-items_x = []
-items_y = []
-
-with open(args.csvpath, 'r') as f:
-    j = json.load(f)
-
-    for bin_pos, solution_bin in enumerate(j["bins"]):
-        bins_x.append([])
-        bins_y.append([])
-        defects_x.append([])
-        defects_y.append([])
-        items_x.append([])
-        items_y.append([])
-
-        shape_path(bins_x[bin_pos], bins_y[bin_pos], solution_bin["shape"])
-        for defect in (solution_bin["defects"]
-                       if "defects" in solution_bin else []):
-            shape_path(defects_x[bin_pos], defects_y[bin_pos], defect["shape"])
-            for hole in (defect["holes"]
-                         if "holes" in defect else []):
-                shape_path(defects_x[bin_pos], defects_y[bin_pos], hole, True)
-        for solution_item in solution_bin["items"]:
-            item_id = solution_item["id"]
-            while len(items_x[bin_pos]) <= item_id:
-                items_x[bin_pos].append([])
-                items_y[bin_pos].append([])
-            for item_shape in solution_item["item_shapes"]:
-                shape_path(items_x[bin_pos][item_id],
-                           items_y[bin_pos][item_id],
-                           item_shape["shape"])
-                for hole in (item_shape["holes"]
-                             if "holes" in item_shape else []):
-                    shape_path(items_x[bin_pos][item_id], items_y[bin_pos][item_id], hole, True)
-
-colors = px.colors.qualitative.Pastel
-m = len(bins_x)
-max_bin_lx = max(max(x for x in bx if x is not None) - min(x for x in bx if x is not None) for bx in bins_x)
-max_bin_ly = max(max(y for y in by if y is not None) - min(y for y in by if y is not None) for by in bins_y)
-number_of_cols = args.columns if args.columns is not None else math.ceil(math.sqrt(m))
-number_of_rows = math.ceil(m / number_of_cols)
-fig = plotly.subplots.make_subplots(
-        rows=number_of_rows,
-        cols=number_of_cols,
-        shared_xaxes=True,
-        vertical_spacing=0.001)
-
-for i in range(0, m):
-    row = (i // number_of_cols) + 1
-    col = (i % number_of_cols) + 1
-
-    fig.add_trace(go.Scatter(
-        x=bins_x[i],
-        y=bins_y[i],
-        name="Bins",
-        legendgroup="bins",
-        showlegend=(i == 0),
-        marker=dict(
-            color='black',
-            size=1)),
-        row=row,
-        col=col)
-
-    fig.add_trace(go.Scatter(
-        x=defects_x[i],
-        y=defects_y[i],
-        name="Defects",
-        legendgroup="defects",
-        showlegend=(i == 0),
-        fillcolor="crimson",
-        fill="toself",
-        marker=dict(
-            color='black',
-            size=1)),
-        row=row,
-        col=col)
-
-    for k in range(len(items_x[i])):
-        if args.itemcolor == 'SAME':
-            fig.add_trace(go.Scatter(
-                x=items_x[i][k],
-                y=items_y[i][k],
-                name="Items",
-                legendgroup="items",
-                showlegend=(i == 0 and k == 0),
-                fillcolor="cornflowerblue",
-                fill="toself",
-                marker=dict(
-                    color='black',
-                    size=1)),
-                row=i + 1,
-                col=1)
-        elif args.itemcolor == 'ID':
-            fig.add_trace(go.Scatter(
-                x=items_x[i][k],
-                y=items_y[i][k],
-                name=f"Items {k}",
-                legendgroup="item",
-                showlegend=i == 0,
-                fillcolor=colors[k % len(colors)],
-                fill="toself",
-                marker=dict(
-                    color='black',
-                    size=1)),
-                row=row,
-                col=col)
-
-# Plot.
-fig.update_layout(
-        autosize=True,
-        font=dict(size=14),
-        legend=dict(font=dict(size=14), itemsizing='constant'))
-fig.update_xaxes(
-        rangeslider=dict(visible=False))
-for i in range(0, m):
-    row = (i // number_of_cols) + 1
-    col = (i % number_of_cols) + 1
-    fig.update_yaxes(
-            scaleanchor="x" if i == 0 else f"x{i + 1}",
-            scaleratio=1,
-            row=row,
-            col=col)
 if args.output:
-    cell_width = int(max_bin_lx * args.scale)
-    cell_height = int(max_bin_ly * args.scale)
-    export_width = args.width if args.width is not None else number_of_cols * cell_width + 160
-    export_height = args.height if args.height is not None else number_of_rows * cell_height + 170
+    export_width, export_height = visualize.export_size(
+            args.csvpath,
+            columns=args.columns,
+            scale=args.scale,
+            width=args.width,
+            height=args.height)
     fig.write_image(args.output, width=export_width, height=export_height, scale=2)
 else:
     fig.show()

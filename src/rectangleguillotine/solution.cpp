@@ -591,8 +591,13 @@ void Solution::write(
                 FUNC_SIGNATURE + ": "
                 "unable to open file \"" + certificate_path + "\".");
     }
+    write(file);
+}
 
-    file << "PLATE_ID,COPIES,NODE_ID,X,Y,WIDTH,HEIGHT,TYPE,CUT,PARENT" << std::endl;
+void Solution::write(
+        std::ostream& os) const
+{
+    os << "PLATE_ID,COPIES,NODE_ID,X,Y,WIDTH,HEIGHT,TYPE,CUT,PARENT" << std::endl;
     SolutionNodeId offset = 0;
     for (BinPos bin_pos = 0; bin_pos < number_of_different_bins(); ++bin_pos) {
         const SolutionBin& solution_bin = bins_[bin_pos];
@@ -602,7 +607,7 @@ void Solution::write(
                 node_id < (SolutionNodeId)solution_bin.nodes.size();
                 ++node_id) {
             const SolutionNode& n = solution_bin.nodes[node_id];
-            file
+            os
                 << bin_pos << ","
                 << solution_bin.copies << ","
                 << offset + node_id << ","
@@ -613,12 +618,12 @@ void Solution::write(
                 << n.item_type_id << ","
                 << n.d << ",";
             if (n.f != -1)
-                file << offset + n.f;
-            file << std::endl;
+                os << offset + n.f;
+            os << std::endl;
         }
         offset += solution_bin.nodes.size();
         for (const Defect& defect: bin_type.defects) {
-            file
+            os
                 << bin_pos << ","
                 << solution_bin.copies << ","
                 << -1 << ","
