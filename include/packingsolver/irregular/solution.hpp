@@ -233,6 +233,9 @@ public:
     /** Write the solution to a file. */
     void write(const std::string& certificate_path) const;
 
+    /** Write the solution to a stream, in the same format as 'write(certificate_path)'. */
+    void write(std::ostream& os) const;
+
     /** Write the solution to an SVG file. */
     void write_svg(
             const std::string& file_path,

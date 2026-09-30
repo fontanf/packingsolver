@@ -1,0 +1,66 @@
+[build-system]
+requires = ["scikit-build-core>=0.11"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "packingsolver"
+dynamic = ["version"]
+description = "A solver for geometrical packing and cutting-stock problems"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Florian Fontan" }]
+requires-python = ">=3.12"
+classifiers = [
+    "Programming Language :: C++",
+    "Programming Language :: Python :: 3",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
+    "Topic :: Scientific/Engineering :: Mathematics",
+]
+
+[project.optional-dependencies]
+visualization = ["plotly", "numpy"]
+
+[project.urls]
+Homepage = "https://github.com/fontanf/packingsolver"
+
+[tool.scikit-build]
+minimum-version = "build-system.requires"
+build-dir = "build/{wheel_tag}"
+wheel.packages = ["python/packingsolver"]
+# A single stable-ABI wheel per platform, for every Python >= 3.12.
+wheel.py-api = "cp312"
+cmake.build-type = "Release"
+cmake.define.PACKINGSOLVER_BUILD_PYTHON = "ON"
+cmake.define.PACKINGSOLVER_BUILD_MAIN = "OFF"
+cmake.define.PACKINGSOLVER_BUILD_TEST = "OFF"
+metadata.version.provider = "scikit_build_core.metadata.regex"
+metadata.version.input = "python/packingsolver/_version.py"
+# Only ship what the build needs (not 'data/', build trees, local files...).
+sdist.exclude = ["*"]
+sdist.include = [
+    "/CMakeLists.txt",
+    "/LICENSE",
+    "/README.md",
+    "/pyproject.toml",
+    "/extern/",
+    "/include/",
+    "/python/CMakeLists.txt",
+    "/python/packingsolver/*.py",
+    "/python/packingsolver/visualize/*.py",
+    "/python/src/",
+    "/python/tests/*.py",
+    "/src/",
+]
+
+[tool.cibuildwheel]
+build = "cp312-*"
+skip = "*-musllinux_*"
+test-requires = ["pytest"]
+test-command = "pytest {project}/python/tests"
+
+[tool.cibuildwheel.macos]
+# Oldest macOS version the wheels support.
+environment = { MACOSX_DEPLOYMENT_TARGET = "11.0" }

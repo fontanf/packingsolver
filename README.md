@@ -1,4 +1,4 @@
-![PackingSolver banner](img/banner.png)
+![PackingSolver banner](https://raw.githubusercontent.com/fontanf/packingsolver/master/img/banner.png)
 
 A state-of-the-art solver for (geometrical) packing problems.
 
@@ -19,6 +19,63 @@ PackingSolver solves the following problem types:
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build --config Release --parallel && cmake --install build --config Release --prefix install
 ```
+
+## Python interface
+
+Python bindings are available for every solver. Install them from PyPI (Python >= 3.12; a new release is published for each commit on `master`):
+
+```shell
+pip install packingsolver
+```
+
+Or build them from a local checkout with `pip install .`.
+
+The Python API mirrors the C++ one: one submodule per problem type, with the same `InstanceBuilder`, `Instance`, `OptimizeParameters`, `optimize` and `Output` names. C++ methods are Python methods, and C++ struct members are Python attributes. The submodules are conventionally imported as:
+
+```python
+import packingsolver.rectangleguillotine as psg
+import packingsolver.rectangle as psr
+import packingsolver.box as psb
+import packingsolver.boxstacks as psbs
+import packingsolver.onedimensional as pso
+import packingsolver.irregular as psi
+```
+
+For example:
+
+```python
+import packingsolver.rectangle as psr
+
+instance_builder = psr.InstanceBuilder()
+instance_builder.set_objective(psr.Objective.BinPacking)
+bin_type_id = instance_builder.add_bin_type(100, 100)
+instance_builder.set_bin_type_copies(bin_type_id, 10)
+item_type_id = instance_builder.add_item_type(30, 40)
+instance_builder.set_item_type_copies(item_type_id, 20)
+instance = instance_builder.build()
+
+parameters = psr.OptimizeParameters()
+parameters.time_limit = 10
+parameters.new_solution_callback = lambda output: print(output.solution.number_of_bins())
+output = psr.optimize(instance, parameters)
+
+print(output.solution.number_of_bins(), output.bin_packing_bound)
+for bin_pos in range(output.solution.number_of_different_bins()):
+    solution_bin = output.solution.bin(bin_pos)
+    for item in solution_bin.items:
+        print(bin_pos, item.item_type_id, item.x, item.y, item.rotate)
+output.solution.write("solution.csv")
+```
+
+`Ctrl+C` interrupts `optimize` and raises `KeyboardInterrupt`.
+
+`Solution.write` also accepts a text stream, e.g. `io.StringIO`, to get the certificate without writing a file. Each submodule has a `visualize` function that returns a [plotly](https://plotly.com/python/) figure of a solution, without writing any file; it requires `pip install packingsolver[visualization]`:
+
+```python
+psr.visualize(output.solution).show()  # renders inline in Jupyter
+```
+
+It takes the figure options of the corresponding `scripts/visualize_<type>.py` script as keyword arguments (the export options `-o`, `--width`, `--height` and `--scale` are left to plotly's `write_image`), e.g. `psr.visualize(output.solution, item_color="GROUP_ID", columns=2)`.
 
 ## `rectangleguillotine` solver
 
@@ -860,5 +917,3 @@ Visualize:
 ```shell
 python3 scripts/visualize_irregular.py solution_irregular.json
 ```
-
-For the irregular solver, a third-party Python interface [HamzaYslmn/pyckingsolver](https://github.com/HamzaYslmn/pyckingsolver) is available on [PyPI](https://pypi.org/project/pyckingsolver/)

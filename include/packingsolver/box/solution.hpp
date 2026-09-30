@@ -249,6 +249,9 @@ public:
     /** Write the solution to a file. */
     void write(const std::string& certificate_path) const;
 
+    /** Write the solution to a stream, in the same format as 'write(certificate_path)'. */
+    void write(std::ostream& os) const;
+
     /** Export solution characteristics to a JSON structure. */
     nlohmann::json to_json() const;
 
