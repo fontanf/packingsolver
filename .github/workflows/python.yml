@@ -31,7 +31,14 @@ concurrency:
 jobs:
 
   version:
-    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    # 'workflow_run' only filters on the branch name: also require a push to
+    # this repository, so that a pull request from a fork's 'master' branch is
+    # never built and published.
+    if: >-
+      github.event_name != 'workflow_run' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_repository.full_name == github.repository)
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
@@ -112,7 +119,10 @@ jobs:
 
   publish:
     needs: [build_wheels, build_sdist]
-    if: github.event_name == 'workflow_run'
+    if: >-
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
     runs-on: ubuntu-latest
     environment:
       name: pypi
