@@ -47,7 +47,9 @@ jobs:
     - name: Build
       run: |
         cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DPACKINGSOLVER_BUILD_TEST=OFF
-        cmake --build build --config Release --parallel
+        # Bound the number of jobs: without a value, '--parallel' runs an unlimited
+        # 'make -j', which makes the macOS runners (3 CPUs, 7 GB) swap.
+        cmake --build build --config Release --parallel ${{ runner.os == 'macOS' && 3 || 4 }}
         cmake --install build --config Release --prefix install
     - name: Package (tar.gz)
       if: matrix.archive_ext == 'tar.gz'

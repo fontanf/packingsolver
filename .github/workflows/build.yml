@@ -35,7 +35,9 @@ jobs:
     - name: Build
       run: |
         cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-        cmake --build build --config Release --parallel
+        # Bound the number of jobs: without a value, '--parallel' runs an unlimited
+        # 'make -j', which makes the macOS runners (3 CPUs, 7 GB) swap.
+        cmake --build build --config Release --parallel ${{ runner.os == 'macOS' && 3 || 4 }}
         cmake --install build --config Release --prefix install
     - name: Run unit tests
       working-directory: build/test
@@ -51,7 +53,9 @@ jobs:
     - name: Build
       run: |
         cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-        cmake --build build --config Release --parallel
+        # Bound the number of jobs: without a value, '--parallel' runs an unlimited
+        # 'make -j', which makes the macOS runners (3 CPUs, 7 GB) swap.
+        cmake --build build --config Release --parallel ${{ runner.os == 'macOS' && 3 || 4 }}
         cmake --install build --config Release --prefix install
     - name: Run tests
       run: python3 -u scripts/run_tests.py test_results_ref
