@@ -49,6 +49,10 @@ struct MilpAssignmentParameters: packingsolver::Parameters<Instance, Solution, O
      */
     NodeId bin_count_subproblem_tree_search_queue_size = 1024;
 
+    /** Linear programming solver of the bin count subproblems. */
+    columngenerationsolver::SolverName linear_programming_solver_name
+        = columngenerationsolver::SolverName::CLP;
+
     /**
      * For the 'BinPacking' objective, solve as a sequence of 'Feasibility'
      * sub-problems (one per candidate bin count, packing all items into a

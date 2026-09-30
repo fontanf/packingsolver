@@ -27,6 +27,7 @@ OptimizeParameters build_check_parameters(
     check_parameters.use_tree_search = true;
     check_parameters.not_anytime_tree_search_queue_size = parameters.subproblem_queue_size;
     check_parameters.fixed_items = fixed_items;
+    check_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
     // Never reduce the check sub-instance itself: 'fixed_items' (when set)
     // references its item type ids directly, which a nested reduction
     // could renumber, and there is nothing to gain from reducing an

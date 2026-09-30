@@ -592,6 +592,7 @@ void optimize_milp_assignment(
     ma_parameters.timer = parameters.timer;
     ma_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
     ma_parameters.optimization_mode = parameters.optimization_mode;
+    ma_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
     if (!parameters.mps_prefix.empty())
         ma_parameters.mps_prefix = parameters.mps_prefix + "_milp_assignment";
     ma_parameters.new_solution_callback = [&algorithm_formatter, local_output](

@@ -132,6 +132,7 @@ SelectionFeasibility selection_feasibility(
         OptimizationMode::NotAnytimeSequential:
         OptimizationMode::NotAnytimeDeterministic;
     sub_parameters.not_anytime_tree_search_queue_size = parameters.subproblem_queue_size;
+    sub_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
     auto sub_output = optimize(sub_instance, sub_parameters);
     if (sub_output.solution_pool.best().feasible())
         return SelectionFeasibility::Feasible;
@@ -762,6 +763,7 @@ ResourceCut packingsolver::rectangle::lift_no_good_cut(
         BarRelaxationParameters bar_relaxation_parameters;
         bar_relaxation_parameters.verbosity_level = 0;
         bar_relaxation_parameters.timer = parameters.timer;
+        bar_relaxation_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
         BarRelaxationOutput bar_relaxation_output = bar_relaxation(sub_instance, bar_relaxation_parameters);
 
         // j* contributes 0 to the objective by construction, so the
@@ -847,6 +849,7 @@ BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
             OptimizationMode::NotAnytimeDeterministic;
         master_parameters.use_tree_search = parameters.master_problem_use_tree_search;
         master_parameters.use_milp_assignment = parameters.master_problem_use_milp_assignment;
+        master_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
         onedimensional::Output master_output = onedimensional::optimize(
                 master_instance, master_parameters);
         auto master_end = std::chrono::steady_clock::now();
@@ -1096,6 +1099,7 @@ BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
                 OptimizationMode::NotAnytimeSequential:
                 OptimizationMode::NotAnytimeDeterministic;
             sub_parameters.not_anytime_tree_search_queue_size = parameters.subproblem_queue_size;
+            sub_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
             auto subproblem_begin = std::chrono::steady_clock::now();
             auto sub_output = optimize(sub_instance, sub_parameters);
             auto subproblem_end = std::chrono::steady_clock::now();
