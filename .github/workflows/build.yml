@@ -8,6 +8,12 @@ on:
     branches:
       - master
 
+# Cancel the run of a pull request when a new commit is pushed to it. Runs on
+# master are never cancelled: the Release workflow is triggered by them.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
 
   build:
@@ -41,7 +47,9 @@ jobs:
         cmake --install build --config Release --prefix install
     - name: Run unit tests
       working-directory: build/test
-      run: ctest --output-on-failure --parallel
+      # '-C Release': with multi-configuration generators (Visual Studio),
+      # ctest finds no test without the configuration.
+      run: ctest -C Release --output-on-failure --parallel
     - name: Run tests
       run: python3 -u scripts/run_tests.py test_results
     - name: Checkout main branch
