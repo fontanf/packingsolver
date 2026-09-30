@@ -356,7 +356,7 @@ const SequentialStripsOnedimensionalOutput packingsolver::rectangleguillotine::s
                     algorithm_formatter,
                     deterministic ? &local_output_horizontal : nullptr);
         });
-        run(tasks, true);
+        run(tasks, parameters.optimization_mode != OptimizationMode::NotAnytimeSequential);
         for (const std::exception_ptr& exception_ptr: exception_ptr_list)
             if (exception_ptr)
                 std::rethrow_exception(exception_ptr);
