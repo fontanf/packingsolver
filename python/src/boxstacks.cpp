@@ -7,6 +7,49 @@ using namespace packingsolver;
 using namespace packingsolver::python;
 using namespace packingsolver::boxstacks;
 
+namespace
+{
+
+/**
+ * Build a 'SemiTrailerTruckData' from a dict of its fields; missing fields
+ * keep their default values.
+ */
+SemiTrailerTruckData semi_trailer_truck_data_from_dict(const nb::dict& parameters)
+{
+    SemiTrailerTruckData semi_trailer_truck_data;
+    semi_trailer_truck_data.is = true;
+    for (auto item: parameters) {
+        std::string key = nb::cast<std::string>(item.first);
+        if (key == "tractor_weight") {
+            semi_trailer_truck_data.tractor_weight = nb::cast<Weight>(item.second);
+        } else if (key == "front_axle_middle_axle_distance") {
+            semi_trailer_truck_data.front_axle_middle_axle_distance = nb::cast<Length>(item.second);
+        } else if (key == "front_axle_tractor_gravity_center_distance") {
+            semi_trailer_truck_data.front_axle_tractor_gravity_center_distance = nb::cast<Length>(item.second);
+        } else if (key == "front_axle_harness_distance") {
+            semi_trailer_truck_data.front_axle_harness_distance = nb::cast<Length>(item.second);
+        } else if (key == "empty_trailer_weight") {
+            semi_trailer_truck_data.empty_trailer_weight = nb::cast<Weight>(item.second);
+        } else if (key == "harness_rear_axle_distance") {
+            semi_trailer_truck_data.harness_rear_axle_distance = nb::cast<Length>(item.second);
+        } else if (key == "trailer_gravity_center_rear_axle_distance") {
+            semi_trailer_truck_data.trailer_gravity_center_rear_axle_distance = nb::cast<Length>(item.second);
+        } else if (key == "trailer_start_harness_distance") {
+            semi_trailer_truck_data.trailer_start_harness_distance = nb::cast<Length>(item.second);
+        } else if (key == "rear_axle_maximum_weight") {
+            semi_trailer_truck_data.rear_axle_maximum_weight = nb::cast<Weight>(item.second);
+        } else if (key == "middle_axle_maximum_weight") {
+            semi_trailer_truck_data.middle_axle_maximum_weight = nb::cast<Weight>(item.second);
+        } else {
+            throw nb::value_error(
+                    ("unknown semi-trailer truck parameter '" + key + "'.").c_str());
+        }
+    }
+    return semi_trailer_truck_data;
+}
+
+}
+
 void bind_boxstacks(nb::module_& m)
 {
     using Handle = OutputHandle<Instance, boxstacks::Output>;
@@ -159,91 +202,135 @@ void bind_boxstacks(nb::module_& m)
         .def("set_unloading_constraint", &InstanceBuilder::set_unloading_constraint, nb::arg("unloading_constraint"))
         // Bin types.
         .def("add_bin_type",
-                nb::overload_cast<Length, Length, Length>(&InstanceBuilder::add_bin_type),
-                nb::arg("x"), nb::arg("y"), nb::arg("z"))
-        .def("set_bin_type_cost", &InstanceBuilder::set_bin_type_cost,
-                nb::arg("bin_type_id"), nb::arg("cost"))
-        .def("set_bin_type_maximum_weight", &InstanceBuilder::set_bin_type_maximum_weight,
-                nb::arg("bin_type_id"), nb::arg("maximum_weight"))
-        .def("set_bin_type_maximum_stack_density", &InstanceBuilder::set_bin_type_maximum_stack_density,
-                nb::arg("bin_type_id"), nb::arg("maximum_stack_density"))
-        // 'SemiTrailerTruckData' is shared with other problem types, so its
-        // fields are passed as plain arguments.
-        .def("set_bin_type_semi_trailer_truck_parameters",
                 [](InstanceBuilder& instance_builder,
-                    BinTypeId bin_type_id,
-                    Weight tractor_weight,
-                    Length front_axle_middle_axle_distance,
-                    Length front_axle_tractor_gravity_center_distance,
-                    Length front_axle_harness_distance,
-                    Weight empty_trailer_weight,
-                    Length harness_rear_axle_distance,
-                    Length trailer_gravity_center_rear_axle_distance,
-                    Length trailer_start_harness_distance,
-                    Weight rear_axle_maximum_weight,
-                    Weight middle_axle_maximum_weight) {
-                    SemiTrailerTruckData semi_trailer_truck_data;
-                    semi_trailer_truck_data.is = true;
-                    semi_trailer_truck_data.tractor_weight = tractor_weight;
-                    semi_trailer_truck_data.front_axle_middle_axle_distance = front_axle_middle_axle_distance;
-                    semi_trailer_truck_data.front_axle_tractor_gravity_center_distance = front_axle_tractor_gravity_center_distance;
-                    semi_trailer_truck_data.front_axle_harness_distance = front_axle_harness_distance;
-                    semi_trailer_truck_data.empty_trailer_weight = empty_trailer_weight;
-                    semi_trailer_truck_data.harness_rear_axle_distance = harness_rear_axle_distance;
-                    semi_trailer_truck_data.trailer_gravity_center_rear_axle_distance = trailer_gravity_center_rear_axle_distance;
-                    semi_trailer_truck_data.trailer_start_harness_distance = trailer_start_harness_distance;
-                    semi_trailer_truck_data.rear_axle_maximum_weight = rear_axle_maximum_weight;
-                    semi_trailer_truck_data.middle_axle_maximum_weight = middle_axle_maximum_weight;
-                    instance_builder.set_bin_type_semi_trailer_truck_parameters(
-                            bin_type_id,
-                            semi_trailer_truck_data);
+                    Length x,
+                    Length y,
+                    Length z,
+                    std::optional<Profit> cost,
+                    std::optional<Weight> maximum_weight,
+                    std::optional<double> maximum_stack_density,
+                    const std::optional<nb::dict>& semi_trailer_truck_parameters,
+                    std::optional<BinPos> copies,
+                    std::optional<BinPos> copies_min) {
+                    BinTypeId bin_type_id = instance_builder.add_bin_type(x, y, z);
+                    if (cost.has_value())
+                        instance_builder.set_bin_type_cost(bin_type_id, *cost);
+                    if (maximum_weight.has_value())
+                        instance_builder.set_bin_type_maximum_weight(bin_type_id, *maximum_weight);
+                    if (maximum_stack_density.has_value())
+                        instance_builder.set_bin_type_maximum_stack_density(bin_type_id, *maximum_stack_density);
+                    if (semi_trailer_truck_parameters.has_value()) {
+                        instance_builder.set_bin_type_semi_trailer_truck_parameters(
+                                bin_type_id,
+                                semi_trailer_truck_data_from_dict(*semi_trailer_truck_parameters));
+                    }
+                    if (copies.has_value())
+                        instance_builder.set_bin_type_copies(bin_type_id, *copies);
+                    if (copies_min.has_value())
+                        instance_builder.set_bin_type_copies_min(bin_type_id, *copies_min);
+                    return bin_type_id;
                 },
-                nb::arg("bin_type_id"),
-                nb::arg("tractor_weight") = 0.0,
-                nb::arg("front_axle_middle_axle_distance") = 0,
-                nb::arg("front_axle_tractor_gravity_center_distance") = 0,
-                nb::arg("front_axle_harness_distance") = 0,
-                nb::arg("empty_trailer_weight") = 0.0,
-                nb::arg("harness_rear_axle_distance") = 0,
-                nb::arg("trailer_gravity_center_rear_axle_distance") = 0,
-                nb::arg("trailer_start_harness_distance") = 0,
-                nb::arg("rear_axle_maximum_weight") = std::numeric_limits<Weight>::infinity(),
-                nb::arg("middle_axle_maximum_weight") = std::numeric_limits<Weight>::infinity(),
-                "Make the bin type a semi-trailer truck subject to axle weight constraints.")
+                nb::arg("x"), nb::arg("y"), nb::arg("z"),
+                nb::kw_only(),
+                nb::arg("cost") = nb::none(),
+                nb::arg("maximum_weight") = nb::none(),
+                nb::arg("maximum_stack_density") = nb::none(),
+                nb::arg("semi_trailer_truck_parameters") = nb::none(),
+                nb::arg("copies") = nb::none(),
+                nb::arg("copies_min") = nb::none(),
+                "Add a bin type and return its id.\n"
+                "\n"
+                "Keyword arguments (omitted ones keep the C++ defaults):\n"
+                "- cost: the cost of the bin type.\n"
+                "- maximum_weight: the maximum weight of the bin type.\n"
+                "- maximum_stack_density: the maximum stack density of the bin type.\n"
+                "- semi_trailer_truck_parameters: make the bin type a semi-trailer\n"
+                "  truck subject to axle weight constraints; a dict whose keys are\n"
+                "  among 'tractor_weight', 'front_axle_middle_axle_distance',\n"
+                "  'front_axle_tractor_gravity_center_distance',\n"
+                "  'front_axle_harness_distance', 'empty_trailer_weight',\n"
+                "  'harness_rear_axle_distance',\n"
+                "  'trailer_gravity_center_rear_axle_distance',\n"
+                "  'trailer_start_harness_distance', 'rear_axle_maximum_weight' and\n"
+                "  'middle_axle_maximum_weight' (missing keys default to 0, and to\n"
+                "  infinity for the two axle maximum weights);\n"
+                "  'build()' requires strictly positive\n"
+                "  'front_axle_middle_axle_distance' and\n"
+                "  'harness_rear_axle_distance'.\n"
+                "- copies: the number of copies of the bin type.\n"
+                "- copies_min: the minimum number of copies of the bin type.")
         .def("add_defect", &InstanceBuilder::add_defect,
                 nb::arg("bin_type_id"), nb::arg("x"), nb::arg("y"), nb::arg("w"), nb::arg("h"))
-        .def("set_bin_type_copies", &InstanceBuilder::set_bin_type_copies,
-                nb::arg("bin_type_id"), nb::arg("copies"))
-        .def("set_bin_type_copies_min", &InstanceBuilder::set_bin_type_copies_min,
-                nb::arg("bin_type_id"), nb::arg("copies_min"))
         .def("set_bin_types_infinite_x", &InstanceBuilder::set_bin_types_infinite_x)
         .def("set_bin_types_infinite_y", &InstanceBuilder::set_bin_types_infinite_y)
         .def("set_bin_types_infinite_copies", &InstanceBuilder::set_bin_types_infinite_copies)
         .def("set_bin_types_unweighted", &InstanceBuilder::set_bin_types_unweighted)
         // Item types.
         .def("add_item_type",
-                nb::overload_cast<Length, Length, Length>(&InstanceBuilder::add_item_type),
-                nb::arg("x"), nb::arg("y"), nb::arg("z"))
-        .def("add_item_type_rotation", &InstanceBuilder::add_item_type_rotation,
-                nb::arg("item_type_id"), nb::arg("rotation"))
-        .def("set_item_type_group", &InstanceBuilder::set_item_type_group,
-                nb::arg("item_type_id"), nb::arg("group_id"))
-        .def("set_item_type_weight", &InstanceBuilder::set_item_type_weight,
-                nb::arg("item_type_id"), nb::arg("weight"))
-        .def("set_item_type_stackability_id", &InstanceBuilder::set_item_type_stackability_id,
-                nb::arg("item_type_id"), nb::arg("stackability_id"))
-        .def("set_item_type_nesting_height", &InstanceBuilder::set_item_type_nesting_height,
-                nb::arg("item_type_id"), nb::arg("nesting_height"))
-        .def("set_item_type_maximum_stackability", &InstanceBuilder::set_item_type_maximum_stackability,
-                nb::arg("item_type_id"), nb::arg("maximum_stackability"))
-        .def("set_item_type_maximum_weight_above", &InstanceBuilder::set_item_type_maximum_weight_above,
-                nb::arg("item_type_id"), nb::arg("maximum_weight_above"))
-        .def("set_item_type_profit", &InstanceBuilder::set_item_type_profit,
-                nb::arg("item_type_id"), nb::arg("profit"))
-        .def("set_item_type_copies", &InstanceBuilder::set_item_type_copies,
-                nb::arg("item_type_id"), nb::arg("copies"))
-        .def("set_item_type_copies_min", &InstanceBuilder::set_item_type_copies_min,
-                nb::arg("item_type_id"), nb::arg("copies_min"))
+                [](InstanceBuilder& instance_builder,
+                    Length x,
+                    Length y,
+                    Length z,
+                    const std::optional<std::vector<Rotation>>& rotations,
+                    std::optional<GroupId> group_id,
+                    std::optional<Weight> weight,
+                    std::optional<StackabilityId> stackability_id,
+                    std::optional<Length> nesting_height,
+                    std::optional<ItemPos> maximum_stackability,
+                    std::optional<Weight> maximum_weight_above,
+                    std::optional<Profit> profit,
+                    std::optional<ItemPos> copies,
+                    std::optional<ItemPos> copies_min) {
+                    ItemTypeId item_type_id = instance_builder.add_item_type(x, y, z);
+                    if (rotations.has_value())
+                        for (Rotation rotation: *rotations)
+                            instance_builder.add_item_type_rotation(item_type_id, rotation);
+                    if (group_id.has_value())
+                        instance_builder.set_item_type_group(item_type_id, *group_id);
+                    if (weight.has_value())
+                        instance_builder.set_item_type_weight(item_type_id, *weight);
+                    if (stackability_id.has_value())
+                        instance_builder.set_item_type_stackability_id(item_type_id, *stackability_id);
+                    if (nesting_height.has_value())
+                        instance_builder.set_item_type_nesting_height(item_type_id, *nesting_height);
+                    if (maximum_stackability.has_value())
+                        instance_builder.set_item_type_maximum_stackability(item_type_id, *maximum_stackability);
+                    if (maximum_weight_above.has_value())
+                        instance_builder.set_item_type_maximum_weight_above(item_type_id, *maximum_weight_above);
+                    if (profit.has_value())
+                        instance_builder.set_item_type_profit(item_type_id, *profit);
+                    if (copies.has_value())
+                        instance_builder.set_item_type_copies(item_type_id, *copies);
+                    if (copies_min.has_value())
+                        instance_builder.set_item_type_copies_min(item_type_id, *copies_min);
+                    return item_type_id;
+                },
+                nb::arg("x"), nb::arg("y"), nb::arg("z"),
+                nb::kw_only(),
+                nb::arg("rotations") = nb::none(),
+                nb::arg("group_id") = nb::none(),
+                nb::arg("weight") = nb::none(),
+                nb::arg("stackability_id") = nb::none(),
+                nb::arg("nesting_height") = nb::none(),
+                nb::arg("maximum_stackability") = nb::none(),
+                nb::arg("maximum_weight_above") = nb::none(),
+                nb::arg("profit") = nb::none(),
+                nb::arg("copies") = nb::none(),
+                nb::arg("copies_min") = nb::none(),
+                "Add an item type and return its id.\n"
+                "\n"
+                "Keyword arguments (omitted ones keep the C++ defaults):\n"
+                "- rotations: the allowed rotations of the item type; if omitted\n"
+                "  or empty, only 'Rotation.XYZ' is allowed.\n"
+                "- group_id: the group of the item type.\n"
+                "- weight: the weight of the item type.\n"
+                "- stackability_id: the stackability id of the item type.\n"
+                "- nesting_height: the nesting height of the item type.\n"
+                "- maximum_stackability: the maximum stackability of the item type.\n"
+                "- maximum_weight_above: the maximum weight above of the item type.\n"
+                "- profit: the profit of the item type (default: its volume).\n"
+                "- copies: the number of copies of the item type.\n"
+                "- copies_min: the minimum number of copies to pack of the item type.")
         .def("set_item_types_profits_auto", &InstanceBuilder::set_item_types_profits_auto)
         .def("set_item_types_infinite_copies", &InstanceBuilder::set_item_types_infinite_copies)
         .def("set_item_types_unweighted", &InstanceBuilder::set_item_types_unweighted)
@@ -359,8 +446,7 @@ void bind_boxstacks(nb::module_& m)
         .def_rw("remove_negative_profit_items", &ReductionParameters::remove_negative_profit_items)
         .def_rw("merge_identical_items", &ReductionParameters::merge_identical_items);
 
-    nb::class_<OptimizeParameters> parameters(m, "OptimizeParameters");
-    bind_parameters_base<boxstacks::Output>(parameters);
+    nb::class_<OptimizeParameters> parameters = bind_parameters_base<boxstacks::Output, OptimizeParameters>(m);
     parameters
         .def_rw("optimization_mode", &OptimizeParameters::optimization_mode)
         .def_rw("memory_limit_megabytes", &OptimizeParameters::memory_limit_megabytes)

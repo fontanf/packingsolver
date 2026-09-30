@@ -114,44 +114,104 @@ void bind_rectangle(nb::module_& m)
         .def("set_leftover_mode", &InstanceBuilder::set_leftover_mode, nb::arg("leftover_mode"))
         // Bin types.
         .def("add_bin_type",
-                nb::overload_cast<Length, Length>(&InstanceBuilder::add_bin_type),
-                nb::arg("x"), nb::arg("y"))
-        .def("set_bin_type_cost", &InstanceBuilder::set_bin_type_cost,
-                nb::arg("bin_type_id"), nb::arg("cost"))
-        .def("set_bin_type_maximum_weight", &InstanceBuilder::set_bin_type_maximum_weight,
-                nb::arg("bin_type_id"), nb::arg("maximum_weight"))
-        .def("add_bin_type_eligibility", &InstanceBuilder::add_bin_type_eligibility,
-                nb::arg("bin_type_id"), nb::arg("eligibility_id"))
+                [](InstanceBuilder& instance_builder,
+                    Length x,
+                    Length y,
+                    std::optional<Profit> cost,
+                    std::optional<Weight> maximum_weight,
+                    std::optional<std::vector<EligibilityId>> eligibility_ids,
+                    std::optional<BinPos> copies,
+                    std::optional<BinPos> copies_min)
+                {
+                    BinTypeId bin_type_id = instance_builder.add_bin_type(x, y);
+                    if (cost.has_value())
+                        instance_builder.set_bin_type_cost(bin_type_id, *cost);
+                    if (maximum_weight.has_value())
+                        instance_builder.set_bin_type_maximum_weight(bin_type_id, *maximum_weight);
+                    if (eligibility_ids.has_value())
+                        for (EligibilityId eligibility_id: *eligibility_ids)
+                            instance_builder.add_bin_type_eligibility(bin_type_id, eligibility_id);
+                    if (copies.has_value())
+                        instance_builder.set_bin_type_copies(bin_type_id, *copies);
+                    if (copies_min.has_value())
+                        instance_builder.set_bin_type_copies_min(bin_type_id, *copies_min);
+                    return bin_type_id;
+                },
+                nb::arg("x"),
+                nb::arg("y"),
+                nb::kw_only(),
+                nb::arg("cost") = nb::none(),
+                nb::arg("maximum_weight") = nb::none(),
+                nb::arg("eligibility_ids") = nb::none(),
+                nb::arg("copies") = nb::none(),
+                nb::arg("copies_min") = nb::none(),
+                "Add a bin type of dimensions 'x' x 'y' and return its id.\n"
+                "\n"
+                "Optional keyword arguments (omitted ones keep the C++ default):\n"
+                "- cost: the cost of the bin type (default: its area; -1 also means its area);\n"
+                "- maximum_weight: the maximum weight of the bin type;\n"
+                "- eligibility_ids: the eligibility ids supported by the bin type (list);\n"
+                "- copies: the number of copies of the bin type (-1 for infinite; default: 1);\n"
+                "- copies_min: the minimum number of copies of the bin type (default: 0).")
         .def("add_defect", &InstanceBuilder::add_defect,
                 nb::arg("bin_type_id"), nb::arg("pos_x"), nb::arg("pos_y"), nb::arg("rect_x"), nb::arg("rect_y"))
         .def("add_bin_type_resource", &InstanceBuilder::add_bin_type_resource,
                 nb::arg("bin_type_id"), nb::arg("capacity"), nb::arg("penalize") = false, nb::arg("penalty") = 0.0)
         .def("add_resource_consumption", &InstanceBuilder::add_resource_consumption,
                 nb::arg("bin_type_id"), nb::arg("resource_id"), nb::arg("item_type_id"), nb::arg("schedule"))
-        .def("set_bin_type_copies", &InstanceBuilder::set_bin_type_copies,
-                nb::arg("bin_type_id"), nb::arg("copies"))
-        .def("set_bin_type_copies_min", &InstanceBuilder::set_bin_type_copies_min,
-                nb::arg("bin_type_id"), nb::arg("copies_min"))
         .def("set_bin_types_infinite_x", &InstanceBuilder::set_bin_types_infinite_x)
         .def("set_bin_types_infinite_y", &InstanceBuilder::set_bin_types_infinite_y)
         .def("set_bin_types_infinite_copies", &InstanceBuilder::set_bin_types_infinite_copies)
         .def("set_bin_types_unweighted", &InstanceBuilder::set_bin_types_unweighted)
         // Item types.
         .def("add_item_type",
-                nb::overload_cast<Length, Length, bool>(&InstanceBuilder::add_item_type),
-                nb::arg("x"), nb::arg("y"), nb::arg("oriented") = false)
-        .def("set_item_type_group", &InstanceBuilder::set_item_type_group,
-                nb::arg("item_type_id"), nb::arg("group_id"))
-        .def("set_item_type_weight", &InstanceBuilder::set_item_type_weight,
-                nb::arg("item_type_id"), nb::arg("weight"))
-        .def("set_item_type_eligibility", &InstanceBuilder::set_item_type_eligibility,
-                nb::arg("item_type_id"), nb::arg("eligibility_id"))
-        .def("set_item_type_profit", &InstanceBuilder::set_item_type_profit,
-                nb::arg("item_type_id"), nb::arg("profit"))
-        .def("set_item_type_copies", &InstanceBuilder::set_item_type_copies,
-                nb::arg("item_type_id"), nb::arg("copies"))
-        .def("set_item_type_copies_min", &InstanceBuilder::set_item_type_copies_min,
-                nb::arg("item_type_id"), nb::arg("copies_min"))
+                [](InstanceBuilder& instance_builder,
+                    Length x,
+                    Length y,
+                    bool oriented,
+                    std::optional<GroupId> group_id,
+                    std::optional<Weight> weight,
+                    std::optional<EligibilityId> eligibility_id,
+                    std::optional<Profit> profit,
+                    std::optional<ItemPos> copies,
+                    std::optional<ItemPos> copies_min)
+                {
+                    ItemTypeId item_type_id = instance_builder.add_item_type(x, y, oriented);
+                    if (group_id.has_value())
+                        instance_builder.set_item_type_group(item_type_id, *group_id);
+                    if (weight.has_value())
+                        instance_builder.set_item_type_weight(item_type_id, *weight);
+                    if (eligibility_id.has_value())
+                        instance_builder.set_item_type_eligibility(item_type_id, *eligibility_id);
+                    if (profit.has_value())
+                        instance_builder.set_item_type_profit(item_type_id, *profit);
+                    if (copies.has_value())
+                        instance_builder.set_item_type_copies(item_type_id, *copies);
+                    if (copies_min.has_value())
+                        instance_builder.set_item_type_copies_min(item_type_id, *copies_min);
+                    return item_type_id;
+                },
+                nb::arg("x"),
+                nb::arg("y"),
+                nb::kw_only(),
+                nb::arg("oriented") = false,
+                nb::arg("group_id") = nb::none(),
+                nb::arg("weight") = nb::none(),
+                nb::arg("eligibility_id") = nb::none(),
+                nb::arg("profit") = nb::none(),
+                nb::arg("copies") = nb::none(),
+                nb::arg("copies_min") = nb::none(),
+                "Add an item type of dimensions 'x' x 'y' and return its id.\n"
+                "\n"
+                "Optional keyword arguments (omitted ones keep the C++ default):\n"
+                "- oriented: if True, the item type can't be rotated (default: False);\n"
+                "- group_id: the group of the item type (default: 0);\n"
+                "- weight: the weight of the item type;\n"
+                "- eligibility_id: the eligibility id of the item type (default: -1, any bin type);\n"
+                "- profit: the profit of the item type (default: its area);\n"
+                "- copies: the number of copies of the item type (-1 for infinite; default: 1);\n"
+                "- copies_min: the minimum number of copies to pack of the item type\n"
+                "  (default: resolved in 'build()': 0 for Knapsack, 'copies' otherwise).")
         .def("set_item_types_infinite_copies", &InstanceBuilder::set_item_types_infinite_copies)
         .def("multiply_item_types_copies", &InstanceBuilder::multiply_item_types_copies, nb::arg("factor"))
         .def("set_item_types_unweighted", &InstanceBuilder::set_item_types_unweighted)
@@ -241,8 +301,7 @@ void bind_rectangle(nb::module_& m)
         .def_rw("maximum_number_of_rounds", &ReductionParameters::maximum_number_of_rounds)
         .def_rw("subproblem_queue_size", &ReductionParameters::subproblem_queue_size);
 
-    nb::class_<OptimizeParameters> parameters(m, "OptimizeParameters");
-    bind_parameters_base<rectangle::Output>(parameters);
+    nb::class_<OptimizeParameters> parameters = bind_parameters_base<rectangle::Output, OptimizeParameters>(m);
     parameters
         .def_rw("optimization_mode", &OptimizeParameters::optimization_mode)
         .def_rw("memory_limit_megabytes", &OptimizeParameters::memory_limit_megabytes)

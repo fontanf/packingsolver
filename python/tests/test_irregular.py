@@ -1,6 +1,7 @@
 import gc
 import math
 import os
+import re
 
 import pytest
 
@@ -33,10 +34,8 @@ def bin_packing_instance(item_copies):
     """'item_copies' 5x5 squares in 10x10 bins."""
     instance_builder = psi.InstanceBuilder()
     instance_builder.set_objective(psi.Objective.BinPacking)
-    bin_type_id = instance_builder.add_bin_type(square(10))
-    instance_builder.set_bin_type_copies(bin_type_id, 10)
-    item_type_id = instance_builder.add_item_type(item_shapes(square(5)))
-    instance_builder.set_item_type_copies(item_type_id, item_copies)
+    instance_builder.add_bin_type(square(10), copies=10)
+    instance_builder.add_item_type(item_shapes(square(5)), copies=item_copies)
     return instance_builder.build()
 
 
@@ -156,7 +155,215 @@ def test_instance_builder():
 def test_instance_builder_invalid_argument():
     instance_builder = psi.InstanceBuilder()
     with pytest.raises(ValueError):
-        instance_builder.set_item_type_profit(0, 1)
+        instance_builder.add_bin_type(square(10), cost=0)
+    with pytest.raises(ValueError):
+        instance_builder.add_item_type(item_shapes(square(5)), copies=0)
+    # Attributes are keyword-only.
+    with pytest.raises(TypeError):
+        instance_builder.add_item_type(item_shapes(square(5)), 2)
+    with pytest.raises(TypeError):
+        instance_builder.add_bin_type(square(10), 2)
+
+
+def test_add_item_type_keywords():
+    instance_builder = psi.InstanceBuilder()
+    instance_builder.set_objective(psi.Objective.Knapsack)
+    instance_builder.add_bin_type(square(10))
+    item_type_id = instance_builder.add_item_type(
+            item_shapes(square(5)),
+            profit=7,
+            copies=3,
+            copies_min=1)
+    assert item_type_id == 0
+    item_type_id = instance_builder.add_item_type(
+            item_shapes(square(4)),
+            allowed_rotations=[(0, 0, False), (90, 90, True)])
+    assert item_type_id == 1
+    instance = instance_builder.build()
+    item_type = instance.item_type(0)
+    assert item_type.profit == pytest.approx(7)
+    assert item_type.copies == 3
+    assert item_type.copies_min == 1
+    allowed_rotations = [
+        (rotation.start_angle, rotation.end_angle, rotation.mirror)
+        for rotation in instance.item_type(1).allowed_rotations]
+    assert allowed_rotations == [(0, 0, False), (90, 90, True)]
+    assert instance.item_type(1).is_rotation_allowed(90, True)
+
+
+def test_add_item_type_defaults():
+    instance_builder = psi.InstanceBuilder()
+    instance_builder.set_objective(psi.Objective.BinPacking)
+    instance_builder.add_bin_type(square(10))
+    instance_builder.add_item_type(item_shapes(psi.build_rectangle(5, 3)))
+    instance_builder.add_item_type(
+            item_shapes(psi.build_rectangle(5, 3)),
+            allowed_rotations=[(90, 90, False)])
+    instance = instance_builder.build()
+    item_type = instance.item_type(0)
+    # The profit defaults to the area.
+    assert item_type.profit == pytest.approx(15)
+    assert item_type.copies == 1
+    # 'copies_min' is resolved in 'build()': equal to 'copies' for bin packing.
+    assert item_type.copies_min == 1
+    allowed_rotations = [
+        (rotation.start_angle, rotation.end_angle, rotation.mirror)
+        for rotation in item_type.allowed_rotations]
+    assert allowed_rotations == [(0, 0, False)]
+    # The first given rotation replaces the default one.
+    allowed_rotations = [
+        (rotation.start_angle, rotation.end_angle, rotation.mirror)
+        for rotation in instance.item_type(1).allowed_rotations]
+    assert allowed_rotations == [(90, 90, False)]
+
+
+def test_add_item_type_copies_min_knapsack_default():
+    instance_builder = psi.InstanceBuilder()
+    instance_builder.set_objective(psi.Objective.Knapsack)
+    instance_builder.add_bin_type(square(10))
+    instance_builder.add_item_type(item_shapes(square(5)), copies=2)
+    # 'copies_min' is resolved in 'build()': 0 for knapsack.
+    assert instance_builder.build().item_type(0).copies_min == 0
+
+
+def test_add_bin_type_keywords():
+    instance_builder = psi.InstanceBuilder()
+    instance_builder.set_objective(psi.Objective.VariableSizedBinPacking)
+    bin_type_id = instance_builder.add_bin_type(
+            square(10),
+            cost=42,
+            item_bin_minimum_spacing=0.5,
+            copies=4,
+            copies_min=2)
+    assert bin_type_id == 0
+    instance_builder.add_item_type(item_shapes(square(5)))
+    bin_type = instance_builder.build().bin_type(0)
+    assert bin_type.cost == pytest.approx(42)
+    assert bin_type.item_bin_minimum_spacing == pytest.approx(0.5)
+    assert bin_type.copies == 4
+    assert bin_type.copies_min == 2
+
+
+def test_add_bin_type_defaults():
+    instance_builder = psi.InstanceBuilder()
+    instance_builder.set_objective(psi.Objective.BinPacking)
+    instance_builder.add_bin_type(psi.build_rectangle(10, 8))
+    instance_builder.add_bin_type(psi.build_rectangle(10, 8), cost=-1)
+    instance_builder.add_item_type(item_shapes(square(5)))
+    instance = instance_builder.build()
+    bin_type = instance.bin_type(0)
+    # The cost defaults to the area.
+    assert bin_type.cost == pytest.approx(80)
+    assert bin_type.copies == 1
+    assert bin_type.copies_min == 0
+    assert bin_type.item_bin_minimum_spacing == pytest.approx(0)
+    # A cost of -1 means the area.
+    assert instance.bin_type(1).cost == pytest.approx(80)
+
+
+def test_removed_setters():
+    for name in [
+            "set_item_type_profit",
+            "set_item_type_copies",
+            "set_item_type_copies_min",
+            "add_item_type_allowed_rotation",
+            "set_bin_type_cost",
+            "set_bin_type_copies",
+            "set_bin_type_copies_min",
+            "set_item_bin_minimum_spacing"]:
+        assert not hasattr(psi.InstanceBuilder, name), name
+    # Kept methods.
+    for name in [
+            "set_objective",
+            "read",
+            "set_item_item_minimum_spacing",
+            "set_open_dimension_xy_aspect_ratio",
+            "set_leftover_mode",
+            "add_defect",
+            "set_item_defect_minimum_spacing",
+            "add_bin_type_resource",
+            "add_resource_consumption",
+            "set_bin_types_infinite_copies",
+            "set_bin_types_unweighted",
+            "set_item_types_unweighted",
+            "set_item_types_continuous_rotations",
+            "build"]:
+        assert hasattr(psi.InstanceBuilder, name), name
+
+
+INSTANCE_BUILDER_HEADER = os.path.join(
+        os.path.dirname(__file__), "..", "..", "include", "packingsolver",
+        "irregular", "instance_builder.hpp")
+
+# Per-type C++ methods whose keyword name isn't the setter/adder suffix.
+RENAMED_KEYWORDS = {
+    "add_item_type_allowed_rotation": "allowed_rotations",
+    "set_item_bin_minimum_spacing": "item_bin_minimum_spacing",
+}
+
+# Per-type C++ methods that are intentionally not keywords of
+# 'add_item_type'/'add_bin_type'.
+NOT_BOUND = {
+    "add_defect": "returns a defect id; kept as a separate method",
+    "set_item_defect_minimum_spacing": "needs a defect id returned by 'add_defect'; kept as a separate method",
+    "add_bin_type_resource": "returns a resource id; kept as a separate method",
+    "add_resource_consumption": "needs a resource id and an item type id; kept as a separate method",
+    "add_fixed_item": "intentionally not bound in Python",
+}
+
+
+def cpp_per_type_methods():
+    """Builder methods whose first parameter is a bin/item type id."""
+    with open(INSTANCE_BUILDER_HEADER) as header_file:
+        header = header_file.read()
+    methods = {}
+    for match in re.finditer(
+            r"\b((?:set|add)_\w+)\(\s*(BinTypeId\s+bin_type_id|ItemTypeId\s+item_type_id)\b",
+            header):
+        methods[match.group(1)] = (
+                "add_bin_type" if match.group(2).startswith("BinTypeId")
+                else "add_item_type")
+    return methods
+
+
+def python_keywords(method):
+    """Names of the keyword-only arguments of a nanobind method."""
+    signatures = getattr(method, "__nb_signature__", None)
+    if signatures:
+        texts = [signature[0] for signature in signatures]
+    else:
+        texts = [method.__doc__ or ""]
+    keywords = set()
+    for text in texts:
+        match = re.search(r"\*\s*,(.*?)\)\s*->", text, re.DOTALL)
+        if match is None:
+            continue
+        keywords |= set(re.findall(r"(\w+)\s*:", match.group(1)))
+    return keywords
+
+
+def test_keywords_in_sync_with_cpp_builder():
+    methods = cpp_per_type_methods()
+    assert "set_item_type_copies" in methods
+    assert "set_bin_type_copies" in methods
+    keywords = {
+        "add_item_type": python_keywords(psi.InstanceBuilder.add_item_type),
+        "add_bin_type": python_keywords(psi.InstanceBuilder.add_bin_type),
+    }
+    assert "copies" in keywords["add_item_type"]
+    assert "copies" in keywords["add_bin_type"]
+    for name, python_method in methods.items():
+        if name in NOT_BOUND:
+            continue
+        if name in RENAMED_KEYWORDS:
+            keyword = RENAMED_KEYWORDS[name]
+        else:
+            keyword = re.sub(r"^(set|add)_(item|bin)_type_", "", name)
+        assert keyword in keywords[python_method], (
+                "'" + name + "' is neither a keyword of '" + python_method
+                + "' nor in NOT_BOUND")
+    for name in NOT_BOUND:
+        assert name in methods, "stale NOT_BOUND entry: " + name
 
 
 def test_build_resets_builder():
@@ -204,13 +411,11 @@ def test_triangles_rotation():
     """Two right triangles, one rotated by 180 degrees, tile a square bin."""
     instance_builder = psi.InstanceBuilder()
     instance_builder.set_objective(psi.Objective.BinPacking)
-    bin_type_id = instance_builder.add_bin_type(square(10))
-    instance_builder.set_bin_type_copies(bin_type_id, 2)
-    item_type_id = instance_builder.add_item_type(
-            item_shapes(psi.build_shape([(0, 0), (10, 0), (0, 10)])))
-    instance_builder.set_item_type_copies(item_type_id, 2)
-    instance_builder.add_item_type_allowed_rotation(item_type_id, 0, 0, False)
-    instance_builder.add_item_type_allowed_rotation(item_type_id, 180, 180, False)
+    instance_builder.add_bin_type(square(10), copies=2)
+    instance_builder.add_item_type(
+            item_shapes(psi.build_shape([(0, 0), (10, 0), (0, 10)])),
+            copies=2,
+            allowed_rotations=[(0, 0, False), (180, 180, False)])
     instance = instance_builder.build()
     assert len(instance.item_type(0).allowed_rotations) == 2
     assert instance.item_type(0).is_rotation_allowed(180, False)
@@ -227,8 +432,7 @@ def test_knapsack():
     # Only one of the two 10x6 items fits; the one with the largest profit
     # must be selected, together with the 10x4 item.
     for x, y, profit in [(10, 6, 5), (10, 6, 7), (10, 4, 3)]:
-        item_type_id = instance_builder.add_item_type(item_shapes(psi.build_rectangle(x, y)))
-        instance_builder.set_item_type_profit(item_type_id, profit)
+        instance_builder.add_item_type(item_shapes(psi.build_rectangle(x, y)), profit=profit)
     output = psi.optimize(instance_builder.build(), quiet_parameters())
     assert output.solution.profit() == pytest.approx(10)
     assert output.solution.item_copies(1) == 1
@@ -244,11 +448,9 @@ def test_knapsack_hole():
     instance_builder = psi.InstanceBuilder()
     instance_builder.set_objective(psi.Objective.Knapsack)
     instance_builder.add_bin_type(square(30))
-    item_type_id = instance_builder.add_item_type(
-            item_shapes(square(30), [square(10, 10, 10)]))
-    instance_builder.set_item_type_profit(item_type_id, 10)
-    item_type_id = instance_builder.add_item_type(item_shapes(square(10)))
-    instance_builder.set_item_type_profit(item_type_id, 1)
+    instance_builder.add_item_type(
+            item_shapes(square(30), [square(10, 10, 10)]), profit=10)
+    instance_builder.add_item_type(item_shapes(square(10)), profit=1)
     output = psi.optimize(instance_builder.build(), quiet_parameters())
     assert output.solution.profit() == pytest.approx(11)
 
@@ -261,8 +463,7 @@ def test_defect():
             bin_type_id, 0, psi.ShapeWithHoles(square(2, 4, 4)))
     instance_builder.set_item_defect_minimum_spacing(bin_type_id, defect_id, 0.0)
     for _ in range(2):
-        item_type_id = instance_builder.add_item_type(item_shapes(square(10)))
-        instance_builder.set_item_type_profit(item_type_id, 1)
+        instance_builder.add_item_type(item_shapes(square(10)), profit=1)
     instance = instance_builder.build()
     assert instance.number_of_defects() == 1
     assert len(instance.bin_type(0).defects) == 1
@@ -356,3 +557,28 @@ def test_new_solution_callback():
     assert len(outputs) >= 1
     gc.collect()
     assert outputs[-1].solution.number_of_bins() == 2
+
+
+@pytest.mark.parametrize("shapes", [
+    lambda shape: shape,
+    lambda shape: psi.ShapeWithHoles(shape),
+    lambda shape: psi.ItemShape(psi.ShapeWithHoles(shape)),
+], ids=["Shape", "ShapeWithHoles", "ItemShape"])
+def test_add_item_type_single_shape(shapes):
+    """A single shape gives the same item type as the list of item shapes."""
+    def instance(item_type_shapes):
+        instance_builder = psi.InstanceBuilder()
+        instance_builder.set_objective(psi.Objective.BinPacking)
+        instance_builder.add_bin_type(square(10), copies=2)
+        instance_builder.add_item_type(item_type_shapes, copies=3)
+        return instance_builder.build()
+
+    reference = instance(item_shapes(square(5)))
+    assert (instance(shapes(square(5))).format(verbosity_level=2)
+            == reference.format(verbosity_level=2))
+
+
+def test_add_item_type_invalid_shapes():
+    instance_builder = psi.InstanceBuilder()
+    with pytest.raises(TypeError):
+        instance_builder.add_item_type(3)

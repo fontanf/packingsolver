@@ -1,6 +1,7 @@
 import gc
 import math
 import os
+import re
 
 import pytest
 
@@ -23,10 +24,8 @@ def bin_packing_instance(item_copies):
     """'item_copies' 5x5 squares in 10x10 bins."""
     instance_builder = psg.InstanceBuilder()
     instance_builder.set_objective(psg.Objective.BinPacking)
-    bin_type_id = instance_builder.add_bin_type(10, 10)
-    instance_builder.set_bin_type_copies(bin_type_id, 10)
-    item_type_id = instance_builder.add_item_type(5, 5)
-    instance_builder.set_item_type_copies(item_type_id, item_copies)
+    instance_builder.add_bin_type(10, 10, copies=10)
+    instance_builder.add_item_type(5, 5, copies=item_copies)
     return instance_builder.build()
 
 
@@ -134,13 +133,13 @@ def test_predefined():
 def test_trims_defects_stacks():
     instance_builder = psg.InstanceBuilder()
     instance_builder.set_objective(psg.Objective.Knapsack)
-    bin_type_id = instance_builder.add_bin_type(100, 50)
-    instance_builder.add_trims(
-            bin_type_id,
-            1, psg.TrimType.Hard,
-            2, psg.TrimType.Soft,
-            3, psg.TrimType.Hard,
-            4, psg.TrimType.Soft)
+    bin_type_id = instance_builder.add_bin_type(
+            100, 50,
+            trims={
+                "left_trim": 1, "left_trim_type": psg.TrimType.Hard,
+                "right_trim": 2, "right_trim_type": psg.TrimType.Soft,
+                "bottom_trim": 3, "bottom_trim_type": psg.TrimType.Hard,
+                "top_trim": 4, "top_trim_type": psg.TrimType.Soft})
     instance_builder.add_defect(bin_type_id, 20, 10, 5, 6)
     instance_builder.add_item_type(10, 20, stack_id=0)
     instance_builder.add_item_type(15, 20, stack_id=0)
@@ -163,6 +162,226 @@ def test_trims_defects_stacks():
     assert {instance.item(0, 0), instance.item(0, 1)} == {0, 1}
     with pytest.raises(IndexError):
         instance.item(0, 2)
+
+
+
+def test_add_item_type_keywords():
+    instance_builder = psg.InstanceBuilder()
+    instance_builder.set_objective(psg.Objective.Knapsack)
+    instance_builder.add_bin_type(1000, 700)
+    item_type_id = instance_builder.add_item_type(
+            250, 200, oriented=True, stack_id=0, profit=30, copies=3, copies_min=1)
+    assert item_type_id == 0
+    instance = instance_builder.build()
+    item_type = instance.item_type(0)
+    assert item_type.w == 250
+    assert item_type.h == 200
+    assert item_type.oriented
+    assert item_type.stack_id == 0
+    assert item_type.profit == 30
+    assert item_type.copies == 3
+    assert item_type.copies_min == 1
+
+
+def test_add_item_type_defaults():
+    instance_builder = psg.InstanceBuilder()
+    instance_builder.set_objective(psg.Objective.Knapsack)
+    instance_builder.add_bin_type(1000, 700)
+    instance_builder.add_item_type(250, 200)
+    instance_builder.add_item_type(10, 20, copies=4)
+    instance = instance_builder.build()
+    item_type = instance.item_type(0)
+    assert not item_type.oriented
+    assert item_type.profit == 250 * 200
+    assert item_type.copies == 1
+    # 'copies_min' is resolved in 'build': 0 for the Knapsack objective.
+    assert item_type.copies_min == 0
+    assert instance.item_type(1).profit == 10 * 20
+    assert instance.item_type(1).copies == 4
+    assert instance.item_type(1).copies_min == 0
+
+    # For the other objectives, 'copies_min' defaults to 'copies'.
+    instance_builder = psg.InstanceBuilder()
+    instance_builder.set_objective(psg.Objective.BinPacking)
+    instance_builder.add_bin_type(1000, 700, copies=10)
+    instance_builder.add_item_type(250, 200, copies=3)
+    instance = instance_builder.build()
+    assert instance.item_type(0).copies_min == 3
+
+
+def test_add_item_type_keyword_only():
+    instance_builder = psg.InstanceBuilder()
+    with pytest.raises(TypeError):
+        instance_builder.add_item_type(250, 200, True)
+    with pytest.raises(TypeError):
+        instance_builder.add_bin_type(1000, 700, 10)
+
+
+def test_add_item_type_invalid_keyword_value():
+    instance_builder = psg.InstanceBuilder()
+    with pytest.raises(ValueError):
+        instance_builder.add_item_type(250, 200, copies_min=-2)
+
+
+def test_add_bin_type_keywords():
+    instance_builder = psg.InstanceBuilder()
+    instance_builder.set_objective(psg.Objective.VariableSizedBinPacking)
+    bin_type_id = instance_builder.add_bin_type(1000, 700, cost=10, copies=5, copies_min=2)
+    assert bin_type_id == 0
+    instance_builder.add_item_type(250, 200)
+    instance = instance_builder.build()
+    bin_type = instance.bin_type(0)
+    assert bin_type.w == 1000
+    assert bin_type.h == 700
+    assert bin_type.cost == 10
+    assert bin_type.copies == 5
+    assert bin_type.copies_min == 2
+    assert instance.number_of_bins() == 5
+
+
+def test_add_bin_type_defaults():
+    instance_builder = psg.InstanceBuilder()
+    instance_builder.add_bin_type(1000, 700)
+    instance_builder.add_item_type(250, 200)
+    instance = instance_builder.build()
+    bin_type = instance.bin_type(0)
+    assert bin_type.cost == 1000 * 700
+    assert bin_type.copies == 1
+    assert bin_type.copies_min == 0
+    assert (bin_type.left_trim, bin_type.right_trim) == (0, 0)
+    assert (bin_type.bottom_trim, bin_type.top_trim) == (0, 0)
+    assert bin_type.left_trim_type == psg.TrimType.Hard
+    assert bin_type.right_trim_type == psg.TrimType.Soft
+    assert bin_type.bottom_trim_type == psg.TrimType.Hard
+    assert bin_type.top_trim_type == psg.TrimType.Soft
+
+
+def test_add_bin_type_trims():
+    instance_builder = psg.InstanceBuilder()
+    instance_builder.add_bin_type(
+            100, 50,
+            trims={
+                "left_trim": 1, "left_trim_type": psg.TrimType.Soft,
+                "right_trim": 2, "right_trim_type": psg.TrimType.Hard,
+                "bottom_trim": 3, "bottom_trim_type": psg.TrimType.Soft,
+                "top_trim": 4, "top_trim_type": psg.TrimType.Hard})
+    # Missing keys: no trim, default trim types.
+    instance_builder.add_bin_type(100, 50, trims={"left_trim": 5, "top_trim": 6})
+    instance_builder.add_item_type(10, 10)
+    instance = instance_builder.build()
+    bin_type = instance.bin_type(0)
+    assert (bin_type.left_trim, bin_type.right_trim) == (1, 2)
+    assert (bin_type.bottom_trim, bin_type.top_trim) == (3, 4)
+    assert bin_type.left_trim_type == psg.TrimType.Soft
+    assert bin_type.right_trim_type == psg.TrimType.Hard
+    assert bin_type.bottom_trim_type == psg.TrimType.Soft
+    assert bin_type.top_trim_type == psg.TrimType.Hard
+    bin_type = instance.bin_type(1)
+    assert (bin_type.left_trim, bin_type.right_trim) == (5, 0)
+    assert (bin_type.bottom_trim, bin_type.top_trim) == (0, 6)
+    assert bin_type.left_trim_type == psg.TrimType.Hard
+    assert bin_type.right_trim_type == psg.TrimType.Soft
+    assert bin_type.bottom_trim_type == psg.TrimType.Hard
+    assert bin_type.top_trim_type == psg.TrimType.Soft
+    assert bin_type.area() == (100 - 5) * (50 - 6)
+
+
+def test_add_bin_type_trims_invalid():
+    instance_builder = psg.InstanceBuilder()
+    with pytest.raises(ValueError):
+        instance_builder.add_bin_type(100, 50, trims={"left": 1})
+    with pytest.raises(ValueError):
+        instance_builder.add_bin_type(100, 50, trims={"left_trim": 100})
+
+
+def test_removed_setters():
+    for name in [
+            "set_item_type_profit",
+            "set_item_type_copies",
+            "set_item_type_copies_min",
+            "set_bin_type_cost",
+            "set_bin_type_copies",
+            "set_bin_type_copies_min",
+            "add_trims"]:
+        assert not hasattr(psg.InstanceBuilder, name), name
+
+
+INSTANCE_BUILDER_HEADER = os.path.join(
+        os.path.dirname(__file__), "..", "..", "include", "packingsolver",
+        "rectangleguillotine", "instance_builder.hpp")
+
+# Per-type C++ methods whose keyword name (or target method) isn't simply
+# derived from the setter name: C++ name -> (Python method, keyword).
+RENAMED = {
+    "add_trims": ("add_bin_type", "trims"),
+}
+
+# Per-type C++ methods that are not keywords of 'add_item_type' /
+# 'add_bin_type': C++ name -> reason.
+NOT_BOUND = {
+    "add_defect": "creates a defect; kept as a separate method",
+    "add_bin_type_resource": "creates a resource and returns its id; kept as a separate method",
+    "add_resource_consumption": "needs a resource id and an item type id; kept as a separate method",
+}
+
+
+def keyword_arguments(function):
+    """Keyword-only argument names of a nanobind function."""
+    signatures = getattr(function, "__nb_signature__", None)
+    if signatures:
+        texts = [signature[0] for signature in signatures]
+    else:
+        texts = [function.__doc__.splitlines()[0]]
+    names = set()
+    for text in texts:
+        arguments = text[text.index("(") + 1:text.rindex(")")]
+        if "*," not in arguments:
+            continue
+        keyword_part = arguments[arguments.index("*,") + 2:]
+        names.update(re.findall(r"(\w+)\s*:", keyword_part))
+    return names
+
+
+def per_type_methods():
+    """Per-type methods declared in the C++ instance builder header."""
+    with open(INSTANCE_BUILDER_HEADER) as header_file:
+        header = header_file.read()
+    names = set(re.findall(
+        r"\b((?:set|add)_(?:item|bin)_type_\w+)\s*\(", header))
+    names.update(re.findall(
+        r"\b(\w+)\s*\(\s*(?:BinTypeId\s+bin_type_id|ItemTypeId\s+item_type_id)\b",
+        header))
+    return names
+
+
+def test_per_type_methods_sync():
+    keywords = {
+        "add_item_type": keyword_arguments(psg.InstanceBuilder.add_item_type),
+        "add_bin_type": keyword_arguments(psg.InstanceBuilder.add_bin_type),
+    }
+    assert {"oriented", "stack_id", "profit", "copies", "copies_min"} <= keywords["add_item_type"]
+    assert {"cost", "trims", "copies", "copies_min"} <= keywords["add_bin_type"]
+    methods = per_type_methods()
+    # Sanity check of the header parsing.
+    assert "set_item_type_copies" in methods
+    assert "add_trims" in methods
+    for name in sorted(methods):
+        if name in NOT_BOUND:
+            assert hasattr(psg.InstanceBuilder, name), name
+            continue
+        if name in RENAMED:
+            method, keyword = RENAMED[name]
+        else:
+            match = re.fullmatch(r"(?:set|add)_(item|bin)_type_(\w+)", name)
+            assert match is not None, (
+                    name + ": per-type method neither mapped to a keyword "
+                    "(RENAMED) nor listed in NOT_BOUND")
+            method, keyword = "add_" + match.group(1) + "_type", match.group(2)
+        assert keyword in keywords[method], (
+                name + ": no keyword '" + keyword + "' in '" + method + "'")
+        assert not hasattr(psg.InstanceBuilder, name), name
+    for name in list(RENAMED) + list(NOT_BOUND):
+        assert name in methods, name + ": not in the C++ header anymore"
 
 
 def test_bin_packing():
@@ -215,10 +434,8 @@ def test_solution_nodes():
 def test_number_of_stages():
     instance_builder = psg.InstanceBuilder()
     instance_builder.set_objective(psg.Objective.BinPacking)
-    bin_type_id = instance_builder.add_bin_type(10, 10)
-    instance_builder.set_bin_type_copies(bin_type_id, 10)
-    item_type_id = instance_builder.add_item_type(5, 5)
-    instance_builder.set_item_type_copies(item_type_id, 4)
+    instance_builder.add_bin_type(10, 10, copies=10)
+    instance_builder.add_item_type(5, 5, copies=4)
     instance_builder.set_number_of_stages(2)
     instance_builder.set_cut_type(psg.CutType.Exact)
     instance_builder.set_first_stage_orientation(psg.CutOrientation.Horizontal)
@@ -239,8 +456,7 @@ def test_knapsack():
     # The 10x6 item with profit 6 and the 10x4 item fill the bin; the area
     # bound is tight.
     for width, height, profit in [(10, 6, 6), (10, 4, 4), (10, 6, 3)]:
-        item_type_id = instance_builder.add_item_type(width, height, oriented=True)
-        instance_builder.set_item_type_profit(item_type_id, profit)
+        instance_builder.add_item_type(width, height, oriented=True, profit=profit)
     output = psg.optimize(instance_builder.build(), quiet_parameters())
     assert output.solution.profit() == 10
     assert output.solution.item_copies(0) == 1
@@ -254,8 +470,7 @@ def test_open_dimension_x():
     instance_builder = psg.InstanceBuilder()
     instance_builder.set_objective(psg.Objective.OpenDimensionX)
     instance_builder.add_bin_type(1000, 10)
-    item_type_id = instance_builder.add_item_type(10, 10, oriented=True)
-    instance_builder.set_item_type_copies(item_type_id, 5)
+    instance_builder.add_item_type(10, 10, oriented=True, copies=5)
     output = psg.optimize(instance_builder.build(), quiet_parameters())
     assert output.solution.full()
     assert output.solution.width() == 50
@@ -304,10 +519,8 @@ def test_read_missing_file():
 def test_write(tmp_path):
     instance_builder = psg.InstanceBuilder()
     instance_builder.set_objective(psg.Objective.BinPacking)
-    bin_type_id = instance_builder.add_bin_type(10, 10)
-    instance_builder.set_bin_type_copies(bin_type_id, 10)
-    item_type_id = instance_builder.add_item_type(5, 5)
-    instance_builder.set_item_type_copies(item_type_id, 5)
+    instance_builder.add_bin_type(10, 10, copies=10)
+    instance_builder.add_item_type(5, 5, copies=5)
     instance_builder.set_number_of_stages(2)
     instance = instance_builder.build()
     instance_path = str(tmp_path / "instance.json")
@@ -381,11 +594,9 @@ def test_column_generation():
     """Column generation (LP solved with HiGHS in the Python module)."""
     instance_builder = psg.InstanceBuilder()
     instance_builder.set_objective(psg.Objective.BinPacking)
-    bin_type_id = instance_builder.add_bin_type(100, 100)
-    instance_builder.set_bin_type_copies(bin_type_id, 20)
+    instance_builder.add_bin_type(100, 100, copies=20)
     for width, height, copies in [(30, 40, 6), (50, 20, 5), (70, 35, 3)]:
-        item_type_id = instance_builder.add_item_type(width, height, oriented=True)
-        instance_builder.set_item_type_copies(item_type_id, copies)
+        instance_builder.add_item_type(width, height, oriented=True, copies=copies)
     parameters = quiet_parameters(time_limit=10.0, use_column_generation=True)
     output = psg.optimize(instance_builder.build(), parameters)
     assert output.bin_packing_bound >= 2
@@ -399,9 +610,8 @@ def test_column_generation_strips():
     instance_builder.set_objective(psg.Objective.Knapsack)
     instance_builder.add_bin_type(100, 100)
     for width, height, profit, copies in [(30, 40, 15, 3), (50, 20, 11, 4), (70, 35, 30, 2)]:
-        item_type_id = instance_builder.add_item_type(width, height, oriented=True)
-        instance_builder.set_item_type_profit(item_type_id, profit)
-        instance_builder.set_item_type_copies(item_type_id, copies)
+        instance_builder.add_item_type(
+                width, height, oriented=True, profit=profit, copies=copies)
     instance_builder.set_number_of_stages(2)
     parameters = quiet_parameters(time_limit=10.0, use_column_generation_strips=True)
     output = psg.optimize(instance_builder.build(), parameters)

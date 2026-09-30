@@ -1,8 +1,10 @@
 import _thread
+import csv
 import gc
 import math
 import os
 import random
+import re
 import threading
 
 import pytest
@@ -30,24 +32,22 @@ def bin_packing_instance(item_copies):
     """'item_copies' 5x5x10 boxes in 10x10x10 bins."""
     instance_builder = psbs.InstanceBuilder()
     instance_builder.set_objective(psbs.Objective.BinPacking)
-    bin_type_id = instance_builder.add_bin_type(10, 10, 10)
-    instance_builder.set_bin_type_copies(bin_type_id, 10)
-    item_type_id = instance_builder.add_item_type(5, 5, 10)
-    instance_builder.set_item_type_copies(item_type_id, item_copies)
+    instance_builder.add_bin_type(10, 10, 10, copies=10)
+    instance_builder.add_item_type(5, 5, 10, copies=item_copies)
     return instance_builder.build()
 
 
-def stack_instance(copies, z=5, **item_setters):
+def stack_instance(copies, z=5, bin_type_keywords=None, **item_keywords):
     """'copies' 10x10x'z' boxes in 10x10x10 bins: only stacking can put two
-    boxes in the same bin."""
+    boxes in the same bin.
+
+    'item_keywords' and 'bin_type_keywords' are passed to 'add_item_type' and
+    'add_bin_type'."""
     instance_builder = psbs.InstanceBuilder()
     instance_builder.set_objective(psbs.Objective.BinPacking)
-    bin_type_id = instance_builder.add_bin_type(10, 10, 10)
-    instance_builder.set_bin_type_copies(bin_type_id, 10)
-    item_type_id = instance_builder.add_item_type(10, 10, z)
-    instance_builder.set_item_type_copies(item_type_id, copies)
-    for name, value in item_setters.items():
-        getattr(instance_builder, "set_item_type_" + name)(item_type_id, value)
+    bin_type_id = instance_builder.add_bin_type(
+            10, 10, 10, copies=10, **(bin_type_keywords or {}))
+    instance_builder.add_item_type(10, 10, z, copies=copies, **item_keywords)
     return instance_builder, bin_type_id
 
 
@@ -57,9 +57,9 @@ def large_knapsack_instance(number_of_item_types, seed=0):
     instance_builder.set_objective(psbs.Objective.Knapsack)
     instance_builder.add_bin_type(1000, 1000, 1000)
     for _ in range(number_of_item_types):
-        item_type_id = instance_builder.add_item_type(
-                rng.randint(20, 200), rng.randint(20, 200), rng.randint(20, 200))
-        instance_builder.set_item_type_profit(item_type_id, rng.randint(1, 1000))
+        instance_builder.add_item_type(
+                rng.randint(20, 200), rng.randint(20, 200), rng.randint(20, 200),
+                profit=rng.randint(1, 1000))
     return instance_builder.build()
 
 
@@ -109,7 +109,230 @@ def test_instance_builder_invalid_argument():
     with pytest.raises(ValueError):
         instance_builder.add_item_type(-1, 5, 5)
     with pytest.raises(ValueError):
-        instance_builder.add_item_type_rotation(0, psbs.Rotation.XYZ)
+        instance_builder.add_item_type(5, 5, 5, group_id=-1)
+    with pytest.raises(ValueError):
+        instance_builder.add_item_type(5, 5, 5, copies_min=-2)
+    # The attributes are keyword-only.
+    with pytest.raises(TypeError):
+        instance_builder.add_item_type(5, 5, 5, 3)
+    with pytest.raises(TypeError):
+        instance_builder.add_bin_type(10, 10, 10, 3)
+    with pytest.raises(TypeError):
+        instance_builder.add_item_type(5, 5, 5, unknown=3)
+
+
+def test_add_item_type_keywords():
+    instance_builder = psbs.InstanceBuilder()
+    instance_builder.set_objective(psbs.Objective.Knapsack)
+    instance_builder.add_bin_type(100, 100, 100)
+    assert instance_builder.add_item_type(5, 5, 5) == 0
+    item_type_id = instance_builder.add_item_type(
+            2, 3, 4,
+            rotations=[psbs.Rotation.YXZ, psbs.Rotation.XYZ],
+            group_id=1,
+            weight=2.5,
+            stackability_id=3,
+            nesting_height=1,
+            maximum_stackability=2,
+            maximum_weight_above=7.5,
+            profit=12,
+            copies=5,
+            copies_min=2)
+    assert item_type_id == 1
+    instance = instance_builder.build()
+    item_type = instance.item_type(item_type_id)
+    assert (item_type.x, item_type.y, item_type.z) == (2, 3, 4)
+    assert item_type.rotations == [psbs.Rotation.YXZ, psbs.Rotation.XYZ]
+    assert item_type.can_rotate(psbs.Rotation.YXZ)
+    assert not item_type.can_rotate(psbs.Rotation.ZYX)
+    assert item_type.group_id == 1
+    assert item_type.weight == 2.5
+    assert item_type.stackability_id == 3
+    assert item_type.nesting_height == 1
+    assert item_type.maximum_stackability == 2
+    assert item_type.maximum_weight_above == 7.5
+    assert item_type.profit == 12
+    assert item_type.copies == 5
+    assert item_type.copies_min == 2
+    assert instance.number_of_groups() == 2
+    assert instance.group(1).item_types == [item_type_id]
+
+
+def test_add_item_type_defaults():
+    instance_builder = psbs.InstanceBuilder()
+    instance_builder.set_objective(psbs.Objective.Knapsack)
+    instance_builder.add_bin_type(100, 100, 100)
+    instance_builder.add_item_type(2, 3, 4)
+    # 'copies' given but not 'copies_min': 'copies_min' is resolved in
+    # 'build()' (0 for a Knapsack objective).
+    instance_builder.add_item_type(2, 3, 4, copies=4)
+    instance = instance_builder.build()
+    item_type = instance.item_type(0)
+    assert item_type.profit == 24
+    assert item_type.copies == 1
+    assert item_type.copies_min == 0
+    assert item_type.group_id == 0
+    assert item_type.rotations == [psbs.Rotation.XYZ]
+    assert item_type.weight == 0
+    assert item_type.stackability_id == 0
+    assert item_type.nesting_height == 0
+    assert item_type.maximum_stackability == 2 ** 31 - 1
+    assert item_type.maximum_weight_above == math.inf
+    item_type = instance.item_type(1)
+    assert item_type.profit == 24
+    assert item_type.copies == 4
+    assert item_type.copies_min == 0
+
+    # For a Bin Packing objective, 'copies_min' defaults to 'copies'.
+    instance_builder = psbs.InstanceBuilder()
+    instance_builder.set_objective(psbs.Objective.BinPacking)
+    instance_builder.add_bin_type(100, 100, 100)
+    instance_builder.add_item_type(2, 3, 4, copies=4)
+    assert instance_builder.build().item_type(0).copies_min == 4
+
+
+def test_add_item_type_rotations():
+    instance_builder = psbs.InstanceBuilder()
+    instance_builder.add_bin_type(100, 100, 100)
+    # An empty list is the same as no rotation given: only 'XYZ'.
+    instance_builder.add_item_type(2, 3, 4, rotations=[])
+    all_rotations = [
+        psbs.Rotation.XYZ, psbs.Rotation.YXZ, psbs.Rotation.ZYX,
+        psbs.Rotation.YZX, psbs.Rotation.XZY, psbs.Rotation.ZXY]
+    instance_builder.add_item_type(2, 3, 4, rotations=all_rotations)
+    # The rotations given replace the default 'XYZ' rotation.
+    instance_builder.add_item_type(2, 3, 4, rotations=(psbs.Rotation.ZYX,))
+    instance = instance_builder.build()
+    assert instance.item_type(0).rotations == [psbs.Rotation.XYZ]
+    assert instance.item_type(1).rotations == all_rotations
+    assert instance.item_type(2).rotations == [psbs.Rotation.ZYX]
+    assert not instance.item_type(2).can_rotate(psbs.Rotation.XYZ)
+    with pytest.raises(TypeError):
+        psbs.InstanceBuilder().add_item_type(2, 3, 4, rotations=[0.5])
+
+
+def test_add_bin_type_keywords():
+    instance_builder = psbs.InstanceBuilder()
+    instance_builder.set_objective(psbs.Objective.VariableSizedBinPacking)
+    assert instance_builder.add_bin_type(10, 10, 10) == 0
+    bin_type_id = instance_builder.add_bin_type(
+            20, 10, 10,
+            cost=7,
+            maximum_weight=100,
+            maximum_stack_density=0.5,
+            copies=3,
+            copies_min=1)
+    assert bin_type_id == 1
+    instance_builder.add_item_type(5, 5, 5)
+    instance = instance_builder.build()
+    bin_type = instance.bin_type(bin_type_id)
+    assert (bin_type.x, bin_type.y, bin_type.z) == (20, 10, 10)
+    assert bin_type.cost == 7
+    assert bin_type.maximum_weight == 100
+    assert bin_type.maximum_stack_density == 0.5
+    assert bin_type.copies == 3
+    assert bin_type.copies_min == 1
+    # Defaults.
+    bin_type = instance.bin_type(0)
+    assert bin_type.copies == 1
+    assert bin_type.copies_min == 0
+    assert bin_type.maximum_weight == math.inf
+    assert bin_type.defects == []
+    assert instance.number_of_bins() == 4
+
+
+def test_removed_setters():
+    for name in [
+            "set_item_type_copies",
+            "set_item_type_copies_min",
+            "set_item_type_profit",
+            "set_item_type_group",
+            "set_item_type_weight",
+            "set_item_type_stackability_id",
+            "set_item_type_nesting_height",
+            "set_item_type_maximum_stackability",
+            "set_item_type_maximum_weight_above",
+            "add_item_type_rotation",
+            "set_bin_type_cost",
+            "set_bin_type_copies",
+            "set_bin_type_copies_min",
+            "set_bin_type_maximum_weight",
+            "set_bin_type_maximum_stack_density",
+            "set_bin_type_semi_trailer_truck_parameters"]:
+        assert not hasattr(psbs.InstanceBuilder, name), name
+    # Kept.
+    for name in [
+            "set_objective",
+            "add_defect",
+            "set_group_weight_constraints",
+            "set_unloading_constraint",
+            "set_weight_tolerance",
+            "set_item_types_oriented",
+            "set_bin_types_infinite_copies"]:
+        assert hasattr(psbs.InstanceBuilder, name), name
+
+
+INSTANCE_BUILDER_HEADER = os.path.join(
+        os.path.dirname(__file__), "..", "..",
+        "include", "packingsolver", "boxstacks", "instance_builder.hpp")
+
+# C++ per-type method -> Python keyword, when it differs from the method
+# name suffix.
+KEYWORD_NAMES = {
+    "add_item_type_rotation": "rotations",
+    "set_item_type_group": "group_id",
+}
+
+# C++ per-type methods intentionally not available as keywords.
+NOT_BOUND = {
+}
+
+
+def keyword_names(function):
+    """Names of the keyword-only arguments of a nanobind function."""
+    signatures = [
+        signature[0]
+        for signature in getattr(function, "__nb_signature__", ())]
+    if not signatures:
+        signatures = [function.__doc__.splitlines()[0]]
+    names = set()
+    for signature in signatures:
+        if "*," not in signature:
+            continue
+        keywords = signature.split("*,", 1)[1].rsplit(")", 1)[0]
+        names.update(re.findall(r"(\w+)\s*:", keywords))
+    return names
+
+
+def test_instance_builder_header_sync():
+    with open(INSTANCE_BUILDER_HEADER) as header_file:
+        header = header_file.read()
+    methods = re.findall(
+            r"\b((?:set|add)_(item|bin)_type_\w+)\s*\(\s*\w+\s+(\w+)",
+            header)
+    methods = [
+        (name, kind) for name, kind, first_parameter in methods
+        if first_parameter == kind + "_type_id"]
+    assert len(methods) >= 16
+    keywords = {
+        "item": keyword_names(psbs.InstanceBuilder.add_item_type),
+        "bin": keyword_names(psbs.InstanceBuilder.add_bin_type),
+    }
+    assert "copies" in keywords["item"]
+    assert "copies" in keywords["bin"]
+    expected = {"item": set(), "bin": set()}
+    for name, kind in methods:
+        if name in NOT_BOUND:
+            continue
+        prefix = ("set_" if name.startswith("set_") else "add_") + kind + "_type_"
+        keyword = KEYWORD_NAMES.get(name, name[len(prefix):])
+        expected[kind].add(keyword)
+        assert keyword in keywords[kind], (
+                "C++ '" + name + "' is neither a keyword of 'add_" + kind
+                + "_type' nor in NOT_BOUND")
+    # No stale keyword.
+    assert keywords["item"] == expected["item"]
+    assert keywords["bin"] == expected["bin"]
 
 
 def test_build_resets_builder():
@@ -161,8 +384,7 @@ def test_knapsack():
     # Only one of the two 10x10x6 items fits; the one with the largest profit
     # must be selected, and stacked with the 10x10x4 item.
     for z, profit in [(6, 5), (6, 7), (4, 3)]:
-        item_type_id = instance_builder.add_item_type(10, 10, z)
-        instance_builder.set_item_type_profit(item_type_id, profit)
+        instance_builder.add_item_type(10, 10, z, profit=profit)
     output = psbs.optimize(instance_builder.build(), quiet_parameters())
     assert output.solution.profit() == 10
     assert output.solution.item_copies(0) == 0
@@ -181,8 +403,7 @@ def test_rotation():
     instance_builder = psbs.InstanceBuilder()
     instance_builder.set_objective(psbs.Objective.Knapsack)
     instance_builder.add_bin_type(2, 10, 10)
-    item_type_id = instance_builder.add_item_type(10, 10, 2)
-    instance_builder.add_item_type_rotation(item_type_id, psbs.Rotation.ZYX)
+    instance_builder.add_item_type(10, 10, 2, rotations=[psbs.Rotation.ZYX])
     instance = instance_builder.build()
     assert instance.item_type(0).rotations == [psbs.Rotation.ZYX]
     output = psbs.optimize(instance, quiet_parameters())
@@ -201,11 +422,9 @@ def test_rotation():
 def test_stackability_id(same_stackability_id, expected_number_of_bins):
     instance_builder = psbs.InstanceBuilder()
     instance_builder.set_objective(psbs.Objective.BinPacking)
-    bin_type_id = instance_builder.add_bin_type(10, 10, 10)
-    instance_builder.set_bin_type_copies(bin_type_id, 5)
+    instance_builder.add_bin_type(10, 10, 10, copies=5)
     for stackability_id in [0, 0 if same_stackability_id else 1]:
-        item_type_id = instance_builder.add_item_type(10, 10, 5)
-        instance_builder.set_item_type_stackability_id(item_type_id, stackability_id)
+        instance_builder.add_item_type(10, 10, 5, stackability_id=stackability_id)
     instance = instance_builder.build()
     assert instance.item_type(1).stackability_id == (0 if same_stackability_id else 1)
     output = psbs.optimize(instance, quiet_parameters())
@@ -249,8 +468,8 @@ def test_nesting_height():
         "bin maximum weight forbids stacking"))
 def test_weight_constraints():
     # Maximum bin weight.
-    instance_builder, bin_type_id = stack_instance(2, weight=6)
-    instance_builder.set_bin_type_maximum_weight(bin_type_id, 10)
+    instance_builder, _ = stack_instance(
+            2, weight=6, bin_type_keywords={"maximum_weight": 10})
     instance = instance_builder.build()
     assert instance.bin_type(0).maximum_weight == 10
     assert instance.item_weight() == 12
@@ -269,8 +488,8 @@ def test_weight_constraints():
 
     # Maximum stack density: a stack of two boxes weighs 6 over an area of
     # 100.
-    instance_builder, bin_type_id = stack_instance(2, weight=3)
-    instance_builder.set_bin_type_maximum_stack_density(bin_type_id, 0.05)
+    instance_builder, _ = stack_instance(
+            2, weight=3, bin_type_keywords={"maximum_stack_density": 0.05})
     instance = instance_builder.build()
     assert instance.bin_type(0).maximum_stack_density == 0.05
     output = psbs.optimize(instance, quiet_parameters())
@@ -281,11 +500,9 @@ def test_groups():
     instance_builder = psbs.InstanceBuilder()
     instance_builder.set_objective(psbs.Objective.BinPacking)
     instance_builder.set_unloading_constraint(psbs.UnloadingConstraint.IncreasingX)
-    bin_type_id = instance_builder.add_bin_type(10, 10, 10)
-    instance_builder.set_bin_type_copies(bin_type_id, 5)
+    instance_builder.add_bin_type(10, 10, 10, copies=5)
     for group_id in [0, 1]:
-        item_type_id = instance_builder.add_item_type(5, 10, 10)
-        instance_builder.set_item_type_group(item_type_id, group_id)
+        instance_builder.add_item_type(5, 10, 10, group_id=group_id)
     instance_builder.set_group_weight_constraints(1, False)
     instance = instance_builder.build()
     assert instance.unloading_constraint() == psbs.UnloadingConstraint.IncreasingX
@@ -299,28 +516,81 @@ def test_groups():
     assert output.solution.number_of_bins() == 1
 
 
+SEMI_TRAILER_TRUCK_PARAMETERS = {
+    "tractor_weight": 8000,
+    "front_axle_middle_axle_distance": 380,
+    "front_axle_tractor_gravity_center_distance": 100,
+    "front_axle_harness_distance": 320,
+    "empty_trailer_weight": 6000,
+    "harness_rear_axle_distance": 800,
+    "trailer_gravity_center_rear_axle_distance": 400,
+    "trailer_start_harness_distance": 100,
+    "rear_axle_maximum_weight": 20000,
+    "middle_axle_maximum_weight": 9300,
+}
+
+
+def read_bin_types_csv(instance, tmp_path):
+    bins_path = str(tmp_path / "bins.csv")
+    instance.write_bin_types(bins_path)
+    with open(bins_path) as bins_file:
+        return list(csv.DictReader(bins_file))
+
+
+def test_semi_trailer_truck_parameters_keyword(tmp_path):
+    instance_builder = psbs.InstanceBuilder()
+    instance_builder.add_bin_type(
+            1360, 240, 260,
+            semi_trailer_truck_parameters=SEMI_TRAILER_TRUCK_PARAMETERS)
+    # Missing keys keep their default values.
+    instance_builder.add_bin_type(
+            1360, 240, 260,
+            semi_trailer_truck_parameters={
+                "front_axle_middle_axle_distance": 380,
+                "harness_rear_axle_distance": 800})
+    # Not a semi-trailer truck.
+    instance_builder.add_bin_type(1360, 240, 260)
+    instance_builder.add_item_type(100, 200, 200)
+    rows = read_bin_types_csv(instance_builder.build(), tmp_path)
+    assert len(rows) == 3
+    assert int(rows[0]["IS_SEMI_TRAILER_TRUCK"]) == 1
+    for name, value in SEMI_TRAILER_TRUCK_PARAMETERS.items():
+        assert float(rows[0][name.upper()]) == value
+    assert int(rows[1]["IS_SEMI_TRAILER_TRUCK"]) == 1
+    assert float(rows[1]["FRONT_AXLE_MIDDLE_AXLE_DISTANCE"]) == 380
+    assert float(rows[1]["HARNESS_REAR_AXLE_DISTANCE"]) == 800
+    assert float(rows[1]["TRACTOR_WEIGHT"]) == 0
+    assert float(rows[1]["EMPTY_TRAILER_WEIGHT"]) == 0
+    assert float(rows[1]["TRAILER_START_HARNESS_DISTANCE"]) == 0
+    assert float(rows[1]["REAR_AXLE_MAXIMUM_WEIGHT"]) == math.inf
+    assert float(rows[1]["MIDDLE_AXLE_MAXIMUM_WEIGHT"]) == math.inf
+    assert int(rows[2]["IS_SEMI_TRAILER_TRUCK"]) == 0
+
+
+def test_semi_trailer_truck_parameters_keyword_invalid():
+    instance_builder = psbs.InstanceBuilder()
+    with pytest.raises(ValueError, match="unknown_key"):
+        instance_builder.add_bin_type(
+                10, 10, 10, semi_trailer_truck_parameters={"unknown_key": 1})
+    with pytest.raises(TypeError):
+        instance_builder.add_bin_type(
+                10, 10, 10, semi_trailer_truck_parameters=[1, 2])
+    # The distances must be strictly positive.
+    instance_builder = psbs.InstanceBuilder()
+    instance_builder.add_bin_type(10, 10, 10, semi_trailer_truck_parameters={})
+    instance_builder.add_item_type(5, 5, 5)
+    with pytest.raises(ValueError):
+        instance_builder.build()
+
+
 def test_semi_trailer_truck():
     instance_builder = psbs.InstanceBuilder()
     instance_builder.set_objective(psbs.Objective.Knapsack)
-    bin_type_id = instance_builder.add_bin_type(1360, 240, 260)
-    instance_builder.set_bin_type_maximum_weight(bin_type_id, 24000)
-    instance_builder.set_bin_type_semi_trailer_truck_parameters(
-            bin_type_id,
-            tractor_weight=8000,
-            front_axle_middle_axle_distance=380,
-            front_axle_tractor_gravity_center_distance=100,
-            front_axle_harness_distance=320,
-            empty_trailer_weight=6000,
-            harness_rear_axle_distance=800,
-            trailer_gravity_center_rear_axle_distance=400,
-            trailer_start_harness_distance=100,
-            rear_axle_maximum_weight=20000,
-            middle_axle_maximum_weight=9300)
-    item_type_id = instance_builder.add_item_type(100, 200, 200)
-    instance_builder.set_item_type_weight(item_type_id, 2000)
-    instance_builder.set_item_type_copies(item_type_id, 3)
-    with pytest.raises(ValueError):
-        instance_builder.set_bin_type_semi_trailer_truck_parameters(1)
+    instance_builder.add_bin_type(
+            1360, 240, 260,
+            maximum_weight=24000,
+            semi_trailer_truck_parameters=SEMI_TRAILER_TRUCK_PARAMETERS)
+    instance_builder.add_item_type(100, 200, 200, weight=2000, copies=3)
     output = psbs.optimize(instance_builder.build(), quiet_parameters(time_limit=5.0))
     solution = output.solution
     assert solution.feasible()
@@ -459,11 +729,9 @@ def test_linear_programming_algorithms(algorithm):
     nested single-bin subproblems."""
     instance_builder = psbs.InstanceBuilder()
     instance_builder.set_objective(psbs.Objective.BinPacking)
-    bin_type_id = instance_builder.add_bin_type(10, 10, 10)
-    instance_builder.set_bin_type_copies(bin_type_id, 20)
+    instance_builder.add_bin_type(10, 10, 10, copies=20)
     for x, copies in [(5, 20), (10, 6)]:
-        item_type_id = instance_builder.add_item_type(x, 5, 5)
-        instance_builder.set_item_type_copies(item_type_id, copies)
+        instance_builder.add_item_type(x, 5, 5, copies=copies)
     parameters = quiet_parameters()
     setattr(parameters, algorithm, True)
     output = psbs.optimize(instance_builder.build(), parameters)

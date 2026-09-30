@@ -134,38 +134,87 @@ void bind_box(nb::module_& m)
         .def("set_weight_tolerance", &InstanceBuilder::set_weight_tolerance, nb::arg("weight_tolerance"))
         // Bin types.
         .def("add_bin_type",
-                nb::overload_cast<Length, Length, Length>(&InstanceBuilder::add_bin_type),
-                nb::arg("x"), nb::arg("y"), nb::arg("z"))
-        .def("set_bin_type_cost", &InstanceBuilder::set_bin_type_cost,
-                nb::arg("bin_type_id"), nb::arg("cost"))
-        .def("set_bin_type_maximum_weight", &InstanceBuilder::set_bin_type_maximum_weight,
-                nb::arg("bin_type_id"), nb::arg("maximum_weight"))
+                [](InstanceBuilder& instance_builder,
+                    Length x,
+                    Length y,
+                    Length z,
+                    std::optional<Profit> cost,
+                    std::optional<Weight> maximum_weight,
+                    std::optional<BinPos> copies,
+                    std::optional<BinPos> copies_min)
+                {
+                    BinTypeId bin_type_id = instance_builder.add_bin_type(x, y, z);
+                    if (cost.has_value())
+                        instance_builder.set_bin_type_cost(bin_type_id, *cost);
+                    if (maximum_weight.has_value())
+                        instance_builder.set_bin_type_maximum_weight(bin_type_id, *maximum_weight);
+                    if (copies.has_value())
+                        instance_builder.set_bin_type_copies(bin_type_id, *copies);
+                    if (copies_min.has_value())
+                        instance_builder.set_bin_type_copies_min(bin_type_id, *copies_min);
+                    return bin_type_id;
+                },
+                nb::arg("x"), nb::arg("y"), nb::arg("z"),
+                nb::kw_only(),
+                nb::arg("cost") = nb::none(),
+                nb::arg("maximum_weight") = nb::none(),
+                nb::arg("copies") = nb::none(),
+                nb::arg("copies_min") = nb::none(),
+                "Add a bin type and return its id.\n\n"
+                "Keyword arguments (omitted ones keep the C++ default):\n"
+                "- cost: the cost of the bin type.\n"
+                "- maximum_weight: the maximum weight of the bin type.\n"
+                "- copies: the number of copies of the bin type.\n"
+                "- copies_min: the minimum number of copies of the bin type.")
         .def("add_bin_type_resource", &InstanceBuilder::add_bin_type_resource,
                 nb::arg("bin_type_id"), nb::arg("capacity"), nb::arg("penalize") = false, nb::arg("penalty") = 0.0)
         .def("add_resource_consumption", &InstanceBuilder::add_resource_consumption,
                 nb::arg("bin_type_id"), nb::arg("resource_id"), nb::arg("item_type_id"), nb::arg("schedule"))
-        .def("set_bin_type_copies", &InstanceBuilder::set_bin_type_copies,
-                nb::arg("bin_type_id"), nb::arg("copies"))
-        .def("set_bin_type_copies_min", &InstanceBuilder::set_bin_type_copies_min,
-                nb::arg("bin_type_id"), nb::arg("copies_min"))
         .def("set_bin_types_infinite_x", &InstanceBuilder::set_bin_types_infinite_x)
         .def("set_bin_types_infinite_y", &InstanceBuilder::set_bin_types_infinite_y)
         .def("set_bin_types_infinite_copies", &InstanceBuilder::set_bin_types_infinite_copies)
         .def("set_bin_types_unweighted", &InstanceBuilder::set_bin_types_unweighted)
         // Item types.
         .def("add_item_type",
-                nb::overload_cast<Length, Length, Length>(&InstanceBuilder::add_item_type),
-                nb::arg("x"), nb::arg("y"), nb::arg("z"))
-        .def("add_item_type_rotation", &InstanceBuilder::add_item_type_rotation,
-                nb::arg("item_type_id"), nb::arg("rotation"))
-        .def("set_item_type_weight", &InstanceBuilder::set_item_type_weight,
-                nb::arg("item_type_id"), nb::arg("weight"))
-        .def("set_item_type_profit", &InstanceBuilder::set_item_type_profit,
-                nb::arg("item_type_id"), nb::arg("profit"))
-        .def("set_item_type_copies", &InstanceBuilder::set_item_type_copies,
-                nb::arg("item_type_id"), nb::arg("copies"))
-        .def("set_item_type_copies_min", &InstanceBuilder::set_item_type_copies_min,
-                nb::arg("item_type_id"), nb::arg("copies_min"))
+                [](InstanceBuilder& instance_builder,
+                    Length x,
+                    Length y,
+                    Length z,
+                    std::optional<std::vector<Rotation>> rotations,
+                    std::optional<Weight> weight,
+                    std::optional<Profit> profit,
+                    std::optional<ItemPos> copies,
+                    std::optional<ItemPos> copies_min)
+                {
+                    ItemTypeId item_type_id = instance_builder.add_item_type(x, y, z);
+                    if (rotations.has_value())
+                        for (Rotation rotation: *rotations)
+                            instance_builder.add_item_type_rotation(item_type_id, rotation);
+                    if (weight.has_value())
+                        instance_builder.set_item_type_weight(item_type_id, *weight);
+                    if (profit.has_value())
+                        instance_builder.set_item_type_profit(item_type_id, *profit);
+                    if (copies.has_value())
+                        instance_builder.set_item_type_copies(item_type_id, *copies);
+                    if (copies_min.has_value())
+                        instance_builder.set_item_type_copies_min(item_type_id, *copies_min);
+                    return item_type_id;
+                },
+                nb::arg("x"), nb::arg("y"), nb::arg("z"),
+                nb::kw_only(),
+                nb::arg("rotations") = nb::none(),
+                nb::arg("weight") = nb::none(),
+                nb::arg("profit") = nb::none(),
+                nb::arg("copies") = nb::none(),
+                nb::arg("copies_min") = nb::none(),
+                "Add an item type and return its id.\n\n"
+                "Keyword arguments (omitted ones keep the C++ default):\n"
+                "- rotations: the allowed rotations of the item type (the full\n"
+                "  list; when omitted or empty, only 'Rotation.XYZ' is allowed).\n"
+                "- weight: the weight of the item type.\n"
+                "- profit: the profit of the item type (default: its volume).\n"
+                "- copies: the number of copies of the item type.\n"
+                "- copies_min: the minimum number of copies to pack of the item type.")
         .def("set_item_types_profits_auto", &InstanceBuilder::set_item_types_profits_auto)
         .def("set_item_types_infinite_copies", &InstanceBuilder::set_item_types_infinite_copies)
         .def("set_item_types_unweighted", &InstanceBuilder::set_item_types_unweighted)
@@ -273,8 +322,7 @@ void bind_box(nb::module_& m)
         .def_rw("remove_negative_profit_items", &ReductionParameters::remove_negative_profit_items)
         .def_rw("merge_identical_items", &ReductionParameters::merge_identical_items);
 
-    nb::class_<OptimizeParameters> parameters(m, "OptimizeParameters");
-    bind_parameters_base<box::Output>(parameters);
+    nb::class_<OptimizeParameters> parameters = bind_parameters_base<box::Output, OptimizeParameters>(m);
     parameters
         .def_rw("optimization_mode", &OptimizeParameters::optimization_mode)
         .def_rw("memory_limit_megabytes", &OptimizeParameters::memory_limit_megabytes)

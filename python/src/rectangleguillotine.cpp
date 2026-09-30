@@ -3,9 +3,65 @@
 #include "packingsolver/rectangleguillotine/instance_builder.hpp"
 #include "packingsolver/rectangleguillotine/optimize.hpp"
 
+#include <algorithm>
+#include <stdexcept>
+
 using namespace packingsolver;
 using namespace packingsolver::python;
 using namespace packingsolver::rectangleguillotine;
+
+namespace
+{
+
+/**
+ * Call 'InstanceBuilder::add_trims' from a dict whose keys are the names of
+ * its parameters. A missing length means no trim (0); a missing trim type
+ * keeps the default trim type of a bin type.
+ */
+void add_trims_from_dict(
+        InstanceBuilder& instance_builder,
+        BinTypeId bin_type_id,
+        const nb::dict& trims)
+{
+    static const std::vector<std::string> keys = {
+        "left_trim", "left_trim_type",
+        "right_trim", "right_trim_type",
+        "bottom_trim", "bottom_trim_type",
+        "top_trim", "top_trim_type"};
+    for (auto item: trims) {
+        std::string key = nb::cast<std::string>(item.first);
+        if (std::find(keys.begin(), keys.end(), key) == keys.end()) {
+            throw std::invalid_argument(
+                    "add_bin_type: unknown key '" + key + "' in 'trims'; "
+                    "valid keys: 'left_trim', 'left_trim_type', "
+                    "'right_trim', 'right_trim_type', "
+                    "'bottom_trim', 'bottom_trim_type', "
+                    "'top_trim', 'top_trim_type'.");
+        }
+    }
+
+    const BinType default_bin_type = BinType();
+    auto length = [&trims](const char* key)
+    {
+        return (trims.contains(key))? nb::cast<Length>(trims[key]): (Length)0;
+    };
+    auto trim_type = [&trims](const char* key, TrimType default_trim_type)
+    {
+        return (trims.contains(key))? nb::cast<TrimType>(trims[key]): default_trim_type;
+    };
+    instance_builder.add_trims(
+            bin_type_id,
+            length("left_trim"),
+            trim_type("left_trim_type", default_bin_type.left_trim_type),
+            length("right_trim"),
+            trim_type("right_trim_type", default_bin_type.right_trim_type),
+            length("bottom_trim"),
+            trim_type("bottom_trim_type", default_bin_type.bottom_trim_type),
+            length("top_trim"),
+            trim_type("top_trim_type", default_bin_type.top_trim_type));
+}
+
+}
 
 void bind_rectangleguillotine(nb::module_& m)
 {
@@ -210,40 +266,91 @@ void bind_rectangleguillotine(nb::module_& m)
         .def("set_roadef2018", &InstanceBuilder::set_roadef2018)
         // Bin types.
         .def("add_bin_type",
-                nb::overload_cast<Length, Length>(&InstanceBuilder::add_bin_type),
-                nb::arg("width"), nb::arg("height"))
-        .def("set_bin_type_cost", &InstanceBuilder::set_bin_type_cost,
-                nb::arg("bin_type_id"), nb::arg("cost"))
-        .def("add_trims", &InstanceBuilder::add_trims,
-                nb::arg("bin_type_id"),
-                nb::arg("left_trim"), nb::arg("left_trim_type"),
-                nb::arg("right_trim"), nb::arg("right_trim_type"),
-                nb::arg("bottom_trim"), nb::arg("bottom_trim_type"),
-                nb::arg("top_trim"), nb::arg("top_trim_type"))
+                [](
+                    InstanceBuilder& instance_builder,
+                    Length width,
+                    Length height,
+                    std::optional<Profit> cost,
+                    std::optional<nb::dict> trims,
+                    std::optional<BinPos> copies,
+                    std::optional<BinPos> copies_min)
+                {
+                    BinTypeId bin_type_id = instance_builder.add_bin_type(width, height);
+                    if (cost.has_value())
+                        instance_builder.set_bin_type_cost(bin_type_id, *cost);
+                    if (trims.has_value())
+                        add_trims_from_dict(instance_builder, bin_type_id, *trims);
+                    if (copies.has_value())
+                        instance_builder.set_bin_type_copies(bin_type_id, *copies);
+                    if (copies_min.has_value())
+                        instance_builder.set_bin_type_copies_min(bin_type_id, *copies_min);
+                    return bin_type_id;
+                },
+                nb::arg("width"), nb::arg("height"),
+                nb::kw_only(),
+                nb::arg("cost") = nb::none(),
+                nb::arg("trims") = nb::none(),
+                nb::arg("copies") = nb::none(),
+                nb::arg("copies_min") = nb::none(),
+                "Add a bin type and return its id.\n"
+                "\n"
+                "Keyword arguments (omitted ones keep the C++ default):\n"
+                "- cost: cost of the bin type (default: its area);\n"
+                "- trims: trims of the bin type, as a dict with keys 'left_trim', "
+                "'left_trim_type', 'right_trim', 'right_trim_type', 'bottom_trim', "
+                "'bottom_trim_type', 'top_trim', 'top_trim_type'; a missing length "
+                "key means no trim (0) and a missing type key keeps the default "
+                "type (Hard for left/bottom, Soft for right/top);\n"
+                "- copies: number of copies of the bin type;\n"
+                "- copies_min: minimum number of copies of the bin type.")
         .def("add_defect", &InstanceBuilder::add_defect,
                 nb::arg("bin_type_id"), nb::arg("x"), nb::arg("y"), nb::arg("w"), nb::arg("h"))
         .def("add_bin_type_resource", &InstanceBuilder::add_bin_type_resource,
                 nb::arg("bin_type_id"), nb::arg("capacity"), nb::arg("penalize") = false, nb::arg("penalty") = 0.0)
         .def("add_resource_consumption", &InstanceBuilder::add_resource_consumption,
                 nb::arg("bin_type_id"), nb::arg("resource_id"), nb::arg("item_type_id"), nb::arg("schedule"))
-        .def("set_bin_type_copies", &InstanceBuilder::set_bin_type_copies,
-                nb::arg("bin_type_id"), nb::arg("copies"))
-        .def("set_bin_type_copies_min", &InstanceBuilder::set_bin_type_copies_min,
-                nb::arg("bin_type_id"), nb::arg("copies_min"))
         .def("set_bin_types_infinite_x", &InstanceBuilder::set_bin_types_infinite_x)
         .def("set_bin_types_infinite_y", &InstanceBuilder::set_bin_types_infinite_y)
         .def("set_bin_types_infinite_copies", &InstanceBuilder::set_bin_types_infinite_copies)
         .def("set_bin_types_unweighted", &InstanceBuilder::set_bin_types_unweighted)
         // Item types.
         .def("add_item_type",
-                nb::overload_cast<Length, Length, bool, StackId>(&InstanceBuilder::add_item_type),
-                nb::arg("width"), nb::arg("height"), nb::arg("oriented") = false, nb::arg("stack_id") = -1)
-        .def("set_item_type_profit", &InstanceBuilder::set_item_type_profit,
-                nb::arg("item_type_id"), nb::arg("profit"))
-        .def("set_item_type_copies", &InstanceBuilder::set_item_type_copies,
-                nb::arg("item_type_id"), nb::arg("copies"))
-        .def("set_item_type_copies_min", &InstanceBuilder::set_item_type_copies_min,
-                nb::arg("item_type_id"), nb::arg("copies_min"))
+                [](
+                    InstanceBuilder& instance_builder,
+                    Length width,
+                    Length height,
+                    bool oriented,
+                    StackId stack_id,
+                    std::optional<Profit> profit,
+                    std::optional<ItemPos> copies,
+                    std::optional<ItemPos> copies_min)
+                {
+                    ItemTypeId item_type_id = instance_builder.add_item_type(
+                            width, height, oriented, stack_id);
+                    if (profit.has_value())
+                        instance_builder.set_item_type_profit(item_type_id, *profit);
+                    if (copies.has_value())
+                        instance_builder.set_item_type_copies(item_type_id, *copies);
+                    if (copies_min.has_value())
+                        instance_builder.set_item_type_copies_min(item_type_id, *copies_min);
+                    return item_type_id;
+                },
+                nb::arg("width"), nb::arg("height"),
+                nb::kw_only(),
+                nb::arg("oriented") = false,
+                nb::arg("stack_id") = -1,
+                nb::arg("profit") = nb::none(),
+                nb::arg("copies") = nb::none(),
+                nb::arg("copies_min") = nb::none(),
+                "Add an item type and return its id.\n"
+                "\n"
+                "Keyword arguments (omitted ones keep the C++ default):\n"
+                "- oriented: if true, the item type can't be rotated;\n"
+                "- stack_id: stack of the item type (-1: its own stack);\n"
+                "- profit: profit of the item type (default: its area);\n"
+                "- copies: number of copies of the item type;\n"
+                "- copies_min: minimum number of copies to pack of the item type "
+                "(default: 0 for the Knapsack objective, 'copies' otherwise).")
         .def("set_item_types_infinite_copies", &InstanceBuilder::set_item_types_infinite_copies)
         .def("multiply_item_types_copies", &InstanceBuilder::multiply_item_types_copies, nb::arg("factor"))
         .def("set_item_types_unweighted", &InstanceBuilder::set_item_types_unweighted)
@@ -358,8 +465,7 @@ void bind_rectangleguillotine(nb::module_& m)
         .def_rw("remove_negative_profit_items", &ReductionParameters::remove_negative_profit_items)
         .def_rw("merge_identical_items", &ReductionParameters::merge_identical_items);
 
-    nb::class_<OptimizeParameters> parameters(m, "OptimizeParameters");
-    bind_parameters_base<rectangleguillotine::Output>(parameters);
+    nb::class_<OptimizeParameters> parameters = bind_parameters_base<rectangleguillotine::Output, OptimizeParameters>(m);
     parameters
         .def_rw("optimization_mode", &OptimizeParameters::optimization_mode)
         .def_rw("memory_limit_megabytes", &OptimizeParameters::memory_limit_megabytes)
