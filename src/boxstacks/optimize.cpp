@@ -62,6 +62,11 @@ void optimize_onedimensional_bound(
     onedim_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
     auto onedim_output = onedimensional::optimize(onedim_instance, onedim_parameters);
 
+    // The one-dimensional instance is a relaxation: if it is infeasible, so
+    // is the instance.
+    if (onedim_output.is_proven_infeasible)
+        algorithm_formatter.update_is_proven_infeasible();
+
     switch (box_instance.objective()) {
     case Objective::Knapsack:
         algorithm_formatter.update_knapsack_bound(onedim_output.knapsack_bound);
@@ -582,7 +587,9 @@ packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
     if (parameters.use_box_bounds
             && (instance.objective() == Objective::Knapsack
                 || instance.objective() == Objective::BinPacking
-                || instance.objective() == Objective::VariableSizedBinPacking)) {
+                || instance.objective() == Objective::BinPackingWithLeftovers
+                || instance.objective() == Objective::VariableSizedBinPacking
+                || instance.objective() == Objective::Feasibility)) {
         optimize_box_bound(instance, parameters, algorithm_formatter);
     }
 

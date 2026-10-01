@@ -177,6 +177,11 @@ void optimize_onedimensional_bound(
     onedim_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
     auto onedim_output = optimize(onedim_instance, onedim_parameters);
 
+    // The one-dimensional instance is a relaxation: if it is infeasible, so
+    // is the instance.
+    if (onedim_output.is_proven_infeasible)
+        algorithm_formatter.update_is_proven_infeasible();
+
     std::stringstream ss("1D");
     switch (instance.objective()) {
     case Objective::BinPacking: {
@@ -195,6 +200,9 @@ void optimize_onedimensional_bound(
     } case Objective::VariableSizedBinPacking: {
         algorithm_formatter.update_variable_sized_bin_packing_bound(
                 onedim_output.variable_sized_bin_packing_bound);
+        break;
+    } case Objective::BinPackingWithLeftovers: case Objective::Feasibility: {
+        // No bound for these objectives; only the infeasibility above.
         break;
     } default: {
         std::stringstream ss;
@@ -781,8 +789,10 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
     optimize_trivial_bound(instance, algorithm_formatter);
 
     if (instance.objective() == Objective::BinPacking
+            || instance.objective() == Objective::BinPackingWithLeftovers
             || instance.objective() == Objective::Knapsack
-            || instance.objective() == Objective::VariableSizedBinPacking) {
+            || instance.objective() == Objective::VariableSizedBinPacking
+            || instance.objective() == Objective::Feasibility) {
         optimize_onedimensional_bound(
                 instance,
                 parameters,
