@@ -668,6 +668,30 @@ void optimize_benders_decomposition_contiguity(
     benders_decomposition_contiguity(instance, bdc_parameters);
 }
 
+/**
+ * Prove the instance infeasible if an item type doesn't fit in any bin type:
+ * with every objective but 'Knapsack', every item must be packed.
+ *
+ * Only uses 'Instance::fits_some_bin', which is a cheap necessary condition.
+ */
+void optimize_item_types_fit(
+        const Instance& instance,
+        AlgorithmFormatter& algorithm_formatter)
+{
+    if (instance.objective() == Objective::Knapsack)
+        return;
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance.number_of_item_types();
+            ++item_type_id) {
+        if (instance.item_type(item_type_id).copies == 0)
+            continue;
+        if (!instance.fits_some_bin(item_type_id)) {
+            algorithm_formatter.update_is_proven_infeasible();
+            return;
+        }
+    }
+}
+
 }
 
 packingsolver::rectangle::Output packingsolver::rectangle::optimize(
@@ -678,6 +702,12 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
     AlgorithmFormatter algorithm_formatter(instance, parameters, output);
     algorithm_formatter.start();
     algorithm_formatter.print_header();
+
+    optimize_item_types_fit(instance, algorithm_formatter);
+    if (output.is_proven_infeasible) {
+        algorithm_formatter.end();
+        return output;
+    }
 
     // "Packing and removing some items" reduction (see 'Reduction'):
     // applied once, upfront, wrapping the whole dispatch logic below
