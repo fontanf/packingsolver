@@ -1101,6 +1101,16 @@ Instance InstanceBuilder::build()
                     "'copies_min' (" + std::to_string(item_type.copies_min) + ") "
                     "> 'copies' (" + std::to_string(item_type.copies) + ").");
         }
+        // Every item must be packed, except with the 'Knapsack' objective.
+        if (instance_.objective() != Objective::Knapsack
+                && item_type.copies_min != item_type.copies) {
+            throw std::invalid_argument(
+                    FUNC_SIGNATURE + ": "
+                    "item type " + std::to_string(item_type_id) + " has "
+                    "'copies_min' (" + std::to_string(item_type.copies_min) + ") "
+                    "!= 'copies' (" + std::to_string(item_type.copies) + "), "
+                    "which is only allowed with the 'Knapsack' objective.");
+        }
         // Update number_of_items_.
         instance_.number_of_items_ += item_type.copies;
         // Update item_profit_.

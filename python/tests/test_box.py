@@ -83,6 +83,9 @@ def test_item_type_rotations():
 
 def test_add_item_type_keywords():
     instance_builder = psb.InstanceBuilder()
+    # Optional copies ('copies_min' < 'copies') require the knapsack
+    # objective.
+    instance_builder.set_objective(psb.Objective.Knapsack)
     instance_builder.add_bin_type(10, 10, 10)
     item_type_id = instance_builder.add_item_type(
             1, 2, 3,

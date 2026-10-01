@@ -124,7 +124,7 @@ def test_instance_builder_keywords():
             eligibility_id=2,
             profit=30,
             copies=2,
-            copies_min=1)
+            copies_min=2)
     instance = instance_builder.build()
     bin_type = instance.bin_type(bin_type_id)
     assert bin_type.length == 1000
@@ -142,7 +142,7 @@ def test_instance_builder_keywords():
     assert item_type.eligibility_id == 2
     assert item_type.profit == 30
     assert item_type.copies == 2
-    assert item_type.copies_min == 1
+    assert item_type.copies_min == 2
 
 
 def test_instance_builder_keyword_defaults():
