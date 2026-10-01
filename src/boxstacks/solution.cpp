@@ -166,7 +166,7 @@ bool Solution::check_stack(
         Length yj = item_type.y(rotation);
         Length zj = item_type.z(rotation);
         if (item_pos > 0)
-            zj -=  - item_type.nesting_height;
+            zj -= item_type.nesting_height;
         Length zi = bin_type.box.z;
 
         // Check bin z.
