@@ -363,9 +363,9 @@ bool Instance::can_contain(
         QualityRule quality_rule,
         DefectTypeId type) const
 {
-    if (quality_rule == -1)
+    if (quality_rule < 0 || quality_rule >= (QualityRule)parameters_.quality_rules.size())
         return false;
-    if (type < 0 || type > (QualityRule)parameters_.quality_rules[quality_rule].size())
+    if (type < 0 || type >= (DefectTypeId)parameters_.quality_rules[quality_rule].size())
         return false;
     return parameters_.quality_rules[quality_rule][type];
 }

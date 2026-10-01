@@ -35,9 +35,17 @@ public:
     /** Set the feasibility callback. */
     void set_feasibility_callback(const FeasibilityCallback& feasibility_callback) { instance_.feasibility_callback_ = feasibility_callback; }
 
-    /** Add a quality rule. */
-    inline void add_quality_rule(
-            const std::vector<uint8_t>& quality_rule);
+    /**
+     * Add a quality rule and return its id.
+     *
+     * 'quality_rule[k] = 1' (resp. '0') means that an item shape with this
+     * quality rule can (resp. cannot) overlap defects of type 'k'.
+     */
+    QualityRule add_quality_rule(const std::vector<uint8_t>& quality_rule)
+    {
+        instance_.parameters_.quality_rules.push_back(quality_rule);
+        return (QualityRule)instance_.parameters_.quality_rules.size() - 1;
+    }
 
     /** Set item-item minimum spacing. */
     void set_item_item_minimum_spacing(LengthDbl item_item_minimum_spacing) { instance_.parameters_.item_item_minimum_spacing = item_item_minimum_spacing; }
@@ -202,6 +210,18 @@ public:
             Angle angle,
             bool mirror)
     {
+        if (bin_type_id < 0 || bin_type_id >= (BinTypeId)instance_.bin_types_.size()) {
+            throw std::invalid_argument(
+                    FUNC_SIGNATURE + ": "
+                    "invalid 'bin_type_id': " + std::to_string(bin_type_id) + ".");
+        }
+        // The item type may be added after the fixed item (e.g. when reading
+        // a JSON file, bin types come first): its id is checked in 'build()'.
+        if (item_type_id < 0) {
+            throw std::invalid_argument(
+                    FUNC_SIGNATURE + ": "
+                    "invalid 'item_type_id': " + std::to_string(item_type_id) + ".");
+        }
         instance_.bin_types_[bin_type_id].fixed_items.push_back({item_type_id, bl_corner, angle, mirror});
     }
 
