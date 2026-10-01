@@ -34,6 +34,15 @@ public:
     /** Read item types from a file. */
     void read_item_types(const std::string& items_path);
 
+    /**
+     * Read a full instance from a JSON file.
+     *
+     * The file contains the objective, the parameters, the bin types (with
+     * their defects and semi-trailer truck data) and the item types; it
+     * supports the same features as the CSV readers above.
+     */
+    void read(const std::string& instance_path);
+
     /*
      * Set parameters
      */

@@ -1,6 +1,7 @@
 #include "packingsolver/boxstacks/instance.hpp"
 
 #include <fstream>
+#include <sstream>
 
 using namespace packingsolver;
 using namespace packingsolver::boxstacks;
@@ -279,11 +280,144 @@ std::ostream& Instance::format(
 }
 
 void Instance::write(
+        const std::string& instance_path,
+        InstanceFormat format) const
+{
+    switch (format) {
+    case InstanceFormat::Csv:
+        write_csv(instance_path);
+        break;
+    case InstanceFormat::Json:
+        write_json(instance_path);
+        break;
+    }
+}
+
+void Instance::write_csv(
         const std::string& instance_path) const
 {
     write_item_types(instance_path + "_items.csv");
     write_bin_types(instance_path + "_bins.csv");
+    if (number_of_defects() > 0)
+        write_defects(instance_path + "_defects.csv");
     write_parameters(instance_path + "_parameters.csv");
+}
+
+void Instance::write_json(
+        const std::string& instance_path) const
+{
+    nlohmann::json j;
+
+    {
+        std::stringstream ss;
+        ss << objective();
+        j["objective"] = ss.str();
+    }
+    {
+        std::stringstream ss;
+        ss << parameters_.unloading_constraint;
+        j["unloading_constraint"] = ss.str();
+    }
+    j["no_check_weight_constraints"] = nlohmann::json::array();
+    for (GroupId group_id = 0;
+            group_id < (GroupId)parameters_.check_weight_constraints.size();
+            ++group_id) {
+        if (!check_weight_constraints(group_id))
+            j["no_check_weight_constraints"].push_back(group_id);
+    }
+
+    j["bin_types"] = nlohmann::json::array();
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < number_of_bin_types();
+            ++bin_type_id) {
+        const BinType& bin_type = this->bin_type(bin_type_id);
+        nlohmann::json json_bin_type;
+        json_bin_type["x"] = bin_type.box.x;
+        json_bin_type["y"] = bin_type.box.y;
+        json_bin_type["z"] = bin_type.box.z;
+        json_bin_type["cost"] = bin_type.cost;
+        json_bin_type["copies"] = bin_type.copies;
+        json_bin_type["copies_min"] = bin_type.copies_min;
+        // The defaults (no maximum) have no JSON representation: omit the
+        // fields instead, matching the default the reader falls back to when
+        // they are absent.
+        if (bin_type.maximum_weight != std::numeric_limits<Weight>::infinity())
+            json_bin_type["maximum_weight"] = bin_type.maximum_weight;
+        if (bin_type.maximum_stack_density != std::numeric_limits<double>::max())
+            json_bin_type["maximum_stack_density"] = bin_type.maximum_stack_density;
+        if (bin_type.semi_trailer_truck_data.is)
+            json_bin_type["semi_trailer_truck"] = bin_type.semi_trailer_truck_data.to_json();
+        if (!bin_type.defects.empty()) {
+            json_bin_type["defects"] = nlohmann::json::array();
+            for (const rectangle::Defect& defect: bin_type.defects) {
+                nlohmann::json json_defect;
+                json_defect["x"] = defect.pos.x;
+                json_defect["y"] = defect.pos.y;
+                json_defect["width"] = defect.rect.x;
+                json_defect["height"] = defect.rect.y;
+                json_bin_type["defects"].push_back(json_defect);
+            }
+        }
+        j["bin_types"].push_back(json_bin_type);
+    }
+
+    j["item_types"] = nlohmann::json::array();
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < number_of_item_types();
+            ++item_type_id) {
+        const ItemType& item_type = this->item_type(item_type_id);
+        nlohmann::json json_item_type;
+        json_item_type["x"] = item_type.box.x;
+        json_item_type["y"] = item_type.box.y;
+        json_item_type["z"] = item_type.box.z;
+        json_item_type["profit"] = item_type.profit;
+        json_item_type["copies"] = item_type.copies;
+        json_item_type["copies_min"] = item_type.copies_min;
+        json_item_type["group_id"] = item_type.group_id;
+        json_item_type["weight"] = item_type.weight;
+        json_item_type["stackability_id"] = item_type.stackability_id;
+        json_item_type["nesting_height"] = item_type.nesting_height;
+        if (item_type.maximum_stackability != std::numeric_limits<ItemPos>::max())
+            json_item_type["maximum_stackability"] = item_type.maximum_stackability;
+        if (item_type.maximum_weight_above != std::numeric_limits<Weight>::infinity())
+            json_item_type["maximum_weight_above"] = item_type.maximum_weight_above;
+        json_item_type["rotations"] = nlohmann::json::array();
+        for (Rotation rotation: item_type.rotations)
+            json_item_type["rotations"].push_back(to_string(rotation));
+        j["item_types"].push_back(json_item_type);
+    }
+
+    std::ofstream file(instance_path);
+    if (!file.good()) {
+        throw std::runtime_error(
+                FUNC_SIGNATURE + ": "
+                "unable to open file \"" + instance_path + "\".");
+    }
+    file << j.dump(4) << std::endl;
+}
+
+void Instance::write_defects(
+        const std::string& defects_path) const
+{
+    std::ofstream file(defects_path);
+    if (!file.good()) {
+        throw std::runtime_error(
+                FUNC_SIGNATURE + ": "
+                "unable to open file \"" + defects_path + "\".");
+    }
+    file << "BIN,X,Y,LX,LY" << std::endl;
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < number_of_bin_types();
+            ++bin_type_id) {
+        for (const rectangle::Defect& defect: bin_type(bin_type_id).defects) {
+            file
+                << bin_type_id << ","
+                << defect.pos.x << ","
+                << defect.pos.y << ","
+                << defect.rect.x << ","
+                << defect.rect.y << std::endl;
+        }
+    }
 }
 
 void Instance::write_item_types(
@@ -391,6 +525,7 @@ void Instance::write_parameters(
     }
     file
         << "NAME,VALUE" << std::endl
+        << "objective," << objective() << std::endl
         << "unloading-constraint," << parameters_.unloading_constraint << std::endl
         ;
     for (GroupId group_id = 0;

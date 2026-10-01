@@ -223,6 +223,49 @@ struct SemiTrailerTruckData
             << std::endl;
     }
 
+    /**
+     * Read the data from a JSON object whose keys are the attribute names
+     * (missing keys keep their default). The bin is a semi-trailer truck: the
+     * JSON object is only present for semi-trailer trucks.
+     */
+    void read_json(const nlohmann::json& json)
+    {
+        is = true;
+        tractor_weight = json.value("tractor_weight", tractor_weight);
+        front_axle_middle_axle_distance = json.value("front_axle_middle_axle_distance", front_axle_middle_axle_distance);
+        front_axle_tractor_gravity_center_distance = json.value("front_axle_tractor_gravity_center_distance", front_axle_tractor_gravity_center_distance);
+        front_axle_harness_distance = json.value("front_axle_harness_distance", front_axle_harness_distance);
+        empty_trailer_weight = json.value("empty_trailer_weight", empty_trailer_weight);
+        harness_rear_axle_distance = json.value("harness_rear_axle_distance", harness_rear_axle_distance);
+        trailer_gravity_center_rear_axle_distance = json.value("trailer_gravity_center_rear_axle_distance", trailer_gravity_center_rear_axle_distance);
+        trailer_start_harness_distance = json.value("trailer_start_harness_distance", trailer_start_harness_distance);
+        // A JSON 'null' means the default: no maximum weight.
+        if (json.contains("rear_axle_maximum_weight") && !json["rear_axle_maximum_weight"].is_null())
+            rear_axle_maximum_weight = json["rear_axle_maximum_weight"];
+        if (json.contains("middle_axle_maximum_weight") && !json["middle_axle_maximum_weight"].is_null())
+            middle_axle_maximum_weight = json["middle_axle_maximum_weight"];
+    }
+
+    /** Export the data to a JSON object readable by 'read_json'. */
+    nlohmann::json to_json() const
+    {
+        nlohmann::json json;
+        json["tractor_weight"] = tractor_weight;
+        json["front_axle_middle_axle_distance"] = front_axle_middle_axle_distance;
+        json["front_axle_tractor_gravity_center_distance"] = front_axle_tractor_gravity_center_distance;
+        json["front_axle_harness_distance"] = front_axle_harness_distance;
+        json["empty_trailer_weight"] = empty_trailer_weight;
+        json["harness_rear_axle_distance"] = harness_rear_axle_distance;
+        json["trailer_gravity_center_rear_axle_distance"] = trailer_gravity_center_rear_axle_distance;
+        json["trailer_start_harness_distance"] = trailer_start_harness_distance;
+        // Infinity (the default) has no JSON representation: omit it.
+        if (rear_axle_maximum_weight != std::numeric_limits<Weight>::infinity())
+            json["rear_axle_maximum_weight"] = rear_axle_maximum_weight;
+        if (middle_axle_maximum_weight != std::numeric_limits<Weight>::infinity())
+            json["middle_axle_maximum_weight"] = middle_axle_maximum_weight;
+        return json;
+    }
+
 };
 
 }

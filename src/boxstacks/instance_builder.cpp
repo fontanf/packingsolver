@@ -2,6 +2,9 @@
 
 #include "optimizationtools/utils/utils.hpp"
 
+#include <fstream>
+#include <sstream>
+
 using namespace packingsolver;
 using namespace packingsolver::boxstacks;
 
@@ -933,6 +936,135 @@ void InstanceBuilder::read_item_types(
         this->set_item_type_maximum_weight_above(
                 item_type_id,
                 maximum_weight_above);
+    }
+}
+
+void InstanceBuilder::read(
+        const std::string& instance_path)
+{
+    std::ifstream file(instance_path);
+    if (!file.good()) {
+        throw std::runtime_error(
+                FUNC_SIGNATURE + ": "
+                "unable to open file \"" + instance_path + "\".");
+    }
+
+    nlohmann::json j;
+    file >> j;
+
+    if (!j.contains("objective")) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "missing \"objective\" field.");
+    }
+    {
+        std::string objective_string = j["objective"];
+        std::stringstream objective_ss(objective_string);
+        Objective objective;
+        objective_ss >> objective;
+        if (objective_ss.fail()) {
+            throw std::invalid_argument(
+                    FUNC_SIGNATURE + ": "
+                    "unrecognized \"objective\" value \""
+                    + objective_string + "\".");
+        }
+        set_objective(objective);
+    }
+
+    if (j.contains("unloading_constraint")) {
+        std::string unloading_constraint_string = j["unloading_constraint"];
+        std::stringstream ss(unloading_constraint_string);
+        rectangle::UnloadingConstraint unloading_constraint;
+        ss >> unloading_constraint;
+        if (ss.fail()) {
+            throw std::invalid_argument(
+                    FUNC_SIGNATURE + ": "
+                    "unrecognized \"unloading_constraint\" value \""
+                    + unloading_constraint_string + "\".");
+        }
+        set_unloading_constraint(unloading_constraint);
+    }
+
+    // Groups whose weight constraints are not checked.
+    if (j.contains("no_check_weight_constraints")) {
+        for (const auto& json_group_id: j["no_check_weight_constraints"]) {
+            GroupId group_id = json_group_id;
+            if (group_id < 0) {
+                throw std::invalid_argument(
+                        FUNC_SIGNATURE + ": "
+                        "negative group id in \"no_check_weight_constraints\": "
+                        + std::to_string(group_id) + ".");
+            }
+            set_group_weight_constraints(group_id, false);
+        }
+    }
+
+    // Read bin types.
+    for (const auto& json_bin_type: j["bin_types"]) {
+        Length x = json_bin_type["x"];
+        Length y = json_bin_type["y"];
+        Length z = json_bin_type["z"];
+        BinTypeId bin_type_id = add_bin_type(x, y, z);
+        if (json_bin_type.contains("cost"))
+            set_bin_type_cost(bin_type_id, json_bin_type["cost"]);
+        if (json_bin_type.contains("copies"))
+            set_bin_type_copies(bin_type_id, json_bin_type["copies"]);
+        if (json_bin_type.contains("copies_min"))
+            set_bin_type_copies_min(bin_type_id, json_bin_type["copies_min"]);
+        // A JSON 'null' means the same as the field being absent: no maximum
+        // weight (see 'Instance::write_json').
+        if (json_bin_type.contains("maximum_weight") && !json_bin_type["maximum_weight"].is_null())
+            set_bin_type_maximum_weight(bin_type_id, json_bin_type["maximum_weight"]);
+        if (json_bin_type.contains("maximum_stack_density") && !json_bin_type["maximum_stack_density"].is_null())
+            set_bin_type_maximum_stack_density(bin_type_id, json_bin_type["maximum_stack_density"]);
+        if (json_bin_type.contains("semi_trailer_truck")) {
+            SemiTrailerTruckData semi_trailer_truck_data;
+            semi_trailer_truck_data.read_json(json_bin_type["semi_trailer_truck"]);
+            set_bin_type_semi_trailer_truck_parameters(bin_type_id, semi_trailer_truck_data);
+        }
+        // Read defects.
+        if (json_bin_type.contains("defects")) {
+            for (const auto& json_defect: json_bin_type["defects"]) {
+                add_defect(
+                        bin_type_id,
+                        json_defect["x"],
+                        json_defect["y"],
+                        json_defect["width"],
+                        json_defect["height"]);
+            }
+        }
+    }
+
+    // Read item types.
+    for (const auto& json_item_type: j["item_types"]) {
+        Length x = json_item_type["x"];
+        Length y = json_item_type["y"];
+        Length z = json_item_type["z"];
+        ItemTypeId item_type_id = add_item_type(x, y, z);
+        if (json_item_type.contains("profit"))
+            set_item_type_profit(item_type_id, json_item_type["profit"]);
+        if (json_item_type.contains("copies"))
+            set_item_type_copies(item_type_id, json_item_type["copies"]);
+        if (json_item_type.contains("copies_min"))
+            set_item_type_copies_min(item_type_id, json_item_type["copies_min"]);
+        if (json_item_type.contains("group_id"))
+            set_item_type_group(item_type_id, json_item_type["group_id"]);
+        if (json_item_type.contains("weight"))
+            set_item_type_weight(item_type_id, json_item_type["weight"]);
+        if (json_item_type.contains("stackability_id"))
+            set_item_type_stackability_id(item_type_id, json_item_type["stackability_id"]);
+        if (json_item_type.contains("nesting_height"))
+            set_item_type_nesting_height(item_type_id, json_item_type["nesting_height"]);
+        if (json_item_type.contains("maximum_stackability"))
+            set_item_type_maximum_stackability(item_type_id, json_item_type["maximum_stackability"]);
+        if (json_item_type.contains("maximum_weight_above") && !json_item_type["maximum_weight_above"].is_null())
+            set_item_type_maximum_weight_above(item_type_id, json_item_type["maximum_weight_above"]);
+        if (json_item_type.contains("rotations")) {
+            for (const auto& json_rotation: json_item_type["rotations"]) {
+                std::string rotation_string = json_rotation;
+                add_item_type_rotation(item_type_id, rotation_from_string(rotation_string));
+            }
+        }
     }
 }
 
