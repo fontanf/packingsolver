@@ -117,3 +117,53 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "irregular" / "tests" / "variable_sized_bin_packing_mandatory_bins.json",
                 fs::path("data") / "irregular" / "tests" / "variable_sized_bin_packing_mandatory_bins_solution.json",
             }}));
+
+TEST(Irregular, QualityRules)
+{
+    ItemShape item_shape;
+    item_shape.shape_orig.shape = build_rectangle(0, 5, 0, 5);
+    item_shape.quality_rule = 1;
+
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(packingsolver::Objective::BinPacking);
+    // Quality rule 0 allows defects of type 1; quality rule 1, of type 0.
+    EXPECT_EQ(instance_builder.add_quality_rule({0, 1}), 0);
+    EXPECT_EQ(instance_builder.add_quality_rule({1, 0}), 1);
+    instance_builder.add_item_type({item_shape});
+    instance_builder.add_bin_type(build_rectangle(0, 10, 0, 10));
+    const Instance instance = instance_builder.build();
+
+    EXPECT_FALSE(instance.can_contain(0, 0));
+    EXPECT_TRUE(instance.can_contain(0, 1));
+    EXPECT_TRUE(instance.can_contain(1, 0));
+    EXPECT_FALSE(instance.can_contain(1, 1));
+    // Out of range defect types and quality rules.
+    EXPECT_FALSE(instance.can_contain(0, 2));
+    EXPECT_FALSE(instance.can_contain(0, -1));
+    EXPECT_FALSE(instance.can_contain(2, 0));
+    EXPECT_FALSE(instance.can_contain(-1, 0));
+}
+
+TEST(Irregular, AddFixedItemInvalidIds)
+{
+    ItemShape item_shape;
+    item_shape.shape_orig.shape = build_rectangle(0, 5, 0, 5);
+
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(packingsolver::Objective::BinPacking);
+    packingsolver::ItemTypeId item_type_id = instance_builder.add_item_type({item_shape});
+    packingsolver::BinTypeId bin_type_id = instance_builder.add_bin_type(build_rectangle(0, 10, 0, 10));
+    EXPECT_THROW(
+            instance_builder.add_fixed_item(bin_type_id + 1, item_type_id, {0, 0}, 0, false),
+            std::invalid_argument);
+    EXPECT_THROW(
+            instance_builder.add_fixed_item(-1, item_type_id, {0, 0}, 0, false),
+            std::invalid_argument);
+    EXPECT_THROW(
+            instance_builder.add_fixed_item(bin_type_id, -1, {0, 0}, 0, false),
+            std::invalid_argument);
+    // The item type of a fixed item may be added after it, but must exist
+    // when the instance is built.
+    instance_builder.add_fixed_item(bin_type_id, item_type_id + 1, {0, 0}, 0, false);
+    EXPECT_THROW(instance_builder.build(), std::invalid_argument);
+}

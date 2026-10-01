@@ -693,6 +693,21 @@ void InstanceBuilder::read(
 
 Instance InstanceBuilder::build()
 {
+    // Check the item types of the fixed items (see 'add_fixed_item').
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < (BinTypeId)instance_.bin_types_.size();
+            ++bin_type_id) {
+        for (const FixedItem& fixed_item: instance_.bin_types_[bin_type_id].fixed_items) {
+            if (fixed_item.item_type_id >= (ItemTypeId)instance_.item_types_.size()) {
+                throw std::invalid_argument(
+                        FUNC_SIGNATURE + ": "
+                        "invalid fixed item 'item_type_id'; "
+                        "bin_type_id: " + std::to_string(bin_type_id) + "; "
+                        "item_type_id: " + std::to_string(fixed_item.item_type_id) + ".");
+            }
+        }
+    }
+
     // Compute scale value.
     if (instance_.parameters().scale_value == std::numeric_limits<LengthDbl>::infinity()) {
         LengthDbl value_max = 0.0;
