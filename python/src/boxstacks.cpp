@@ -176,10 +176,14 @@ void bind_boxstacks(nb::module_& m)
                 nb::arg("item_type_id"))
         .def("write", &Instance::write,
                 nb::arg("instance_path"),
-                "Write '<instance_path>_items.csv', '<instance_path>_bins.csv' "
-                "and '<instance_path>_parameters.csv'.")
+                nb::arg("format") = InstanceFormat::Csv,
+                "Write the instance: a JSON file with 'InstanceFormat.Json', or with "
+                "'InstanceFormat.Csv' (default) '<instance_path>_items.csv', "
+                "'_bins.csv', '_defects.csv' (if there are defects) and "
+                "'_parameters.csv'.")
         .def("write_item_types", &Instance::write_item_types, nb::arg("items_path"))
         .def("write_bin_types", &Instance::write_bin_types, nb::arg("bins_path"))
+        .def("write_defects", &Instance::write_defects, nb::arg("defects_path"))
         .def("write_parameters", &Instance::write_parameters, nb::arg("parameters_path"))
         .def("format",
                 [](const Instance& instance, int verbosity_level) {
@@ -192,6 +196,8 @@ void bind_boxstacks(nb::module_& m)
     nb::class_<InstanceBuilder>(m, "InstanceBuilder")
         .def(nb::init<>())
         .def("set_objective", &InstanceBuilder::set_objective, nb::arg("objective"))
+        .def("read", &InstanceBuilder::read, nb::arg("instance_path"),
+                "Read a full instance from a JSON file.")
         .def("read_parameters", &InstanceBuilder::read_parameters, nb::arg("parameters_path"))
         .def("read_bin_types", &InstanceBuilder::read_bin_types, nb::arg("bins_path"))
         .def("read_defects", &InstanceBuilder::read_defects, nb::arg("defects_path"))

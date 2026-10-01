@@ -480,14 +480,32 @@ public:
             std::ostream& os,
             int verbosity_level = 1) const;
 
-    /** Write the instance to a file. */
-    void write(const std::string& instance_path) const;
+    /**
+     * Write the instance to a file, in the given format (default 'Csv',
+     * matching the previous behavior). See 'InstanceFormat'.
+     */
+    void write(
+            const std::string& instance_path,
+            InstanceFormat format = InstanceFormat::Csv) const;
+
+    /**
+     * Write the instance as CSV files ('<instance_path>_items.csv',
+     * '_bins.csv', '_defects.csv' if there are defects, and
+     * '_parameters.csv'); see 'InstanceFormat::Csv'.
+     */
+    void write_csv(const std::string& instance_path) const;
+
+    /** Write the instance as a single JSON file; see 'InstanceFormat::Json'. */
+    void write_json(const std::string& instance_path) const;
 
     /** Write the items to a file. */
     void write_item_types(const std::string& items_path) const;
 
     /** Write the bins to a file. */
     void write_bin_types(const std::string& bins_path) const;
+
+    /** Write the defects to a file. */
+    void write_defects(const std::string& defects_path) const;
 
     /** Write the parameters to a file. */
     void write_parameters(const std::string& parameters_path) const;
