@@ -2273,9 +2273,7 @@ bool BranchingScheme::bound(
         const std::shared_ptr<Node>& node_2) const
 {
     switch (instance().objective()) {
-    case Objective::Default: {
-        return false;
-    } case Objective::BinPacking: case Objective::VariableSizedBinPacking: {
+    case Objective::BinPacking: case Objective::VariableSizedBinPacking: {
         if (!leaf(node_2))
             return false;
         return (node_1->number_of_bins >= node_2->number_of_bins);

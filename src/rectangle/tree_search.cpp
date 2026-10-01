@@ -1154,13 +1154,7 @@ bool BranchingScheme::better(
         const std::shared_ptr<Node>& node_2) const
 {
     switch (instance().objective()) {
-    case Objective::Default: {
-        if (node_2->profit > node_1->profit)
-            return false;
-        if (node_2->profit < node_1->profit)
-            return true;
-        return node_2->waste > node_1->waste;
-    } case Objective::BinPacking: case Objective::VariableSizedBinPacking: {
+    case Objective::BinPacking: case Objective::VariableSizedBinPacking: {
         if (!leaf(node_1))
             return false;
         if (!leaf(node_2))
@@ -1210,17 +1204,7 @@ bool BranchingScheme::bound(
         const std::shared_ptr<Node>& node_2) const
 {
     switch (instance().objective()) {
-    case Objective::Default: {
-        return false;
-        //Profit ub = node_1->profit + knapsack_bounds_[instance().packable_area() - node_1->current_area];
-        //if (!leaf(node_2)) {
-        //    return (ub <= node_2->profit);
-        //} else {
-        //    if (ub != node_2->profit)
-        //        return (ub <= node_2->profit);
-        //    return node_1->waste >= node_2->waste;
-        //}
-    } case Objective::BinPacking: case Objective::VariableSizedBinPacking: {
+    case Objective::BinPacking: case Objective::VariableSizedBinPacking: {
         if (!leaf(node_2))
             return false;
         BinPos bin_pos = -1;

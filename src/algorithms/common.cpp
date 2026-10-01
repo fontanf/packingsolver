@@ -118,10 +118,7 @@ std::istream& packingsolver::operator>>(
 {
     std::string token;
     in >> token;
-    if (token == "default"
-            || token == "Default") {
-        objective = Objective::Default;
-    } else if (token == "feasibility"
+    if (token == "feasibility"
             || token == "Feasibility"
             || token == "F") {
         objective = Objective::Feasibility;
@@ -176,10 +173,7 @@ std::ostream& packingsolver::operator<<(
         Objective objective)
 {
     switch (objective) {
-    case Objective::Default: {
-        os << "Default";
-        break;
-    } case Objective::Feasibility: {
+    case Objective::Feasibility: {
         os << "Feasibility";
         break;
     } case Objective::BinPacking: {
