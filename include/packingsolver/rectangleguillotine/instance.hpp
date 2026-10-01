@@ -483,6 +483,14 @@ public:
     /** Get the item types. */
     inline const std::vector<ItemType>& item_types() const { return item_types_; }
 
+    /**
+     * Return 'true' iff item type 'item_type_id' fits (in either
+     * orientation, if allowed) in at least one bin type.
+     *
+     * Trims and defects are ignored: this is a cheap necessary condition.
+     */
+    bool fits_some_bin(ItemTypeId item_type_id) const;
+
     /*
      * Intersections
      */
