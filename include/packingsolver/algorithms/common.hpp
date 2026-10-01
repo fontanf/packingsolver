@@ -249,7 +249,6 @@ enum class InstanceFormat
 
 enum class Objective
 {
-    Default,
     BinPacking,
     BinPackingWithLeftovers,
     OpenDimensionX,

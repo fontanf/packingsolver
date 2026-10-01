@@ -33,22 +33,7 @@ void AlgorithmFormatter::print_header()
         return;
     *os_ << std::endl;
     switch (instance_.objective()) {
-    case Objective::Default: {
-        *os_
-                << std::setw(12) << "Time"
-                << std::setw(12) << "Profit"
-                << std::setw(6) << "Full"
-                << std::setw(12) << "Waste"
-                << std::setw(32) << "Comment"
-                << std::endl
-                << std::setw(12) << "----"
-                << std::setw(12) << "------"
-                << std::setw(6) << "----"
-                << std::setw(12) << "-----"
-                << std::setw(32) << "-------"
-                << std::endl;
-        break;
-    } case Objective::BinPacking: {
+    case Objective::BinPacking: {
         *os_
                 << std::setw(12) << "Time"
                 << std::setw(8) << "Bins"

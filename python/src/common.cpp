@@ -39,7 +39,6 @@ nb::object packingsolver::python::json_to_python(const nlohmann::json& json)
 void packingsolver::python::bind_common(nb::module_& m)
 {
     nb::enum_<Objective>(m, "Objective")
-        .value("Default", Objective::Default)
         .value("BinPacking", Objective::BinPacking)
         .value("BinPackingWithLeftovers", Objective::BinPackingWithLeftovers)
         .value("OpenDimensionX", Objective::OpenDimensionX)

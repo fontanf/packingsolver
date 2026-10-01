@@ -295,13 +295,7 @@ bool Solution::operator<(const Solution& solution) const
         return true;
 
     switch (instance().objective()) {
-    case Objective::Default: {
-        if (strictly_lesser_profit(solution.profit(), profit()))
-            return false;
-        if (strictly_greater_profit(solution.profit(), profit()))
-            return true;
-        return solution.waste() < waste();
-    } case Objective::BinPacking: {
+    case Objective::BinPacking: {
         return solution.number_of_bins() < number_of_bins();
     } case Objective::BinPackingWithLeftovers: {
         return solution.waste() < waste();
