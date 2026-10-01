@@ -108,3 +108,22 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "boxstacks" / "tests" / "bin_packing_two_item_types_pallets_time_limit" / "solution.csv",
                 2,
             }}));
+
+TEST(BoxStacks, CheckStackNestingHeight)
+{
+    // Three nested boxes of height 4 and nesting height 1: the stack is
+    // 4 + 3 + 3 = 10 high.
+    for (packingsolver::Length bin_z: {10, 9}) {
+        InstanceBuilder instance_builder;
+        instance_builder.set_objective(packingsolver::Objective::BinPacking);
+        packingsolver::ItemTypeId item_type_id = instance_builder.add_item_type(5, 5, 4);
+        instance_builder.set_item_type_nesting_height(item_type_id, 1);
+        instance_builder.set_item_type_copies(item_type_id, 3);
+        instance_builder.add_bin_type(5, 5, bin_z);
+        const Instance instance = instance_builder.build();
+        Solution solution(instance);
+        std::vector<std::pair<packingsolver::ItemTypeId, Rotation>> stack(
+                3, {item_type_id, Rotation::XYZ});
+        EXPECT_EQ(solution.check_stack(0, stack), bin_z >= 10);
+    }
+}
