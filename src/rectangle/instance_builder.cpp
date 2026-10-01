@@ -14,6 +14,12 @@ void InstanceBuilder::set_group_weight_constraints(
         GroupId group_id,
         bool check_weight_constraints)
 {
+    if (group_id < 0) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "'group_id' must be >= 0; "
+                "group_id: " + std::to_string(group_id) + ".");
+    }
     while ((GroupId)instance_.parameters_.check_weight_constraints.size() <= group_id)
         instance_.parameters_.check_weight_constraints.push_back(true);
     instance_.parameters_.check_weight_constraints[group_id] = check_weight_constraints;
