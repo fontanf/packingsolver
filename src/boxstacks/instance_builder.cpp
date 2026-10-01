@@ -53,7 +53,7 @@ BinTypeId InstanceBuilder::add_bin_type(
     bin_type.box.x = x;
     bin_type.box.y = y;
     bin_type.box.z = z;
-    bin_type.cost = x * y;
+    bin_type.cost = x * y * z;
     bin_type.copies = 1;
     bin_type.copies_min = 0;
     instance_.bin_types_.push_back(bin_type);
@@ -79,7 +79,7 @@ void InstanceBuilder::set_bin_type_cost(
     }
 
     BinType& bin_type = instance_.bin_types_[bin_type_id];
-    bin_type.cost = (cost == -1)? bin_type.box.x * bin_type.box.y: cost;
+    bin_type.cost = (cost == -1)? bin_type.box.volume(): cost;
 }
 
 void InstanceBuilder::set_bin_type_maximum_weight(

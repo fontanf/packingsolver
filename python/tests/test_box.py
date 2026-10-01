@@ -156,8 +156,8 @@ def test_add_bin_type_defaults():
     assert bin_type.copies == 3
     assert bin_type.copies_min == 0
     assert bin_type.maximum_weight == math.inf
-    # Omitting 'cost' gives the same cost as the C++ default.
-    assert bin_type.cost == instance.bin_type(0).cost
+    # The default cost is the bin volume.
+    assert bin_type.cost == 10 * 20 * 30
 
 
 REMOVED_METHODS = [
