@@ -524,7 +524,7 @@ private:
      */
 
     /** Objective. */
-    Objective objective_;
+    Objective objective_ = Objective::BinPacking;
 
     /** Parameters. */
     Parameters parameters_;
