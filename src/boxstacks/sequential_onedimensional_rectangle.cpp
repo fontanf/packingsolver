@@ -620,6 +620,13 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
             onedimensional::InstanceBuilder onedim_instance_builder;
             onedim_instance_builder.set_objective(Objective::VariableSizedBinPacking);
 
+            // A stack can't be heavier than the bin itself.
+            Weight stack_maximum_weight = (std::min)(
+                    instance.bin_type(0).maximum_weight,
+                    instance.bin_type(0).maximum_stack_density
+                    * stackability_group.x
+                    * stackability_group.y);
+
             // Add bin types.
             BinTypeId onedim_bin_type_id_0 = onedim_instance_builder.add_bin_type(
                     instance.bin_type(0).box.z);
@@ -631,9 +638,7 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
                     instance.number_of_items());
             onedim_instance_builder.set_bin_type_maximum_weight(
                     onedim_bin_type_id_0,
-                    instance.bin_type(0).maximum_stack_density
-                    * stackability_group.x
-                    * stackability_group.y);
+                    stack_maximum_weight);
             onedim_instance_builder.add_bin_type_eligibility(
                     onedim_bin_type_id_0,
                     0);
@@ -651,9 +656,7 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
                     instance.number_of_items());
             onedim_instance_builder.set_bin_type_maximum_weight(
                     onedim_bin_type_id_1,
-                    instance.bin_type(0).maximum_stack_density
-                    * stackability_group.x
-                    * stackability_group.y);
+                    stack_maximum_weight);
             onedim_instance_builder.add_bin_type_eligibility(
                     onedim_bin_type_id_1,
                     1);
@@ -671,9 +674,7 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
                     instance.number_of_items());
             onedim_instance_builder.set_bin_type_maximum_weight(
                     onedim_bin_type_id_01,
-                    instance.bin_type(0).maximum_stack_density
-                    * stackability_group.x
-                    * stackability_group.y);
+                    stack_maximum_weight);
             onedim_instance_builder.add_bin_type_eligibility(
                     onedim_bin_type_id_01,
                     2);

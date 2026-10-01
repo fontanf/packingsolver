@@ -463,9 +463,6 @@ def test_nesting_height():
     assert stack.z_end == 10
 
 
-@pytest.mark.xfail(strict=True, reason=(
-        "C++ bug, reproducible with the CLI: no solution is found when the "
-        "bin maximum weight forbids stacking"))
 def test_weight_constraints():
     # Maximum bin weight.
     instance_builder, _ = stack_instance(
