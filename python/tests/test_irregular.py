@@ -440,19 +440,32 @@ def test_knapsack():
     assert output.knapsack_bound >= 10 - 1e-6
 
 
-@pytest.mark.xfail(strict=True, reason=(
-        "Solver limitation, reproducible with the CLI: items are never "
-        "placed inside the holes of other items"))
-def test_knapsack_hole():
-    """A small square fits only inside the hole of a large one."""
+@pytest.mark.parametrize("reduce", [True, False])
+def test_knapsack_hole(reduce):
+    """A small square fits only inside the hole of a large one (the holes
+    used to be removed from the reduced instance)."""
     instance_builder = psi.InstanceBuilder()
     instance_builder.set_objective(psi.Objective.Knapsack)
     instance_builder.add_bin_type(square(30))
     instance_builder.add_item_type(
             item_shapes(square(30), [square(10, 10, 10)]), profit=10)
     instance_builder.add_item_type(item_shapes(square(10)), profit=1)
-    output = psi.optimize(instance_builder.build(), quiet_parameters())
+    parameters = quiet_parameters()
+    parameters.reduction_parameters.reduce = reduce
+    output = psi.optimize(instance_builder.build(), parameters)
     assert output.solution.profit() == pytest.approx(11)
+
+
+def test_knapsack_items_in_hole():
+    """Four small squares fit inside the hole of a large one."""
+    instance_builder = psi.InstanceBuilder()
+    instance_builder.set_objective(psi.Objective.Knapsack)
+    instance_builder.add_bin_type(square(30))
+    instance_builder.add_item_type(
+            item_shapes(square(30), [square(20, 5, 5)]), profit=10)
+    instance_builder.add_item_type(item_shapes(square(10)), profit=1, copies=4)
+    output = psi.optimize(instance_builder.build(), quiet_parameters())
+    assert output.solution.profit() == pytest.approx(14)
 
 
 def test_defect():

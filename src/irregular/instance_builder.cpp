@@ -746,8 +746,14 @@ Instance InstanceBuilder::build()
                 shape_pos < (ShapePos)item_type.shapes.size();
                 ++shape_pos) {
             ItemShape& item_shape = item_type.shapes[shape_pos];
-            if (!item_shape.shape_scaled.shape.elements.empty())
+            // The shapes of an item type copied from another instance (see
+            // 'add_item_type(const Instance&, ItemTypeId)') are already
+            // scaled, but they still count for the smallest item area,
+            // otherwise all holes would be removed below.
+            if (!item_shape.shape_scaled.shape.elements.empty()) {
+                smallest_item_area = (std::min)(smallest_item_area, item_shape.shape_scaled.shape.compute_area());
                 continue;
+            }
 
             item_shape.shape_scaled = instance_.parameters().scale_value * item_shape.shape_orig;
             item_shape.shape_scaled = shape::remove_redundant_vertices(item_shape.shape_scaled).second;
