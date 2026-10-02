@@ -610,6 +610,31 @@ packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
         // anything that doesn't improve on what is already recorded.
         report_reduced_output(reduced_output);
 
+        // Copy the statistics of the algorithms, which all ran on the
+        // reduced instance.
+        output.sequential_onedimensional_rectangle_number_of_items
+            = reduced_output.sequential_onedimensional_rectangle_number_of_items;
+        output.sequential_onedimensional_rectangle_profit
+            = reduced_output.sequential_onedimensional_rectangle_profit;
+        output.sequential_onedimensional_rectangle_time
+            = reduced_output.sequential_onedimensional_rectangle_time;
+        output.sequential_onedimensional_rectangle_onedimensional_time
+            = reduced_output.sequential_onedimensional_rectangle_onedimensional_time;
+        output.sequential_onedimensional_rectangle_rectangle_time
+            = reduced_output.sequential_onedimensional_rectangle_rectangle_time;
+        output.sequential_onedimensional_rectangle_failed
+            = reduced_output.sequential_onedimensional_rectangle_failed;
+        output.tree_search_time = reduced_output.tree_search_time;
+        output.number_of_sequential_onedimensional_rectangle_calls
+            = reduced_output.number_of_sequential_onedimensional_rectangle_calls;
+        output.number_of_sequential_onedimensional_rectangle_perfect
+            = reduced_output.number_of_sequential_onedimensional_rectangle_perfect;
+        output.number_of_sequential_onedimensional_rectangle_good
+            = reduced_output.number_of_sequential_onedimensional_rectangle_good;
+        output.number_of_tree_search_calls = reduced_output.number_of_tree_search_calls;
+        output.number_of_tree_search_perfect = reduced_output.number_of_tree_search_perfect;
+        output.number_of_tree_search_better = reduced_output.number_of_tree_search_better;
+
         algorithm_formatter.end();
         return output;
     }
