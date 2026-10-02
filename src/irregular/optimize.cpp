@@ -319,6 +319,8 @@ void optimize_tree_search(
         last_bin_parameters.optimization_mode = parameters.optimization_mode;
         last_bin_parameters.not_anytime_maximum_approximation_ratio = parameters.not_anytime_maximum_approximation_ratio;
         last_bin_parameters.not_anytime_tree_search_queue_size = parameters.not_anytime_tree_search_queue_size;
+        last_bin_parameters.not_anytime_local_search_maximum_number_of_iterations_without_improvement
+            = parameters.not_anytime_local_search_maximum_number_of_iterations_without_improvement;
         last_bin_parameters.tree_search_guides = {2, 3};
         last_bin_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
         // Respect the caller's explicit algorithm selection (if any), rather
@@ -370,6 +372,10 @@ void optimize_local_search(
     LocalSearchParameters ls_parameters;
     ls_parameters.verbosity_level = 0;
     ls_parameters.timer = parameters.timer;
+    if (parameters.optimization_mode != OptimizationMode::Anytime) {
+        ls_parameters.maximum_number_of_iterations_without_improvement
+            = parameters.not_anytime_local_search_maximum_number_of_iterations_without_improvement;
+    }
     ls_parameters.new_solution_callback = [&algorithm_formatter, local_output](
             const irregular::Output& ps_output)
     {

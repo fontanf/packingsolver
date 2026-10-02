@@ -247,6 +247,12 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
     Counter not_anytime_sequential_value_correction_number_of_iterations = 32;
 
     /**
+     * Maximum number of iterations without improvement when the local search
+     * packs an item, after which the item is considered not to fit.
+     */
+    Counter not_anytime_local_search_maximum_number_of_iterations_without_improvement = 100;
+
+    /**
      * Size of the queue in the bin packing subproblem of the dichotomic search
      * algorithm.
      */

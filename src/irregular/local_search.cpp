@@ -36,7 +36,8 @@ struct LocalSearchBinData
  * difference of the bin AABB minus existing item shapes, defects, and
  * borders).  The bin is the valid one (item AABB fits) with the most remaining
  * area; falls back to the bin with the most remaining area if none fits.
- * Returns the bin position the item was placed in.
+ * Returns the bin position the item was placed in, or -1 if the selected bin
+ * has no free space left (the item is then not added).
  */
 BinPos assign_item_to_bin(
         const Instance& instance,
@@ -132,14 +133,12 @@ BinPos assign_item_to_bin(
         }
     }
 
-    // Fall back to the bin centre if no free region was found.
-    Point bl_corner;
-    if (best_region_pos != -1) {
-        bl_corner = free_regions[best_region_pos].find_point_strictly_inside();
-    } else {
-        bl_corner.x = (instance.parameters().scale_value * bin_aabb.x_min + instance.parameters().scale_value * bin_aabb.x_max) / 2.0;
-        bl_corner.y = (instance.parameters().scale_value * bin_aabb.y_min + instance.parameters().scale_value * bin_aabb.y_max) / 2.0;
-    }
+    // If the bin has no free space left, the item can't be placed in it: a
+    // point inside another item can't be separated from it by the
+    // shrinkage LP.
+    if (best_region_pos == -1)
+        return -1;
+    Point bl_corner = free_regions[best_region_pos].find_point_strictly_inside();
     //std::cout << "bl_corner " << bl_corner.to_string() << std::endl;
     bl_corner = 1.0 / instance.parameters().scale_value * bl_corner;
     //std::cout << "bl_corner " << bl_corner.to_string() << std::endl;
@@ -166,8 +165,11 @@ BinPos assign_item_to_bin(
 /**
  * Assign an item to a bin, then run minimize_shrinkage on that bin until it
  * is feasible (all items at full scale).  Updates solution and bin_data in
- * place.  Returns false if the timer or end-flag fired before feasibility was
- * reached.
+ * place.  Returns false if the item fits in no bin, if feasibility wasn't
+ * reached within
+ * 'LocalSearchParameters::maximum_number_of_iterations_without_improvement'
+ * iterations without improvement, or if the timer or end-flag fired before
+ * feasibility was reached.
  */
 bool pack_item(
         const Instance& instance,
@@ -181,10 +183,17 @@ bool pack_item(
     if (algorithm_formatter.end_boolean() || parameters.timer.needs_to_end())
         return false;
 
+    // 'optimize_item_types_fit' only checks the original instance: the bins
+    // of the sub-instances built by 'sequential_feasibility' are narrower.
+    if (!instance.fits_some_bin(item_type_id))
+        return false;
+
     const ItemType& item_type = instance.item_type(item_type_id);
 
     const BinPos bin_pos = assign_item_to_bin(
             instance, rng, item_type_id, solution, bin_data);
+    if (bin_pos == -1)
+        return false;
 
     bin_data[bin_pos].remaining_area -= item_type.area_scaled;
     bin_data[bin_pos].item_penalties.push_back(1.0);
@@ -194,9 +203,18 @@ bool pack_item(
     bin_solution.append_bin(solution, bin_pos, 1);
 
     bool bin_feasible = false;
+    // Sum of the scale factors of the items of the bin: it measures how far
+    // the bin is from being feasible.
+    double best_lambda_sum = -1;
+    Counter number_of_iterations_without_improvement = 0;
     while (!bin_feasible) {
         if (algorithm_formatter.end_boolean() || parameters.timer.needs_to_end())
             return false;
+        if (parameters.maximum_number_of_iterations_without_improvement != -1
+                && number_of_iterations_without_improvement
+                >= parameters.maximum_number_of_iterations_without_improvement) {
+            return false;
+        }
 
         LinearProgrammingMinimizeShrinkageParameters lp_params;
         lp_params.timer = parameters.timer;
@@ -210,6 +228,16 @@ bool pack_item(
 
         bin_feasible = lp_output.feasible;
         bin_data[bin_pos].lambda = lp_output.final_lambda;
+
+        double lambda_sum = 0;
+        for (double lambda: lp_output.final_lambda)
+            lambda_sum += lambda;
+        if (shape::strictly_greater(lambda_sum, best_lambda_sum)) {
+            best_lambda_sum = lambda_sum;
+            number_of_iterations_without_improvement = 0;
+        } else {
+            number_of_iterations_without_improvement++;
+        }
 
         for (ItemPos item_pos = 0;
                 item_pos < (ItemPos)lp_output.items_shrunken.size();
@@ -254,6 +282,8 @@ LocalSearchOutput packingsolver::irregular::local_search(
             inner_parameters.timer = parameters.timer;
             inner_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
             inner_parameters.seed = parameters.seed;
+            inner_parameters.maximum_number_of_iterations_without_improvement
+                = parameters.maximum_number_of_iterations_without_improvement;
             return local_search(sub_instance, inner_parameters).solution_pool;
         };
 
