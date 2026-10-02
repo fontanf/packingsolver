@@ -156,8 +156,9 @@ struct ItemType
     /**
      * Stackability id.
      *
-     * An item can be packed over another item only if they have the same x and
-     * y dimensions and the same 'stackability_id'.
+     * An item can be packed over another item only if they have the same
+     * 'stackability_id'. Item types with the same 'stackability_id' must have
+     * the same x and y dimensions.
      */
     StackabilityId stackability_id = 0;
 

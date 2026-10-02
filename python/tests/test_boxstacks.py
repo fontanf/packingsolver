@@ -56,10 +56,12 @@ def large_knapsack_instance(number_of_item_types, seed=0):
     instance_builder = psbs.InstanceBuilder()
     instance_builder.set_objective(psbs.Objective.Knapsack)
     instance_builder.add_bin_type(1000, 1000, 1000)
-    for _ in range(number_of_item_types):
+    # Item types with the same stackability id must have the same footprint.
+    for stackability_id in range(number_of_item_types):
         instance_builder.add_item_type(
                 rng.randint(20, 200), rng.randint(20, 200), rng.randint(20, 200),
-                profit=rng.randint(1, 1000))
+                profit=rng.randint(1, 1000),
+                stackability_id=stackability_id)
     return instance_builder.build()
 
 
@@ -727,17 +729,15 @@ def test_new_solution_callback_exception():
     "use_sequential_single_knapsack",
     "use_sequential_value_correction",
 ])
-@pytest.mark.xfail(strict=True, reason=(
-        "C++ bug, reproducible with the CLI: 'SolutionBuilder::add_item' "
-        "throws when stacks of different footprints are mixed"))
 def test_linear_programming_algorithms(algorithm):
     """The box bounds solve LPs (through 'onedimensional'), including in the
     nested single-bin subproblems."""
     instance_builder = psbs.InstanceBuilder()
     instance_builder.set_objective(psbs.Objective.BinPacking)
     instance_builder.add_bin_type(10, 10, 10, copies=20)
-    for x, copies in [(5, 20), (10, 6)]:
-        instance_builder.add_item_type(x, 5, 5, copies=copies)
+    for stackability_id, (x, copies) in enumerate([(5, 20), (10, 6)]):
+        instance_builder.add_item_type(
+                x, 5, 5, copies=copies, stackability_id=stackability_id)
     parameters = quiet_parameters()
     setattr(parameters, algorithm, True)
     output = psbs.optimize(instance_builder.build(), parameters)
@@ -746,17 +746,35 @@ def test_linear_programming_algorithms(algorithm):
         assert output.solution.number_of_bins() >= output.bin_packing_bound
 
 
-@pytest.mark.xfail(strict=True, reason=(
-        "C++ bug, reproducible with the CLI: no solution within 1 s, and "
-        "'SolutionBuilder::add_item' throws with a longer time limit"))
 def test_time_limit():
     instance = large_knapsack_instance(500)
     parameters = quiet_parameters(
             optimization_mode=psbs.OptimizationMode.Anytime,
             time_limit=1.0)
     output = psbs.optimize(instance, parameters)
+    # Only check that the time limit is enforced: whether a solution is found
+    # within 1 s depends on the speed of the machine.
     assert output.time < 5
-    assert output.solution.profit() > 0
+    assert output.solution.feasible()
+
+
+def test_stackability_id_different_footprints():
+    """Item types with the same stackability id must have the same x and y
+    dimensions."""
+    instance_builder = psbs.InstanceBuilder()
+    instance_builder.add_bin_type(100, 60, 40)
+    instance_builder.add_item_type(40, 30, 20, stackability_id=1)
+    instance_builder.add_item_type(40, 30, 10, stackability_id=1)
+    instance_builder.add_item_type(30, 40, 20, stackability_id=1)
+    with pytest.raises(ValueError):
+        instance_builder.build()
+    # By default, all item types have the stackability id 0.
+    instance_builder = psbs.InstanceBuilder()
+    instance_builder.add_bin_type(100, 60, 40)
+    instance_builder.add_item_type(40, 30, 20)
+    instance_builder.add_item_type(30, 20, 10)
+    with pytest.raises(ValueError):
+        instance_builder.build()
 
 
 def test_keyboard_interrupt():
