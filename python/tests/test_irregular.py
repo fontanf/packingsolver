@@ -542,6 +542,9 @@ def test_parameters():
     parameters.use_tree_search = True
     parameters.not_anytime_tree_search_queue_size = 64
     assert parameters.not_anytime_tree_search_queue_size == 64
+    assert parameters.not_anytime_local_search_maximum_number_of_iterations_without_improvement == 100
+    parameters.not_anytime_local_search_maximum_number_of_iterations_without_improvement = 10
+    assert parameters.not_anytime_local_search_maximum_number_of_iterations_without_improvement == 10
     parameters.initial_maximum_approximation_ratio = 0.1
     assert parameters.initial_maximum_approximation_ratio == pytest.approx(0.1)
     parameters.reduction_parameters.reduce = False
@@ -549,6 +552,37 @@ def test_parameters():
     parameters.verbosity_level = 0
     output = psi.optimize(bin_packing_instance(5), parameters)
     assert output.solution.number_of_bins() == 2
+
+
+@pytest.mark.parametrize("copies", [1, 4])
+@pytest.mark.parametrize("reduce", [True, False])
+def test_local_search_bin_packing_with_leftovers(copies, reduce, tmp_path, monkeypatch):
+    """The local search used to loop on the infeasible sub-instances of the
+    leftovers, until an LP interrupted by the time limit made it throw ('wrong
+    LP solution'). It also used to write files in the working directory."""
+    monkeypatch.chdir(tmp_path)
+    instance_builder = psi.InstanceBuilder()
+    instance_builder.set_objective(psi.Objective.BinPackingWithLeftovers)
+    instance_builder.add_bin_type(square(10))
+    instance_builder.add_item_type(item_shapes(square(5)), copies=copies)
+    parameters = quiet_parameters(use_local_search=True, use_tree_search=False)
+    parameters.reduction_parameters.reduce = reduce
+    output = psi.optimize(instance_builder.build(), parameters)
+    assert output.solution.feasible()
+    assert output.solution.full()
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_local_search_full_bin():
+    """An item assigned to a bin without free space used to be placed inside
+    another item, which made the local search throw ('violated separation
+    constraint')."""
+    instance_builder = psi.InstanceBuilder()
+    instance_builder.read(os.path.join(DATA_DIR, "multiple_bins.json"))
+    parameters = quiet_parameters(use_local_search=True, use_tree_search=False)
+    output = psi.optimize(instance_builder.build(), parameters)
+    assert output.solution.feasible()
+    assert output.solution.full()
 
 
 def test_lifetimes():

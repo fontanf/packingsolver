@@ -3,8 +3,6 @@
 #include "irregular/utils.hpp"
 #include "irregular/solution_builder.hpp"
 
-#include "shape/writer.hpp"
-
 #ifdef CBC_FOUND
 #include "mathoptsolverscmake/mathopt_cbc.hpp"
 #endif
@@ -165,25 +163,6 @@ EdgeSeparationConstraintParameters packingsolver::irregular::find_best_edge_sepa
         + output.coef_lambda2 * scale_2;
     //if (shape::strictly_lesser(value, 0.0)) {
     if (shape::strictly_lesser(value, -1e-6)) {
-        std::cout << "shift_1 " << shift_1.to_string()
-            << " shift_2 " << shift_2.to_string() << std::endl;
-        std::cout << "scale_1 " << scale_1
-            << " scale_2 " << scale_2
-            << std::endl;
-        Shape shape_1_shifted = shape_1;
-        Shape shape_2_shifted = shape_2;
-        shape_1_shifted.shift(shift_1.x, shift_1.y);
-        shape_2_shifted.shift(shift_2.x, shift_2.y);
-        Shape shape_1_scaled = scale_1 * shape_1;
-        Shape shape_2_scaled = scale_2 * shape_2;
-        shape_1_scaled.shift(shift_1.x, shift_1.y);
-        shape_2_scaled.shift(shift_2.x, shift_2.y);
-        Writer()
-            .add_shape(shape_1)
-            .add_shape(shape_1_scaled)
-            .add_shape(shape_2)
-            .add_shape(shape_2_scaled)
-            .write_json("tmp.json");
         const ShapeElement& edge_element = ((output.edge_shape_pos == 0)?
                     shape_1.elements[output.edge_element_pos]:
                     shape_2.elements[output.edge_element_pos]);
@@ -324,10 +303,10 @@ Solution linear_programming_anchor(
                 item_var_pos < (ItemPos)unfixed_items.size();
                 ++item_var_pos) {
             const AxisAlignedBoundingBox& ia = unfixed_item_aabbs[item_var_pos].item_aabb;
-            LengthDbl x_min = (x_weight < 0)? solution.x_min(): bin_type.aabb_scaled.x_min;
-            LengthDbl x_max = (x_weight > 0)? solution.x_max(): bin_type.aabb_scaled.x_max;
-            LengthDbl y_min = (y_weight < 0)? solution.y_min(): bin_type.aabb_scaled.y_min;
-            LengthDbl y_max = (y_weight > 0)? solution.y_max(): bin_type.aabb_scaled.y_max;
+            LengthDbl x_min = (x_weight < 0)? solution.x_min(): bin_type.aabb_orig.x_min;
+            LengthDbl x_max = (x_weight > 0)? solution.x_max(): bin_type.aabb_orig.x_max;
+            LengthDbl y_min = (y_weight < 0)? solution.y_min(): bin_type.aabb_orig.y_min;
+            LengthDbl y_max = (y_weight > 0)? solution.y_max(): bin_type.aabb_orig.y_max;
             item_bin_bounds[item_var_pos].x_min = x_min * instance.parameters().scale_value - ia.x_min;
             item_bin_bounds[item_var_pos].x_max = x_max * instance.parameters().scale_value - ia.x_max;
             item_bin_bounds[item_var_pos].y_min = y_min * instance.parameters().scale_value - ia.y_min;
@@ -575,6 +554,14 @@ Solution linear_programming_anchor(
             //std::cout << "LP solve start" << std::endl;
             mathoptsolverscmake::solve(highs);
             //std::cout << "LP solve end" << std::endl;
+            if (highs.getModelStatus() != HighsModelStatus::kOptimal) {
+                // If the time limit is reached, keep the current solution.
+                if (parameters.timer.needs_to_end())
+                    break;
+                throw std::runtime_error(
+                        FUNC_SIGNATURE + ": LP not solved to optimality; "
+                        "model status: " + highs.modelStatusToString(highs.getModelStatus()) + ".");
+            }
             lp_solution = mathoptsolverscmake::get_solution(highs);
 #else
             throw std::invalid_argument(FUNC_SIGNATURE);
@@ -842,10 +829,10 @@ LinearProgrammingMinimizeShrinkageOutput packingsolver::irregular::linear_progra
                             unfixed_item_aabbs[item_var_pos].part_movement_aabbs[shape_pos][part_pos];
 
                     // RHS: part movement AABB clamped to bin bounds.
-                    const LengthDbl x_min = (std::max)(pm.x_min, bin_type.aabb_scaled.x_min * sv);
-                    const LengthDbl x_max = (std::min)(pm.x_max, bin_type.aabb_scaled.x_max * sv);
-                    const LengthDbl y_min = (std::max)(pm.y_min, bin_type.aabb_scaled.y_min * sv);
-                    const LengthDbl y_max = (std::min)(pm.y_max, bin_type.aabb_scaled.y_max * sv);
+                    const LengthDbl x_min = (std::max)(pm.x_min, bin_type.aabb_scaled.x_min);
+                    const LengthDbl x_max = (std::min)(pm.x_max, bin_type.aabb_scaled.x_max);
+                    const LengthDbl y_min = (std::max)(pm.y_min, bin_type.aabb_scaled.y_min);
+                    const LengthDbl y_max = (std::min)(pm.y_max, bin_type.aabb_scaled.y_max);
 
                     const std::string sid = std::to_string(item_pos)
                             + "_s" + std::to_string(shape_pos)
@@ -1122,13 +1109,14 @@ LinearProgrammingMinimizeShrinkageOutput packingsolver::irregular::linear_progra
             highs.setOptionValue("parallel", "off");
             mathoptsolverscmake::load(highs, lp_model);
             //mathoptsolverscmake::write_mps(highs, "lp.mps");
-            lp_model.write_solution(lp_initial_solution, "initial_solution.txt");
             mathoptsolverscmake::solve(highs);
-            if (highs.getModelStatus() == HighsModelStatus::kInfeasible
-                    || highs.getModelStatus() == HighsModelStatus::kUnboundedOrInfeasible) {
-                highs.writeModel("infeasible.mps");
-                std::cerr << "linear_programming_minimize_shrinkage: LP infeasible, wrote infeasible.mps" << std::endl;
-                exit(1);
+            if (highs.getModelStatus() != HighsModelStatus::kOptimal) {
+                // If the time limit is reached, keep the current solution.
+                if (parameters.timer.needs_to_end())
+                    break;
+                throw std::runtime_error(
+                        FUNC_SIGNATURE + ": LP not solved to optimality; "
+                        "model status: " + highs.modelStatusToString(highs.getModelStatus()) + ".");
             }
             lp_solution = mathoptsolverscmake::get_solution(highs);
 #else
@@ -1139,7 +1127,6 @@ LinearProgrammingMinimizeShrinkageOutput packingsolver::irregular::linear_progra
         }
 
         if (!lp_model.check_solution(lp_solution, 0)) {
-            lp_model.check_solution(lp_solution, 4);
             throw std::logic_error(
                     FUNC_SIGNATURE + ": wrong LP solution.");
         }
@@ -1237,86 +1224,13 @@ LinearProgrammingMinimizeShrinkageOutput packingsolver::irregular::linear_progra
                 + "_i" + std::to_string(e.item_2_var_pos)
                 + "_s" + std::to_string(e.item_shape_2_pos)
                 + "_p" + std::to_string(e.item_part_2_pos);
-            std::cout << "constraint " << constraint_name << std::endl;
-
-            std::cout << "item_1_pos " << item_1_pos
-                << " item_type_1 " << item_1_prev.item_type_id
-                << " item_1_shape_pos " << e.item_shape_1_pos
-                << " item_1_part_pos " << e.item_part_1_pos
-                << " angle " << item_1_prev.angle
-                << " mirror " << item_1_prev.mirror
-                << std::endl;
-            std::cout << " bl " << (sv * item_1_prev.bl_corner).to_string()
-                << " -> " << (sv * item_1_curr.bl_corner).to_string() << std::endl;
-            std::cout << " lambda " << current_lambda[item_1_pos]
-                << " -> " << new_lambda[item_1_pos] << std::endl;
-            std::cout << "item_2_pos " << item_2_pos
-                << " item_type_2 " << item_2_prev.item_type_id
-                << " item_2_shape_pos " << e.item_shape_2_pos
-                << " item_2_part_pos " << e.item_part_2_pos
-                << " angle " << item_2_prev.angle
-                << " mirror " << item_2_prev.mirror
-                << std::endl;
-            std::cout << " bl " << (sv * item_2_prev.bl_corner).to_string()
-                << " -> " << (sv * item_2_curr.bl_corner).to_string() << std::endl;
-            std::cout << " lambda " << current_lambda[item_2_pos]
-                << " -> " << new_lambda[item_2_pos] << std::endl;
-
-            const EdgeSeparationConstraintParameters p = find_best_edge_separator(
-                    convex_part_1,
-                    sv * item_1_prev.bl_corner,
-                    current_lambda[item_1_pos],
-                    convex_part_2,
-                    sv * item_2_prev.bl_corner,
-                    current_lambda[item_2_pos]);
-            std::cout << "shape_pos " << p.edge_shape_pos
-                << " edge_element_pos " << p.edge_element_pos
-                << " point_element_pos " << p.point_element_pos
-                << " distance " << p.distance
-                << std::endl;
-            std::cout << "edge_element " << ((p.edge_shape_pos == 0)?
-                    convex_part_1.elements[p.edge_element_pos].to_string():
-                    convex_part_2.elements[p.edge_element_pos].to_string()) << std::endl;
-            std::cout << "point_element " << ((p.edge_shape_pos == 0)?
-                    convex_part_2.elements[p.point_element_pos].to_string():
-                    convex_part_1.elements[p.point_element_pos].to_string()) << std::endl;
-            std::cout << "point " << p.point.to_string() << std::endl;
-            std::cout << "coef_x1 " << p.coef_x1 << " coef_y1 " << p.coef_y1 << " coef_lambda1 " << p.coef_lambda1 << std::endl;
-            std::cout << "coef_x2 " << p.coef_x2 << " coef_y2 " << p.coef_y2 << " coef_lambda2 " << p.coef_lambda2 << std::endl;
-
-            Writer()
-                .add_shape(convex_part_1, "Part 1")
-                .add_shape(convex_part_2, "Part 2")
-                .add_shape(convex_part_1_prev, "Part 1 (prev)")
-                .add_shape(convex_part_1_curr, "Part 1 (curr)")
-                .add_shape(convex_part_2_prev, "Part 2 (prev)")
-                .add_shape(convex_part_2_curr, "Part 2 (curr)")
-                .write_json("tmp.json");
             throw std::logic_error(
-                    FUNC_SIGNATURE + ": convex part intersection after LP.");
+                    FUNC_SIGNATURE + ": convex part intersection after LP; "
+                    "constraint: " + constraint_name + ".");
         }
 
         Solution::OverlappingItems overlapping_items = new_solution.compute_overlapping_items(0, &new_lambda);
         if (!overlapping_items.item_item_pairs.empty()) {
-            const SolutionBin& bin = new_solution.bin(bin_pos);
-            for (const auto& pair: overlapping_items.item_item_pairs) {
-                const SolutionItem& item_1 = bin.items[pair.first];
-                const ItemType& item_type_1 = instance.item_type(item_1.item_type_id);
-                ShapeWithHoles shape_1 = new_lambda[pair.first] * new_solution.shape_scaled(0, pair.first, 0);
-                ShapeWithHoles shape_1_prev = current_lambda[pair.first] * solution.shape_scaled(0, pair.first, 0);
-
-                const SolutionItem& item_2 = bin.items[pair.second];
-                const ItemType& item_type_2 = instance.item_type(item_2.item_type_id);
-                ShapeWithHoles shape_2 = new_lambda[pair.second] * new_solution.shape_scaled(0, pair.second, 0);
-                ShapeWithHoles shape_2_prev = current_lambda[pair.second] * solution.shape_scaled(0, pair.second, 0);
-
-                Writer()
-                    .add_shape_with_holes(shape_1_prev, "Shape 1 (prev)")
-                    .add_shape_with_holes(shape_1, "Shape 1 (curr)")
-                    .add_shape_with_holes(shape_2_prev, "Shape 2 (prev)")
-                    .add_shape_with_holes(shape_2, "Shape 2 (curr)")
-                    .write_json("tmp.json");
-            }
             throw std::logic_error(
                     FUNC_SIGNATURE + ": infeasible new_solution after LP.");
         }

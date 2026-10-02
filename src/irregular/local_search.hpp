@@ -25,6 +25,14 @@ struct LocalSearchParameters: packingsolver::Parameters<Instance, Solution, Outp
 {
     /** Seed for the random number generator. */
     Seed seed = 0;
+
+    /**
+     * Maximum number of iterations without improvement when packing an
+     * item, after which the item is considered not to fit.
+     *
+     * -1 (the default) means no limit.
+     */
+    Counter maximum_number_of_iterations_without_improvement = -1;
 };
 
 /**

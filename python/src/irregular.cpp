@@ -671,6 +671,7 @@ void bind_irregular(nb::module_& m)
         .def_rw("not_anytime_tree_search_periodic_packing_queue_size", &OptimizeParameters::not_anytime_tree_search_periodic_packing_queue_size)
         .def_rw("not_anytime_sequential_single_knapsack_subproblem_tree_search_queue_size", &OptimizeParameters::not_anytime_sequential_single_knapsack_subproblem_tree_search_queue_size)
         .def_rw("not_anytime_sequential_value_correction_number_of_iterations", &OptimizeParameters::not_anytime_sequential_value_correction_number_of_iterations)
+        .def_rw("not_anytime_local_search_maximum_number_of_iterations_without_improvement", &OptimizeParameters::not_anytime_local_search_maximum_number_of_iterations_without_improvement)
         .def_rw("not_anytime_dichotomic_search_subproblem_tree_search_queue_size", &OptimizeParameters::not_anytime_dichotomic_search_subproblem_tree_search_queue_size)
         .def_rw("reduction_parameters", &OptimizeParameters::reduction_parameters);
 
