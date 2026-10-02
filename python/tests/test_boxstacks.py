@@ -686,6 +686,22 @@ def test_parameters():
     assert output.solution.number_of_bins() == 2
 
 
+@pytest.mark.parametrize("reduce", [True, False])
+def test_statistics(reduce):
+    """The statistics of the algorithms are reported, also when they ran on
+    the reduced instance."""
+    instance_builder = psbs.InstanceBuilder()
+    instance_builder.set_objective(psbs.Objective.Knapsack)
+    instance_builder.add_bin_type(10, 10, 10)
+    instance_builder.add_item_type(5, 5, 5, copies=10)
+    parameters = quiet_parameters(
+            optimization_mode=psbs.OptimizationMode.NotAnytimeSequential)
+    parameters.reduction_parameters.reduce = reduce
+    output = psbs.optimize(instance_builder.build(), parameters)
+    assert output.number_of_sequential_onedimensional_rectangle_calls > 0
+    assert output.sequential_onedimensional_rectangle_number_of_items == 8
+
+
 def test_lifetimes():
     """Outputs and solutions stay valid after their instance is dropped."""
     output = psbs.optimize(bin_packing_instance(5), quiet_parameters())
