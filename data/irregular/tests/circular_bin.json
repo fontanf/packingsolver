@@ -1,0 +1,17 @@
+{
+    "objective": "knapsack",
+    "bin_types": [
+        {
+            "type": "circle",
+            "radius": 1.2
+        }
+    ],
+    "item_types": [
+        {
+            "type": "rectangle",
+            "width": 1,
+            "height": 1,
+            "copies": 4
+        }
+    ]
+}

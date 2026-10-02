@@ -225,7 +225,6 @@ BranchingScheme::BranchingScheme(
             bb_bin_type.defects.push_back(defect_top);
 
             // Supports.
-            shape::ShapeSupports supports = shape::compute_shape_supports(shape, true);
             {
                 ShapeElement element;
                 element.type = ShapeElementType::LineSegment;
