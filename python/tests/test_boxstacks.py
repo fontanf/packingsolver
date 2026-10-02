@@ -196,16 +196,14 @@ def test_add_item_type_rotations():
     instance_builder.add_bin_type(100, 100, 100)
     # An empty list is the same as no rotation given: only 'XYZ'.
     instance_builder.add_item_type(2, 3, 4, rotations=[])
-    all_rotations = [
-        psbs.Rotation.XYZ, psbs.Rotation.YXZ, psbs.Rotation.ZYX,
-        psbs.Rotation.YZX, psbs.Rotation.XZY, psbs.Rotation.ZXY]
+    all_rotations = [psbs.Rotation.XYZ, psbs.Rotation.YXZ]
     instance_builder.add_item_type(2, 3, 4, rotations=all_rotations)
     # The rotations given replace the default 'XYZ' rotation.
-    instance_builder.add_item_type(2, 3, 4, rotations=(psbs.Rotation.ZYX,))
+    instance_builder.add_item_type(2, 3, 4, rotations=(psbs.Rotation.YXZ,))
     instance = instance_builder.build()
     assert instance.item_type(0).rotations == [psbs.Rotation.XYZ]
     assert instance.item_type(1).rotations == all_rotations
-    assert instance.item_type(2).rotations == [psbs.Rotation.ZYX]
+    assert instance.item_type(2).rotations == [psbs.Rotation.YXZ]
     assert not instance.item_type(2).can_rotate(psbs.Rotation.XYZ)
     with pytest.raises(TypeError):
         psbs.InstanceBuilder().add_item_type(2, 3, 4, rotations=[0.5])
@@ -395,24 +393,35 @@ def test_knapsack():
     assert output.is_proven_optimal()
 
 
-@pytest.mark.xfail(strict=True, reason=(
-        "C++ bug, reproducible with the CLI: an item type only allowed a "
-        "non-default rotation is never packed"))
 def test_rotation():
-    """A 10x10x2 box only fits in a 2x10x10 bin once rotated."""
+    """A 10x5x2 box only fits in a 5x10x2 bin once rotated."""
     instance_builder = psbs.InstanceBuilder()
     instance_builder.set_objective(psbs.Objective.Knapsack)
-    instance_builder.add_bin_type(2, 10, 10)
-    instance_builder.add_item_type(10, 10, 2, rotations=[psbs.Rotation.ZYX])
+    instance_builder.add_bin_type(5, 10, 2)
+    instance_builder.add_item_type(10, 5, 2, rotations=[psbs.Rotation.YXZ])
     instance = instance_builder.build()
-    assert instance.item_type(0).rotations == [psbs.Rotation.ZYX]
+    assert instance.item_type(0).rotations == [psbs.Rotation.YXZ]
     output = psbs.optimize(instance, quiet_parameters())
     solution = output.solution
     assert solution.number_of_items() == 1
     # Default profit: the volume.
-    assert solution.profit() == 200
+    assert solution.profit() == 100
     item = solution.bin(0).stacks[0].items[0]
-    assert item.rotation == psbs.Rotation.ZYX
+    assert item.rotation == psbs.Rotation.YXZ
+
+
+@pytest.mark.parametrize("rotation", [
+    psbs.Rotation.ZYX,
+    psbs.Rotation.YZX,
+    psbs.Rotation.XZY,
+    psbs.Rotation.ZXY,
+])
+def test_non_upright_rotations(rotation):
+    """Items are packed upright in stacks: the other rotations are
+    rejected."""
+    instance_builder = psbs.InstanceBuilder()
+    with pytest.raises(ValueError):
+        instance_builder.add_item_type(10, 10, 2, rotations=[rotation])
 
 
 @pytest.mark.parametrize("same_stackability_id, expected_number_of_bins", [
@@ -605,7 +614,7 @@ def test_read_csv():
     instance = instance_builder.build()
     assert instance.objective() == psbs.Objective.VariableSizedBinPacking
     assert instance.number_of_bin_types() == 2
-    assert len(instance.item_type(0).rotations) == 6
+    assert len(instance.item_type(0).rotations) == 2
     output = psbs.optimize(instance, quiet_parameters())
     # Reference solution: both items in the single 12x5x5 bin of cost 10.
     assert output.solution.cost() == 10

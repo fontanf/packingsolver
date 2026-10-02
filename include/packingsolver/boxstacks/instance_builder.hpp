@@ -170,7 +170,11 @@ public:
             Length y,
             Length z);
 
-    /** Add a rotation to an item type. */
+    /**
+     * Add a rotation to an item type.
+     *
+     * Only rotations 'XYZ' and 'YXZ' are allowed.
+     */
     void add_item_type_rotation(
             ItemTypeId item_type_id,
             Rotation rotation);
