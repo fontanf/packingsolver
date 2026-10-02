@@ -353,6 +353,16 @@ void InstanceBuilder::add_item_type_rotation(
                 "invalid 'item_type_id'; "
                 "item_type_id: " + std::to_string(item_type_id) + ".");
     }
+    // Items are packed upright in stacks: only the rotations around the z
+    // axis are allowed.
+    if (rotation != Rotation::XYZ && rotation != Rotation::YXZ) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "invalid 'rotation'; "
+                "only rotations 'XYZ' and 'YXZ' are allowed; "
+                "item_type_id: " + std::to_string(item_type_id) + "; "
+                "rotation: " + to_string(rotation) + ".");
+    }
     instance_.item_types_[item_type_id].rotations.push_back(rotation);
 }
 

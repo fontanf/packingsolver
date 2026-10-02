@@ -145,6 +145,8 @@ struct ItemType
      * - 4: x -> x, y -> z, z -> y
      * - 5: x -> z, y -> x, z -> y
      *
+     * Only rotations 0 and 1 are allowed, since items are packed upright in
+     * stacks.
      */
     std::vector<Rotation> rotations;
 
