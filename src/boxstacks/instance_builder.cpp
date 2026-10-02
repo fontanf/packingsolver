@@ -4,6 +4,7 @@
 
 #include <fstream>
 #include <sstream>
+#include <unordered_map>
 
 using namespace packingsolver;
 using namespace packingsolver::boxstacks;
@@ -1195,6 +1196,36 @@ Instance InstanceBuilder::build()
         instance_.parameters_.weight_tolerance = (highest_bin_weight != 0.0)?
             highest_bin_weight * 1e-9:
             1e-9;
+    }
+
+    // Check that the item types of each stackability id have the same x and
+    // y dimensions: only such items can be stacked.
+    std::unordered_map<StackabilityId, ItemTypeId> stackability_id_item_type_ids;
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance_.number_of_item_types();
+            ++item_type_id) {
+        const ItemType& item_type = instance_.item_type(item_type_id);
+        auto it = stackability_id_item_type_ids.find(item_type.stackability_id);
+        if (it == stackability_id_item_type_ids.end()) {
+            stackability_id_item_type_ids.insert({item_type.stackability_id, item_type_id});
+            continue;
+        }
+        const ItemType& item_type_ref = instance_.item_type(it->second);
+        if (item_type.box.x != item_type_ref.box.x
+                || item_type.box.y != item_type_ref.box.y) {
+            throw std::invalid_argument(
+                    FUNC_SIGNATURE + ": "
+                    "item types " + std::to_string(it->second) + " and "
+                    + std::to_string(item_type_id) + " have the same "
+                    "stackability id (" + std::to_string(item_type.stackability_id) + ") "
+                    "but different x and y dimensions "
+                    "(" + std::to_string(item_type_ref.box.x)
+                    + "x" + std::to_string(item_type_ref.box.y) + " and "
+                    + std::to_string(item_type.box.x)
+                    + "x" + std::to_string(item_type.box.y) + "); "
+                    "item types with the same stackability id must have the "
+                    "same x and y dimensions.");
+        }
     }
 
     // Compute number_of_groups_.
