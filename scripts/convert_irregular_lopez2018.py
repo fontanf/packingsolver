@@ -71,6 +71,7 @@ def convert_lopez2018(filename, number_of_radii, squares=False):
                     item["profit"] = item["width"] * item["height"]
                 item["allowed_rotations"] = allowed_rotations
             if number_of_radii == 1:
+                dic["bin_types"][0]["radius"] = radii[0]
                 write_dict(dic, name)
             else:
                 for radius in radii:
