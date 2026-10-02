@@ -1744,7 +1744,6 @@ const packingsolver::boxstacks::TreeSearchOutput packingsolver::boxstacks::tree_
             guides = {0, 2};
         }
     }
-    guides = {4};
 
     std::vector<Direction> directions;
     if (instance.objective() == Objective::OpenDimensionX) {
