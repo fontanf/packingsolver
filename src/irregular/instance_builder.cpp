@@ -5,7 +5,7 @@
 #include "irregular/shape_simplification.hpp"
 
 #include "shape/offset.hpp"
-#include "shape/extract_borders.hpp"
+#include "shape/boolean_operations.hpp"
 #include "shape/clean.hpp"
 
 #include "optimizationtools/containers/indexed_set.hpp"
@@ -956,10 +956,18 @@ Instance InstanceBuilder::build()
 
         // Compute inflated borders.
         if (bin_type.borders.empty()) {
-            for (const Shape& shape_border: extract_borders(bin_type.shape_scaled)) {
+            // The borders are the parts of the bin's bounding box outside the
+            // bin shape. A boolean difference handles any bin shape,
+            // including ones made of circular arcs.
+            ShapeWithHoles bin_aabb;
+            bin_aabb.shape = build_rectangle(bin_type.aabb_scaled);
+            ShapeWithHoles bin_shape;
+            bin_shape.shape = bin_type.shape_scaled;
+            MultiShapeWithHoles shape_borders = compute_difference(bin_aabb, bin_shape);
+            for (const ShapeWithHoles& shape_border: shape_borders.shapes_with_holes) {
                 Defect border;
                 border.type = -2;
-                border.shape_scaled.shape = shape_border;
+                border.shape_scaled = shape_border;
                 border.shape_inflated = inflate(
                         shape_border,
                         instance_.bin_spacing_scaled(bin_type_id));
