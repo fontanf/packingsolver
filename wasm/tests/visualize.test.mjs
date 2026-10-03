@@ -1,4 +1,4 @@
-// Run with: node --test wasm/tests/
+// Run with: node --test wasm/tests/*.test.js wasm/tests/*.test.mjs
 // The JavaScript visualizers reproduce the figures of the Python ones (see
 // 'generate_visualize_fixtures.py').
 

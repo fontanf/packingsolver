@@ -71,7 +71,7 @@ jobs:
         emcmake cmake -S . -B build_wasm -DCMAKE_BUILD_TYPE=Release -DPACKINGSOLVER_BUILD_WASM=ON
         cmake --build build_wasm --target PackingSolver_wasm --parallel 4
     - name: Run the tests
-      run: node --test wasm/tests/
+      run: node --test wasm/tests/*.test.js wasm/tests/*.test.mjs
     - name: Assemble the site
       run: |
         mkdir site
