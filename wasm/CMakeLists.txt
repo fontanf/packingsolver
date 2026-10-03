@@ -2,7 +2,12 @@ add_executable(PackingSolver_wasm)
 target_sources(PackingSolver_wasm PRIVATE
     src/packingsolver_wasm.cpp)
 target_link_libraries(PackingSolver_wasm PRIVATE
-    PackingSolver_rectangle)
+    PackingSolver_rectangleguillotine
+    PackingSolver_rectangle
+    PackingSolver_box
+    PackingSolver_boxstacks
+    PackingSolver_onedimensional
+    PackingSolver_irregular)
 target_link_options(PackingSolver_wasm PRIVATE
     -lembind
     # Load with 'await PackingSolver()', in the browser, a web worker or Node.
