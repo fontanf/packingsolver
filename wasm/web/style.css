@@ -179,6 +179,17 @@ input.vertices {
     font-family: ui-monospace, "SF Mono", Menlo, monospace;
 }
 
+.dimensions button {
+    margin: 0;
+    white-space: nowrap;
+}
+
+.dxf-description {
+    align-self: center;
+    max-width: 24rem;
+    font-size: 0.9em;
+}
+
 .error-text {
     color: var(--error);
 }

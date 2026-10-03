@@ -112,3 +112,21 @@ test("irregular form: preview figure", () => {
     assert.strictEqual(figure.layout.annotations[2].text, "Item type 2 (×6)");
     assert.strictEqual(figure.data[4].xaxis, "x5");
 });
+
+test("irregular form: shapes from DXF files", () => {
+    const hole = irregularForm.rowShape({shape: "circle", radius: 2});
+    const part = {
+        shape: irregularForm.rowShape({shape: "rectangle", width: 10, height: 10}),
+        holes: [hole], width: 10, height: 10, name: "plate", warnings: [],
+    };
+    const item = {...irregularForm.defaultItemRow(), shape: "dxf", dxf: part};
+    const instance = irregularForm.instance("knapsack", binRows, [item]);
+    assert.deepStrictEqual(instance.item_types[0].shapes[0].holes, [hole]);
+    // A bin can't have holes; a row needs its file.
+    assert.throws(
+        () => irregularForm.instance("knapsack", [{...binRows[0], shape: "dxf", dxf: part}], [item]),
+        /bin type 1: a bin can't have holes/);
+    assert.throws(
+        () => irregularForm.instance("knapsack", binRows, [{...item, dxf: null}]),
+        /item type 1: load a DXF file/);
+});
