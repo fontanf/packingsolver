@@ -11,6 +11,7 @@ option(PACKINGSOLVER_USE_KNITRO "Use Knitro" OFF)
 option(PACKINGSOLVER_BUILD_MAIN "Build main" ON)
 option(PACKINGSOLVER_BUILD_TEST "Build unit tests" ON)
 option(PACKINGSOLVER_BUILD_PYTHON "Build Python bindings" OFF)
+option(PACKINGSOLVER_BUILD_WASM "Build the WebAssembly module (with Emscripten)" OFF)
 
 # Avoid FetchContent warning.
 cmake_policy(SET CMP0135 NEW)
@@ -32,6 +33,28 @@ if(PACKINGSOLVER_BUILD_PYTHON)
     endif()
 endif()
 
+# The WebAssembly module is built with Emscripten, with thread support (each
+# thread runs in a Web Worker), so that every optimization mode works. CLP
+# isn't available there: the module uses HiGHS. C++ exceptions are enabled
+# (they are disabled by default with Emscripten), since the library reports
+# invalid inputs with exceptions.
+if(PACKINGSOLVER_BUILD_WASM)
+    if(NOT EMSCRIPTEN)
+        message(FATAL_ERROR "PACKINGSOLVER_BUILD_WASM requires the Emscripten toolchain (use emcmake)")
+    endif()
+    if(PACKINGSOLVER_USE_CLP)
+        message(STATUS "PACKINGSOLVER_BUILD_WASM: disabling CLP")
+        set(PACKINGSOLVER_USE_CLP OFF)
+    endif()
+    if(NOT PACKINGSOLVER_USE_HIGHS)
+        message(FATAL_ERROR "PACKINGSOLVER_BUILD_WASM requires PACKINGSOLVER_USE_HIGHS")
+    endif()
+    set(PACKINGSOLVER_BUILD_MAIN OFF)
+    set(PACKINGSOLVER_BUILD_TEST OFF)
+    add_compile_options(-fwasm-exceptions -pthread)
+    add_link_options(-fwasm-exceptions -pthread)
+endif()
+
 # Enable output of compile commands during generation.
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -46,4 +69,7 @@ if(PACKINGSOLVER_BUILD_TEST)
 endif()
 if(PACKINGSOLVER_BUILD_PYTHON)
     add_subdirectory(python)
+endif()
+if(PACKINGSOLVER_BUILD_WASM)
+    add_subdirectory(wasm)
 endif()
