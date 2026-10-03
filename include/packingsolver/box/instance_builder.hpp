@@ -40,6 +40,9 @@ public:
      */
     void read(const std::string& instance_path);
 
+    /** Read an instance in the JSON format from a stream. */
+    void read(std::istream& is);
+
     /*
      * Set parameters
      */

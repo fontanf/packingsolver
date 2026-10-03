@@ -226,7 +226,10 @@ void bind_rectangleguillotine(nb::module_& m)
     nb::class_<InstanceBuilder>(m, "InstanceBuilder")
         .def(nb::init<>())
         .def("set_objective", &InstanceBuilder::set_objective, nb::arg("objective"))
-        .def("read", &InstanceBuilder::read, nb::arg("instance_path"))
+        .def("read", &instance_builder_read_path<InstanceBuilder>, nb::arg("instance_path"),
+                "Read an instance from a JSON file.")
+        .def("read", &instance_builder_read_stream<InstanceBuilder>, nb::arg("stream"),
+                "Read an instance in the JSON format from a text stream (e.g. 'io.StringIO').")
         .def("read_parameters", &InstanceBuilder::read_parameters, nb::arg("parameters_path"))
         .def("read_bin_types", &InstanceBuilder::read_bin_types, nb::arg("bins_path"))
         .def("read_defects", &InstanceBuilder::read_defects, nb::arg("defects_path"))

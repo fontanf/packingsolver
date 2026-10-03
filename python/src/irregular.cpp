@@ -435,7 +435,10 @@ void bind_irregular(nb::module_& m)
     nb::class_<InstanceBuilder>(m, "InstanceBuilder")
         .def(nb::init<>())
         .def("set_objective", &InstanceBuilder::set_objective, nb::arg("objective"))
-        .def("read", &InstanceBuilder::read, nb::arg("instance_path"))
+        .def("read", &instance_builder_read_path<InstanceBuilder>, nb::arg("instance_path"),
+                "Read an instance from a JSON file.")
+        .def("read", &instance_builder_read_stream<InstanceBuilder>, nb::arg("stream"),
+                "Read an instance in the JSON format from a text stream (e.g. 'io.StringIO').")
         .def("set_item_item_minimum_spacing", &InstanceBuilder::set_item_item_minimum_spacing,
                 nb::arg("item_item_minimum_spacing"))
         .def("set_open_dimension_xy_aspect_ratio", &InstanceBuilder::set_open_dimension_xy_aspect_ratio,
