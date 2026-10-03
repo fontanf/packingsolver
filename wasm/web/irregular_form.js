@@ -22,8 +22,24 @@ export const ROTATIONS = {
 };
 
 export function defaultBinRow() {
-    return {shape: "rectangle", width: 100, height: 100, radius: 50, vertices: "", copies: 1, cost: ""};
+    return {
+        shape: "rectangle", width: 100, height: 100, radius: 50, vertices: "",
+        copies: 1, cost: "", spacing: "", defects: [],
+    };
 }
+
+// A defect: a rectangle placed at (x, y), a circle centered at (x, y), or a
+// polygon given by its vertices in the bin.
+export function defaultDefect() {
+    return {shape: "rectangle", x: "", y: "", width: 10, height: 10, radius: 5, vertices: "", spacing: ""};
+}
+
+// Shapes of the defects.
+const DEFECT_SHAPES = {
+    rectangle: "Rectangle",
+    circle: "Circle",
+    polygon: "Polygon",
+};
 
 export function defaultItemRow() {
     return {
@@ -134,6 +150,33 @@ export function rowShape(row) {
     throw new Error(`unknown shape "${row.shape}".`);
 }
 
+function translateShape(shape, dx, dy) {
+    const move = (p) => point(p.x + dx, p.y + dy);
+    return {
+        ...shape,
+        elements: shape.elements.map((e) => {
+            const moved = {...e, start: move(e.start), end: move(e.end)};
+            if (e.center !== undefined)
+                moved.center = move(e.center);
+            return moved;
+        }),
+    };
+}
+
+// The shape of a defect, in the bin.
+export function defectShape(defect) {
+    const shape = rowShape(defect);
+    if (defect.shape === "polygon")
+        return shape;
+    const position = (value, name) => {
+        const number = Number(value);
+        if (value === "" || value === undefined || !Number.isFinite(number))
+            throw new Error(`invalid ${name}: "${value}".`);
+        return number;
+    };
+    return translateShape(shape, position(defect.x, "x"), position(defect.y, "y"));
+}
+
 /////////////////////////////////////////////////////////////////////////////
 // Instance
 /////////////////////////////////////////////////////////////////////////////
@@ -177,6 +220,22 @@ export function instance(objective, binRows, itemRows) {
             const cost = optionalNumber(row.cost, "cost");
             if (cost !== undefined)
                 binType.cost = cost;
+            const spacing = optionalNumber(row.spacing, "item spacing");
+            if (spacing !== undefined)
+                binType.item_bin_minimum_spacing = spacing;
+            if ((row.defects || []).length > 0) {
+                binType.defects = row.defects.map((defect, j) => {
+                    try {
+                        const result = defectShape(defect);
+                        const defectSpacing = optionalNumber(defect.spacing, "spacing");
+                        if (defectSpacing !== undefined)
+                            result.item_defect_minimum_spacing = defectSpacing;
+                        return result;
+                    } catch (error) {
+                        throw new Error(`defect ${j + 1}: ${error.message}`);
+                    }
+                });
+            }
             return binType;
         })),
         item_types: itemRows.map((row, i) => withRow("item", i, () => {
@@ -333,6 +392,63 @@ function dxfInput(row, onStructureChange) {
     return container;
 }
 
+// The defects of a bin row: a line for each defect, and a button to add one.
+function defectsCell(row, onChange, onStructureChange) {
+    const cell = document.createElement("div");
+    cell.className = "defects";
+    row.defects.forEach((defect, i) => {
+        const line = document.createElement("div");
+        line.className = "dimensions";
+        line.appendChild(select(defect, "shape", "Defect shape", DEFECT_SHAPES, onStructureChange));
+        const labelled = (text, element) => {
+            const label = document.createElement("label");
+            label.className = "inline";
+            label.append(text, element);
+            return label;
+        };
+        if (defect.shape !== "polygon") {
+            line.append(
+                labelled("X", input(defect, "x", "Defect x", NUMBER, onChange)),
+                labelled("Y", input(defect, "y", "Defect y", NUMBER, onChange)));
+        }
+        if (defect.shape === "rectangle") {
+            line.append(
+                labelled("W", input(defect, "width", "Defect width", NUMBER, onChange)),
+                labelled("H", input(defect, "height", "Defect height", NUMBER, onChange)));
+        } else if (defect.shape === "circle") {
+            line.append(labelled("R", input(defect, "radius", "Defect radius", NUMBER, onChange)));
+        } else {
+            line.appendChild(input(defect, "vertices", "Defect vertices", {
+                type: "text",
+                placeholder: "x y, x y, x y, ...",
+                className: "vertices",
+                spellcheck: false,
+            }, onChange));
+        }
+        line.appendChild(labelled("Spacing",
+            input(defect, "spacing", "Defect spacing", {...NUMBER, placeholder: "0"}, onChange)));
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.textContent = "×";
+        remove.title = "Remove the defect";
+        remove.addEventListener("click", () => {
+            row.defects.splice(i, 1);
+            onStructureChange();
+        });
+        line.appendChild(remove);
+        cell.appendChild(line);
+    });
+    const add = document.createElement("button");
+    add.type = "button";
+    add.textContent = "Add a defect";
+    add.addEventListener("click", () => {
+        row.defects.push(defaultDefect());
+        onStructureChange();
+    });
+    cell.appendChild(add);
+    return cell;
+}
+
 // Render a bin ('isItem' false) or item type table. 'onChange' is called
 // when a value changes, 'onStructureChange' when the table must be rendered
 // again (shape changed, row removed).
@@ -342,6 +458,8 @@ export function renderTable(table, rows, isItem, onChange, onStructureChange) {
     const labels = ["Shape", "Dimensions", "Copies", isItem? "Profit": "Cost"];
     if (isItem)
         labels.push("Rotations", "Mirror");
+    else
+        labels.push("Item spacing");
     for (const label of [...labels, ""]) {
         const th = document.createElement("th");
         th.textContent = label;
@@ -361,6 +479,10 @@ export function renderTable(table, rows, isItem, onChange, onStructureChange) {
                 Object.entries(ROTATIONS).map(([key, value]) => [key, value.label]));
             tr.insertCell().appendChild(select(row, "rotations", "Rotations", rotationLabels, onChange));
             tr.insertCell().appendChild(input(row, "mirror", "Mirror", {type: "checkbox"}, onChange));
+        } else {
+            row.defects = row.defects || [];
+            tr.insertCell().appendChild(input(row, "spacing", "Item spacing",
+                {...NUMBER, placeholder: "0"}, onChange));
         }
         const remove = document.createElement("button");
         remove.type = "button";
@@ -370,6 +492,17 @@ export function renderTable(table, rows, isItem, onChange, onStructureChange) {
             onStructureChange();
         });
         tr.insertCell().appendChild(remove);
+        // The defects of a bin, on a line below it.
+        if (!isItem) {
+            const line = body.insertRow();
+            line.className = "defects-line";
+            const cell = line.insertCell();
+            cell.colSpan = labels.length + 1;
+            const label = document.createElement("span");
+            label.className = "defects-label";
+            label.textContent = "Defects";
+            cell.append(label, defectsCell(row, onChange, onStructureChange));
+        }
     });
 }
 
@@ -420,7 +553,8 @@ const PREVIEW_ROW_GAP = 70;
 export function previewFigure(instanceObject) {
     const cells = [
         ...instanceObject.bin_types.map((t, i) => ({
-            title: `Bin type ${i + 1} (×${t.copies})`, shapes: [t], color: "#e8e8e8"})),
+            title: `Bin type ${i + 1} (×${t.copies})`, shapes: [t], color: "#e8e8e8",
+            defects: t.defects || []})),
         ...instanceObject.item_types.map((t, i) => ({
             title: `Item type ${i + 1} (×${t.copies})`, shapes: t.shapes, color: "#636efa"})),
     ];
@@ -461,6 +595,8 @@ export function previewFigure(instanceObject) {
                 [shape.elements, cell.color],
                 ...(shape.holes || []).map((h) => [h.elements, "white"]),
             ];
+            for (const defect of (cell.defects || []))
+                loops.push([defect.elements, "#ef553b"]);
             for (const [loop, color] of loops) {
                 const points = shapePoints(loop);
                 data.push({
