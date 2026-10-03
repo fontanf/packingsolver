@@ -474,6 +474,12 @@ async function loadDxfItems(file) {
     }
 }
 
+// Highlight the example of the selected problem type.
+function updateGallery() {
+    for (const button of document.querySelectorAll("#gallery button"))
+        button.setAttribute("aria-pressed", String(button.dataset.problemType === problemType()));
+}
+
 function newBinRow(type) {
     return (type === "irregular")? irregularForm.defaultBinRow(): defaultRow(binColumns(type));
 }
@@ -756,7 +762,20 @@ function init() {
         $("objective").appendChild(option);
     }
 
-    $("problem-type").addEventListener("change", resetForm);
+    $("problem-type").addEventListener("change", () => {
+        resetForm();
+        updateGallery();
+    });
+    // The examples of solutions select their problem type.
+    for (const button of document.querySelectorAll("#gallery button")) {
+        button.addEventListener("click", () => {
+            $("problem-type").value = button.dataset.problemType;
+            resetForm();
+            updateGallery();
+            $("problem").scrollIntoView({behavior: "smooth"});
+        });
+    }
+    updateGallery();
     $("tab-form").addEventListener("click", () => selectTab("form"));
     $("tab-json").addEventListener("click", () => selectTab("json"));
     $("add-bin-type").addEventListener("click", () => {

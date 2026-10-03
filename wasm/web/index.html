@@ -18,6 +18,39 @@
             Solve cutting and packing problems in your browser.
             The computation runs on your machine: nothing is sent to a server.
         </p>
+        <!-- Examples of solutions: clicking one selects its problem type. -->
+        <div id="gallery">
+            <button type="button" data-problem-type="rectangleguillotine">
+                <img src="img/rectangleguillotine.png" alt="Rectangles cut with guillotine cuts" loading="lazy">
+                <strong>Rectangles, guillotine cuts</strong>
+                <span>Two-dimensional rectangles, only edge-to-edge cuts</span>
+            </button>
+            <button type="button" data-problem-type="rectangle">
+                <img src="img/rectangle.png" alt="Rectangles packed in bins" loading="lazy">
+                <strong>Rectangles</strong>
+                <span>Two-dimensional rectangles</span>
+            </button>
+            <button type="button" data-problem-type="box">
+                <img src="img/box.png" alt="Boxes packed in a container" loading="lazy">
+                <strong>Boxes</strong>
+                <span>Three-dimensional boxes</span>
+            </button>
+            <button type="button" data-problem-type="boxstacks">
+                <img src="img/boxstacks.png" alt="Stacks of boxes in a truck" loading="lazy">
+                <strong>Box stacks</strong>
+                <span>Boxes stacked on the floor of a container</span>
+            </button>
+            <button type="button" data-problem-type="onedimensional">
+                <img src="img/onedimensional.png" alt="One-dimensional items cut from bars" loading="lazy">
+                <strong>One-dimensional</strong>
+                <span>Items cut from bars or rolls</span>
+            </button>
+            <button type="button" data-problem-type="irregular">
+                <img src="img/irregular.png" alt="Irregular shapes nested in a sheet" loading="lazy">
+                <strong>Irregular shapes</strong>
+                <span>Polygons and shapes with arcs and holes</span>
+            </button>
+        </div>
     </header>
 
     <div id="isolation-error" class="error" hidden>

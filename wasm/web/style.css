@@ -255,3 +255,50 @@ tr.defects-line td {
 #progress {
     font-variant-numeric: tabular-nums;
 }
+
+/* Examples of solutions, at the top of the page. */
+#gallery {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+    margin: 1rem 0 0.5rem;
+}
+
+#gallery button {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin: 0;
+    padding: 0.5rem;
+    text-align: left;
+}
+
+#gallery button[aria-pressed="true"] {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent);
+}
+
+#gallery img {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: contain;
+    background: #ffffff;
+    border-radius: 4px;
+}
+
+#gallery span {
+    color: var(--muted);
+    font-size: 0.85em;
+}
+
+@media (max-width: 48rem) {
+    #gallery {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 30rem) {
+    #gallery {
+        grid-template-columns: 1fr;
+    }
+}
