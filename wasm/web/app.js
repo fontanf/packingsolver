@@ -46,6 +46,11 @@ const OBJECTIVES = [
     ["feasibility", "Feasibility"],
 ];
 
+// Default objective of each problem type.
+function defaultObjective(problemType) {
+    return (problemType === "onedimensional")? "bin-packing": "bin-packing-with-leftovers";
+}
+
 // The examples of the README.
 const EXAMPLES = {
     rectangleguillotine: {
@@ -184,6 +189,7 @@ function renderForm() {
 
 function resetForm() {
     const type = problemType();
+    $("objective").value = defaultObjective(type);
     if (!(type in DIMENSIONS)) {
         renderForm();
         return;
@@ -413,7 +419,6 @@ function init() {
         option.textContent = label;
         $("objective").appendChild(option);
     }
-    $("objective").value = "bin-packing";
 
     $("problem-type").addEventListener("change", () => {
         resetForm();

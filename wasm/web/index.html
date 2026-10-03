@@ -52,6 +52,10 @@
                     Irregular instances can only be entered as JSON.
                 </p>
                 <div id="form-fields">
+                    <p>
+                        <button type="button" id="load-example">Load an example</button>
+                        <span class="note">Replaces the objective, the bin types and the item types.</span>
+                    </p>
                     <label>
                         Objective
                         <select id="objective"></select>
@@ -62,7 +66,6 @@
                     <h3>Item types</h3>
                     <table id="item-types" class="types"></table>
                     <button type="button" id="add-item-type">Add an item type</button>
-                    <button type="button" id="load-example">Load an example</button>
                 </div>
             </div>
 
@@ -93,12 +96,13 @@
                 <input type="number" id="time-limit" min="0" step="any" value="30"
                        placeholder="none">
             </label>
-            <div class="buttons">
-                <button type="button" id="solve" disabled>Solve</button>
-                <button type="button" id="stop" disabled>Stop</button>
-            </div>
-            <p id="status" role="status">Loading the solver...</p>
         </section>
+
+        <div id="actions">
+            <button type="button" id="solve" disabled>Solve</button>
+            <button type="button" id="stop" disabled>Stop</button>
+            <span id="status" role="status">Loading the solver...</span>
+        </div>
 
         <section id="results" hidden>
             <h2>Solution</h2>
