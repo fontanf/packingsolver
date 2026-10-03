@@ -79,6 +79,10 @@ jobs:
         rm site/serve.py site/package.json
         cp build_wasm/wasm/packingsolver.js build_wasm/wasm/packingsolver.wasm site/
         cp wasm/js/packingsolver_worker.js site/
+        mkdir site/img
+        for problem_type in rectangleguillotine rectangle box boxstacks onedimensional irregular; do
+          cp img/${problem_type}.png site/img/
+        done
         ls -l site
     - name: Upload the site
       uses: actions/upload-artifact@v4

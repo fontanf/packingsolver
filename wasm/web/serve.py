@@ -1,9 +1,9 @@
 """Development server of the PackingSolver web page.
 
-Serves 'wasm/web/', the Web Worker ('wasm/js/packingsolver_worker.js') and
-the WebAssembly module ('<build directory>/wasm/packingsolver.js' and
-'.wasm'), with the headers that enable 'SharedArrayBuffer' (required by the
-threads of the module):
+Serves 'wasm/web/', the Web Worker ('wasm/js/packingsolver_worker.js'), the
+WebAssembly module ('<build directory>/wasm/packingsolver.js' and '.wasm')
+and the examples of solutions ('img/<problem type>.png'), with the headers
+that enable 'SharedArrayBuffer' (required by the threads of the module):
 
     Cross-Origin-Opener-Policy: same-origin
     Cross-Origin-Embedder-Policy: require-corp
@@ -63,6 +63,12 @@ def main():
         "packingsolver_worker.js": os.path.join(
             ROOT_DIR, "wasm", "js", "packingsolver_worker.js"),
     }
+    # The examples of solutions of the README.
+    for problem_type in [
+            "rectangleguillotine", "rectangle", "box", "boxstacks",
+            "onedimensional", "irregular"]:
+        Handler.extra_files["img/" + problem_type + ".png"] = os.path.join(
+                ROOT_DIR, "img", problem_type + ".png")
     for path in Handler.extra_files.values():
         if not os.path.exists(path):
             print("warning: missing " + os.path.normpath(path))
