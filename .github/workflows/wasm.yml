@@ -1,0 +1,109 @@
+name: WebAssembly
+
+# Builds the WebAssembly module and the web page, runs their tests, and
+# deploys the page to Cloudflare Pages every time the Build workflow succeeds
+# on master (so a broken master is never deployed).
+#
+# Pull requests touching the module, the page or the libraries only build and
+# test them.
+#
+# Deployment requires the repository secrets CLOUDFLARE_API_TOKEN (permission
+# "Cloudflare Pages: Edit") and CLOUDFLARE_ACCOUNT_ID, and an existing
+# Cloudflare Pages project (direct upload) named after the repository variable
+# CLOUDFLARE_PAGES_PROJECT, "packingsolver" by default.
+
+on:
+  workflow_run:
+    workflows: ["Build"]
+    branches: [master]
+    types: [completed]
+  pull_request:
+    branches: [master]
+    paths:
+      - "wasm/**"
+      - "src/**"
+      - "include/**"
+      - "extern/**"
+      - "CMakeLists.txt"
+      - ".github/workflows/wasm.yml"
+  workflow_dispatch:
+
+# Cancel the run of a pull request when a new commit is pushed to it.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.event.workflow_run.head_sha || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  EMSCRIPTEN_VERSION: "6.0.11"
+
+jobs:
+
+  build:
+    # 'workflow_run' only filters on the branch name: also require a push to
+    # this repository, so that a pull request from a fork's 'master' branch is
+    # never built and deployed.
+    if: >-
+      github.event_name != 'workflow_run' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_repository.full_name == github.repository)
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v6
+      with:
+        ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+        persist-credentials: false
+    - name: Set up Emscripten
+      uses: mymindstorm/setup-emsdk@v14
+      with:
+        version: ${{ env.EMSCRIPTEN_VERSION }}
+        actions-cache-folder: emsdk-cache
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 22
+    - name: Build the WebAssembly module
+      run: |
+        emcmake cmake -S . -B build_wasm -DCMAKE_BUILD_TYPE=Release -DPACKINGSOLVER_BUILD_WASM=ON
+        cmake --build build_wasm --target PackingSolver_wasm --parallel 4
+    - name: Run the tests
+      run: node --test wasm/tests/
+    - name: Assemble the site
+      run: |
+        mkdir site
+        cp -r wasm/web/. site/
+        rm site/serve.py site/package.json
+        cp build_wasm/wasm/packingsolver.js build_wasm/wasm/packingsolver.wasm site/
+        cp wasm/js/packingsolver_worker.js site/
+        ls -l site
+    - name: Upload the site
+      uses: actions/upload-artifact@v4
+      with:
+        name: site
+        path: site
+        if-no-files-found: error
+
+  deploy:
+    needs: build
+    if: >-
+      github.event_name == 'workflow_run' ||
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/master')
+    runs-on: ubuntu-latest
+    environment:
+      name: cloudflare-pages
+    steps:
+    - name: Download the site
+      uses: actions/download-artifact@v5
+      with:
+        name: site
+        path: site
+    - name: Deploy to Cloudflare Pages
+      uses: cloudflare/wrangler-action@v3
+      with:
+        apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        command: pages deploy site --project-name=${{ vars.CLOUDFLARE_PAGES_PROJECT || 'packingsolver' }} --branch=master --commit-hash=${{ github.event.workflow_run.head_sha || github.sha }}
