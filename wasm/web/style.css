@@ -1,0 +1,157 @@
+:root {
+    --text: #1f2328;
+    --muted: #59636e;
+    --border: #d1d9e0;
+    --background: #ffffff;
+    --surface: #f6f8fa;
+    --accent: #0969da;
+    --error: #cf222e;
+    color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --text: #e6edf3;
+        --muted: #9198a1;
+        --border: #3d444d;
+        --background: #0d1117;
+        --surface: #151b23;
+        --accent: #4493f8;
+        --error: #f85149;
+    }
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0 auto;
+    max-width: 72rem;
+    padding: 1rem;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    line-height: 1.5;
+    color: var(--text);
+    background: var(--background);
+}
+
+header p,
+.note {
+    color: var(--muted);
+}
+
+section {
+    margin: 1.5rem 0;
+    padding: 1rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+}
+
+h1, h2, h3 {
+    margin-top: 0;
+}
+
+label {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin: 0 1rem 0.75rem 0;
+}
+
+input, select, textarea, button {
+    font: inherit;
+    color: inherit;
+}
+
+input, select, textarea {
+    padding: 0.3rem 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--background);
+}
+
+textarea {
+    display: block;
+    width: 100%;
+    margin-top: 0.5rem;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 0.9em;
+}
+
+button {
+    padding: 0.4rem 0.9rem;
+    margin: 0.25rem 0.5rem 0.25rem 0;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface);
+    cursor: pointer;
+}
+
+button:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+#solve {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: #ffffff;
+}
+
+.tabs {
+    margin: 0.5rem 0 1rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.tabs button {
+    margin: 0;
+    border: none;
+    border-bottom: 2px solid transparent;
+    border-radius: 0;
+    background: none;
+}
+
+.tabs button[aria-selected="true"] {
+    border-bottom-color: var(--accent);
+    font-weight: 600;
+}
+
+table {
+    border-collapse: collapse;
+    margin-bottom: 0.5rem;
+}
+
+th, td {
+    padding: 0.25rem 0.5rem;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+}
+
+table.types input[type="number"] {
+    width: 7rem;
+}
+
+.error {
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--error);
+    border-radius: 6px;
+    color: var(--error);
+}
+
+#status.error {
+    display: block;
+}
+
+#summary {
+    margin-bottom: 0.5rem;
+    font-variant-numeric: tabular-nums;
+}
+
+#plot {
+    width: 100%;
+    min-height: 30rem;
+}
+
+#progress {
+    font-variant-numeric: tabular-nums;
+}

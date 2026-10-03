@@ -1,0 +1,18 @@
+[
+  {"name": "two_bin_types", "certificate": "data/rectangle/tests/bin_packing_two_bin_types/solution.csv", "options": {}, "function": "figure"},
+  {"name": "mixed_items_two_bins", "certificate": "data/rectangle/tests/bin_packing_mixed_items_two_bins/solution.csv", "options": {}, "function": "figure"},
+  {"name": "merge_identical_items_with_defects", "certificate": "data/rectangle/tests/bin_packing_merge_identical_items_with_defects/solution.csv", "options": {}, "function": "figure"},
+  {"name": "item_color_same", "certificate": "data/rectangle/tests/bin_packing_mixed_items_two_bins/solution.csv", "options": {"item_color": "SAME"}, "function": "figure"},
+  {"name": "item_color_id", "certificate": "data/rectangle/tests/bin_packing_mixed_items_two_bins/solution.csv", "options": {"item_color": "ID"}, "function": "figure"},
+  {"name": "item_color_group_id", "certificate": "data/rectangle/tests/bin_packing_mixed_items_two_bins/solution.csv", "options": {"item_color": "GROUP_ID"}, "function": "figure"},
+  {"name": "item_color_density", "certificate": "data/rectangle/tests/bin_packing_mixed_items_two_bins/solution.csv", "options": {"item_color": "DENSITY"}, "function": "figure"},
+  {"name": "group_id_no_column", "certificate": "data/rectangle/tests/bin_packing_two_bin_types/solution.csv", "options": {"item_color": "GROUP_ID"}, "function": "figure"},
+  {"name": "columns_1", "certificate": "data/rectangle/tests/bin_packing_two_bin_types/solution.csv", "options": {"columns": 1}, "function": "figure"},
+  {"name": "columns_3", "certificate": "data/rectangle/tests/bin_packing_two_bin_types/solution.csv", "options": {"columns": 3, "item_color": "SAME"}, "function": "figure"},
+  {"name": "columns_null", "certificate": "data/rectangle/tests/bin_packing_two_bin_types/solution.csv", "options": {"columns": null}, "function": "figure"},
+  {"name": "weights_id", "certificate": "wasm/tests/fixtures/visualize/rectangle/weights.csv", "options": {}, "function": "figure"},
+  {"name": "weights_same", "certificate": "wasm/tests/fixtures/visualize/rectangle/weights.csv", "options": {"item_color": "SAME", "columns": 2}, "function": "figure"},
+  {"name": "weights_group_id", "certificate": "wasm/tests/fixtures/visualize/rectangle/weights.csv", "options": {"item_color": "GROUP_ID"}, "function": "figure"},
+  {"name": "weights_density", "certificate": "wasm/tests/fixtures/visualize/rectangle/weights.csv", "options": {"item_color": "DENSITY"}, "function": "figure"},
+  {"name": "weights_density_columns_1", "certificate": "wasm/tests/fixtures/visualize/rectangle/weights.csv", "options": {"item_color": "DENSITY", "columns": 1}, "function": "figure"}
+]
