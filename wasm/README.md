@@ -22,7 +22,7 @@ This builds `build_wasm/wasm/packingsolver.js` and `packingsolver.wasm`.
 ## Tests
 
 ```shell
-node --test wasm/tests/
+node --test wasm/tests/*.test.js wasm/tests/*.test.mjs
 ```
 
 The visualizers are compared with the figures of the Python ones. These are stored in `tests/fixtures/visualize/`, and generated with plotly installed:

@@ -1,4 +1,4 @@
-// Run with: node --test wasm/tests/
+// Run with: node --test wasm/tests/*.test.js wasm/tests/*.test.mjs
 // The Web Worker, run with 'worker_threads'.
 
 const assert = require("node:assert");

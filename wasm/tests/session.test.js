@@ -1,4 +1,4 @@
-// Run with: node --test wasm/tests/
+// Run with: node --test wasm/tests/*.test.js wasm/tests/*.test.mjs
 
 const assert = require("node:assert");
 const test = require("node:test");
