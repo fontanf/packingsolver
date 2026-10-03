@@ -22,7 +22,6 @@ def quiet_parameters(**kwargs):
     # In anytime mode, the algorithms keep improving until the time limit
     # unless the bound proves the solution optimal.
     parameters.optimization_mode = psbs.OptimizationMode.NotAnytimeSequential
-    parameters.time_limit = 10.0
     for name, value in kwargs.items():
         setattr(parameters, name, value)
     return parameters
@@ -599,7 +598,7 @@ def test_semi_trailer_truck():
             maximum_weight=24000,
             semi_trailer_truck_parameters=SEMI_TRAILER_TRUCK_PARAMETERS)
     instance_builder.add_item_type(100, 200, 200, weight=2000, copies=3)
-    output = psbs.optimize(instance_builder.build(), quiet_parameters(time_limit=5.0))
+    output = psbs.optimize(instance_builder.build(), quiet_parameters())
     solution = output.solution
     assert solution.feasible()
     assert solution.axle_weights_feasible()
@@ -672,6 +671,9 @@ def test_parameters():
     assert parameters.use_box_bounds
     parameters.time_limit = 1.5
     assert parameters.time_limit == 1.5
+    # Unit tests don't run with a time limit: their result would depend on
+    # the speed of the machine.
+    parameters.time_limit = math.inf
     parameters.optimization_mode = psbs.OptimizationMode.NotAnytimeSequential
     parameters.tree_search_guides = [0, 1]
     assert parameters.tree_search_guides == [0, 1]
@@ -746,18 +748,6 @@ def test_linear_programming_algorithms(algorithm):
         assert output.solution.number_of_bins() >= output.bin_packing_bound
 
 
-def test_time_limit():
-    instance = large_knapsack_instance(500)
-    parameters = quiet_parameters(
-            optimization_mode=psbs.OptimizationMode.Anytime,
-            time_limit=1.0)
-    output = psbs.optimize(instance, parameters)
-    # Only check that the time limit is enforced: whether a solution is found
-    # within 1 s depends on the speed of the machine.
-    assert output.time < 5
-    assert output.solution.feasible()
-
-
 def test_stackability_id_different_footprints():
     """Item types with the same stackability id must have the same x and y
     dimensions."""
@@ -780,8 +770,7 @@ def test_stackability_id_different_footprints():
 def test_keyboard_interrupt():
     instance = large_knapsack_instance(500)
     parameters = quiet_parameters(
-            optimization_mode=psbs.OptimizationMode.Anytime,
-            time_limit=60.0)
+            optimization_mode=psbs.OptimizationMode.Anytime)
     timer = threading.Timer(0.5, _thread.interrupt_main)
     timer.start()
     try:

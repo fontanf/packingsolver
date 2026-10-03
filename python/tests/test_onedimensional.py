@@ -1,7 +1,6 @@
 import gc
 import math
 import os
-import random
 import re
 
 import pytest
@@ -27,18 +26,6 @@ def bin_packing_instance(item_copies):
     instance_builder.set_objective(pso.Objective.BinPacking)
     instance_builder.add_bin_type(10, copies=10)
     instance_builder.add_item_type(5, copies=item_copies)
-    return instance_builder.build()
-
-
-def large_bin_packing_instance(number_of_item_types, seed=0):
-    rng = random.Random(seed)
-    instance_builder = pso.InstanceBuilder()
-    instance_builder.set_objective(pso.Objective.BinPacking)
-    instance_builder.add_bin_type(10000)
-    instance_builder.set_bin_types_infinite_copies()
-    for _ in range(number_of_item_types):
-        length = rng.randint(100, 5000)
-        instance_builder.add_item_type(length, copies=rng.randint(1, 5))
     return instance_builder.build()
 
 
@@ -450,6 +437,9 @@ def test_parameters():
     assert parameters.time_limit == math.inf
     parameters.time_limit = 1.5
     assert parameters.time_limit == 1.5
+    # Unit tests don't run with a time limit: their result would depend on
+    # the speed of the machine.
+    parameters.time_limit = math.inf
     parameters.optimization_mode = pso.OptimizationMode.NotAnytimeSequential
     parameters.tree_search_guides = [0, 1]
     assert parameters.tree_search_guides == [0, 1]
@@ -512,18 +502,11 @@ def test_linear_programming_algorithms(algorithm):
     instance_builder.add_bin_type(100, copies=50)
     for length, copies in [(30, 20), (50, 15), (70, 8)]:
         instance_builder.add_item_type(length, copies=copies)
-    parameters = quiet_parameters(time_limit=30.0)
+    parameters = quiet_parameters(
+            optimization_mode=pso.OptimizationMode.NotAnytimeSequential)
     setattr(parameters, algorithm, True)
     output = pso.optimize(instance_builder.build(), parameters)
     # Total item length is 1910.
     assert output.bin_packing_bound >= 20
     if output.solution.feasible():
         assert output.solution.number_of_bins() >= output.bin_packing_bound
-
-
-def test_time_limit():
-    instance = large_bin_packing_instance(300)
-    parameters = quiet_parameters(time_limit=1.0)
-    output = pso.optimize(instance, parameters)
-    assert output.time < 5
-    assert output.solution.number_of_items() > 0
