@@ -92,6 +92,18 @@ button:disabled {
     opacity: 0.5;
 }
 
+#actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+#actions button {
+    margin: 0;
+    padding: 0.5rem 1.5rem;
+}
+
 #solve {
     border-color: var(--accent);
     background: var(--accent);
@@ -138,8 +150,8 @@ table.types input[type="number"] {
     color: var(--error);
 }
 
-#status.error {
-    display: block;
+#status {
+    margin-left: 0.5rem;
 }
 
 #summary {
