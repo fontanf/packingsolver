@@ -58,7 +58,10 @@ void optimize_onedimensional_bound(
     onedim_parameters.verbosity_level = 0;
     onedim_parameters.timer = parameters.timer;
     onedim_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
-    onedim_parameters.optimization_mode = OptimizationMode::NotAnytime;
+    onedim_parameters.optimization_mode
+        = (parameters.optimization_mode == OptimizationMode::NotAnytimeSequential)?
+        OptimizationMode::NotAnytimeSequential:
+        OptimizationMode::NotAnytime;
     onedim_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
     auto onedim_output = onedimensional::optimize(onedim_instance, onedim_parameters);
 
@@ -302,7 +305,10 @@ void optimize_sequential_onedimensional_rectangle(
                 ts_parameters.verbosity_level = 0;
                 ts_parameters.timer = parameters.timer;
                 ts_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
-                ts_parameters.optimization_mode = OptimizationMode::NotAnytime;
+                ts_parameters.optimization_mode
+                    = (parameters.optimization_mode == OptimizationMode::NotAnytimeSequential)?
+                    OptimizationMode::NotAnytimeSequential:
+                    OptimizationMode::NotAnytime;
                 ts_parameters.not_anytime_tree_search_queue_size = tree_search_queue_size;
                 ts_parameters.guides = parameters.tree_search_guides;
                 ts_parameters.maximum_number_of_selected_items = output.sequential_onedimensional_rectangle_number_of_items;

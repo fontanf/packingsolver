@@ -196,7 +196,10 @@ void optimize_onedimensional_bound(
     onedim_parameters.verbosity_level = 0;
     onedim_parameters.timer = parameters.timer;
     onedim_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
-    onedim_parameters.optimization_mode = OptimizationMode::NotAnytime;
+    onedim_parameters.optimization_mode
+        = (parameters.optimization_mode == OptimizationMode::NotAnytimeSequential)?
+        OptimizationMode::NotAnytimeSequential:
+        OptimizationMode::NotAnytime;
     onedim_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
     auto onedim_output = optimize(onedim_instance, onedim_parameters);
 
@@ -262,6 +265,10 @@ void optimize_conservative_scales(
     ConservativeScalesParameters cs_parameters;
     cs_parameters.verbosity_level = 0;
     cs_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
+    cs_parameters.optimization_mode
+        = (parameters.optimization_mode == OptimizationMode::NotAnytimeSequential)?
+        OptimizationMode::NotAnytimeSequential:
+        OptimizationMode::NotAnytime;
     cs_parameters.timer = parameters.timer;
     cs_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
     cs_parameters.new_solution_callback
@@ -288,6 +295,10 @@ void optimize_bar_relaxation(
     br_parameters.timer = parameters.timer;
     br_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
     br_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
+    br_parameters.optimization_mode
+        = (parameters.optimization_mode == OptimizationMode::NotAnytimeSequential)?
+        OptimizationMode::NotAnytimeSequential:
+        OptimizationMode::NotAnytime;
     br_parameters.new_solution_callback
         = [&algorithm_formatter, local_output](
                 const rectangle::Output& br_output)

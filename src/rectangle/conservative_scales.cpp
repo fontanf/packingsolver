@@ -59,7 +59,8 @@ std::vector<double> solve_conservative_scale_lp(
         const std::vector<Length>& original_dims,
         Length capacity,
         const std::vector<double>& objective_weights,
-        columngenerationsolver::SolverName linear_programming_solver_name)
+        columngenerationsolver::SolverName linear_programming_solver_name,
+        OptimizationMode optimization_mode)
 {
     ItemPos number_of_copies = (ItemPos)original_dims.size();
     std::vector<double> result(number_of_copies, 0.0);
@@ -152,7 +153,7 @@ std::vector<double> solve_conservative_scale_lp(
             onedimensional::Instance kp_instance = kp_instance_builder.build();
             onedimensional::OptimizeParameters kp_parameters;
             kp_parameters.verbosity_level = 0;
-            kp_parameters.optimization_mode = OptimizationMode::NotAnytime;
+            kp_parameters.optimization_mode = optimization_mode;
             kp_parameters.linear_programming_solver_name = linear_programming_solver_name;
             onedimensional::Output kp_output = onedimensional::optimize(kp_instance, kp_parameters);
             const onedimensional::Solution& kp_solution = kp_output.solution_pool.best();
@@ -290,7 +291,8 @@ ConservativeScalesOutput packingsolver::rectangle::conservative_scales(
         // vectors, never the just-computed other one.
         std::vector<double> new_widths = solve_conservative_scale_lp(
                 original_widths, bin_type.rect.x, heights[iteration - 1],
-                parameters.linear_programming_solver_name);
+                parameters.linear_programming_solver_name,
+                parameters.optimization_mode);
         for (const std::vector<double>& old_heights: heights) {
             BinPos bound = bound_for_pair(
                     new_widths,
@@ -307,7 +309,8 @@ ConservativeScalesOutput packingsolver::rectangle::conservative_scales(
 
         std::vector<double> new_heights = solve_conservative_scale_lp(
                 original_heights, bin_type.rect.y, widths[iteration - 1],
-                parameters.linear_programming_solver_name);
+                parameters.linear_programming_solver_name,
+                parameters.optimization_mode);
         for (const std::vector<double>& old_widths: widths) {
             BinPos bound = bound_for_pair(
                     new_heights,

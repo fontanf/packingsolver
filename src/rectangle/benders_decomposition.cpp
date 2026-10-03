@@ -764,6 +764,10 @@ ResourceCut packingsolver::rectangle::lift_no_good_cut(
         bar_relaxation_parameters.verbosity_level = 0;
         bar_relaxation_parameters.timer = parameters.timer;
         bar_relaxation_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
+        bar_relaxation_parameters.optimization_mode
+            = (parameters.optimization_mode == OptimizationMode::NotAnytimeSequential)?
+            OptimizationMode::NotAnytimeSequential:
+            OptimizationMode::NotAnytime;
         BarRelaxationOutput bar_relaxation_output = bar_relaxation(sub_instance, bar_relaxation_parameters);
 
         // j* contributes 0 to the objective by construction, so the

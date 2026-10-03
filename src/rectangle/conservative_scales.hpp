@@ -50,6 +50,12 @@ struct ConservativeScalesParameters: packingsolver::Parameters<Instance, Solutio
     /** Linear programming solver of the knapsack subproblems. */
     columngenerationsolver::SolverName linear_programming_solver_name
         = columngenerationsolver::SolverName::CLP;
+
+    /**
+     * Optimization mode of the knapsack subproblems: 'NotAnytime' or
+     * 'NotAnytimeSequential' (single-threaded).
+     */
+    OptimizationMode optimization_mode = OptimizationMode::NotAnytime;
 };
 
 /**
