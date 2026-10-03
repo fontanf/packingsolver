@@ -48,9 +48,6 @@
             </div>
 
             <div id="panel-form" role="tabpanel">
-                <p id="form-unsupported" class="note" hidden>
-                    Irregular instances can only be entered as JSON.
-                </p>
                 <div id="form-fields">
                     <p>
                         <button type="button" id="load-example">Load an example</button>
@@ -66,6 +63,11 @@
                     <h3>Item types</h3>
                     <table id="item-types" class="types"></table>
                     <button type="button" id="add-item-type">Add an item type</button>
+                    <div id="instance-preview-section" hidden>
+                        <h3>Preview</h3>
+                        <p id="preview-error" class="note error-text" role="status"></p>
+                        <div id="instance-preview"></div>
+                    </div>
                 </div>
             </div>
 

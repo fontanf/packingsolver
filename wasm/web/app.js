@@ -2,6 +2,8 @@
 // Web Worker ('packingsolver_worker.js') and shows the solutions as they are
 // found.
 
+import * as irregularForm from "./irregular_form.js";
+
 // Columns of the bin and item type tables, for each problem type. 'key' is
 // the field of the JSON instance format.
 const DIMENSIONS = {
@@ -118,6 +120,7 @@ const state = {
     // Last update from the worker ('{output, certificate}').
     last: null,
     plotTimer: null,
+    previewTimer: null,
     startTime: 0,
 };
 
@@ -178,29 +181,75 @@ function renderTable(table, columns, rows) {
 
 function renderForm() {
     const type = problemType();
-    const supported = type in DIMENSIONS;
-    $("form-unsupported").hidden = supported;
-    $("form-fields").hidden = !supported;
-    if (!supported)
+    const irregular = (type === "irregular");
+    $("instance-preview-section").hidden = !irregular;
+    if (irregular) {
+        irregularForm.renderTable(
+            $("bin-types"), state.binTypes, false, schedulePreview, renderForm);
+        irregularForm.renderTable(
+            $("item-types"), state.itemTypes, true, schedulePreview, renderForm);
+        schedulePreview();
         return;
+    }
     renderTable($("bin-types"), binColumns(type), state.binTypes);
     renderTable($("item-types"), itemColumns(type), state.itemTypes);
+}
+
+// Preview of the shapes of the irregular form, drawn as they are typed.
+function schedulePreview() {
+    clearTimeout(state.previewTimer);
+    state.previewTimer = setTimeout(preview, 300);
+}
+
+async function preview() {
+    if (problemType() !== "irregular")
+        return;
+    let instanceObject;
+    try {
+        instanceObject = formInstance();
+    } catch (error) {
+        $("preview-error").textContent = error.message;
+        return;
+    }
+    $("preview-error").textContent = "";
+    try {
+        const figure = irregularForm.previewFigure(instanceObject);
+        await Plotly.react($("instance-preview"), figure.data, figure.layout, {
+            responsive: true,
+            displayModeBar: false,
+        });
+    } catch (error) {
+        console.error(error);
+        $("preview-error").textContent = "Error while drawing the preview: " + error.message;
+    }
+}
+
+function newBinRow(type) {
+    return (type === "irregular")? irregularForm.defaultBinRow(): defaultRow(binColumns(type));
+}
+
+function newItemRow(type) {
+    return (type === "irregular")? irregularForm.defaultItemRow(): defaultRow(itemColumns(type));
 }
 
 function resetForm() {
     const type = problemType();
     $("objective").value = defaultObjective(type);
-    if (!(type in DIMENSIONS)) {
-        renderForm();
-        return;
-    }
-    state.binTypes = [defaultRow(binColumns(type))];
-    state.itemTypes = [defaultRow(itemColumns(type))];
+    state.binTypes = [newBinRow(type)];
+    state.itemTypes = [newItemRow(type)];
     renderForm();
 }
 
 function loadExample() {
     const type = problemType();
+    if (type === "irregular") {
+        const example = irregularForm.EXAMPLE;
+        $("objective").value = example.objective;
+        state.binTypes = example.binTypes.map((t) => ({...irregularForm.defaultBinRow(), ...t}));
+        state.itemTypes = example.itemTypes.map((t) => ({...irregularForm.defaultItemRow(), ...t}));
+        renderForm();
+        return;
+    }
     const example = EXAMPLES[type];
     $("objective").value = example.objective;
     const fill = (columns, types) => types.map((t) => ({...defaultRow(columns), ...t}));
@@ -212,6 +261,8 @@ function loadExample() {
 // Instance in the JSON format, from the form.
 function formInstance() {
     const type = problemType();
+    if (type === "irregular")
+        return irregularForm.instance($("objective").value, state.binTypes, state.itemTypes);
     const convert = (columns, rows) => rows.map((row) => {
         const result = {};
         for (const column of columns) {
@@ -420,19 +471,15 @@ function init() {
         $("objective").appendChild(option);
     }
 
-    $("problem-type").addEventListener("change", () => {
-        resetForm();
-        if (!(problemType() in DIMENSIONS))
-            selectTab("json");
-    });
+    $("problem-type").addEventListener("change", resetForm);
     $("tab-form").addEventListener("click", () => selectTab("form"));
     $("tab-json").addEventListener("click", () => selectTab("json"));
     $("add-bin-type").addEventListener("click", () => {
-        state.binTypes.push(defaultRow(binColumns(problemType())));
+        state.binTypes.push(newBinRow(problemType()));
         renderForm();
     });
     $("add-item-type").addEventListener("click", () => {
-        state.itemTypes.push(defaultRow(itemColumns(problemType())));
+        state.itemTypes.push(newItemRow(problemType()));
         renderForm();
     });
     $("load-example").addEventListener("click", loadExample);
