@@ -1,12 +1,16 @@
 // Form of the irregular problem type: bin and item types whose shapes are
-// rectangles, circles or polygons, converted to the "general" shapes of the
-// JSON instance format (line segments and circular arcs).
+// rectangles, circles, polygons or read from DXF files, converted to the
+// "general" shapes of the JSON instance format (line segments and circular
+// arcs).
+
+import {readParts} from "./dxf.js";
 
 // Shapes of a row, and the fields of their dimensions.
 export const SHAPES = {
     rectangle: "Rectangle",
     circle: "Circle",
     polygon: "Polygon",
+    dxf: "From DXF",
 };
 
 // Allowed rotations of an item type, in degrees.
@@ -82,8 +86,17 @@ function positiveNumber(value, name) {
     return number;
 }
 
-// The shape of a row, as a "general" shape of the JSON format.
+// The shape of a row, as a "general" shape of the JSON format, with its
+// holes if it has any.
 export function rowShape(row) {
+    if (row.shape === "dxf") {
+        if (!row.dxf)
+            throw new Error("load a DXF file.");
+        const shape = {...row.dxf.shape};
+        if (row.dxf.holes.length > 0)
+            shape.holes = row.dxf.holes;
+        return shape;
+    }
     if (row.shape === "rectangle") {
         const width = positiveNumber(row.width, "width");
         const height = positiveNumber(row.height, "height");
@@ -157,7 +170,10 @@ export function instance(objective, binRows, itemRows) {
     return {
         objective,
         bin_types: binRows.map((row, i) => withRow("bin", i, () => {
-            const binType = {...rowShape(row), copies: copies(row.copies)};
+            const shape = rowShape(row);
+            if (shape.holes !== undefined)
+                throw new Error("a bin can't have holes.");
+            const binType = {...shape, copies: copies(row.copies)};
             const cost = optionalNumber(row.cost, "cost");
             if (cost !== undefined)
                 binType.cost = cost;
@@ -216,7 +232,7 @@ function select(row, key, label, options, onChange) {
 const NUMBER = {type: "number", min: "0", step: "any"};
 
 // The inputs of the dimensions of a row, which depend on its shape.
-function dimensionsCell(row, onChange) {
+function dimensionsCell(row, onChange, onStructureChange) {
     const cell = document.createElement("div");
     cell.className = "dimensions";
     const labelled = (text, element) => {
@@ -239,8 +255,82 @@ function dimensionsCell(row, onChange) {
             spellcheck: false,
         }, onChange);
         cell.append(vertices);
+    } else if (row.shape === "dxf") {
+        cell.append(dxfInput(row, onStructureChange), dxfDescription(row));
     }
     return cell;
+}
+
+function format(value) {
+    return String(Number(value.toPrecision(6)));
+}
+
+// Description of the shape of a row loaded from a DXF file.
+function dxfDescription(row) {
+    const description = document.createElement("span");
+    description.className = "dxf-description";
+    if (row.dxfError) {
+        description.classList.add("error-text");
+        description.textContent = row.dxfError;
+    } else if (row.dxf) {
+        const holes = row.dxf.holes.length;
+        description.textContent = `${row.dxf.name}: ${format(row.dxf.width)} × ${format(row.dxf.height)}`
+            + ((holes > 0)? `, ${holes} hole${(holes > 1)? "s": ""}`: "")
+            + ((row.dxf.warnings.length > 0)? ` (${row.dxf.warnings.join("; ")})`: "");
+    } else {
+        description.textContent = "Choose a DXF file containing one part.";
+    }
+    return description;
+}
+
+// Read the parts of a DXF file: '{parts, units, warnings}' (see
+// 'readParts'), each part named after the file.
+export async function readDxfFile(file) {
+    const result = readParts(await file.text());
+    const name = file.name.replace(/\.dxf$/i, "");
+    result.parts.forEach((part, i) => {
+        part.name = (result.parts.length > 1)? `${name} (${i + 1})`: name;
+        part.warnings = [];
+    });
+    return result;
+}
+
+// A button choosing the DXF file of a row (a file input can't show the file
+// of a row once the table is rendered again).
+function dxfInput(row, onStructureChange) {
+    const container = document.createElement("span");
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = row.dxf? "Change file": "Choose a DXF file";
+    const element = document.createElement("input");
+    element.type = "file";
+    element.accept = ".dxf";
+    element.hidden = true;
+    element.setAttribute("aria-label", "DXF file");
+    button.addEventListener("click", () => element.click());
+    container.append(button, element);
+    element.addEventListener("change", async () => {
+        const file = element.files[0];
+        if (file === undefined)
+            return;
+        try {
+            const {parts, warnings} = await readDxfFile(file);
+            if (parts.length === 0)
+                throw new Error(`no closed contour found in ${file.name}.`);
+            if (parts.length > 1) {
+                throw new Error(`${file.name} contains ${parts.length} parts: `
+                    + `use "Load item types from a DXF file" to load them all.`);
+            }
+            // The warnings of a file loaded in a row are shown in the row.
+            row.dxf = {...parts[0], warnings};
+            row.dxfError = null;
+        } catch (error) {
+            row.dxf = null;
+            row.dxfError = error.message;
+        }
+        onStructureChange();
+    });
+    return container;
 }
 
 // Render a bin ('isItem' false) or item type table. 'onChange' is called
@@ -261,7 +351,7 @@ export function renderTable(table, rows, isItem, onChange, onStructureChange) {
     rows.forEach((row, rowIndex) => {
         const tr = body.insertRow();
         tr.insertCell().appendChild(select(row, "shape", "Shape", SHAPES, onStructureChange));
-        tr.insertCell().appendChild(dimensionsCell(row, onChange));
+        tr.insertCell().appendChild(dimensionsCell(row, onChange, onStructureChange));
         tr.insertCell().appendChild(input(row, "copies", "Copies", {...NUMBER, min: "1", step: "1"}, onChange));
         const valueKey = isItem? "profit": "cost";
         tr.insertCell().appendChild(input(row, valueKey, isItem? "Profit": "Cost",
@@ -365,24 +455,25 @@ export function previewFigure(instanceObject) {
             xanchor: "center", yanchor: "bottom",
         });
         for (const shape of cell.shapes) {
-            // The outline and its holes, separated by 'null' points.
-            const xs = [];
-            const ys = [];
-            for (const loop of [shape.elements, ...(shape.holes || []).map((h) => h.elements)]) {
-                for (const [px, py] of shapePoints(loop)) {
-                    xs.push(px);
-                    ys.push(py);
-                }
-                xs.push(null);
-                ys.push(null);
+            // The outline, then its holes drawn over it in the color of the
+            // background.
+            const loops = [
+                [shape.elements, cell.color],
+                ...(shape.holes || []).map((h) => [h.elements, "white"]),
+            ];
+            for (const [loop, color] of loops) {
+                const points = shapePoints(loop);
+                data.push({
+                    type: "scatter",
+                    x: points.map((p) => p[0]),
+                    y: points.map((p) => p[1]),
+                    mode: "lines",
+                    fill: "toself", fillcolor: color,
+                    line: {color: "black", width: 1},
+                    xaxis: "x" + suffix, yaxis: "y" + suffix,
+                    hoverinfo: "x+y",
+                });
             }
-            data.push({
-                type: "scatter", x: xs, y: ys, mode: "lines",
-                fill: "toself", fillcolor: cell.color,
-                line: {color: "black", width: 1},
-                xaxis: "x" + suffix, yaxis: "y" + suffix,
-                hoverinfo: "x+y",
-            });
         }
     });
     return {data, layout};

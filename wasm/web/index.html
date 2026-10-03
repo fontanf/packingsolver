@@ -63,6 +63,11 @@
                     <h3>Item types</h3>
                     <table id="item-types" class="types"></table>
                     <button type="button" id="add-item-type">Add an item type</button>
+                    <span id="dxf-items" hidden>
+                        <button type="button" id="load-dxf-items">Load item types from a DXF file</button>
+                        <input type="file" id="dxf-items-file" accept=".dxf" hidden>
+                        <span id="dxf-items-status" class="note" role="status"></span>
+                    </span>
                     <div id="instance-preview-section" hidden>
                         <h3>Preview</h3>
                         <p id="preview-error" class="note error-text" role="status"></p>

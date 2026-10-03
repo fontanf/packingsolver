@@ -183,6 +183,7 @@ function renderForm() {
     const type = problemType();
     const irregular = (type === "irregular");
     $("instance-preview-section").hidden = !irregular;
+    $("dxf-items").hidden = !irregular;
     if (irregular) {
         irregularForm.renderTable(
             $("bin-types"), state.binTypes, false, schedulePreview, renderForm);
@@ -221,6 +222,30 @@ async function preview() {
     } catch (error) {
         console.error(error);
         $("preview-error").textContent = "Error while drawing the preview: " + error.message;
+    }
+}
+
+// Add an item type for each part of a DXF file. The initial item type is
+// replaced if it wasn't modified.
+async function loadDxfItems(file) {
+    try {
+        const {parts, units, warnings} = await irregularForm.readDxfFile(file);
+        if (parts.length === 0)
+            throw new Error(`no closed contour found in ${file.name}.`);
+        const untouched = JSON.stringify(irregularForm.defaultItemRow());
+        if (state.itemTypes.length === 1 && JSON.stringify(state.itemTypes[0]) === untouched)
+            state.itemTypes = [];
+        for (const part of parts)
+            state.itemTypes.push({...irregularForm.defaultItemRow(), shape: "dxf", dxf: part});
+        $("dxf-items-status").classList.remove("error-text");
+        $("dxf-items-status").textContent =
+            `Added ${parts.length} item type${(parts.length > 1)? "s": ""} from ${file.name}`
+            + ((units !== null)? ` (${units})`: "") + "."
+            + ((warnings.length > 0)? ` Warnings: ${warnings.join("; ")}.`: "");
+        renderForm();
+    } catch (error) {
+        $("dxf-items-status").classList.add("error-text");
+        $("dxf-items-status").textContent = "Error: " + error.message;
     }
 }
 
@@ -483,6 +508,13 @@ function init() {
         renderForm();
     });
     $("load-example").addEventListener("click", loadExample);
+    $("load-dxf-items").addEventListener("click", () => $("dxf-items-file").click());
+    $("dxf-items-file").addEventListener("change", async () => {
+        const file = $("dxf-items-file").files[0];
+        $("dxf-items-file").value = "";
+        if (file !== undefined)
+            await loadDxfItems(file);
+    });
     $("json-file").addEventListener("change", async () => {
         const file = $("json-file").files[0];
         if (file !== undefined)

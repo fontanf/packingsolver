@@ -1,0 +1,29 @@
+{
+    "parts": [
+        {
+            "area": 1200,
+            "holes": 1,
+            "width": 40,
+            "height": 40
+        },
+        {
+            "area": 314.1592653589793,
+            "holes": 0,
+            "width": 20,
+            "height": 20
+        },
+        {
+            "area": 50.26548245743669,
+            "holes": 0,
+            "width": 8,
+            "height": 8
+        },
+        {
+            "area": 378.53981633974485,
+            "holes": 0,
+            "width": 40,
+            "height": 10
+        }
+    ],
+    "warnings": 2
+}

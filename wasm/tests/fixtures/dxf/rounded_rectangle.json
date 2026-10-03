@@ -1,0 +1,11 @@
+{
+    "parts": [
+        {
+            "area": 2800.0,
+            "holes": 1,
+            "width": 80,
+            "height": 40
+        }
+    ],
+    "warnings": 0
+}
