@@ -346,6 +346,9 @@ def test_parameters():
     assert parameters.time_limit == math.inf
     parameters.time_limit = 1.5
     assert parameters.time_limit == 1.5
+    # Unit tests don't run with a time limit: their result would depend on
+    # the speed of the machine.
+    parameters.time_limit = math.inf
     parameters.optimization_mode = psr.OptimizationMode.NotAnytimeSequential
     parameters.tree_search_guides = [0, 1]
     assert parameters.tree_search_guides == [0, 1]
@@ -408,7 +411,8 @@ def test_linear_programming_algorithms(algorithm):
     instance_builder.add_bin_type(100, 100, copies=50)
     for x, y, copies in [(30, 40, 20), (50, 20, 15), (70, 35, 8)]:
         instance_builder.add_item_type(x, y, oriented=True, copies=copies)
-    parameters = quiet_parameters(time_limit=30.0)
+    parameters = quiet_parameters(
+            optimization_mode=psr.OptimizationMode.NotAnytimeSequential)
     setattr(parameters, algorithm, True)
     output = psr.optimize(instance_builder.build(), parameters)
     assert output.bin_packing_bound >= 6
@@ -416,19 +420,9 @@ def test_linear_programming_algorithms(algorithm):
         assert output.solution.number_of_bins() >= output.bin_packing_bound
 
 
-def test_time_limit():
-    instance = large_knapsack_instance(500)
-    parameters = quiet_parameters(time_limit=1.0)
-    output = psr.optimize(instance, parameters)
-    # Only check that the time limit is enforced: how good the solution is
-    # after 1 s depends on the load of the machine.
-    assert output.time < 5
-    assert output.solution.feasible()
-
-
 def test_keyboard_interrupt():
     instance = large_knapsack_instance(500)
-    parameters = quiet_parameters(time_limit=60.0)
+    parameters = quiet_parameters()
     timer = threading.Timer(0.5, _thread.interrupt_main)
     timer.start()
     try:

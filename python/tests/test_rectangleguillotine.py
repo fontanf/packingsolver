@@ -552,6 +552,9 @@ def test_parameters():
     assert parameters.time_limit == math.inf
     parameters.time_limit = 1.5
     assert parameters.time_limit == 1.5
+    # Unit tests don't run with a time limit: their result would depend on
+    # the speed of the machine.
+    parameters.time_limit = math.inf
     parameters.optimization_mode = psg.OptimizationMode.NotAnytimeSequential
     parameters.tree_search_guides = [0, 1]
     assert parameters.tree_search_guides == [0, 1]
@@ -597,7 +600,9 @@ def test_column_generation():
     instance_builder.add_bin_type(100, 100, copies=20)
     for width, height, copies in [(30, 40, 6), (50, 20, 5), (70, 35, 3)]:
         instance_builder.add_item_type(width, height, oriented=True, copies=copies)
-    parameters = quiet_parameters(time_limit=10.0, use_column_generation=True)
+    parameters = quiet_parameters(
+            optimization_mode=psg.OptimizationMode.NotAnytimeSequential,
+            use_column_generation=True)
     output = psg.optimize(instance_builder.build(), parameters)
     assert output.bin_packing_bound >= 2
     if output.solution.feasible():
@@ -613,7 +618,9 @@ def test_column_generation_strips():
         instance_builder.add_item_type(
                 width, height, oriented=True, profit=profit, copies=copies)
     instance_builder.set_number_of_stages(2)
-    parameters = quiet_parameters(time_limit=10.0, use_column_generation_strips=True)
+    parameters = quiet_parameters(
+            optimization_mode=psg.OptimizationMode.NotAnytimeSequential,
+            use_column_generation_strips=True)
     output = psg.optimize(instance_builder.build(), parameters)
     assert output.solution.feasible()
     assert output.solution.profit() > 0

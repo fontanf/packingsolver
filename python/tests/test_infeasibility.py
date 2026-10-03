@@ -44,7 +44,7 @@ def instance(problem_type, objective, copies):
 def optimize(ps, instance):
     parameters = ps.OptimizeParameters()
     parameters.verbosity_level = 0
-    parameters.time_limit = 5
+    parameters.optimization_mode = ps.OptimizationMode.NotAnytimeSequential
     return ps.optimize(instance, parameters)
 
 

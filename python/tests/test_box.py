@@ -416,6 +416,9 @@ def test_parameters():
             psb.LinearProgrammingSolver)
     parameters.time_limit = 1.5
     assert parameters.time_limit == 1.5
+    # Unit tests don't run with a time limit: their result would depend on
+    # the speed of the machine.
+    parameters.time_limit = math.inf
     parameters.optimization_mode = psb.OptimizationMode.NotAnytimeSequential
     parameters.tree_search_guides = [0, 1]
     assert parameters.tree_search_guides == [0, 1]
@@ -463,7 +466,8 @@ def test_multiple_bins_algorithms(algorithm):
     instance_builder.add_bin_type(100, 100, 100, copies=20)
     for x, y, z, copies in [(50, 50, 60, 10), (50, 50, 40, 10)]:
         instance_builder.add_item_type(x, y, z, copies=copies)
-    parameters = quiet_parameters(time_limit=10.0)
+    parameters = quiet_parameters(
+            optimization_mode=psb.OptimizationMode.NotAnytimeSequential)
     setattr(parameters, algorithm, True)
     output = psb.optimize(instance_builder.build(), parameters)
     # A 60-item and a 40-item stack in each quarter of the bin: 4 pairs per bin.

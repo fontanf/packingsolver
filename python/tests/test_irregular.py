@@ -16,7 +16,6 @@ def quiet_parameters(**kwargs):
     parameters = psi.OptimizeParameters()
     parameters.verbosity_level = 0
     parameters.optimization_mode = psi.OptimizationMode.NotAnytimeSequential
-    parameters.time_limit = 10.0
     for name, value in kwargs.items():
         setattr(parameters, name, value)
     return parameters
@@ -536,6 +535,9 @@ def test_parameters():
     assert parameters.time_limit == math.inf
     parameters.time_limit = 1.5
     assert parameters.time_limit == 1.5
+    # Unit tests don't run with a time limit: their result would depend on
+    # the speed of the machine.
+    parameters.time_limit = math.inf
     parameters.optimization_mode = psi.OptimizationMode.NotAnytimeSequential
     parameters.tree_search_guides = [0, 1]
     assert parameters.tree_search_guides == [0, 1]
