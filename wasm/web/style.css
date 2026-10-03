@@ -190,6 +190,54 @@ input.vertices {
     font-size: 0.9em;
 }
 
+#instance-parameters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    column-gap: 1rem;
+}
+
+#instance-parameters label.inline {
+    gap: 0.4rem;
+    margin-bottom: 1.2rem;
+}
+
+.checkboxes {
+    display: grid;
+    grid-template-columns: repeat(3, auto);
+    column-gap: 0.75rem;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 0.9em;
+}
+
+.table-scroll {
+    overflow-x: auto;
+}
+
+/* The defects of a bin type, on a line below it. */
+tr.defects-line td {
+    padding-left: 1.5rem;
+}
+
+.defects-label {
+    display: inline-block;
+    margin-right: 1rem;
+    color: var(--muted);
+    vertical-align: top;
+    padding-top: 0.4rem;
+}
+
+.defects {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.defects button {
+    margin: 0;
+    align-self: flex-start;
+}
+
 .error-text {
     color: var(--error);
 }

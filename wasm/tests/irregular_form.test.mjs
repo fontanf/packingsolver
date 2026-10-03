@@ -130,3 +130,38 @@ test("irregular form: shapes from DXF files", () => {
         () => irregularForm.instance("knapsack", binRows, [{...item, dxf: null}]),
         /item type 1: load a DXF file/);
 });
+
+test("irregular form: defects and spacings", async () => {
+    const defects = [
+        {...irregularForm.defaultDefect(), x: 10, y: 20, width: 5, height: 4, spacing: "1"},
+        {...irregularForm.defaultDefect(), shape: "circle", x: 50, y: 25, radius: 3},
+        {...irregularForm.defaultDefect(), shape: "polygon", vertices: "70 10, 80 10, 75 20"},
+    ];
+    const bin = {...binRows[0], spacing: "2", defects};
+    const instance = irregularForm.instance(example.objective, [bin], itemRows);
+    const binType = instance.bin_types[0];
+    assert.strictEqual(binType.item_bin_minimum_spacing, 2);
+    assert.strictEqual(binType.defects.length, 3);
+    assert.deepStrictEqual(binType.defects[0].elements[0].start, {x: 10, y: 20});
+    assert.deepStrictEqual(binType.defects[0].elements[1].start, {x: 15, y: 20});
+    assert.strictEqual(binType.defects[0].item_defect_minimum_spacing, 1);
+    assert.deepStrictEqual(binType.defects[1].elements[0].center, {x: 50, y: 25});
+    assert.deepStrictEqual(binType.defects[1].elements[0].start, {x: 53, y: 25});
+    assert.deepStrictEqual(binType.defects[2].elements[0].start, {x: 70, y: 10});
+    assert.ok(!("item_defect_minimum_spacing" in binType.defects[1]));
+    assert.throws(
+        () => irregularForm.instance(example.objective,
+            [{...bin, defects: [{...defects[0], x: ""}]}], itemRows),
+        /bin type 1: defect 1: invalid x/);
+    // The preview draws the defects.
+    const figure = irregularForm.previewFigure(instance);
+    assert.strictEqual(figure.data.filter((t) => t.fillcolor === "#ef553b").length, 3);
+    // The solver reads them.
+    instance.parameters = {item_item_minimum_spacing: 0.5};
+    const module = await loadModule();
+    const result = JSON.parse(module.solve(
+        "irregular", JSON.stringify(instance),
+        JSON.stringify({optimization_mode: "not-anytime-sequential"})));
+    assert.strictEqual(result.error, undefined);
+    assert.ok(result.output.Solution.NumberOfItems > 0);
+});
