@@ -125,6 +125,37 @@ void solution_write_stream(
     stream.attr("write")(ss.str());
 }
 
+/** 'InstanceBuilder.read(instance_path)'. */
+template <typename InstanceBuilder>
+void instance_builder_read_path(
+        InstanceBuilder& instance_builder,
+        const std::string& instance_path)
+{
+    instance_builder.read(instance_path);
+}
+
+/**
+ * 'InstanceBuilder.read(stream)': read a JSON instance from a Python text
+ * stream (any object with a 'read()' method returning a 'str', e.g.
+ * 'io.StringIO'). Path-like objects (e.g. 'pathlib.Path') are read from the
+ * file they designate.
+ */
+template <typename InstanceBuilder>
+void instance_builder_read_stream(
+        InstanceBuilder& instance_builder,
+        nb::handle stream)
+{
+    if (nb::hasattr(stream, "__fspath__")) {
+        nb::object path = nb::module_::import_("os").attr("fspath")(stream);
+        instance_builder.read(nb::cast<std::string>(path));
+        return;
+    }
+    if (!nb::hasattr(stream, "read"))
+        throw nb::type_error("expected a path or a text stream with a 'read' method.");
+    std::istringstream ss(nb::cast<std::string>(stream.attr("read")()));
+    instance_builder.read(ss);
+}
+
 /** Bind a read-only 'Output' field of an 'OutputHandle'. */
 template <typename Handle, typename Output, typename T>
 void def_output_field(

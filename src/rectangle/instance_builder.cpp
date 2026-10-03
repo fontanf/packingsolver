@@ -911,9 +911,14 @@ void InstanceBuilder::read(
                 FUNC_SIGNATURE + ": "
                 "unable to open file \"" + instance_path + "\".");
     }
+    read(file);
+}
 
+void InstanceBuilder::read(
+        std::istream& is)
+{
     nlohmann::json j;
-    file >> j;
+    is >> j;
 
     if (!j.contains("objective")) {
         throw std::invalid_argument(

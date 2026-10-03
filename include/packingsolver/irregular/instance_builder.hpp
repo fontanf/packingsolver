@@ -22,8 +22,11 @@ public:
      * Read from files
      */
 
-    /** Read item types from a file. */
+    /** Read an instance in the JSON format from a file. */
     void read(std::string instance_path);
+
+    /** Read an instance in the JSON format from a stream. */
+    void read(std::istream& is);
 
     /*
      * Set parameters
