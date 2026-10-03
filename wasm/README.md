@@ -40,3 +40,11 @@ python3 wasm/web/serve.py
 ```
 
 Then open http://localhost:8000/.
+
+## Deployment
+
+The workflow `.github/workflows/wasm.yml` builds the module and the page and runs the tests. Every time the Build workflow succeeds on `master`, it also deploys the page to [Cloudflare Pages](https://pages.cloudflare.com/), which serves `web/_headers`. GitHub Pages can't set these headers.
+
+The deployment requires:
+- a Cloudflare Pages project created for direct upload, named `packingsolver`, or set the repository variable `CLOUDFLARE_PAGES_PROJECT`;
+- the repository secrets `CLOUDFLARE_API_TOKEN` (an API token with the "Cloudflare Pages: Edit" permission) and `CLOUDFLARE_ACCOUNT_ID`.

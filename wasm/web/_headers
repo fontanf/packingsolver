@@ -1,0 +1,5 @@
+# Headers of the deployed site (Cloudflare Pages). The threads of the
+# WebAssembly module need 'SharedArrayBuffer', which requires them.
+/*
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Embedder-Policy: require-corp
