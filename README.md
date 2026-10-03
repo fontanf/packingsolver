@@ -11,7 +11,17 @@ PackingSolver solves the following problem types:
 [`box`](#box-solver)<ul><li>Items: three-dimensional rectangular parallelepipeds</li></ul>  |  <img src="https://github.com/fontanf/packingsolver/blob/master/img/box.png" align=center width="512">
 [`boxstacks`](#boxstacks-solver)<ul><li>Items: three-dimensional rectangular parallelepipeds</li><li>Items can be stacked; a stack contains items with the same width and length</li></ul>  |  <img src="https://github.com/fontanf/packingsolver/blob/master/img/boxstacks.png" align=center width="512">
 [`onedimensional`](#onedimensional-solver)<ul><li>Items: one-dimensional items</li></ul>  |  <img src="https://github.com/fontanf/packingsolver/blob/master/img/onedimensional.png" align=center width="512">
-[`irregular`](#irregular-solver)<ul><li>Items: two-dimensional polygons</li></ul>  |  <img src="https://github.com/fontanf/packingsolver/blob/master/img/irregular.png" align=center width="512">
+[`irregular`](#irregular-solver)<ul><li>Items: two-dimensional shapes (polygons, possibly with circular arcs and holes)</li></ul>  |  <img src="https://github.com/fontanf/packingsolver/blob/master/img/irregular.png" align=center width="512">
+
+Documentation: https://fontanf.github.io/packingsolver
+
+## Online solver
+
+PackingSolver also runs directly in your browser:
+
+https://packingsolver.pages.dev/
+
+No installation is needed. The computation runs on your machine: nothing is sent to a server.
 
 ## Python interface
 
