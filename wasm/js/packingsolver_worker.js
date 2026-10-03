@@ -31,7 +31,11 @@ if (typeof importScripts === "function") {
     importScripts("packingsolver.js");
     postToPage = (message) => self.postMessage(message);
     self.onmessage = (event) => onMessage(event.data);
-    modulePromise = PackingSolver();
+    // The threads of the module run in workers started from its own script:
+    // loaded with 'importScripts', it would take the URL of this one.
+    modulePromise = PackingSolver({
+        mainScriptUrlOrBlob: new URL("packingsolver.js", self.location.href).href,
+    });
 } else {
     // Node.
     const {parentPort, workerData} = require("node:worker_threads");

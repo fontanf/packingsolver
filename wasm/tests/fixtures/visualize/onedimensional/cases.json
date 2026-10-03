@@ -1,0 +1,13 @@
+[
+  {"name": "bin_packing_eligibility", "certificate": "data/onedimensional/tests/bin_packing_eligibility/solution.csv", "options": {}, "function": "figure"},
+  {"name": "bin_packing_eligibility_id", "certificate": "data/onedimensional/tests/bin_packing_eligibility/solution.csv", "options": {"item_color": "ID"}, "function": "figure"},
+  {"name": "bin_packing_eligibility_same", "certificate": "data/onedimensional/tests/bin_packing_eligibility/solution.csv", "options": {"item_color": "SAME"}, "function": "figure"},
+  {"name": "variable_sized_bin_packing_single_bin_type", "certificate": "data/onedimensional/tests/variable_sized_bin_packing_single_bin_type/solution.csv", "options": {}, "function": "figure"},
+  {"name": "variable_sized_bin_packing_single_bin_type_same", "certificate": "data/onedimensional/tests/variable_sized_bin_packing_single_bin_type/solution.csv", "options": {"item_color": "SAME"}, "function": "figure"},
+  {"name": "knapsack_side_constraint", "certificate": "data/onedimensional/tests/knapsack_single_bin_with_side_constraint_still_merges/solution.csv", "options": {}, "function": "figure"},
+  {"name": "knapsack_side_constraint_same", "certificate": "data/onedimensional/tests/knapsack_single_bin_with_side_constraint_still_merges/solution.csv", "options": {"item_color": "SAME"}, "function": "figure"},
+  {"name": "copies", "certificate": "data/onedimensional/users/2024-04-09_solution.csv", "options": {}, "function": "figure"},
+  {"name": "copies_expanded", "certificate": "data/onedimensional/users/2024-04-09_solution.csv", "options": {"expand_copies": true}, "function": "figure"},
+  {"name": "copies_expanded_same", "certificate": "data/onedimensional/users/2024-04-09_solution.csv", "options": {"expand_copies": true, "item_color": "SAME"}, "function": "figure"},
+  {"name": "copies_not_expanded_same", "certificate": "data/onedimensional/users/2024-04-09_solution.csv", "options": {"expand_copies": false, "item_color": "SAME"}, "function": "figure"}
+]

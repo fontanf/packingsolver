@@ -1,0 +1,10 @@
+[
+  {"name": "bin_packing_3nvr", "certificate": "data/rectangleguillotine/tests/bin_packing_3nvr/solution.csv", "options": {}, "function": "figure"},
+  {"name": "knapsack_2nvo_defects_2", "certificate": "data/rectangleguillotine/tests/knapsack_2nvo_defects_2/solution.csv", "options": {}, "function": "figure"},
+  {"name": "knapsack_uo_trims", "certificate": "data/rectangleguillotine/tests/knapsack_uo_trims/solution.csv", "options": {}, "function": "figure"},
+  {"name": "knapsack_2evo_defects_1", "certificate": "data/rectangleguillotine/tests/knapsack_2evo_defects_1/solution.csv", "options": {}, "function": "figure"},
+  {"name": "bin_packing_3nvr_same", "certificate": "data/rectangleguillotine/tests/bin_packing_3nvr/solution.csv", "options": {"item_color": "SAME"}, "function": "figure"},
+  {"name": "bin_packing_3nvr_id", "certificate": "data/rectangleguillotine/tests/bin_packing_3nvr/solution.csv", "options": {"item_color": "ID"}, "function": "figure"},
+  {"name": "bin_packing_3nvr_columns_1", "certificate": "data/rectangleguillotine/tests/bin_packing_3nvr/solution.csv", "options": {"columns": 1}, "function": "figure"},
+  {"name": "bin_packing_3nvr_columns_2_same", "certificate": "data/rectangleguillotine/tests/bin_packing_3nvr/solution.csv", "options": {"columns": 2, "item_color": "SAME"}, "function": "figure"}
+]

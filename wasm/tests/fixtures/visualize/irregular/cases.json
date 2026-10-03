@@ -1,0 +1,98 @@
+[
+    {
+        "name": "multiple_bins",
+        "certificate": "data/irregular/tests/multiple_bins_solution.json",
+        "options": {},
+        "function": "figure"
+    },
+    {
+        "name": "multiple_bins_columns_1",
+        "certificate": "data/irregular/tests/multiple_bins_solution.json",
+        "options": {
+            "columns": 1
+        },
+        "function": "figure"
+    },
+    {
+        "name": "multiple_bins_columns_2",
+        "certificate": "data/irregular/tests/multiple_bins_solution.json",
+        "options": {
+            "columns": 2
+        },
+        "function": "figure"
+    },
+    {
+        "name": "multiple_bins_id_columns_3",
+        "certificate": "data/irregular/tests/multiple_bins_solution.json",
+        "options": {
+            "item_color": "ID",
+            "columns": 3
+        },
+        "function": "figure"
+    },
+    {
+        "name": "multiple_bins_same_columns_1",
+        "certificate": "data/irregular/tests/multiple_bins_solution.json",
+        "options": {
+            "item_color": "SAME",
+            "columns": 1
+        },
+        "function": "figure"
+    },
+    {
+        "name": "polygon_with_hole",
+        "certificate": "data/irregular/tests/polygon_with_hole_solution.json",
+        "options": {},
+        "function": "figure"
+    },
+    {
+        "name": "polygon_with_hole_same",
+        "certificate": "data/irregular/tests/polygon_with_hole_solution.json",
+        "options": {
+            "item_color": "SAME"
+        },
+        "function": "figure"
+    },
+    {
+        "name": "item_defect_minimum_spacing",
+        "certificate": "data/irregular/tests/item_defect_minimum_spacing_solution.json",
+        "options": {},
+        "function": "figure"
+    },
+    {
+        "name": "circular_bin",
+        "certificate": "data/irregular/tests/circular_bin_solution.json",
+        "options": {},
+        "function": "figure"
+    },
+    {
+        "name": "arcs",
+        "certificate": "wasm/tests/fixtures/visualize/irregular/inputs/arcs_solution.json",
+        "options": {},
+        "function": "figure"
+    },
+    {
+        "name": "instance_periodic_packing_item_bin_spacing",
+        "certificate": "data/irregular/tests/periodic_packing_item_bin_spacing.json",
+        "options": {},
+        "function": "instance_figure"
+    },
+    {
+        "name": "instance_periodic_packing_item_item_spacing",
+        "certificate": "data/irregular/tests/periodic_packing_item_item_spacing.json",
+        "options": {},
+        "function": "instance_figure"
+    },
+    {
+        "name": "instance_periodic_packing_single_item_exact_fit_triangle",
+        "certificate": "data/irregular/tests/periodic_packing_single_item_exact_fit_triangle.json",
+        "options": {},
+        "function": "instance_figure"
+    },
+    {
+        "name": "instance_arcs",
+        "certificate": "wasm/tests/fixtures/visualize/irregular/inputs/arcs_instance.json",
+        "options": {},
+        "function": "instance_figure"
+    }
+]

@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>PackingSolver</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- 'crossorigin': under 'Cross-Origin-Embedder-Policy: require-corp',
+         cross-origin scripts must be loaded in CORS mode. -->
+    <script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@4.1.1/plotly.min.js"
+            crossorigin="anonymous"></script>
+    <script type="module" src="app.js"></script>
+</head>
+<body>
+    <header>
+        <h1>PackingSolver</h1>
+        <p>
+            Solve cutting and packing problems in your browser.
+            The computation runs on your machine: nothing is sent to a server.
+        </p>
+    </header>
+
+    <div id="isolation-error" class="error" hidden>
+        This page needs <code>SharedArrayBuffer</code>, which requires the
+        <code>Cross-Origin-Opener-Policy: same-origin</code> and
+        <code>Cross-Origin-Embedder-Policy: require-corp</code> headers.
+        Serve it with <code>python3 wasm/web/serve.py</code>.
+    </div>
+
+    <main>
+        <section id="problem">
+            <h2>Problem</h2>
+            <label>
+                Problem type
+                <select id="problem-type">
+                    <option value="rectangleguillotine">Rectangles, guillotine cuts</option>
+                    <option value="rectangle" selected>Rectangles</option>
+                    <option value="box">Boxes</option>
+                    <option value="boxstacks">Box stacks</option>
+                    <option value="onedimensional">One-dimensional</option>
+                    <option value="irregular">Irregular shapes</option>
+                </select>
+            </label>
+
+            <div class="tabs" role="tablist">
+                <button type="button" role="tab" id="tab-form" aria-selected="true">Enter manually</button>
+                <button type="button" role="tab" id="tab-json" aria-selected="false">JSON instance</button>
+            </div>
+
+            <div id="panel-form" role="tabpanel">
+                <p id="form-unsupported" class="note" hidden>
+                    Irregular instances can only be entered as JSON.
+                </p>
+                <div id="form-fields">
+                    <label>
+                        Objective
+                        <select id="objective"></select>
+                    </label>
+                    <h3>Bin types</h3>
+                    <table id="bin-types" class="types"></table>
+                    <button type="button" id="add-bin-type">Add a bin type</button>
+                    <h3>Item types</h3>
+                    <table id="item-types" class="types"></table>
+                    <button type="button" id="add-item-type">Add an item type</button>
+                    <button type="button" id="load-example">Load an example</button>
+                </div>
+            </div>
+
+            <div id="panel-json" role="tabpanel" hidden>
+                <p class="note">
+                    An instance in the JSON format of PackingSolver
+                    (<code>InstanceBuilder.read</code>).
+                </p>
+                <input type="file" id="json-file" accept=".json,application/json">
+                <textarea id="json-text" rows="16" spellcheck="false"
+                          placeholder='{"objective": "bin-packing", "bin_types": [...], "item_types": [...]}'></textarea>
+            </div>
+        </section>
+
+        <section id="parameters">
+            <h2>Parameters</h2>
+            <label>
+                Optimization mode
+                <select id="optimization-mode">
+                    <option value="anytime" selected>Anytime: improve until the time limit or stopped</option>
+                    <option value="not-anytime">Not anytime</option>
+                    <option value="not-anytime-deterministic">Not anytime, deterministic</option>
+                    <option value="not-anytime-sequential">Not anytime, single-threaded</option>
+                </select>
+            </label>
+            <label>
+                Time limit (s)
+                <input type="number" id="time-limit" min="0" step="any" value="30"
+                       placeholder="none">
+            </label>
+            <div class="buttons">
+                <button type="button" id="solve" disabled>Solve</button>
+                <button type="button" id="stop" disabled>Stop</button>
+            </div>
+            <p id="status" role="status">Loading the solver...</p>
+        </section>
+
+        <section id="results" hidden>
+            <h2>Solution</h2>
+            <div id="summary"></div>
+            <div class="buttons">
+                <button type="button" id="download-certificate">Download the certificate (CSV)</button>
+                <button type="button" id="download-output">Download the output (JSON)</button>
+            </div>
+            <div id="plot"></div>
+            <h3>Progress</h3>
+            <table id="progress">
+                <thead>
+                    <tr><th>Time (s)</th><th>Solution</th><th>Bound</th></tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </section>
+    </main>
+</body>
+</html>
