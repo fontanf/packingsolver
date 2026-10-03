@@ -124,6 +124,12 @@ struct BarRelaxationParameters: packingsolver::Parameters<Instance, Solution, Ou
     /** Linear programming solver. */
     columngenerationsolver::SolverName linear_programming_solver_name
         = columngenerationsolver::SolverName::CLP;
+
+    /**
+     * Optimization mode of the knapsack subproblems: 'NotAnytime' or
+     * 'NotAnytimeSequential' (single-threaded).
+     */
+    OptimizationMode optimization_mode = OptimizationMode::NotAnytime;
 };
 
 /**

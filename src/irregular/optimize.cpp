@@ -173,7 +173,10 @@ void optimize_onedimensional_bound(
     onedim_parameters.verbosity_level = 0;
     onedim_parameters.timer = parameters.timer;
     onedim_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
-    onedim_parameters.optimization_mode = OptimizationMode::NotAnytime;
+    onedim_parameters.optimization_mode
+        = (parameters.optimization_mode == OptimizationMode::NotAnytimeSequential)?
+        OptimizationMode::NotAnytimeSequential:
+        OptimizationMode::NotAnytime;
     onedim_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
     auto onedim_output = optimize(onedim_instance, onedim_parameters);
 
