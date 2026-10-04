@@ -10,9 +10,11 @@
 // PackingSolver (line segments and circular arcs), anticlockwise, moved so
 // that their bounding box starts at (0, 0). Their holes are anticlockwise too.
 //
-// Unsupported entities (SPLINE, ELLIPSE), contours which aren't closed and
-// arcs scaled non-uniformly are reported in 'warnings'. Annotations (texts,
-// dimensions, hatches...) are ignored.
+// Files containing curves which aren't supported (SPLINE and ELLIPSE
+// entities, arcs scaled non-uniformly by a block insertion, which are
+// ellipses) are rejected with an error. Contours which aren't closed are
+// reported in 'warnings'. Annotations (texts, dimensions, hatches...) are
+// ignored.
 
 import {
     IDENTITY, apply, arcPoint, buildParts, compose, point, reverseOrientation,
@@ -156,9 +158,12 @@ function collect(entities, blocks, t, result, warnings, depth = 0) {
         const entity = entities[i];
         const local = compose(t, ocs(entity));
         const add = (elements, closed) => {
-            const transformed = elements.map((e) => transformElement(local, e, warnings));
-            if (transformed.some((e) => e === null))
-                return;
+            const transformed = elements.map((e) => transformElement(local, e));
+            if (transformed.some((e) => e === null)) {
+                throw new Error(
+                    "Arcs scaled non-uniformly (ellipses) are not supported "
+                    + `(${entity.type} in a block inserted with different x and y scales).`);
+            }
             if (closed)
                 result.loops.push(transformed);
             else
@@ -232,8 +237,10 @@ function collect(entities, blocks, t, result, warnings, depth = 0) {
             const base = {...IDENTITY, e: -block.base.x, f: -block.base.y};
             collect(block.entities, blocks, compose(local, compose(insert, base)),
                 result, warnings, depth + 1);
-        } else if (entity.type === "SPLINE" || entity.type === "ELLIPSE") {
-            warnings.add(`${entity.type} entities are not supported`);
+        } else if (entity.type === "SPLINE") {
+            throw new Error("Splines (SPLINE entities) are not supported.");
+        } else if (entity.type === "ELLIPSE") {
+            throw new Error("Ellipses (ELLIPSE entities) are not supported.");
         }
     }
 }
