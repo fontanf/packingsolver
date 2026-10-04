@@ -184,7 +184,7 @@ input.vertices {
     white-space: nowrap;
 }
 
-.dxf-description {
+.file-description {
     align-self: center;
     max-width: 24rem;
     font-size: 0.9em;

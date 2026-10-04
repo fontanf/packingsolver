@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="200mm" height="100mm" viewBox="0 0 200 100">
+  <!-- A slot: two half circles of radius 5, the flags without separators
+       ("010 10": flags 0 and 1, then 0 and 10). -->
+  <path d="m15 10h30a5 5 0 010 10H15a5 5 0 01 0-10z"/>
+  <!-- Large arc: a disk of radius 10 with a 90-degree notch cut out. -->
+  <path d="M 110,20 L 110,10 A 10,10 0 1 1 100,20 Z"/>
+  <!-- Small arc bulging inward (sweep 0): a square of side 20 minus a
+       circular segment. -->
+  <path d="M 150,10 L 170,10 L 170,30 L 150,30 A 20,20 0 0 0 150,10 Z"/>
+</svg>
