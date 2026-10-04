@@ -547,10 +547,9 @@ void InstanceBuilder::read(
         if (json_parameters.contains("open_dimension_xy_aspect_ratio"))
             set_open_dimension_xy_aspect_ratio(json_parameters["open_dimension_xy_aspect_ratio"]);
         if (json_parameters.contains("leftover_mode")) {
-            std::stringstream leftover_mode_ss;
-            leftover_mode_ss << std::string(json_parameters["leftover_mode"]);
-            LeftoverMode leftover_mode;
-            leftover_mode_ss >> leftover_mode;
+            LeftoverMode leftover_mode = read_enum<LeftoverMode>(
+                    json_parameters["leftover_mode"].get<std::string>(),
+                    "leftover_mode");
             set_leftover_mode(leftover_mode);
         }
     }

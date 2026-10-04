@@ -63,13 +63,15 @@ public:
      *
      * The bound used is max(bin_width + bin_height) over all bin types: each
      * guillotine cut reduces at least one dimension by at least 1 unit, so no
-     * cut tree can ever be deeper than this.  At least one bin type must have
-     * been added before calling this method.
+     * cut tree can ever be deeper than this. The number of stages is set to
+     * -1, and resolved in 'build', so this method can be called before
+     * adding the bin types. The cut type is then 'Exact' and the first stage
+     * orientation 'Any', whatever has been set.
      */
     void set_number_of_stages_unlimited();
 
 
-    void set_cut_type(CutType cut_type);
+    void set_cut_type(CutType cut_type) { instance_.parameters_.cut_type = cut_type; }
 
     void set_first_stage_orientation(CutOrientation first_stage_orientation) { instance_.parameters_.first_stage_orientation = first_stage_orientation; }
 
@@ -306,11 +308,16 @@ private:
     void build_stacks();
 
     /**
-     * Resize 'cutting_costs' to match the current 'number_of_stages' and
-     * 'cut_type' (called whenever either is set), preserving already-set
-     * values.
+     * Number of cutting costs of the instance: one for the bin, one per
+     * stage, and one for the extra cut of the non-exact cut types.
      */
-    void resize_cutting_costs();
+    Counter number_of_required_cutting_costs() const;
+
+    /**
+     * Throw if more cutting costs have been set than the instance has, once
+     * the parameters of a file have been read.
+     */
+    void check_number_of_cutting_costs() const;
 
     /*
      * Private attributes

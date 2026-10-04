@@ -428,3 +428,11 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "onedimensional" / "tests" / "variable_sized_bin_packing_mandatory_bins" / "parameters.csv",
                 fs::path("data") / "onedimensional" / "tests" / "variable_sized_bin_packing_mandatory_bins" / "solution.csv",
             }}));
+
+TEST(OneDimensional, ItemTypeLengthMustBePositive)
+{
+    InstanceBuilder instance_builder;
+    EXPECT_THROW(instance_builder.add_item_type(0), std::invalid_argument);
+    packingsolver::ItemTypeId item_type_id = instance_builder.add_item_type(10);
+    EXPECT_THROW(instance_builder.set_item_type_length(item_type_id, 0), std::invalid_argument);
+}

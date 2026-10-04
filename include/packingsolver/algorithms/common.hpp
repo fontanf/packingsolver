@@ -12,6 +12,9 @@
 #include <algorithm>
 #include <cstdint>
 #include <set>
+#include <sstream>
+#include <stdexcept>
+#include <string>
 #include <iomanip>
 #include <cmath>
 
@@ -269,6 +272,27 @@ std::istream& operator>>(
 std::ostream& operator<<(
         std::ostream& os,
         Objective objective);
+
+/**
+ * Read the value of an enum (with its 'operator>>') from the string 'value'
+ * of the field 'name' of an instance file.
+ *
+ * Throw if the value is not recognized.
+ */
+template <typename Enum>
+Enum read_enum(
+        const std::string& value,
+        const std::string& name)
+{
+    std::stringstream ss(value);
+    Enum e;
+    ss >> e;
+    if (ss.fail()) {
+        throw std::invalid_argument(
+                "unrecognized \"" + name + "\" value \"" + value + "\".");
+    }
+    return e;
+}
 
 
 struct AbstractBinType

@@ -398,13 +398,13 @@ ItemTypeId InstanceBuilder::add_item_type(
         Length y,
         bool oriented)
 {
-    if (x < 0) {
+    if (x <= 0) {
         throw std::invalid_argument(
                 FUNC_SIGNATURE + ": "
                 "item 'x' must be > 0; "
                 "x: " + std::to_string(x) + ".");
     }
-    if (y < 0) {
+    if (y <= 0) {
         throw std::invalid_argument(
                 FUNC_SIGNATURE + ": "
                 "item 'y' must be > 0; "
@@ -662,19 +662,17 @@ void InstanceBuilder::read_parameters(
         }
 
         if (name == "objective") {
-            Objective objective;
-            std::stringstream ss(value);
-            ss >> objective;
+            Objective objective = read_enum<Objective>(value, name);
             set_objective(objective);
         } else if (name == "unloading_constraint") {
-            rectangle::UnloadingConstraint unloading_constraint;
-            std::stringstream ss(value);
-            ss >> unloading_constraint;
+            rectangle::UnloadingConstraint unloading_constraint = read_enum<rectangle::UnloadingConstraint>(
+                    value,
+                    name);
             set_unloading_constraint(unloading_constraint);
         } else if (name == "leftover_mode") {
-            rectangle::LeftoverMode leftover_mode;
-            std::stringstream ss(value);
-            ss >> leftover_mode;
+            rectangle::LeftoverMode leftover_mode = read_enum<rectangle::LeftoverMode>(
+                    value,
+                    name);
             set_leftover_mode(leftover_mode);
         }
     }
@@ -940,16 +938,16 @@ void InstanceBuilder::read(
     }
     if (j.contains("unloading_constraint")) {
         std::string unloading_constraint_string = j["unloading_constraint"];
-        std::stringstream ss(unloading_constraint_string);
-        UnloadingConstraint unloading_constraint;
-        ss >> unloading_constraint;
+        UnloadingConstraint unloading_constraint = read_enum<UnloadingConstraint>(
+                unloading_constraint_string,
+                "unloading_constraint");
         set_unloading_constraint(unloading_constraint);
     }
     if (j.contains("leftover_mode")) {
         std::string leftover_mode_string = j["leftover_mode"];
-        std::stringstream ss(leftover_mode_string);
-        LeftoverMode leftover_mode;
-        ss >> leftover_mode;
+        LeftoverMode leftover_mode = read_enum<LeftoverMode>(
+                leftover_mode_string,
+                "leftover_mode");
         set_leftover_mode(leftover_mode);
     }
 

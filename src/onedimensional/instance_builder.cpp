@@ -257,6 +257,13 @@ void InstanceBuilder::set_bin_types_unweighted()
 ItemTypeId InstanceBuilder::add_item_type(
         Length length)
 {
+    if (length <= 0) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "item 'length' must be > 0; "
+                "length: " + std::to_string(length) + ".");
+    }
+
     ItemType item_type;
     item_type.length = length;
     item_type.profit = length;
@@ -276,6 +283,12 @@ void InstanceBuilder::set_item_type_length(
                 "invalid 'item_type_id'; "
                 "item_type_id: " + std::to_string(item_type_id) + "; "
                 "instance_.item_types_.size(): " + std::to_string(instance_.item_types_.size()) + ".");
+    }
+    if (length <= 0) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "item 'length' must be > 0; "
+                "length: " + std::to_string(length) + ".");
     }
 
     instance_.item_types_[item_type_id].length = length;
@@ -572,9 +585,7 @@ void InstanceBuilder::read_parameters(
         }
 
         if (name == "objective") {
-            Objective objective;
-            std::stringstream ss(value);
-            ss >> objective;
+            Objective objective = read_enum<Objective>(value, name);
             set_objective(objective);
         }
     }

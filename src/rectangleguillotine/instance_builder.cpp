@@ -108,35 +108,45 @@ void InstanceBuilder::set_predefined(std::string str)
 void InstanceBuilder::set_number_of_stages(Counter number_of_stages)
 {
     instance_.parameters_.number_of_stages = number_of_stages;
-    resize_cutting_costs();
 }
 
-void InstanceBuilder::set_cut_type(CutType cut_type)
+Counter InstanceBuilder::number_of_required_cutting_costs() const
 {
-    instance_.parameters_.cut_type = cut_type;
-    resize_cutting_costs();
-}
-
-void InstanceBuilder::resize_cutting_costs()
-{
-    Counter number_of_required_cutting_costs = 1 + instance_.parameters_.number_of_stages
+    return 1 + instance_.parameters_.number_of_stages
         + ((instance_.parameters_.cut_type == CutType::NonExact
                     || instance_.parameters_.cut_type == CutType::Roadef2018)? 1: 0);
-    if ((Counter)instance_.parameters_.cutting_costs.size() < number_of_required_cutting_costs)
-        instance_.parameters_.cutting_costs.resize(number_of_required_cutting_costs);
+}
+
+void InstanceBuilder::check_number_of_cutting_costs() const
+{
+    // With an unlimited number of stages, the number of stages is only known
+    // in 'build', and it is never exceeded.
+    if (instance_.parameters_.number_of_stages == -1)
+        return;
+    if ((Counter)instance_.parameters_.cutting_costs.size()
+            > number_of_required_cutting_costs()) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "too many cutting costs; "
+                "number of cutting costs: " + std::to_string(instance_.parameters_.cutting_costs.size()) + "; "
+                "expected at most: " + std::to_string(number_of_required_cutting_costs()) + " "
+                "(one for the bin, one per stage, and one more for "
+                "non-exact cut types).");
+    }
 }
 
 void InstanceBuilder::set_fixed_cutting_cost(
         Counter stage_id,
         CuttingCost fixed_cost)
 {
-    if (stage_id < 0 || stage_id >= (Counter)instance_.parameters_.cutting_costs.size()) {
+    if (stage_id < 0) {
         throw std::invalid_argument(
                 FUNC_SIGNATURE + ": "
                 "invalid 'stage_id'; "
-                "stage_id: " + std::to_string(stage_id) + "; "
-                "cutting_costs.size(): " + std::to_string(instance_.parameters_.cutting_costs.size()) + ".");
+                "stage_id: " + std::to_string(stage_id) + ".");
     }
+    if (stage_id >= (Counter)instance_.parameters_.cutting_costs.size())
+        instance_.parameters_.cutting_costs.resize(stage_id + 1);
     instance_.parameters_.cutting_costs[stage_id].fixed = fixed_cost;
 }
 
@@ -144,29 +154,21 @@ void InstanceBuilder::set_variable_cutting_cost(
         Counter stage_id,
         CuttingCost variable_cost)
 {
-    if (stage_id < 0 || stage_id >= (Counter)instance_.parameters_.cutting_costs.size()) {
+    if (stage_id < 0) {
         throw std::invalid_argument(
                 FUNC_SIGNATURE + ": "
                 "invalid 'stage_id'; "
-                "stage_id: " + std::to_string(stage_id) + "; "
-                "cutting_costs.size(): " + std::to_string(instance_.parameters_.cutting_costs.size()) + ".");
+                "stage_id: " + std::to_string(stage_id) + ".");
     }
+    if (stage_id >= (Counter)instance_.parameters_.cutting_costs.size())
+        instance_.parameters_.cutting_costs.resize(stage_id + 1);
     instance_.parameters_.cutting_costs[stage_id].variable = variable_cost;
 }
 
 void InstanceBuilder::set_number_of_stages_unlimited()
 {
-    Counter max_stages = 0;
-    for (BinTypeId bin_type_id = 0;
-            bin_type_id < instance_.number_of_bin_types();
-            ++bin_type_id) {
-        const BinType& bin_type = instance_.bin_type(bin_type_id);
-        max_stages = std::max(max_stages, bin_type.rect.w + bin_type.rect.h);
-    }
-    instance_.parameters_.number_of_stages = max_stages;
-    instance_.parameters_.cut_type = CutType::Exact;
-    instance_.parameters_.first_stage_orientation = CutOrientation::Any;
-    resize_cutting_costs();
+    // Resolved in 'build', once all the bin types are known.
+    instance_.parameters_.number_of_stages = -1;
 }
 
 void InstanceBuilder::set_roadef2018()
@@ -179,7 +181,6 @@ void InstanceBuilder::set_roadef2018()
     instance_.parameters_.minimum_distance_2_cuts = 100;
     instance_.parameters_.minimum_waste_length = 20;
     instance_.parameters_.cut_through_defects = false;
-    resize_cutting_costs();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -561,13 +562,13 @@ ItemTypeId InstanceBuilder::add_item_type(
         bool oriented,
         StackId stack_id)
 {
-    if (width < 0) {
+    if (width <= 0) {
         throw std::invalid_argument(
                 FUNC_SIGNATURE + ": "
                 "item 'width' must be > 0; "
                 "width: " + std::to_string(width) + ".");
     }
-    if (height < 0) {
+    if (height <= 0) {
         throw std::invalid_argument(
                 FUNC_SIGNATURE + ": "
                 "item 'height' must be > 0; "
@@ -773,9 +774,7 @@ void InstanceBuilder::read_parameters(
         }
 
         if (name == "objective") {
-            Objective objective;
-            std::stringstream ss(value);
-            ss >> objective;
+            Objective objective = read_enum<Objective>(value, name);
             set_objective(objective);
         } else if (name == "number_of_stages") {
             if (value == "u"
@@ -786,14 +785,12 @@ void InstanceBuilder::read_parameters(
                 set_number_of_stages(std::stol(value));
             }
         } else if (name == "cut_type") {
-            CutType cut_type;
-            std::stringstream ss(value);
-            ss >> cut_type;
+            CutType cut_type = read_enum<CutType>(value, name);
             set_cut_type(cut_type);
         } else if (name == "first_stage_orientation") {
-            CutOrientation first_stage_orientation;
-            std::stringstream ss(value);
-            ss >> first_stage_orientation;
+            CutOrientation first_stage_orientation = read_enum<CutOrientation>(
+                    value,
+                    name);
             set_first_stage_orientation(first_stage_orientation);
         } else if (name == "min1cut"
                 || name == "min1Cut"
@@ -834,6 +831,7 @@ void InstanceBuilder::read_parameters(
             set_waste_cost(std::stoll(value));
         }
     }
+    check_number_of_cutting_costs();
 }
 
 void InstanceBuilder::read_bin_types(
@@ -889,17 +887,17 @@ void InstanceBuilder::read_bin_types(
             } else if (labels[i] == "RIGHT_TRIM") {
                 right_trim = (Length)std::stol(line[i]);
             } else if (labels[i] == "BOTTOM_TRIM_TYPE") {
-                std::stringstream ss(line[i]);
-                ss >> bottom_trim_type;
+                bottom_trim_type = read_enum<TrimType>(
+                        line[i],
+                        "BOTTOM_TRIM_TYPE");
             } else if (labels[i] == "TOP_TRIM_TYPE") {
-                std::stringstream ss(line[i]);
-                ss >> top_trim_type;
+                top_trim_type = read_enum<TrimType>(line[i], "TOP_TRIM_TYPE");
             } else if (labels[i] == "LEFT_TRIM_TYPE") {
-                std::stringstream ss(line[i]);
-                ss >> left_trim_type;
+                left_trim_type = read_enum<TrimType>(line[i], "LEFT_TRIM_TYPE");
             } else if (labels[i] == "RIGHT_TRIM_TYPE") {
-                std::stringstream ss(line[i]);
-                ss >> right_trim_type;
+                right_trim_type = read_enum<TrimType>(
+                        line[i],
+                        "RIGHT_TRIM_TYPE");
             }
         }
 
@@ -1120,16 +1118,14 @@ void InstanceBuilder::read(
     }
     if (j.contains("cut_type")) {
         std::string cut_type_string = j["cut_type"];
-        std::stringstream ss(cut_type_string);
-        CutType cut_type;
-        ss >> cut_type;
+        CutType cut_type = read_enum<CutType>(cut_type_string, "cut_type");
         set_cut_type(cut_type);
     }
     if (j.contains("first_stage_orientation")) {
         std::string first_stage_orientation_string = j["first_stage_orientation"];
-        std::stringstream ss(first_stage_orientation_string);
-        CutOrientation first_stage_orientation;
-        ss >> first_stage_orientation;
+        CutOrientation first_stage_orientation = read_enum<CutOrientation>(
+                first_stage_orientation_string,
+                "first_stage_orientation");
         set_first_stage_orientation(first_stage_orientation);
     }
     if (j.contains("minimum_distance_1_cuts"))
@@ -1160,6 +1156,7 @@ void InstanceBuilder::read(
     }
     if (j.contains("waste_cost"))
         set_waste_cost(j["waste_cost"]);
+    check_number_of_cutting_costs();
 
     // Read bin types.
     for (const auto& json_bin_type: j["bin_types"]) {
@@ -1184,23 +1181,19 @@ void InstanceBuilder::read(
             TrimType right_trim_type = TrimType::Soft;
             if (json_bin_type.contains("bottom_trim_type")) {
                 std::string s = json_bin_type["bottom_trim_type"];
-                std::stringstream ss(s);
-                ss >> bottom_trim_type;
+                bottom_trim_type = read_enum<TrimType>(s, "bottom_trim_type");
             }
             if (json_bin_type.contains("top_trim_type")) {
                 std::string s = json_bin_type["top_trim_type"];
-                std::stringstream ss(s);
-                ss >> top_trim_type;
+                top_trim_type = read_enum<TrimType>(s, "top_trim_type");
             }
             if (json_bin_type.contains("left_trim_type")) {
                 std::string s = json_bin_type["left_trim_type"];
-                std::stringstream ss(s);
-                ss >> left_trim_type;
+                left_trim_type = read_enum<TrimType>(s, "left_trim_type");
             }
             if (json_bin_type.contains("right_trim_type")) {
                 std::string s = json_bin_type["right_trim_type"];
-                std::stringstream ss(s);
-                ss >> right_trim_type;
+                right_trim_type = read_enum<TrimType>(s, "right_trim_type");
             }
             add_trims(
                     bin_type_id,
@@ -1368,6 +1361,31 @@ void InstanceBuilder::build_stacks()
 
 Instance InstanceBuilder::build()
 {
+    // Unlimited number of stages: each guillotine cut reduces at least one
+    // dimension by at least 1 unit, so no cut tree can be deeper than
+    // max(bin_width + bin_height) over all bin types. The cuts are then
+    // exact, in any orientation, whatever the cut type and the first stage
+    // orientation which have been set.
+    if (instance_.parameters_.number_of_stages == -1) {
+        Counter max_stages = 0;
+        for (BinTypeId bin_type_id = 0;
+                bin_type_id < instance_.number_of_bin_types();
+                ++bin_type_id) {
+            const BinType& bin_type = instance_.bin_type(bin_type_id);
+            max_stages = std::max(max_stages, bin_type.rect.w + bin_type.rect.h);
+        }
+        instance_.parameters_.number_of_stages = max_stages;
+        instance_.parameters_.cut_type = CutType::Exact;
+        instance_.parameters_.first_stage_orientation = CutOrientation::Any;
+    }
+
+    // Cutting costs: one for the bin, one per stage, and one for the extra
+    // cut of non-exact cut types; the ones which are not set are 0.
+    if ((Counter)instance_.parameters_.cutting_costs.size()
+            < number_of_required_cutting_costs()) {
+        instance_.parameters_.cutting_costs.resize(number_of_required_cutting_costs());
+    }
+
     // minimum_distance_2_cuts, maximum_distance_2_cuts and
     // maximum_number_2_cuts are not allowed for 2-staged instances.
     if (instance_.parameters().number_of_stages == 2) {

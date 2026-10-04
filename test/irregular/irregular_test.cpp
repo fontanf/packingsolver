@@ -167,3 +167,15 @@ TEST(Irregular, AddFixedItemInvalidIds)
     instance_builder.add_fixed_item(bin_type_id, item_type_id + 1, {0, 0}, 0, false);
     EXPECT_THROW(instance_builder.build(), std::invalid_argument);
 }
+
+TEST(Irregular, ReadUnknownLeftoverMode)
+{
+    // An unrecognized value is rejected instead of being ignored.
+    std::stringstream ss(R"({
+            "objective": "bin-packing-with-leftovers",
+            "parameters": {"leftover_mode": "middle"},
+            "bin_types": [{"type": "rectangle", "width": 100, "height": 50}],
+            "item_types": [{"type": "rectangle", "width": 10, "height": 10}]})");
+    InstanceBuilder instance_builder;
+    EXPECT_THROW(instance_builder.read(ss), std::invalid_argument);
+}
