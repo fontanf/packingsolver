@@ -34,9 +34,11 @@ function detailsNumber(key, label, placeholder, options = {}) {
 // must be packed with the other objectives).
 function copiesColumns(isItem) {
     const copies = numberColumn(["copies", "Copies"], 1);
+    // A single copy of the bin for the open dimension objectives.
+    copies.singleForOpenDimension = !isItem;
     copies.unlimited = isItem?
         (objective) => objective === "knapsack":
-        (objective) => objective !== "knapsack";
+        (objective) => objective !== "knapsack" && !openDimension(objective);
     const objectives = isItem? ["knapsack"]: ["variable-sized-bin-packing"];
     return [copies, detailsNumber("copies_min", "Minimum copies", "0", {objectives})];
 }
@@ -53,6 +55,12 @@ function trimTypeColumns() {
         value,
         details: true,
     }));
+}
+
+// Whether an objective is an open dimension one: the instance then has a
+// single bin (one bin type, one copy).
+function openDimension(objective) {
+    return objective.startsWith("open-dimension");
 }
 
 // Problem types with weights: the maximum weight of the bins and the weight
@@ -111,6 +119,8 @@ function itemColumns(problemType) {
 // - 'unlimited': the value can be unlimited, with a checkbox next to it
 //   (checked by default); it is then not written;
 // - 'integer': the value is a positive integer;
+// - 'positive': the value is > 0;
+// - 'required': the value can't be empty;
 // - 'objectives': the objectives for which the parameter is shown;
 // - 'shown(values)': whether the parameter is shown;
 // - 'forced(values)': the value imposed by other parameters, if any (the
@@ -157,6 +167,10 @@ const INSTANCE_PARAMETERS = {
     irregular: [
         {key: "item_item_minimum_spacing", label: "Minimum spacing between items",
             type: "number", placeholder: "0", inParameters: true},
+        // Required: the objective isn't supported without it.
+        {key: "open_dimension_xy_aspect_ratio", label: "Aspect ratio (height / width)",
+            type: "number", value: "1", required: true, positive: true, inParameters: true,
+            objectives: ["open-dimension-xy"]},
     ],
 };
 
@@ -361,10 +375,13 @@ function addInstanceParameters(instanceObject) {
             if (value === "") {
                 if (parameter.unlimited)
                     throw new Error(`${name}: enter a value, or check "unlimited".`);
+                if (parameter.required)
+                    throw new Error(`${name}: enter a value.`);
                 continue;
             }
             converted = Number(value);
             if (!Number.isFinite(converted) || converted < 0
+                    || (parameter.positive && converted <= 0)
                     || (parameter.integer && (!Number.isInteger(converted) || converted < 1))) {
                 throw new Error(`invalid ${name}: "${value}".`);
             }
@@ -392,6 +409,8 @@ const OBJECTIVES = [
         ["rectangleguillotine", "rectangle", "box", "boxstacks", "irregular"]],
     ["open-dimension-y", "Open dimension Y: minimize the width",
         ["rectangleguillotine", "rectangle", "box", "boxstacks", "irregular"]],
+    ["open-dimension-z", "Open dimension Z: minimize the height", ["box"]],
+    ["open-dimension-xy", "Open dimension XY: minimize the area, with a given aspect ratio", ["irregular"]],
     ["feasibility", "Feasibility"],
 ];
 
@@ -708,6 +727,14 @@ function renderTable(table, columns, rows) {
                 tr.insertCell().appendChild(unlimitedCell(row, column));
                 continue;
             }
+            // A single copy of the bin for the open dimension objectives.
+            if (column.singleForOpenDimension && openDimension($("objective").value)) {
+                const input = fieldInput(row, column);
+                input.disabled = true;
+                input.title = "A single bin for the open dimension objectives";
+                tr.insertCell().appendChild(input);
+                continue;
+            }
             tr.insertCell().appendChild(fieldInput(row, column));
         }
         const buttons = tr.insertCell();
@@ -776,6 +803,8 @@ function addDefectsLine(body, numberOfColumns, defects) {
 function renderForm() {
     const type = problemType();
     const irregular = (type === "irregular");
+    // A single bin for the open dimension objectives.
+    $("add-bin-type").disabled = openDimension($("objective").value);
     $("form-error").hidden = !irregular;
     $("file-items").hidden = !irregular;
     if (irregular) {
@@ -1171,6 +1200,12 @@ function downloadInstance() {
 function init() {
     // Some fields are only shown for some objectives.
     $("objective").addEventListener("change", () => {
+        // A single bin for the open dimension objectives.
+        if (openDimension($("objective").value) && state.binTypes.length > 0) {
+            state.binTypes.splice(1);
+            state.binTypes[0].copies = 1;
+            state.binTypes[0].unlimited_copies = false;
+        }
         renderInstanceParameters();
         renderForm();
     });
