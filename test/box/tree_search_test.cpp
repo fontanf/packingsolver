@@ -84,4 +84,14 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "box" / "tests" / "open_dimension_x_4_different_items_yz" / "bins.csv",
                 fs::path("data") / "box" / "tests" / "open_dimension_x_4_different_items_yz" / "parameters.csv",
                 fs::path("data") / "box" / "tests" / "open_dimension_x_4_different_items_yz" / "solution.csv",
+            }, {
+                fs::path("data") / "box" / "tests" / "open_dimension_y_4_different_items_xy" / "items.csv",
+                fs::path("data") / "box" / "tests" / "open_dimension_y_4_different_items_xy" / "bins.csv",
+                fs::path("data") / "box" / "tests" / "open_dimension_y_4_different_items_xy" / "parameters.csv",
+                fs::path("data") / "box" / "tests" / "open_dimension_y_4_different_items_xy" / "solution.csv",
+            }, {
+                fs::path("data") / "box" / "tests" / "open_dimension_z_4_different_items_zy" / "items.csv",
+                fs::path("data") / "box" / "tests" / "open_dimension_z_4_different_items_zy" / "bins.csv",
+                fs::path("data") / "box" / "tests" / "open_dimension_z_4_different_items_zy" / "parameters.csv",
+                fs::path("data") / "box" / "tests" / "open_dimension_z_4_different_items_zy" / "solution.csv",
             }}));
