@@ -511,7 +511,9 @@ function addPlacedShapeButton(row, key, kind, defaultValue, onStructureChange) {
 // Whether the copies of the items (bins) can be unlimited for an objective:
 // only for the knapsack objective (all but the knapsack objective).
 export function unlimitedCopiesAllowed(objective, isItem) {
-    return (objective === "knapsack") === isItem;
+    if (isItem)
+        return objective === "knapsack";
+    return objective !== "knapsack" && !objective.startsWith("open-dimension");
 }
 
 // The copies of a row: -1 if unlimited.
@@ -588,7 +590,13 @@ export function renderTable(table, rows, isItem, objective, onTableChange, onStr
         tr.insertCell().appendChild(thumbnail);
         tr.insertCell().appendChild(select(row, "shape", "Shape", SHAPES, onStructureChange));
         tr.insertCell().appendChild(dimensionsCell(row, onChange, onStructureChange));
-        tr.insertCell().appendChild(copiesCell(row, unlimited, onChange, onStructureChange));
+        const copies = copiesCell(row, unlimited, onChange, onStructureChange);
+        // A single copy of the bin for the open dimension objectives.
+        if (!isItem && objective.startsWith("open-dimension")) {
+            copies.disabled = true;
+            copies.title = "A single bin for the open dimension objectives";
+        }
+        tr.insertCell().appendChild(copies);
         if (withValue) {
             const valueKey = isItem? "profit": "cost";
             tr.insertCell().appendChild(input(row, valueKey, isItem? "Profit": "Cost",
