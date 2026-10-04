@@ -223,3 +223,16 @@ test("irregular form: holes", async () => {
     assert.strictEqual(result.error, undefined);
     assert.strictEqual(result.output.Solution.NumberOfItems, 1);
 });
+
+test("irregular form: profits and costs only for their objectives", () => {
+    const bins = [{...binRows[0], cost: "3"}];
+    const items = [{...itemRows[0], profit: "7"}];
+    const knapsack = irregularForm.instance("knapsack", bins, items);
+    assert.strictEqual(knapsack.item_types[0].profit, 7);
+    assert.ok(!("cost" in knapsack.bin_types[0]));
+    const variableSized = irregularForm.instance("variable-sized-bin-packing", bins, items);
+    assert.strictEqual(variableSized.bin_types[0].cost, 3);
+    assert.ok(!("profit" in variableSized.item_types[0]));
+    const binPacking = irregularForm.instance("bin-packing", bins, items);
+    assert.ok(!("cost" in binPacking.bin_types[0]) && !("profit" in binPacking.item_types[0]));
+});

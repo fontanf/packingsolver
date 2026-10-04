@@ -264,7 +264,7 @@ export function instance(objective, binRows, itemRows) {
             if (shape.holes !== undefined)
                 throw new Error("a bin can't have holes.");
             const binType = {...shape, copies: copies(row.copies)};
-            const cost = optionalNumber(row.cost, "cost");
+            const cost = valueUsed(objective, false)? optionalNumber(row.cost, "cost"): undefined;
             if (cost !== undefined)
                 binType.cost = cost;
             const spacing = optionalNumber(row.spacing, "item spacing");
@@ -293,7 +293,7 @@ export function instance(objective, binRows, itemRows) {
                 copies: copies(row.copies),
                 allowed_rotations: ROTATIONS[row.rotations].rotations,
             };
-            const profit = optionalNumber(row.profit, "profit");
+            const profit = valueUsed(objective, true)? optionalNumber(row.profit, "profit"): undefined;
             if (profit !== undefined)
                 itemType.profit = profit;
             if (row.mirror)
@@ -508,13 +508,22 @@ function addPlacedShapeButton(row, key, kind, defaultValue, onStructureChange) {
     return add;
 }
 
-// Render a bin ('isItem' false) or item type table. 'onTableChange' is
-// called when a value changes, 'onStructureChange' when the table must be rendered
-// again (shape changed, row removed).
-export function renderTable(table, rows, isItem, onTableChange, onStructureChange) {
+// Whether the profit of the items (cost of the bins) is used for an
+// objective: only for the knapsack (variable-sized bin packing) objective.
+export function valueUsed(objective, isItem) {
+    return objective === (isItem? "knapsack": "variable-sized-bin-packing");
+}
+
+// Render a bin ('isItem' false) or item type table, for an objective.
+// 'onTableChange' is called when a value changes, 'onStructureChange' when
+// the table must be rendered again (shape changed, row removed).
+export function renderTable(table, rows, isItem, objective, onTableChange, onStructureChange) {
     table.replaceChildren();
     const header = table.createTHead().insertRow();
-    const labels = ["", "Shape", "Dimensions", "Copies", isItem? "Profit": "Cost"];
+    const withValue = valueUsed(objective, isItem);
+    const labels = ["", "Shape", "Dimensions", "Copies"];
+    if (withValue)
+        labels.push(isItem? "Profit": "Cost");
     if (isItem)
         labels.push("Rotations", "Mirror");
     else
@@ -541,9 +550,11 @@ export function renderTable(table, rows, isItem, onTableChange, onStructureChang
         tr.insertCell().appendChild(select(row, "shape", "Shape", SHAPES, onStructureChange));
         tr.insertCell().appendChild(dimensionsCell(row, onChange, onStructureChange));
         tr.insertCell().appendChild(input(row, "copies", "Copies", {...NUMBER, min: "1", step: "1"}, onChange));
-        const valueKey = isItem? "profit": "cost";
-        tr.insertCell().appendChild(input(row, valueKey, isItem? "Profit": "Cost",
-            {...NUMBER, placeholder: "default"}, onChange));
+        if (withValue) {
+            const valueKey = isItem? "profit": "cost";
+            tr.insertCell().appendChild(input(row, valueKey, isItem? "Profit": "Cost",
+                {...NUMBER, placeholder: "default"}, onChange));
+        }
         if (isItem) {
             const rotationLabels = Object.fromEntries(
                 Object.entries(ROTATIONS).map(([key, value]) => [key, value.label]));
@@ -562,16 +573,14 @@ export function renderTable(table, rows, isItem, onTableChange, onStructureChang
         });
         const buttons = tr.insertCell();
         buttons.className = "row-buttons";
-        // The defects of a bin, on a line below it, with a button to add one.
-        // The holes of an item, on a line below it if it has some; the
-        // button to add one is on its row.
+        // The defects of a bin, or the holes of an item, on a line below it
+        // if it has some; the button to add one is on its row.
         const [key, kind, defaultValue] = isItem?
             ["holes", "Hole", defaultHole]: ["defects", "Defect", defaultDefect];
         row[key] = row[key] || [];
-        if (isItem)
-            buttons.appendChild(addPlacedShapeButton(row, key, kind, defaultValue, onStructureChange));
+        buttons.appendChild(addPlacedShapeButton(row, key, kind, defaultValue, onStructureChange));
         buttons.appendChild(remove);
-        if (!isItem || row.holes.length > 0) {
+        if (row[key].length > 0) {
             const line = body.insertRow();
             line.className = "placed-shapes-line";
             const cell = line.insertCell();
@@ -579,10 +588,7 @@ export function renderTable(table, rows, isItem, onTableChange, onStructureChang
             const label = document.createElement("span");
             label.className = "placed-shapes-label";
             label.textContent = isItem? "Holes": "Defects";
-            const shapes = placedShapesCell(row, key, kind, onChange, onStructureChange);
-            if (!isItem)
-                shapes.appendChild(addPlacedShapeButton(row, key, kind, defaultValue, onStructureChange));
-            cell.append(label, shapes);
+            cell.append(label, placedShapesCell(row, key, kind, onChange, onStructureChange));
         }
     });
 }

@@ -268,6 +268,47 @@ td.row-buttons {
     white-space: nowrap;
 }
 
+/* A number which can be unlimited, and its checkbox. */
+.unlimited {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* A second line in a header of a table. */
+.header-note {
+    font-weight: normal;
+    font-size: 0.85em;
+    color: var(--muted);
+    white-space: nowrap;
+}
+
+/* The details of a row, on a line below it. */
+tr.details-line td {
+    padding-left: 1.5rem;
+}
+
+.details {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 1.25rem;
+}
+
+.details label.inline {
+    gap: 0.4rem;
+}
+
+.details input[type="number"] {
+    width: 7rem;
+}
+
+/* A field of the details of the row isn't at its default value. */
+.row-buttons button.modified::after {
+    content: " •";
+    color: var(--accent);
+}
+
 .error-text {
     color: var(--error);
 }

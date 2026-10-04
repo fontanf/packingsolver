@@ -18,6 +18,33 @@ function numberColumn([key, label], value, optional = false) {
     return {key, label, type: "number", value, optional};
 }
 
+// Fields of a row shown in its details line (opened with its "More" button)
+// instead of a column. 'placeholder' is the value used if the field is empty;
+// 'objectives', if given, the objectives for which the field is shown (it is
+// ignored for the others).
+function detailsNumber(key, label, placeholder, options = {}) {
+    return {key, label, type: "number", value: "", optional: true, details: true, placeholder, ...options};
+}
+
+// Copies of a bin or item type, which can be unlimited ('copies' -1, with a
+// checkbox next to them): bin types except for the knapsack objective, item
+// types only for the knapsack objective. And the minimum number of copies to
+// use, in the details: for bin types only for the variable-sized bin packing
+// objective, for item types only for the knapsack objective (all the items
+// must be packed with the other objectives).
+function copiesColumns(isItem) {
+    const copies = numberColumn(["copies", "Copies"], 1);
+    copies.unlimited = isItem?
+        (objective) => objective === "knapsack":
+        (objective) => objective !== "knapsack";
+    const objectives = isItem? ["knapsack"]: ["variable-sized-bin-packing"];
+    return [copies, detailsNumber("copies_min", "Minimum copies", "0", {objectives})];
+}
+
+// Problem types with weights: the maximum weight of the bins and the weight
+// of the items.
+const WEIGHTS = ["rectangle", "box", "boxstacks", "onedimensional"];
+
 // Rotations of the box problem type (see 'box::Rotation'): the dimensions of
 // the item along x, y and z.
 const BOX_ROTATIONS = ["XYZ", "YXZ", "ZYX", "YZX", "XZY", "ZXY"];
@@ -25,9 +52,12 @@ const BOX_ROTATIONS = ["XYZ", "YXZ", "ZYX", "YZX", "XZY", "ZXY"];
 function binColumns(problemType) {
     const columns = [
         ...DIMENSIONS[problemType].map((d) => numberColumn(d, 100)),
-        numberColumn(["copies", "Copies"], 1),
-        numberColumn(["cost", "Cost"], "", true),
+        ...copiesColumns(false),
+        // The cost of the bins only matters for variable-sized bin packing.
+        {...numberColumn(["cost", "Cost"], "", true), objectives: ["variable-sized-bin-packing"]},
     ];
+    if (WEIGHTS.includes(problemType))
+        columns.push(detailsNumber("maximum_weight", "Maximum weight", "none"));
     if (problemType === "rectangleguillotine")
         columns.push({key: "trims", label: "Trims", type: "trims", value: {}});
     if (problemType === "rectangleguillotine" || problemType === "rectangle")
@@ -39,9 +69,12 @@ function binColumns(problemType) {
 function itemColumns(problemType) {
     const columns = [
         ...DIMENSIONS[problemType].map((d) => numberColumn(d, 10)),
-        numberColumn(["copies", "Copies"], 1),
-        numberColumn(["profit", "Profit"], "", true),
+        ...copiesColumns(true),
+        // The profit of the items only matters for the knapsack objective.
+        {...numberColumn(["profit", "Profit"], "", true), objectives: ["knapsack"]},
     ];
+    if (WEIGHTS.includes(problemType))
+        columns.push(detailsNumber("weight", "Weight", "0"));
     if (problemType === "rectangleguillotine" || problemType === "rectangle")
         columns.push({key: "oriented", label: "Oriented", type: "checkbox", value: false});
     if (problemType === "boxstacks")
@@ -253,8 +286,11 @@ function problemType() {
 
 function defaultRow(columns) {
     const row = {};
-    for (const column of columns)
+    for (const column of columns) {
         row[column.key] = structuredClone(column.value);
+        if (column.unlimited)
+            row["unlimited_" + column.key] = false;
+    }
     return row;
 }
 
@@ -327,26 +363,107 @@ function defectsCell(row, column) {
         line.appendChild(remove);
         cell.appendChild(line);
     });
-    const add = document.createElement("button");
-    add.type = "button";
-    add.textContent = "Add a defect";
-    add.addEventListener("click", () => {
-        defects.push({x: "", y: "", width: "", height: ""});
-        renderForm();
-    });
-    cell.appendChild(add);
     return cell;
 }
+
+// Whether a column is shown for the current objective.
+function columnShown(column) {
+    return column.objectives === undefined || column.objectives.includes($("objective").value);
+}
+
+// Input of a number or checkbox field of a row.
+function fieldInput(row, column) {
+    const input = document.createElement("input");
+    input.type = column.type;
+    input.setAttribute("aria-label", column.label);
+    if (column.type === "checkbox") {
+        input.checked = Boolean(row[column.key]);
+        input.addEventListener("change", () => { row[column.key] = input.checked; });
+    } else {
+        input.min = "0";
+        input.step = "any";
+        input.value = row[column.key];
+        if (column.optional)
+            input.placeholder = column.placeholder || "default";
+        input.addEventListener("input", () => { row[column.key] = input.value; });
+    }
+    return input;
+}
+
+// Whether unlimited values are allowed for a column, for the current
+// objective.
+function unlimitedAllowed(column) {
+    return column.unlimited !== undefined && column.unlimited($("objective").value);
+}
+
+// Whether the value of a column of a row is unlimited (then its value is
+// ignored).
+function unlimitedValue(row, column) {
+    return unlimitedAllowed(column) && Boolean(row["unlimited_" + column.key]);
+}
+
+// Cell of a number column which can be unlimited: the number, and a checkbox
+// which disables it (its header says so).
+function unlimitedCell(row, column) {
+    const cell = document.createElement("div");
+    cell.className = "unlimited";
+    const input = fieldInput(row, column);
+    const key = "unlimited_" + column.key;
+    if (row[key]) {
+        input.disabled = true;
+        input.value = "";
+        input.placeholder = "unlimited";
+    }
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = Boolean(row[key]);
+    checkbox.title = "Unlimited";
+    checkbox.setAttribute("aria-label", `Unlimited ${column.label.toLowerCase()}`);
+    checkbox.addEventListener("change", () => {
+        row[key] = checkbox.checked;
+        renderForm();
+    });
+    cell.append(input, checkbox);
+    return cell;
+}
+
+// Line, below a row of a table, with the fields of its details.
+function addDetailsLine(body, numberOfColumns, row, detailsColumns) {
+    const tr = body.insertRow();
+    tr.className = "details-line";
+    const cell = tr.insertCell();
+    cell.colSpan = numberOfColumns;
+    const fields = document.createElement("div");
+    fields.className = "details";
+    for (const column of detailsColumns) {
+        const label = document.createElement("label");
+        label.className = "inline";
+        label.append(column.label, fieldInput(row, column));
+        fields.appendChild(label);
+    }
+    cell.appendChild(fields);
+}
+
+// Rows whose details line is open.
+const openDetails = new WeakSet();
 
 function renderTable(table, columns, rows) {
     table.replaceChildren();
     const header = table.createTHead().insertRow();
-    // The defects are on a line below their row.
+    // The defects are on a line below their row, the details on another one.
     const defectsColumn = columns.find((column) => column.type === "defects");
-    columns = columns.filter((column) => column.type !== "defects");
+    const detailsColumns = columns.filter((column) => column.details && columnShown(column));
+    columns = columns.filter(
+        (column) => column.type !== "defects" && !column.details && columnShown(column));
     for (const column of columns) {
         const th = document.createElement("th");
         th.textContent = column.label;
+        if (unlimitedAllowed(column)) {
+            const note = document.createElement("span");
+            note.className = "header-note";
+            note.textContent = "(or unlimited)";
+            th.append(document.createElement("br"), note);
+        }
         header.appendChild(th);
     }
     header.appendChild(document.createElement("th"));
@@ -362,21 +479,47 @@ function renderTable(table, columns, rows) {
                 tr.insertCell().appendChild(trimsCell(row, column));
                 continue;
             }
-            const input = document.createElement("input");
-            input.type = column.type;
-            input.setAttribute("aria-label", column.label);
-            if (column.type === "checkbox") {
-                input.checked = Boolean(row[column.key]);
-                input.addEventListener("change", () => { row[column.key] = input.checked; });
-            } else {
-                input.min = "0";
-                input.step = "any";
-                input.value = row[column.key];
-                if (column.optional)
-                    input.placeholder = "default";
-                input.addEventListener("input", () => { row[column.key] = input.value; });
+            if (unlimitedAllowed(column)) {
+                tr.insertCell().appendChild(unlimitedCell(row, column));
+                continue;
             }
-            tr.insertCell().appendChild(input);
+            tr.insertCell().appendChild(fieldInput(row, column));
+        }
+        const buttons = tr.insertCell();
+        buttons.className = "row-buttons";
+        // The defects are on a line below the row if it has some; the button
+        // to add one is on the row.
+        if (defectsColumn !== undefined) {
+            const add = document.createElement("button");
+            add.type = "button";
+            add.textContent = "Add a defect";
+            add.addEventListener("click", () => {
+                row[defectsColumn.key].push({x: "", y: "", width: "", height: ""});
+                renderForm();
+            });
+            buttons.appendChild(add);
+        }
+        if (detailsColumns.length > 0) {
+            const more = document.createElement("button");
+            more.type = "button";
+            const open = openDetails.has(row);
+            more.textContent = open? "Less": "More";
+            more.setAttribute("aria-expanded", String(open));
+            // A mark if a field of the details isn't at its default value.
+            const modified = detailsColumns.filter(
+                (column) => JSON.stringify(row[column.key]) !== JSON.stringify(column.value));
+            if (modified.length > 0) {
+                more.classList.add("modified");
+                more.title = "Set: " + modified.map((column) => column.label.toLowerCase()).join(", ");
+            }
+            more.addEventListener("click", () => {
+                if (openDetails.has(row))
+                    openDetails.delete(row);
+                else
+                    openDetails.add(row);
+                renderForm();
+            });
+            buttons.appendChild(more);
         }
         const remove = document.createElement("button");
         remove.type = "button";
@@ -385,8 +528,10 @@ function renderTable(table, columns, rows) {
             rows.splice(rowIndex, 1);
             renderForm();
         });
-        tr.insertCell().appendChild(remove);
-        if (defectsColumn !== undefined)
+        buttons.appendChild(remove);
+        if (openDetails.has(row) && detailsColumns.length > 0)
+            addDetailsLine(body, columns.length + 1, row, detailsColumns);
+        if (defectsColumn !== undefined && row[defectsColumn.key].length > 0)
             addDefectsLine(body, columns.length + 1, defectsCell(row, defectsColumn));
     });
 }
@@ -409,10 +554,11 @@ function renderForm() {
     $("form-error").hidden = !irregular;
     $("file-items").hidden = !irregular;
     if (irregular) {
+        const objective = $("objective").value;
         irregularForm.renderTable(
-            $("bin-types"), state.binTypes, false, scheduleFormCheck, renderForm);
+            $("bin-types"), state.binTypes, false, objective, scheduleFormCheck, renderForm);
         irregularForm.renderTable(
-            $("item-types"), state.itemTypes, true, scheduleFormCheck, renderForm);
+            $("item-types"), state.itemTypes, true, objective, scheduleFormCheck, renderForm);
         scheduleFormCheck();
         return;
     }
@@ -468,8 +614,16 @@ function updateGallery() {
         button.setAttribute("aria-pressed", String(button.dataset.problemType === problemType()));
 }
 
+// Objectives for which the bin types created have unlimited copies.
+const UNLIMITED_BINS_OBJECTIVES = ["bin-packing", "bin-packing-with-leftovers", "variable-sized-bin-packing"];
+
 function newBinRow(type) {
-    return (type === "irregular")? irregularForm.defaultBinRow(): defaultRow(binColumns(type));
+    if (type === "irregular")
+        return irregularForm.defaultBinRow();
+    const row = defaultRow(binColumns(type));
+    if (UNLIMITED_BINS_OBJECTIVES.includes($("objective").value))
+        row.unlimited_copies = true;
+    return row;
 }
 
 function newItemRow(type) {
@@ -528,7 +682,12 @@ function formInstance() {
         const result = {};
         for (const column of columns) {
             const value = row[column.key];
-            if (column.type === "rotations") {
+            // The fields which are not shown for the objective are ignored.
+            if (!columnShown(column))
+                continue;
+            if (unlimitedValue(row, column)) {
+                result[column.key] = -1;
+            } else if (column.type === "rotations") {
                 if (value.length === 0)
                     throw new Error("select at least one rotation.");
                 result.rotations = value;
@@ -765,6 +924,8 @@ function init() {
         $("objective").appendChild(option);
     }
 
+    // Some fields are only shown for some objectives.
+    $("objective").addEventListener("change", renderForm);
     $("problem-type").addEventListener("change", () => {
         resetForm();
         updateGallery();
