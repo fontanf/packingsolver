@@ -1092,8 +1092,57 @@ void InstanceBuilder::read(
 //////////////////////////////////// Build /////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
+void InstanceBuilder::resolve_item_types_unlimited_copies()
+{
+    // Total volume of the bins, computed for the first item type with
+    // unlimited copies.
+    Volume bins_volume = -1;
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance_.number_of_item_types();
+            ++item_type_id) {
+        ItemType& item_type = instance_.item_types_[item_type_id];
+        if (item_type.copies != -1)
+            continue;
+        if (instance_.objective() != Objective::Knapsack) {
+            throw std::invalid_argument(
+                    FUNC_SIGNATURE + ": "
+                    "item type " + std::to_string(item_type_id) + " has "
+                    "unlimited copies ('copies' == -1), "
+                    "which is only allowed with the 'Knapsack' objective.");
+        }
+        if (item_type.volume() <= 0) {
+            throw std::invalid_argument(
+                    FUNC_SIGNATURE + ": "
+                    "item type " + std::to_string(item_type_id) + " has "
+                    "unlimited copies ('copies' == -1) and an volume of 0.");
+        }
+        if (bins_volume == -1) {
+            bins_volume = 0;
+            for (BinTypeId bin_type_id = 0;
+                    bin_type_id < instance_.number_of_bin_types();
+                    ++bin_type_id) {
+                const BinType& bin_type = instance_.bin_type(bin_type_id);
+                if (bin_type.copies == -1) {
+                    throw std::invalid_argument(
+                            FUNC_SIGNATURE + ": "
+                            "item type " + std::to_string(item_type_id) + " has "
+                            "unlimited copies ('copies' == -1), "
+                            "which is not allowed if bin type "
+                            + std::to_string(bin_type_id) + " has unlimited copies too.");
+                }
+                bins_volume += bin_type.copies * bin_type.volume();
+            }
+        }
+        // As many copies as the volume of all the bins allows.
+        item_type.copies = (bins_volume - 1) / item_type.volume() + 1;
+    }
+}
+
 Instance InstanceBuilder::build()
 {
+    // Unlimited copies of the item types.
+    resolve_item_types_unlimited_copies();
+
     // Default rotations to {XYZ} for item types with no rotation specified.
     for (ItemTypeId item_type_id = 0;
             item_type_id < instance_.number_of_item_types();

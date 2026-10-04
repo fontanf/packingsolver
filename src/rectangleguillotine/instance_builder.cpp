@@ -1359,8 +1359,57 @@ void InstanceBuilder::build_stacks()
     }
 }
 
+void InstanceBuilder::resolve_item_types_unlimited_copies()
+{
+    // Total area of the bins, computed for the first item type with
+    // unlimited copies.
+    Area bins_area = -1;
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance_.number_of_item_types();
+            ++item_type_id) {
+        ItemType& item_type = instance_.item_types_[item_type_id];
+        if (item_type.copies != -1)
+            continue;
+        if (instance_.objective() != Objective::Knapsack) {
+            throw std::invalid_argument(
+                    FUNC_SIGNATURE + ": "
+                    "item type " + std::to_string(item_type_id) + " has "
+                    "unlimited copies ('copies' == -1), "
+                    "which is only allowed with the 'Knapsack' objective.");
+        }
+        if (item_type.area() <= 0) {
+            throw std::invalid_argument(
+                    FUNC_SIGNATURE + ": "
+                    "item type " + std::to_string(item_type_id) + " has "
+                    "unlimited copies ('copies' == -1) and an area of 0.");
+        }
+        if (bins_area == -1) {
+            bins_area = 0;
+            for (BinTypeId bin_type_id = 0;
+                    bin_type_id < instance_.number_of_bin_types();
+                    ++bin_type_id) {
+                const BinType& bin_type = instance_.bin_type(bin_type_id);
+                if (bin_type.copies == -1) {
+                    throw std::invalid_argument(
+                            FUNC_SIGNATURE + ": "
+                            "item type " + std::to_string(item_type_id) + " has "
+                            "unlimited copies ('copies' == -1), "
+                            "which is not allowed if bin type "
+                            + std::to_string(bin_type_id) + " has unlimited copies too.");
+                }
+                bins_area += bin_type.copies * bin_type.area();
+            }
+        }
+        // As many copies as the area of all the bins allows.
+        item_type.copies = (bins_area - 1) / item_type.area() + 1;
+    }
+}
+
 Instance InstanceBuilder::build()
 {
+    // Unlimited copies of the item types.
+    resolve_item_types_unlimited_copies();
+
     // Unlimited number of stages: each guillotine cut reduces at least one
     // dimension by at least 1 unit, so no cut tree can be deeper than
     // max(bin_width + bin_height) over all bin types. The cuts are then

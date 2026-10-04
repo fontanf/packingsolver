@@ -436,3 +436,49 @@ TEST(OneDimensional, ItemTypeLengthMustBePositive)
     packingsolver::ItemTypeId item_type_id = instance_builder.add_item_type(10);
     EXPECT_THROW(instance_builder.set_item_type_length(item_type_id, 0), std::invalid_argument);
 }
+
+TEST(OneDimensional, UnlimitedItemCopies)
+{
+    // Item copies -1: as many copies as the total length of the bins allows,
+    // ceil((2 * 100 + 50) / 30) = 9.
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(packingsolver::Objective::Knapsack);
+    packingsolver::BinTypeId bin_type_id = instance_builder.add_bin_type(100);
+    instance_builder.set_bin_type_copies(bin_type_id, 2);
+    instance_builder.add_bin_type(50);
+    packingsolver::ItemTypeId item_type_id = instance_builder.add_item_type(30);
+    instance_builder.set_item_type_copies(item_type_id, -1);
+    const Instance instance = instance_builder.build();
+    EXPECT_EQ(instance.item_type(item_type_id).copies, 9);
+    EXPECT_EQ(instance.item_type(item_type_id).copies_min, 0);
+
+    // 3 items in each bin of length 100, 1 in the bin of length 50.
+    OptimizeParameters optimize_parameters;
+    optimize_parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytimeSequential;
+    optimize_parameters.verbosity_level = 0;
+    Output output = optimize(instance, optimize_parameters);
+    EXPECT_EQ(output.solution_pool.best().number_of_items(), 7);
+}
+
+TEST(OneDimensional, UnlimitedItemCopiesInvalid)
+{
+    // Only with the knapsack objective.
+    {
+        InstanceBuilder instance_builder;
+        instance_builder.set_objective(packingsolver::Objective::BinPacking);
+        instance_builder.add_bin_type(100);
+        packingsolver::ItemTypeId item_type_id = instance_builder.add_item_type(30);
+        instance_builder.set_item_type_copies(item_type_id, -1);
+        EXPECT_THROW(instance_builder.build(), std::invalid_argument);
+    }
+    // Not with bins with unlimited copies.
+    {
+        InstanceBuilder instance_builder;
+        instance_builder.set_objective(packingsolver::Objective::Knapsack);
+        packingsolver::BinTypeId bin_type_id = instance_builder.add_bin_type(100);
+        instance_builder.set_bin_type_copies(bin_type_id, -1);
+        packingsolver::ItemTypeId item_type_id = instance_builder.add_item_type(30);
+        instance_builder.set_item_type_copies(item_type_id, -1);
+        EXPECT_THROW(instance_builder.build(), std::invalid_argument);
+    }
+}

@@ -1,5 +1,7 @@
 #include "packingsolver/irregular/instance_builder.hpp"
 
+#include <cmath>
+
 #include "irregular/periodic_packing.hpp"
 #include "irregular/rotations.hpp"
 #include "irregular/shape_simplification.hpp"
@@ -695,8 +697,57 @@ void InstanceBuilder::read(
 //////////////////////////////////// Build /////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
+void InstanceBuilder::resolve_item_types_unlimited_copies()
+{
+    // Total area of the bins, computed for the first item type with
+    // unlimited copies.
+    AreaDbl bins_area = -1;
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance_.number_of_item_types();
+            ++item_type_id) {
+        ItemType& item_type = instance_.item_types_[item_type_id];
+        if (item_type.copies != -1)
+            continue;
+        if (instance_.objective() != Objective::Knapsack) {
+            throw std::invalid_argument(
+                    FUNC_SIGNATURE + ": "
+                    "item type " + std::to_string(item_type_id) + " has "
+                    "unlimited copies ('copies' == -1), "
+                    "which is only allowed with the 'Knapsack' objective.");
+        }
+        if (item_type.area_orig <= 0) {
+            throw std::invalid_argument(
+                    FUNC_SIGNATURE + ": "
+                    "item type " + std::to_string(item_type_id) + " has "
+                    "unlimited copies ('copies' == -1) and an area of 0.");
+        }
+        if (bins_area == -1) {
+            bins_area = 0;
+            for (BinTypeId bin_type_id = 0;
+                    bin_type_id < instance_.number_of_bin_types();
+                    ++bin_type_id) {
+                const BinType& bin_type = instance_.bin_type(bin_type_id);
+                if (bin_type.copies == -1) {
+                    throw std::invalid_argument(
+                            FUNC_SIGNATURE + ": "
+                            "item type " + std::to_string(item_type_id) + " has "
+                            "unlimited copies ('copies' == -1), "
+                            "which is not allowed if bin type "
+                            + std::to_string(bin_type_id) + " has unlimited copies too.");
+                }
+                bins_area += bin_type.copies * bin_type.area_orig;
+            }
+        }
+        // As many copies as the area of all the bins allows.
+        item_type.copies = (ItemPos)std::ceil(bins_area / item_type.area_orig);
+    }
+}
+
 Instance InstanceBuilder::build()
 {
+    // Unlimited copies of the item types.
+    resolve_item_types_unlimited_copies();
+
     // Check the item types of the fixed items (see 'add_fixed_item').
     for (BinTypeId bin_type_id = 0;
             bin_type_id < (BinTypeId)instance_.bin_types_.size();

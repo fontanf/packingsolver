@@ -179,3 +179,17 @@ TEST(Irregular, ReadUnknownLeftoverMode)
     InstanceBuilder instance_builder;
     EXPECT_THROW(instance_builder.read(ss), std::invalid_argument);
 }
+
+TEST(Irregular, UnlimitedItemCopies)
+{
+    // Item copies -1: as many copies as the total area of the bins allows,
+    // ceil(2 * 100 * 50 / (30 * 30)) = 12.
+    std::stringstream ss(R"({
+            "objective": "knapsack",
+            "bin_types": [{"type": "rectangle", "width": 100, "height": 50, "copies": 2}],
+            "item_types": [{"type": "rectangle", "width": 30, "height": 30, "copies": -1}]})");
+    InstanceBuilder instance_builder;
+    instance_builder.read(ss);
+    const Instance instance = instance_builder.build();
+    EXPECT_EQ(instance.item_type(0).copies, 12);
+}

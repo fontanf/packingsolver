@@ -92,3 +92,17 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "box" / "tests" / "variable_sized_bin_packing_two_bin_types" / "parameters.csv",
                 fs::path("data") / "box" / "tests" / "variable_sized_bin_packing_two_bin_types" / "solution.csv",
             }}));
+
+TEST(Box, UnlimitedItemCopies)
+{
+    // Item copies -1: as many copies as the total volume of the bins allows,
+    // ceil(3 * 1000 / 64) = 47.
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(packingsolver::Objective::Knapsack);
+    packingsolver::BinTypeId bin_type_id = instance_builder.add_bin_type(10, 10, 10);
+    instance_builder.set_bin_type_copies(bin_type_id, 3);
+    packingsolver::ItemTypeId item_type_id = instance_builder.add_item_type(4, 4, 4);
+    instance_builder.set_item_type_copies(item_type_id, -1);
+    const Instance instance = instance_builder.build();
+    EXPECT_EQ(instance.item_type(item_type_id).copies, 47);
+}
