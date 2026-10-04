@@ -36,8 +36,13 @@ export function defaultDefect() {
     return {shape: "rectangle", x: "", y: "", width: 10, height: 10, radius: 5, vertices: "", spacing: ""};
 }
 
-// Shapes of the defects.
-const DEFECT_SHAPES = {
+// A hole of an item: placed in the item as a defect in a bin.
+export function defaultHole() {
+    return {shape: "rectangle", x: "", y: "", width: 5, height: 5, radius: 2, vertices: ""};
+}
+
+// Shapes of the defects and of the holes.
+const PLACED_SHAPES = {
     rectangle: "Rectangle",
     circle: "Circle",
     polygon: "Polygon",
@@ -46,7 +51,7 @@ const DEFECT_SHAPES = {
 export function defaultItemRow() {
     return {
         shape: "rectangle", width: 10, height: 10, radius: 5, vertices: "",
-        copies: 1, profit: "", rotations: "none", mirror: false,
+        copies: 1, profit: "", rotations: "none", mirror: false, holes: [],
     };
 }
 
@@ -165,8 +170,8 @@ function translateShape(shape, dx, dy) {
     };
 }
 
-// The shape of a defect, in the bin.
-export function defectShape(defect) {
+// The shape of a defect in its bin, or of a hole in its item.
+export function placedShape(defect) {
     const shape = rowShape(defect);
     if (defect.shape === "polygon")
         return shape;
@@ -177,6 +182,46 @@ export function defectShape(defect) {
         return number;
     };
     return translateShape(shape, position(defect.x, "x"), position(defect.y, "y"));
+}
+
+// Whether a point is strictly inside a polygon given by its vertices (as
+// '[x, y]').
+function strictlyInside(polygon, [x, y]) {
+    let inside = false;
+    for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+        const [xi, yi] = polygon[i];
+        const [xj, yj] = polygon[j];
+        // On the edge.
+        const cross = (xj - xi) * (y - yi) - (yj - yi) * (x - xi);
+        if (Math.abs(cross) < 1e-9 * Math.max(1, Math.hypot(xj - xi, yj - yi))
+                && x >= Math.min(xi, xj) && x <= Math.max(xi, xj)
+                && y >= Math.min(yi, yj) && y <= Math.max(yi, yj)) {
+            return false;
+        }
+        if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi)
+            inside = !inside;
+    }
+    return inside;
+}
+
+// The shape of an item row with its holes: the holes of its file, then the
+// holes typed in the form, which must be inside the item.
+export function itemShape(row) {
+    const shape = rowShape(row);
+    if ((row.holes || []).length === 0)
+        return shape;
+    const outline = shapePoints(shape.elements);
+    const holes = row.holes.map((hole, j) => {
+        try {
+            const result = placedShape(hole);
+            if (!shapePoints(result.elements).every((p) => strictlyInside(outline, p)))
+                throw new Error("it must be inside the item.");
+            return result;
+        } catch (error) {
+            throw new Error(`hole ${j + 1}: ${error.message}`);
+        }
+    });
+    return {...shape, holes: [...(shape.holes || []), ...holes]};
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -228,7 +273,7 @@ export function instance(objective, binRows, itemRows) {
             if ((row.defects || []).length > 0) {
                 binType.defects = row.defects.map((defect, j) => {
                     try {
-                        const result = defectShape(defect);
+                        const result = placedShape(defect);
                         const defectSpacing = optionalNumber(defect.spacing, "spacing");
                         if (defectSpacing !== undefined)
                             result.item_defect_minimum_spacing = defectSpacing;
@@ -244,7 +289,7 @@ export function instance(objective, binRows, itemRows) {
             // An item type can have several shapes: the 'shapes' form is also
             // the one 'instanceFigure' reads.
             const itemType = {
-                shapes: [rowShape(row)],
+                shapes: [itemShape(row)],
                 copies: copies(row.copies),
                 allowed_rotations: ROTATIONS[row.rotations].rotations,
             };
@@ -398,61 +443,69 @@ function fileInput(row, onStructureChange) {
     return container;
 }
 
-// The defects of a bin row: a line for each defect, and a button to add one.
-function defectsCell(row, onChange, onStructureChange) {
+// The defects of a bin row or the holes of an item row ('key' "defects"
+// or "holes", 'kind' "Defect" or "Hole"): a line for each. Defects have a
+// spacing.
+function placedShapesCell(row, key, kind, onChange, onStructureChange) {
     const cell = document.createElement("div");
-    cell.className = "defects";
-    row.defects.forEach((defect, i) => {
+    cell.className = "placed-shapes";
+    const labelled = (text, element) => {
+        const label = document.createElement("label");
+        label.className = "inline";
+        label.append(text, element);
+        return label;
+    };
+    row[key].forEach((placed, i) => {
         const line = document.createElement("div");
         line.className = "dimensions";
-        line.appendChild(select(defect, "shape", "Defect shape", DEFECT_SHAPES, onStructureChange));
-        const labelled = (text, element) => {
-            const label = document.createElement("label");
-            label.className = "inline";
-            label.append(text, element);
-            return label;
-        };
-        if (defect.shape !== "polygon") {
+        line.appendChild(select(placed, "shape", `${kind} shape`, PLACED_SHAPES, onStructureChange));
+        if (placed.shape !== "polygon") {
             line.append(
-                labelled("X", input(defect, "x", "Defect x", NUMBER, onChange)),
-                labelled("Y", input(defect, "y", "Defect y", NUMBER, onChange)));
+                labelled("X", input(placed, "x", `${kind} x`, NUMBER, onChange)),
+                labelled("Y", input(placed, "y", `${kind} y`, NUMBER, onChange)));
         }
-        if (defect.shape === "rectangle") {
+        if (placed.shape === "rectangle") {
             line.append(
-                labelled("W", input(defect, "width", "Defect width", NUMBER, onChange)),
-                labelled("H", input(defect, "height", "Defect height", NUMBER, onChange)));
-        } else if (defect.shape === "circle") {
-            line.append(labelled("R", input(defect, "radius", "Defect radius", NUMBER, onChange)));
+                labelled("W", input(placed, "width", `${kind} width`, NUMBER, onChange)),
+                labelled("H", input(placed, "height", `${kind} height`, NUMBER, onChange)));
+        } else if (placed.shape === "circle") {
+            line.append(labelled("R", input(placed, "radius", `${kind} radius`, NUMBER, onChange)));
         } else {
-            line.appendChild(input(defect, "vertices", "Defect vertices", {
+            line.appendChild(input(placed, "vertices", `${kind} vertices`, {
                 type: "text",
                 placeholder: "x y, x y, x y, ...",
                 className: "vertices",
                 spellcheck: false,
             }, onChange));
         }
-        line.appendChild(labelled("Spacing",
-            input(defect, "spacing", "Defect spacing", {...NUMBER, placeholder: "0"}, onChange)));
+        if (key === "defects") {
+            line.appendChild(labelled("Spacing",
+                input(placed, "spacing", "Defect spacing", {...NUMBER, placeholder: "0"}, onChange)));
+        }
         const remove = document.createElement("button");
         remove.type = "button";
         remove.textContent = "×";
-        remove.title = "Remove the defect";
+        remove.title = `Remove the ${kind.toLowerCase()}`;
         remove.addEventListener("click", () => {
-            row.defects.splice(i, 1);
+            row[key].splice(i, 1);
             onStructureChange();
         });
         line.appendChild(remove);
         cell.appendChild(line);
     });
+    return cell;
+}
+
+// A button adding a defect or a hole to a row.
+function addPlacedShapeButton(row, key, kind, defaultValue, onStructureChange) {
     const add = document.createElement("button");
     add.type = "button";
-    add.textContent = "Add a defect";
+    add.textContent = `Add a ${kind.toLowerCase()}`;
     add.addEventListener("click", () => {
-        row.defects.push(defaultDefect());
+        row[key].push(defaultValue());
         onStructureChange();
     });
-    cell.appendChild(add);
-    return cell;
+    return add;
 }
 
 // Render a bin ('isItem' false) or item type table. 'onTableChange' is
@@ -497,7 +550,6 @@ export function renderTable(table, rows, isItem, onTableChange, onStructureChang
             tr.insertCell().appendChild(select(row, "rotations", "Rotations", rotationLabels, onChange));
             tr.insertCell().appendChild(input(row, "mirror", "Mirror", {type: "checkbox"}, onChange));
         } else {
-            row.defects = row.defects || [];
             tr.insertCell().appendChild(input(row, "spacing", "Item spacing",
                 {...NUMBER, placeholder: "0"}, onChange));
         }
@@ -508,17 +560,29 @@ export function renderTable(table, rows, isItem, onTableChange, onStructureChang
             rows.splice(rowIndex, 1);
             onStructureChange();
         });
-        tr.insertCell().appendChild(remove);
-        // The defects of a bin, on a line below it.
-        if (!isItem) {
+        const buttons = tr.insertCell();
+        buttons.className = "row-buttons";
+        // The defects of a bin, on a line below it, with a button to add one.
+        // The holes of an item, on a line below it if it has some; the
+        // button to add one is on its row.
+        const [key, kind, defaultValue] = isItem?
+            ["holes", "Hole", defaultHole]: ["defects", "Defect", defaultDefect];
+        row[key] = row[key] || [];
+        if (isItem)
+            buttons.appendChild(addPlacedShapeButton(row, key, kind, defaultValue, onStructureChange));
+        buttons.appendChild(remove);
+        if (!isItem || row.holes.length > 0) {
             const line = body.insertRow();
-            line.className = "defects-line";
+            line.className = "placed-shapes-line";
             const cell = line.insertCell();
             cell.colSpan = labels.length + 1;
             const label = document.createElement("span");
-            label.className = "defects-label";
-            label.textContent = "Defects";
-            cell.append(label, defectsCell(row, onChange, onStructureChange));
+            label.className = "placed-shapes-label";
+            label.textContent = isItem? "Holes": "Defects";
+            const shapes = placedShapesCell(row, key, kind, onChange, onStructureChange);
+            if (!isItem)
+                shapes.appendChild(addPlacedShapeButton(row, key, kind, defaultValue, onStructureChange));
+            cell.append(label, shapes);
         }
     });
 }
@@ -574,9 +638,9 @@ export function rowThumbnail(row, isItem) {
     let shape;
     let defects = [];
     try {
-        shape = rowShape(row);
+        shape = isItem? itemShape(row): rowShape(row);
         if (!isItem)
-            defects = (row.defects || []).map(defectShape);
+            defects = (row.defects || []).map(placedShape);
     } catch (error) {
         return {error: error.message};
     }
