@@ -745,6 +745,16 @@ void InstanceBuilder::resolve_item_types_unlimited_copies()
 
 Instance InstanceBuilder::build()
 {
+    // The OpenDimensionXY objective is only supported with an imposed aspect
+    // ratio.
+    if (instance_.objective() == Objective::OpenDimensionXY
+            && instance_.parameters().open_dimension_xy_aspect_ratio <= 0) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "the objective 'OpenDimensionXY' without an aspect ratio "
+                "('open_dimension_xy_aspect_ratio') is not supported yet.");
+    }
+
     // Unlimited copies of the item types.
     resolve_item_types_unlimited_copies();
 

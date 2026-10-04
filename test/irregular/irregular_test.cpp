@@ -193,3 +193,15 @@ TEST(Irregular, UnlimitedItemCopies)
     const Instance instance = instance_builder.build();
     EXPECT_EQ(instance.item_type(0).copies, 12);
 }
+
+TEST(Irregular, OpenDimensionXYWithoutAspectRatio)
+{
+    // Not supported yet.
+    std::stringstream ss(R"({
+            "objective": "open-dimension-xy",
+            "bin_types": [{"type": "rectangle", "width": 1000, "height": 1000}],
+            "item_types": [{"type": "rectangle", "width": 20, "height": 10, "copies": 10}]})");
+    InstanceBuilder instance_builder;
+    instance_builder.read(ss);
+    EXPECT_THROW(instance_builder.build(), std::invalid_argument);
+}
