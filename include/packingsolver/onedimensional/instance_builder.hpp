@@ -248,6 +248,12 @@ private:
      * Private methods
      */
 
+    /**
+     * Resolve the item types with unlimited copies ('copies' == -1): as many
+     * copies as the total length of the bins allows.
+     */
+    void resolve_item_types_unlimited_copies();
+
     /** Compute item type max length sum. */
     Length compute_item_type_max_length_sum() const;
 

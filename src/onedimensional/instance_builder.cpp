@@ -843,8 +843,57 @@ void InstanceBuilder::read(
 //////////////////////////////////// Build /////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
+void InstanceBuilder::resolve_item_types_unlimited_copies()
+{
+    // Total length of the bins, computed for the first item type with
+    // unlimited copies.
+    Length bins_length = -1;
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance_.number_of_item_types();
+            ++item_type_id) {
+        ItemType& item_type = instance_.item_types_[item_type_id];
+        if (item_type.copies != -1)
+            continue;
+        if (instance_.objective() != Objective::Knapsack) {
+            throw std::invalid_argument(
+                    FUNC_SIGNATURE + ": "
+                    "item type " + std::to_string(item_type_id) + " has "
+                    "unlimited copies ('copies' == -1), "
+                    "which is only allowed with the 'Knapsack' objective.");
+        }
+        if (item_type.length <= 0) {
+            throw std::invalid_argument(
+                    FUNC_SIGNATURE + ": "
+                    "item type " + std::to_string(item_type_id) + " has "
+                    "unlimited copies ('copies' == -1) and an length of 0.");
+        }
+        if (bins_length == -1) {
+            bins_length = 0;
+            for (BinTypeId bin_type_id = 0;
+                    bin_type_id < instance_.number_of_bin_types();
+                    ++bin_type_id) {
+                const BinType& bin_type = instance_.bin_type(bin_type_id);
+                if (bin_type.copies == -1) {
+                    throw std::invalid_argument(
+                            FUNC_SIGNATURE + ": "
+                            "item type " + std::to_string(item_type_id) + " has "
+                            "unlimited copies ('copies' == -1), "
+                            "which is not allowed if bin type "
+                            + std::to_string(bin_type_id) + " has unlimited copies too.");
+                }
+                bins_length += bin_type.copies * bin_type.length;
+            }
+        }
+        // As many copies as the length of all the bins allows.
+        item_type.copies = (bins_length - 1) / item_type.length + 1;
+    }
+}
+
 Instance InstanceBuilder::build()
 {
+    // Unlimited copies of the item types.
+    resolve_item_types_unlimited_copies();
+
     // Finalize item type precedences pending from 'add_item_type(original_
     // instance, ...)' calls, in a single pass now that every item type has
     // been added: only precedences whose dominated *and* dominating item
