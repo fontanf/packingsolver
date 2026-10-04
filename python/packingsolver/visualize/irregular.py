@@ -57,8 +57,14 @@ def _shape_path(
         if t == "CircularArc":
             rc = math.sqrt((xc - xs)**2 + (yc - ys)**2)
 
+        # A hole is drawn in the opposite direction, so that it isn't
+        # filled.
         if is_hole:
             xs, ys, xe, ye = xe, ye, xs, ys
+            if orientation in ["Anticlockwise", "anticlockwise", "A", "a"]:
+                orientation = "Clockwise"
+            elif orientation in ["Clockwise", "clockwise", "C", "c"]:
+                orientation = "Anticlockwise"
 
         if len(path_x) == 0 or path_x[-1] is None:
             path_x.append(xs)
@@ -75,7 +81,7 @@ def _shape_path(
             end_sin = (ye - yc) / rc
             end_angle = math.atan2(end_sin, end_cos)
             if handle_full and orientation in ["Full", "full", "F", "f"]:
-                end_angle += 2 * math.pi
+                end_angle += (-2 if is_hole else 2) * math.pi
             if (orientation in ["Anticlockwise", "anticlockwise", "A", "a"]
                     and end_angle <= start_angle):
                 end_angle += 2 * math.pi
