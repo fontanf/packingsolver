@@ -236,3 +236,24 @@ test("irregular form: profits and costs only for their objectives", () => {
     const binPacking = irregularForm.instance("bin-packing", bins, items);
     assert.ok(!("cost" in binPacking.bin_types[0]) && !("profit" in binPacking.item_types[0]));
 });
+
+test("irregular form: unlimited copies", async () => {
+    const bins = [{...binRows[0], unlimited_copies: true}];
+    const items = [{...itemRows[0], unlimited_copies: true}];
+    // Bins except for the knapsack objective, items only for it.
+    const binPacking = irregularForm.instance("bin-packing", bins, items);
+    assert.strictEqual(binPacking.bin_types[0].copies, -1);
+    assert.strictEqual(binPacking.item_types[0].copies, itemRows[0].copies);
+    const knapsack = irregularForm.instance("knapsack", bins, items);
+    assert.strictEqual(knapsack.bin_types[0].copies, binRows[0].copies);
+    assert.strictEqual(knapsack.item_types[0].copies, -1);
+    // The solver reads them.
+    const module = await loadModule();
+    for (const instance of [binPacking, knapsack]) {
+        const result = JSON.parse(module.solve(
+            "irregular", JSON.stringify(instance),
+            JSON.stringify({optimization_mode: "not-anytime-sequential"})));
+        assert.strictEqual(result.error, undefined);
+        assert.ok(result.output.Solution.NumberOfItems > 0);
+    }
+});
