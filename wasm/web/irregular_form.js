@@ -26,7 +26,7 @@ export const ROTATIONS = {
 export function defaultBinRow() {
     return {
         shape: "rectangle", width: 100, height: 100, radius: 50, vertices: "",
-        copies: 1, cost: "", spacing: "", defects: [],
+        copies: 1, unlimited_copies: false, cost: "", spacing: "", defects: [],
     };
 }
 
@@ -51,7 +51,7 @@ const PLACED_SHAPES = {
 export function defaultItemRow() {
     return {
         shape: "rectangle", width: 10, height: 10, radius: 5, vertices: "",
-        copies: 1, profit: "", rotations: "none", mirror: false, holes: [],
+        copies: 1, unlimited_copies: false, profit: "", rotations: "none", mirror: false, holes: [],
     };
 }
 
@@ -263,7 +263,7 @@ export function instance(objective, binRows, itemRows) {
             const shape = rowShape(row);
             if (shape.holes !== undefined)
                 throw new Error("a bin can't have holes.");
-            const binType = {...shape, copies: copies(row.copies)};
+            const binType = {...shape, copies: rowCopies(row, objective, false)};
             const cost = valueUsed(objective, false)? optionalNumber(row.cost, "cost"): undefined;
             if (cost !== undefined)
                 binType.cost = cost;
@@ -290,7 +290,7 @@ export function instance(objective, binRows, itemRows) {
             // the one 'instanceFigure' reads.
             const itemType = {
                 shapes: [itemShape(row)],
-                copies: copies(row.copies),
+                copies: rowCopies(row, objective, true),
                 allowed_rotations: ROTATIONS[row.rotations].rotations,
             };
             const profit = valueUsed(objective, true)? optionalNumber(row.profit, "profit"): undefined;
@@ -508,10 +508,42 @@ function addPlacedShapeButton(row, key, kind, defaultValue, onStructureChange) {
     return add;
 }
 
+// Whether the copies of the items (bins) can be unlimited for an objective:
+// only for the knapsack objective (all but the knapsack objective).
+export function unlimitedCopiesAllowed(objective, isItem) {
+    return (objective === "knapsack") === isItem;
+}
+
+// The copies of a row: -1 if unlimited.
+function rowCopies(row, objective, isItem) {
+    if (row.unlimited_copies && unlimitedCopiesAllowed(objective, isItem))
+        return -1;
+    return copies(row.copies);
+}
+
 // Whether the profit of the items (cost of the bins) is used for an
 // objective: only for the knapsack (variable-sized bin packing) objective.
 export function valueUsed(objective, isItem) {
     return objective === (isItem? "knapsack": "variable-sized-bin-packing");
+}
+
+// The copies of a row, and if they can be unlimited, a checkbox which
+// disables them.
+function copiesCell(row, unlimited, onChange, onStructureChange) {
+    const copies = input(row, "copies", "Copies", {...NUMBER, min: "1", step: "1"}, onChange);
+    if (!unlimited)
+        return copies;
+    if (row.unlimited_copies) {
+        copies.disabled = true;
+        copies.value = "";
+        copies.placeholder = "unlimited";
+    }
+    const checkbox = input(row, "unlimited_copies", "Unlimited copies", {type: "checkbox", title: "Unlimited"},
+        onStructureChange);
+    const cell = document.createElement("div");
+    cell.className = "unlimited";
+    cell.append(copies, checkbox);
+    return cell;
 }
 
 // Render a bin ('isItem' false) or item type table, for an objective.
@@ -528,9 +560,16 @@ export function renderTable(table, rows, isItem, objective, onTableChange, onStr
         labels.push("Rotations", "Mirror");
     else
         labels.push("Item spacing");
+    const unlimited = unlimitedCopiesAllowed(objective, isItem);
     for (const label of [...labels, ""]) {
         const th = document.createElement("th");
         th.textContent = label;
+        if (label === "Copies" && unlimited) {
+            const note = document.createElement("span");
+            note.className = "header-note";
+            note.textContent = "(or unlimited)";
+            th.append(document.createElement("br"), note);
+        }
         header.appendChild(th);
     }
     const body = table.createTBody();
@@ -549,7 +588,7 @@ export function renderTable(table, rows, isItem, objective, onTableChange, onStr
         tr.insertCell().appendChild(thumbnail);
         tr.insertCell().appendChild(select(row, "shape", "Shape", SHAPES, onStructureChange));
         tr.insertCell().appendChild(dimensionsCell(row, onChange, onStructureChange));
-        tr.insertCell().appendChild(input(row, "copies", "Copies", {...NUMBER, min: "1", step: "1"}, onChange));
+        tr.insertCell().appendChild(copiesCell(row, unlimited, onChange, onStructureChange));
         if (withValue) {
             const valueKey = isItem? "profit": "cost";
             tr.insertCell().appendChild(input(row, valueKey, isItem? "Profit": "Cost",

@@ -618,9 +618,7 @@ function updateGallery() {
 const UNLIMITED_BINS_OBJECTIVES = ["bin-packing", "bin-packing-with-leftovers", "variable-sized-bin-packing"];
 
 function newBinRow(type) {
-    if (type === "irregular")
-        return irregularForm.defaultBinRow();
-    const row = defaultRow(binColumns(type));
+    const row = (type === "irregular")? irregularForm.defaultBinRow(): defaultRow(binColumns(type));
     if (UNLIMITED_BINS_OBJECTIVES.includes($("objective").value))
         row.unlimited_copies = true;
     return row;
