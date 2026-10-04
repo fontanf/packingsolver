@@ -92,6 +92,10 @@ button:disabled {
     opacity: 0.5;
 }
 
+#instance-download {
+    margin: 1rem 0 0;
+}
+
 #actions {
     display: flex;
     flex-wrap: wrap;

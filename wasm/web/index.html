@@ -116,6 +116,13 @@
                 <textarea id="json-text" rows="16" spellcheck="false"
                           placeholder='{"objective": "bin-packing", "bin_types": [...], "item_types": [...]}'></textarea>
             </div>
+
+            <!-- For the solvers of PackingSolver: '--input' of the executables,
+                 'InstanceBuilder.read'. -->
+            <p id="instance-download">
+                <button type="button" id="download-instance">Download the instance (JSON)</button>
+                <span id="download-instance-error" class="note error-text" role="status"></span>
+            </p>
         </section>
 
         <section id="parameters">

@@ -738,6 +738,21 @@ function download(name, type, content) {
     URL.revokeObjectURL(url);
 }
 
+// Download the instance of the form or of the JSON tab, in the JSON format,
+// named after its problem type.
+function downloadInstance() {
+    let instanceObject;
+    try {
+        instanceObject = instance();
+    } catch (error) {
+        $("download-instance-error").textContent = "Error: " + error.message;
+        return;
+    }
+    $("download-instance-error").textContent = "";
+    download(`instance_${problemType()}.json`, "application/json",
+        JSON.stringify(instanceObject, null, 4) + "\n");
+}
+
 /////////////////////////////////////////////////////////////////////////////
 // Initialization
 /////////////////////////////////////////////////////////////////////////////
@@ -796,6 +811,14 @@ function init() {
             json? "application/json": "text/csv",
             state.last.certificate);
     });
+    $("download-instance").addEventListener("click", downloadInstance);
+    // The error of a download is cleared when the instance changes.
+    for (const event of ["input", "change", "click"]) {
+        $("problem").addEventListener(event, (e) => {
+            if (e.target !== $("download-instance"))
+                $("download-instance-error").textContent = "";
+        });
+    }
     $("download-output").addEventListener("click", () => {
         download("output.json", "application/json", JSON.stringify(state.last.output, null, 4));
     });
