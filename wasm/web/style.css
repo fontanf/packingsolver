@@ -275,6 +275,29 @@ td.row-buttons {
     gap: 0.5rem;
 }
 
+/* The cutting costs of the rectangleguillotine problem type. */
+.cutting-costs table {
+    width: auto;
+}
+
+.cutting-costs th, .cutting-costs td {
+    padding: 0.15rem 0.5rem 0.15rem 0;
+}
+
+.cutting-costs tbody th {
+    font-weight: normal;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.cutting-costs input {
+    width: 7rem;
+}
+
+.cutting-costs button {
+    margin: 0.25rem 0.5rem 0 0;
+}
+
 /* A second line in a header of a table. */
 .header-note {
     font-weight: normal;
