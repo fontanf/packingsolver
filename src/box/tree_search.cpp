@@ -720,13 +720,9 @@ bool BranchingScheme::better(
         if (!leaf(node_2))
             return true;
         return node_2->waste > node_1->waste;
-    } case Objective::OpenDimensionX: {
-        if (!leaf(node_1))
-            return false;
-        if (!leaf(node_2))
-            return true;
-        return node_2->xe_max > node_1->xe_max;
-    } case Objective::OpenDimensionY: {
+    } case Objective::OpenDimensionX: case Objective::OpenDimensionY: case Objective::OpenDimensionZ: {
+        // The nodes are in the instance flipped along the open dimension:
+        // 'xe_max' is the length used along it.
         if (!leaf(node_1))
             return false;
         if (!leaf(node_2))
