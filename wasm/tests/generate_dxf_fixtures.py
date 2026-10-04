@@ -1,9 +1,10 @@
 """Generate the DXF files of the tests of the DXF reader ('wasm/web/dxf.js').
 
-Each file 'fixtures/dxf/<name>.dxf' comes with 'fixtures/dxf/<name>.json',
-the parts the reader must find: for each part (in reading order: top to
-bottom, then left to right), its area, number of holes and bounding box size,
-computed analytically. And the number of warnings.
+Each file 'fixtures/dxf/<name>.dxf' comes with 'fixtures/dxf/<name>.json':
+either the parts the reader must find (for each part, in reading order: top
+to bottom, then left to right, its area, number of holes and bounding box
+size, computed analytically) and the number of warnings; or the error it
+must raise ('error': a regular expression).
 
 Requires ezdxf. Usage:
 
@@ -24,6 +25,15 @@ def save(document, name, parts, warnings=0):
     document.saveas(os.path.join(DIRECTORY, name + ".dxf"))
     with open(os.path.join(DIRECTORY, name + ".json"), "w") as file:
         json.dump({"parts": parts, "warnings": warnings}, file, indent=4)
+        file.write("\n")
+    print(name)
+
+
+def save_error(document, name, pattern):
+    os.makedirs(DIRECTORY, exist_ok=True)
+    document.saveas(os.path.join(DIRECTORY, name + ".dxf"))
+    with open(os.path.join(DIRECTORY, name + ".json"), "w") as file:
+        json.dump({"error": pattern}, file, indent=4)
         file.write("\n")
     print(name)
 
@@ -91,7 +101,7 @@ def r12_polyline():
 def multiple_parts():
     """Several parts in one file: a square with a square hole and a part
     inside the hole, a circle, a slot made of LINE and ARC entities.
-    Annotations are ignored; a SPLINE and an open contour give warnings."""
+    Annotations are ignored; an open contour gives a warning."""
     document = ezdxf.new("R2000")
     msp = document.modelspace()
     # Square with a hole, and a disk in the hole.
@@ -109,14 +119,13 @@ def multiple_parts():
     # Ignored, or reported.
     msp.add_text("PART A").set_placement((0, 150))
     msp.add_point((200, 200))
-    msp.add_spline([(150, 0), (160, 10), (170, 0), (180, 10)])
     msp.add_line((150, 50), (180, 50))
     save(document, "multiple_parts", [
         part(1600 - 400, 1, 40, 40),
         part(math.pi * 100, 0, 20, 20),
         part(math.pi * 16, 0, 8, 8),
         part(30 * 10 + math.pi * 25, 0, 40, 10),
-    ], warnings=2)
+    ], warnings=1)
 
 
 def blocks():
@@ -148,6 +157,27 @@ def mirrored_arcs():
     save(document, "mirrored_arcs", [part(math.pi * 50, 0, 10, 20)])
 
 
+def unsupported():
+    """Files containing curves which aren't supported are rejected."""
+    document = ezdxf.new("R2000")
+    msp = document.modelspace()
+    msp.add_lwpolyline([(0, 0), (10, 0), (10, 10)], close=True)
+    msp.add_spline([(20, 0), (30, 10), (40, 0), (50, 10)])
+    save_error(document, "spline", "Splines \\(SPLINE entities\\) are not supported")
+
+    document = ezdxf.new("R2000")
+    msp = document.modelspace()
+    msp.add_ellipse((0, 0), major_axis=(10, 0), ratio=0.5)
+    save_error(document, "ellipse", "Ellipses \\(ELLIPSE entities\\) are not supported")
+
+    # A circle in a block inserted with different x and y scales.
+    document = ezdxf.new("R2000")
+    block = document.blocks.new(name="DISK")
+    block.add_circle((0, 0), 5)
+    document.modelspace().add_blockref("DISK", (0, 0), dxfattribs={"xscale": 2, "yscale": 1})
+    save_error(document, "scaled_circle", "Arcs scaled non-uniformly \\(ellipses\\) are not supported")
+
+
 if __name__ == "__main__":
     plate_with_hole()
     rounded_rectangle()
@@ -155,3 +185,4 @@ if __name__ == "__main__":
     multiple_parts()
     blocks()
     mirrored_arcs()
+    unsupported()

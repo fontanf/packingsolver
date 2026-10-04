@@ -25,6 +25,10 @@ for (const name of fs.readdirSync(DIRECTORY).filter((f) => f.endsWith(".dxf")).s
     const fixture = name.slice(0, -4);
     test(`dxf: ${fixture}`, () => {
         const expected = JSON.parse(fs.readFileSync(path.join(DIRECTORY, fixture + ".json"), "utf8"));
+        if (expected.error !== undefined) {
+            assert.throws(() => read(fixture), new RegExp(expected.error));
+            return;
+        }
         const {parts, warnings} = read(fixture);
         assert.strictEqual(warnings.length, expected.warnings, `warnings: ${warnings}`);
         assertParts(parts, expected.parts);
@@ -38,8 +42,7 @@ test("dxf: units", () => {
 
 test("dxf: warnings", () => {
     const {warnings} = read("multiple_parts");
-    assert.ok(warnings.some((w) => /SPLINE/.test(w)));
-    assert.ok(warnings.some((w) => /1 contour\(s\) not closed/.test(w)));
+    assert.deepStrictEqual(warnings, ["1 contour(s) not closed were ignored"]);
 });
 
 test("dxf: invalid files", () => {
