@@ -1,0 +1,44 @@
+{
+    "objective": "open-dimension-xy",
+    "parameters": {
+        "open_dimension_xy_aspect_ratio": 1
+    },
+    "bin_types": [
+        {
+            "type": "rectangle",
+            "width": 1000,
+            "height": 1000
+        }
+    ],
+    "item_types": [
+        {
+            "type": "rectangle",
+            "width": 20,
+            "height": 10,
+            "copies": 10
+        },
+        {
+            "type": "circle",
+            "radius": 8,
+            "copies": 6
+        },
+        {
+            "type": "polygon",
+            "vertices": [
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 15,
+                    "y": 0
+                },
+                {
+                    "x": 0,
+                    "y": 15
+                }
+            ],
+            "copies": 8
+        }
+    ]
+}

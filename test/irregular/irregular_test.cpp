@@ -205,3 +205,21 @@ TEST(Irregular, OpenDimensionXYWithoutAspectRatio)
     instance_builder.read(ss);
     EXPECT_THROW(instance_builder.build(), std::invalid_argument);
 }
+
+TEST(Irregular, OpenDimensionXYMixedShapes)
+{
+    // The initial bin of the sequential feasibility, from the area of the
+    // items, used to be too small for these items, which fill their bounding
+    // boxes well: no solution was found. (The value of the solution found
+    // depends on the platform.)
+    InstanceBuilder instance_builder;
+    instance_builder.read((fs::path("data") / "irregular" / "tests" / "open_dimension_xy_mixed_shapes.json").string());
+    Instance instance = instance_builder.build();
+
+    OptimizeParameters optimize_parameters;
+    optimize_parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytimeSequential;
+    Output output = optimize(instance, optimize_parameters);
+    const Solution& solution = output.solution_pool.best();
+    EXPECT_TRUE(solution.feasible());
+    EXPECT_EQ(solution.number_of_items(), instance.number_of_items());
+}
