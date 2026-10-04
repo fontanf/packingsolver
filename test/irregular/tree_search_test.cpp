@@ -187,6 +187,9 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "irregular" / "tests" / "open_dimension_xy_1.json",
                 fs::path("data") / "irregular" / "tests" / "open_dimension_xy_1_solution.json"
             }, {
+                fs::path("data") / "irregular" / "tests" / "open_dimension_xy_small.json",
+                fs::path("data") / "irregular" / "tests" / "open_dimension_xy_small_solution.json"
+            }, {
                 fs::path("data") / "irregular" / "tests" / "item_defect_minimum_spacing.json",
                 fs::path("data") / "irregular" / "tests" / "item_defect_minimum_spacing_solution.json"
             }, {

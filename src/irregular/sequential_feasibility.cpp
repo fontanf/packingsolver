@@ -22,16 +22,19 @@ SequentialFeasibilityOutput packingsolver::irregular::sequential_feasibility(
     algorithm_formatter.start();
     algorithm_formatter.print_header();
 
-    // Compute total item AABB area to derive the initial bin size.
+    // Compute total item AABB area to derive the initial bin size, in scaled
+    // coordinates, as the bins, and the largest AABB diagonal.
     AreaDbl total_item_aabb_area = 0;
+    LengthDbl largest_item_aabb_diagonal = 0;
     for (ItemTypeId item_type_id = 0;
             item_type_id < instance.number_of_item_types();
             ++item_type_id) {
         const ItemType& item_type = instance.item_type(item_type_id);
-        AxisAlignedBoundingBox aabb = item_type.compute_min_max();
+        AxisAlignedBoundingBox aabb = item_type.compute_min_max(0.0, false, 1);
         LengthDbl dx = aabb.x_max - aabb.x_min;
         LengthDbl dy = aabb.y_max - aabb.y_min;
         total_item_aabb_area += dx * dy * item_type.copies;
+        largest_item_aabb_diagonal = (std::max)(largest_item_aabb_diagonal, std::sqrt(dx * dx + dy * dy));
     }
 
     // Initialize the open dimension variable(s) and/or bin count.
@@ -85,6 +88,11 @@ SequentialFeasibilityOutput packingsolver::irregular::sequential_feasibility(
         y = 2 * total_item_aabb_area / x;
     } else {  // OpenDimensionXY
         x = std::sqrt(total_item_aabb_area / instance.parameters().open_dimension_xy_aspect_ratio);
+        // For small instances, the area of the items is too tight: the sides
+        // of the bin are at least 3 times the largest diagonal of the items
+        // (it doesn't change anything for larger instances).
+        x = (std::max)(x, 3 * largest_item_aabb_diagonal);
+        x = (std::max)(x, 3 * largest_item_aabb_diagonal / instance.parameters().open_dimension_xy_aspect_ratio);
         y = x * instance.parameters().open_dimension_xy_aspect_ratio;
     }
 
@@ -234,10 +242,13 @@ SequentialFeasibilityOutput packingsolver::irregular::sequential_feasibility(
         } else {  // OpenDimensionXY
             const BinType& bin_type = instance.bin_type(instance.bin_type_id(0));
             LengthDbl scale_value = instance.parameters().scale_value;
-            x = 0.99 * (std::max)(
+            // The bin must shrink at each iteration, else the same solution
+            // can be found again and again.
+            x = 0.99 * x;
+            x = (std::min)(x, 0.99 * (std::max)(
                     scale_value * solution.x_max() - bin_type.aabb_scaled.x_min,
                     scale_value * solution.y_max() - bin_type.aabb_scaled.y_min)
-                + scale_value * bin_type.item_bin_minimum_spacing;
+                + scale_value * bin_type.item_bin_minimum_spacing);
             AreaDbl a_cur = (solution.x_max() - solution.x_min()) * (solution.y_max() - solution.y_min());
             LengthDbl x_cur = scale_value * std::sqrt(a_cur / instance.parameters().open_dimension_xy_aspect_ratio);
             if (x > x_cur)
