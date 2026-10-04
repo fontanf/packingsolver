@@ -72,6 +72,12 @@
         "function": "figure"
     },
     {
+        "name": "holes",
+        "certificate": "wasm/tests/fixtures/visualize/irregular/inputs/holes_solution.json",
+        "options": {},
+        "function": "figure"
+    },
+    {
         "name": "instance_periodic_packing_item_bin_spacing",
         "certificate": "data/irregular/tests/periodic_packing_item_bin_spacing.json",
         "options": {},

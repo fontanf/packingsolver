@@ -1,0 +1,225 @@
+{
+ "bins": [
+  {
+   "id": 0,
+   "copies": 1,
+   "shape": [
+    {
+     "type": "LineSegment",
+     "xs": 0,
+     "ys": 0,
+     "xe": 100,
+     "ye": 0
+    },
+    {
+     "type": "LineSegment",
+     "xs": 100,
+     "ys": 0,
+     "xe": 100,
+     "ye": 50
+    },
+    {
+     "type": "LineSegment",
+     "xs": 100,
+     "ys": 50,
+     "xe": 0,
+     "ye": 50
+    },
+    {
+     "type": "LineSegment",
+     "xs": 0,
+     "ys": 50,
+     "xe": 0,
+     "ye": 0
+    }
+   ],
+   "defects": [
+    {
+     "shape": [
+      {
+       "type": "LineSegment",
+       "xs": 60,
+       "ys": 30,
+       "xe": 90,
+       "ye": 30
+      },
+      {
+       "type": "LineSegment",
+       "xs": 90,
+       "ys": 30,
+       "xe": 90,
+       "ye": 45
+      },
+      {
+       "type": "LineSegment",
+       "xs": 90,
+       "ys": 45,
+       "xe": 60,
+       "ye": 45
+      },
+      {
+       "type": "LineSegment",
+       "xs": 60,
+       "ys": 45,
+       "xe": 60,
+       "ye": 30
+      }
+     ],
+     "holes": [
+      [
+       {
+        "type": "CircularArc",
+        "xs": 80,
+        "ys": 37.5,
+        "xe": 80,
+        "ye": 37.5,
+        "xc": 75,
+        "yc": 37.5,
+        "orientation": "F"
+       }
+      ]
+     ]
+    }
+   ],
+   "items": [
+    {
+     "id": 0,
+     "x": 0,
+     "y": 0,
+     "angle": 0,
+     "item_shapes": [
+      {
+       "shape": [
+        {
+         "type": "LineSegment",
+         "xs": 0,
+         "ys": 0,
+         "xe": 40,
+         "ye": 0
+        },
+        {
+         "type": "LineSegment",
+         "xs": 40,
+         "ys": 0,
+         "xe": 40,
+         "ye": 30
+        },
+        {
+         "type": "LineSegment",
+         "xs": 40,
+         "ys": 30,
+         "xe": 0,
+         "ye": 30
+        },
+        {
+         "type": "LineSegment",
+         "xs": 0,
+         "ys": 30,
+         "xe": 0,
+         "ye": 0
+        }
+       ],
+       "holes": [
+        [
+         {
+          "type": "CircularArc",
+          "xs": 13,
+          "ys": 5,
+          "xe": 13,
+          "ye": 5,
+          "xc": 10,
+          "yc": 5,
+          "orientation": "Full"
+         }
+        ],
+        [
+         {
+          "type": "LineSegment",
+          "xs": 20,
+          "ys": 2,
+          "xe": 30,
+          "ye": 2
+         },
+         {
+          "type": "CircularArc",
+          "xs": 30,
+          "ys": 2,
+          "xe": 30,
+          "ye": 8,
+          "xc": 30,
+          "yc": 5,
+          "orientation": "Anticlockwise"
+         },
+         {
+          "type": "LineSegment",
+          "xs": 30,
+          "ys": 8,
+          "xe": 20,
+          "ye": 8
+         },
+         {
+          "type": "CircularArc",
+          "xs": 20,
+          "ys": 8,
+          "xe": 20,
+          "ye": 2,
+          "xc": 20,
+          "yc": 5,
+          "orientation": "A"
+         }
+        ],
+        [
+         {
+          "type": "LineSegment",
+          "xs": 8,
+          "ys": 15,
+          "xe": 32,
+          "ye": 15
+         },
+         {
+          "type": "LineSegment",
+          "xs": 32,
+          "ys": 15,
+          "xe": 32,
+          "ye": 27
+         },
+         {
+          "type": "LineSegment",
+          "xs": 32,
+          "ys": 27,
+          "xe": 30,
+          "ye": 27
+         },
+         {
+          "type": "CircularArc",
+          "xs": 30,
+          "ys": 27,
+          "xe": 10,
+          "ye": 27,
+          "xc": 20,
+          "yc": 27,
+          "orientation": "C"
+         },
+         {
+          "type": "LineSegment",
+          "xs": 10,
+          "ys": 27,
+          "xe": 8,
+          "ye": 27
+         },
+         {
+          "type": "LineSegment",
+          "xs": 8,
+          "ys": 27,
+          "xe": 8,
+          "ye": 15
+         }
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

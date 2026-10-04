@@ -64,8 +64,15 @@ function shapePath(
         if (t === "CircularArc")
             rc = Math.sqrt((xc - xs) ** 2 + (yc - ys) ** 2);
 
-        if (isHole)
+        // A hole is drawn in the opposite direction, so that it isn't
+        // filled.
+        if (isHole) {
             [xs, ys, xe, ye] = [xe, ye, xs, ys];
+            if (["Anticlockwise", "anticlockwise", "A", "a"].includes(orientation))
+                orientation = "Clockwise";
+            else if (["Clockwise", "clockwise", "C", "c"].includes(orientation))
+                orientation = "Anticlockwise";
+        }
 
         if (pathX.length === 0 || pathX[pathX.length - 1] === null) {
             pathX.push(xs);
@@ -83,7 +90,7 @@ function shapePath(
             const endSin = (ye - yc) / rc;
             let endAngle = Math.atan2(endSin, endCos);
             if (handleFull && ["Full", "full", "F", "f"].includes(orientation))
-                endAngle += 2 * Math.PI;
+                endAngle += (isHole? -2: 2) * Math.PI;
             if (["Anticlockwise", "anticlockwise", "A", "a"].includes(orientation)
                     && endAngle <= startAngle)
                 endAngle += 2 * Math.PI;
