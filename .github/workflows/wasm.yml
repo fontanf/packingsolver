@@ -2,7 +2,9 @@ name: WebAssembly
 
 # Builds the WebAssembly module and the web page, runs their tests, and
 # deploys the page to Cloudflare Pages every time the Build workflow succeeds
-# on master (so a broken master is never deployed).
+# on master (so a broken master is never deployed). Only the latest commit of
+# master is deployed: when several commits are merged in a row, the runs of
+# the older ones are skipped.
 #
 # Pull requests touching the module, the page or the libraries only build and
 # test them.
@@ -41,7 +43,9 @@ env:
 
 jobs:
 
-  build:
+  # Whether the commit is still the head of master: older commits of master
+  # are not built nor deployed. Pull requests are always built.
+  latest:
     # 'workflow_run' only filters on the branch name: also require a push to
     # this repository, so that a pull request from a fork's 'master' branch is
     # never built and deployed.
@@ -50,6 +54,31 @@ jobs:
       (github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.event == 'push' &&
       github.event.workflow_run.head_repository.full_name == github.repository)
+    runs-on: ubuntu-latest
+    outputs:
+      latest: ${{ steps.check.outputs.latest }}
+    steps:
+    - name: Check that the commit is the head of master
+      id: check
+      env:
+        GH_TOKEN: ${{ github.token }}
+        SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+      run: |
+        if [ "${{ github.event_name }}" = "pull_request" ]; then
+          echo "latest=true" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+        head=$(gh api "repos/${{ github.repository }}/commits/master" --jq .sha)
+        if [ "$head" = "$SHA" ]; then
+          echo "latest=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "latest=false" >> "$GITHUB_OUTPUT"
+          echo "::notice::$SHA is no longer the head of master ($head): skipped."
+        fi
+
+  build:
+    needs: latest
+    if: needs.latest.outputs.latest == 'true'
     runs-on: ubuntu-latest
     steps:
     - name: Checkout code
@@ -99,13 +128,33 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: cloudflare-pages
+    # One deployment at a time.
+    concurrency:
+      group: cloudflare-pages-deploy
+      cancel-in-progress: false
     steps:
+    # master may have moved during the build.
+    - name: Check that the commit is still the head of master
+      id: check
+      env:
+        GH_TOKEN: ${{ github.token }}
+        SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+      run: |
+        head=$(gh api "repos/${{ github.repository }}/commits/master" --jq .sha)
+        if [ "$head" = "$SHA" ]; then
+          echo "latest=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "latest=false" >> "$GITHUB_OUTPUT"
+          echo "::notice::$SHA is no longer the head of master ($head): not deployed."
+        fi
     - name: Download the site
+      if: steps.check.outputs.latest == 'true'
       uses: actions/download-artifact@v5
       with:
         name: site
         path: site
     - name: Deploy to Cloudflare Pages
+      if: steps.check.outputs.latest == 'true'
       uses: cloudflare/wrangler-action@v3
       with:
         apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
