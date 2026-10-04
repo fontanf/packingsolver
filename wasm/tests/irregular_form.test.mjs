@@ -79,7 +79,7 @@ test("irregular form: the example solves", async () => {
     assert.strictEqual(result.output.Solution.NumberOfItems, numberOfItems);
 });
 
-test("irregular form: arcs of the preview", () => {
+test("irregular form: arcs of the thumbnails", () => {
     const center = {x: 1, y: 2};
     const close = (a, b) => Math.abs(a - b) < 1e-9;
     // Full circle: every point on the circle, closed.
@@ -102,15 +102,32 @@ test("irregular form: arcs of the preview", () => {
     }
 });
 
-test("irregular form: preview figure", () => {
-    const instance = irregularForm.instance(example.objective, binRows, itemRows);
-    const figure = irregularForm.previewFigure(instance);
-    // One cell (trace and annotation) per bin and item type, 4 per row.
-    assert.strictEqual(figure.data.length, 5);
-    assert.strictEqual(figure.layout.annotations.length, 5);
-    assert.strictEqual(figure.layout.height, 2 * 260 + 70 + 60);
-    assert.strictEqual(figure.layout.annotations[2].text, "Item type 2 (×6)");
-    assert.strictEqual(figure.data[4].xaxis, "x5");
+test("irregular form: thumbnails", () => {
+    // The view box of an "L" (a polygon) in coordinates flipped vertically,
+    // with a margin of 3% of its size.
+    const l = irregularForm.rowThumbnail(itemRows[2], true);
+    assert.deepStrictEqual(l.viewBox.map((v) => Number(v.toFixed(6))), [-0.6, -20.6, 21.2, 21.2]);
+    assert.strictEqual(l.title, "20 × 20");
+    assert.strictEqual(l.paths.length, 1);
+    assert.strictEqual(l.paths[0].d, "M0 0 L20 0 L20 0 L20 10 L20 10 L10 10 L10 10 L10 20 L10 20 L0 20 L0 20 L0 0 Z");
+    // A circle centered at the origin.
+    const circle = irregularForm.rowThumbnail(itemRows[1], true);
+    assert.strictEqual(circle.title, "16 × 16");
+    assert.ok(Math.abs(circle.viewBox[0] + 8.48) < 1e-9);
+    // An item with a hole: one path, both loops in it.
+    const hole = irregularForm.rowShape({shape: "circle", radius: 2});
+    const part = {
+        shape: irregularForm.rowShape({shape: "rectangle", width: 10, height: 10}),
+        holes: [hole], width: 10, height: 10, name: "plate", warnings: [],
+    };
+    const plate = irregularForm.rowThumbnail({...irregularForm.defaultItemRow(), shape: "file", file: part}, true);
+    assert.strictEqual(plate.paths.length, 1);
+    assert.strictEqual(plate.paths[0].d.split("M").length - 1, 2);
+    // Invalid rows.
+    assert.deepStrictEqual(
+        irregularForm.rowThumbnail({...itemRows[0], width: ""}, true), {error: 'invalid width: "".'});
+    assert.match(irregularForm.rowThumbnail({...binRows[0], defects: [{
+        ...irregularForm.defaultDefect(), x: 1}]}, false).error, /invalid y/);
 });
 
 test("irregular form: shapes from files", () => {
@@ -153,9 +170,9 @@ test("irregular form: defects and spacings", async () => {
         () => irregularForm.instance(example.objective,
             [{...bin, defects: [{...defects[0], x: ""}]}], itemRows),
         /bin type 1: defect 1: invalid x/);
-    // The preview draws the defects.
-    const figure = irregularForm.previewFigure(instance);
-    assert.strictEqual(figure.data.filter((t) => t.fillcolor === "#ef553b").length, 3);
+    // The thumbnail of the bin draws the defects.
+    const thumbnail = irregularForm.rowThumbnail(bin, false);
+    assert.strictEqual(thumbnail.paths.filter((p) => p.fill === "#ef553b").length, 3);
     // The solver reads them.
     instance.parameters = {item_item_minimum_spacing: 0.5};
     const module = await loadModule();

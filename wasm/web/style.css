@@ -263,9 +263,16 @@ tr.defects-line td {
     color: var(--error);
 }
 
-#instance-preview {
-    width: 100%;
-    min-height: 20rem;
+/* The thumbnail of a row of the irregular form. */
+svg.thumbnail {
+    display: block;
+    width: 4.5rem;
+    height: 3rem;
+}
+
+svg.thumbnail.invalid {
+    border: 1px dashed var(--error);
+    border-radius: 4px;
 }
 
 #plot {

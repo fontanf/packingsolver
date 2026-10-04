@@ -455,13 +455,13 @@ function defectsCell(row, onChange, onStructureChange) {
     return cell;
 }
 
-// Render a bin ('isItem' false) or item type table. 'onChange' is called
-// when a value changes, 'onStructureChange' when the table must be rendered
+// Render a bin ('isItem' false) or item type table. 'onTableChange' is
+// called when a value changes, 'onStructureChange' when the table must be rendered
 // again (shape changed, row removed).
-export function renderTable(table, rows, isItem, onChange, onStructureChange) {
+export function renderTable(table, rows, isItem, onTableChange, onStructureChange) {
     table.replaceChildren();
     const header = table.createTHead().insertRow();
-    const labels = ["Shape", "Dimensions", "Copies", isItem? "Profit": "Cost"];
+    const labels = ["", "Shape", "Dimensions", "Copies", isItem? "Profit": "Cost"];
     if (isItem)
         labels.push("Rotations", "Mirror");
     else
@@ -474,6 +474,17 @@ export function renderTable(table, rows, isItem, onChange, onStructureChange) {
     const body = table.createTBody();
     rows.forEach((row, rowIndex) => {
         const tr = body.insertRow();
+        // The thumbnail of the row, drawn again when one of its values
+        // changes.
+        const thumbnail = document.createElementNS(SVG_NAMESPACE, "svg");
+        thumbnail.setAttribute("class", "thumbnail");
+        thumbnail.setAttribute("role", "img");
+        drawThumbnail(thumbnail, row, isItem);
+        const onChange = () => {
+            drawThumbnail(thumbnail, row, isItem);
+            onTableChange();
+        };
+        tr.insertCell().appendChild(thumbnail);
         tr.insertCell().appendChild(select(row, "shape", "Shape", SHAPES, onStructureChange));
         tr.insertCell().appendChild(dimensionsCell(row, onChange, onStructureChange));
         tr.insertCell().appendChild(input(row, "copies", "Copies", {...NUMBER, min: "1", step: "1"}, onChange));
@@ -546,77 +557,75 @@ export function shapePoints(elements) {
     return points;
 }
 
-// Number of columns of the preview grid.
-const PREVIEW_COLUMNS = 4;
+// Fill colors of the thumbnails.
+const BIN_COLOR = "#e8e8e8";
+const ITEM_COLOR = "#636efa";
+const DEFECT_COLOR = "#ef553b";
 
-// Height of a row of the preview grid, and gap between two rows (for the
-// tick labels and the titles), in pixels.
-const PREVIEW_ROW_HEIGHT = 260;
-const PREVIEW_ROW_GAP = 70;
+function pathData(elements) {
+    return "M" + shapePoints(elements).map(([x, y]) => `${x} ${y}`).join(" L") + " Z";
+}
 
-// Figure ('{data, layout}' for 'Plotly.react') drawing each bin and item type
-// of an instance built by 'instance', in its own cell.
-export function previewFigure(instanceObject) {
-    const cells = [
-        ...instanceObject.bin_types.map((t, i) => ({
-            title: `Bin type ${i + 1} (×${t.copies})`, shapes: [t], color: "#e8e8e8",
-            defects: t.defects || []})),
-        ...instanceObject.item_types.map((t, i) => ({
-            title: `Item type ${i + 1} (×${t.copies})`, shapes: t.shapes, color: "#636efa"})),
-    ];
-    const columns = Math.min(PREVIEW_COLUMNS, cells.length);
-    const rows = Math.ceil(cells.length / columns);
-    const gap = 0.04;
-    const width = (1 - gap * (columns - 1)) / columns;
-    const plotHeight = PREVIEW_ROW_HEIGHT * rows + PREVIEW_ROW_GAP * (rows - 1);
-    const rowGap = PREVIEW_ROW_GAP / plotHeight;
-    const height = PREVIEW_ROW_HEIGHT / plotHeight;
-    const data = [];
-    const layout = {
-        showlegend: false,
-        height: plotHeight + 60,
-        margin: {l: 40, r: 10, t: 30, b: 30},
-        annotations: [],
+// The thumbnail of a row: '{viewBox, paths, title}' where each path is
+// '{d, fill}' (its holes in the same path, filled with the even-odd rule),
+// or '{error}' if the row is invalid. The y axis points up, as in the
+// solutions.
+export function rowThumbnail(row, isItem) {
+    let shape;
+    let defects = [];
+    try {
+        shape = rowShape(row);
+        if (!isItem)
+            defects = (row.defects || []).map(defectShape);
+    } catch (error) {
+        return {error: error.message};
+    }
+    const outline = shapePoints(shape.elements);
+    const xs = outline.map((p) => p[0]);
+    const ys = outline.map((p) => p[1]);
+    const xMin = Math.min(...xs);
+    const xMax = Math.max(...xs);
+    const yMin = Math.min(...ys);
+    const yMax = Math.max(...ys);
+    const margin = 0.03 * Math.max(xMax - xMin, yMax - yMin);
+    const d = [shape, ...(shape.holes || [])].map((s) => pathData(s.elements)).join(" ");
+    return {
+        // In the coordinates flipped vertically.
+        viewBox: [xMin - margin, -yMax - margin, xMax - xMin + 2 * margin, yMax - yMin + 2 * margin],
+        paths: [
+            {d, fill: isItem? ITEM_COLOR: BIN_COLOR},
+            ...defects.map((defect) => ({d: pathData(defect.elements), fill: DEFECT_COLOR})),
+        ],
+        title: `${format(xMax - xMin)} × ${format(yMax - yMin)}`,
     };
-    cells.forEach((cell, i) => {
-        const row = Math.floor(i / columns);
-        const column = i % columns;
-        const suffix = (i === 0)? "": String(i + 1);
-        const x = [column * (width + gap), column * (width + gap) + width];
-        const y = [1 - row * (height + rowGap) - height, 1 - row * (height + rowGap)];
-        layout["xaxis" + suffix] = {domain: x, anchor: "y" + suffix, zeroline: false};
-        layout["yaxis" + suffix] = {
-            domain: y, anchor: "x" + suffix, zeroline: false,
-            scaleanchor: "x" + suffix, scaleratio: 1,
-        };
-        layout.annotations.push({
-            text: cell.title, showarrow: false,
-            x: (x[0] + x[1]) / 2, y: y[1], xref: "paper", yref: "paper",
-            xanchor: "center", yanchor: "bottom",
-        });
-        for (const shape of cell.shapes) {
-            // The outline, then its holes drawn over it in the color of the
-            // background.
-            const loops = [
-                [shape.elements, cell.color],
-                ...(shape.holes || []).map((h) => [h.elements, "white"]),
-            ];
-            for (const defect of (cell.defects || []))
-                loops.push([defect.elements, "#ef553b"]);
-            for (const [loop, color] of loops) {
-                const points = shapePoints(loop);
-                data.push({
-                    type: "scatter",
-                    x: points.map((p) => p[0]),
-                    y: points.map((p) => p[1]),
-                    mode: "lines",
-                    fill: "toself", fillcolor: color,
-                    line: {color: "black", width: 1},
-                    xaxis: "x" + suffix, yaxis: "y" + suffix,
-                    hoverinfo: "x+y",
-                });
-            }
-        }
-    });
-    return {data, layout};
+}
+
+const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
+
+// Draw the thumbnail of a row in an 'svg' element.
+function drawThumbnail(element, row, isItem) {
+    const thumbnail = rowThumbnail(row, isItem);
+    element.replaceChildren();
+    const title = document.createElementNS(SVG_NAMESPACE, "title");
+    title.textContent = thumbnail.error || thumbnail.title;
+    element.appendChild(title);
+    element.classList.toggle("invalid", thumbnail.error !== undefined);
+    if (thumbnail.error !== undefined) {
+        element.removeAttribute("viewBox");
+        return;
+    }
+    element.setAttribute("viewBox", thumbnail.viewBox.join(" "));
+    const group = document.createElementNS(SVG_NAMESPACE, "g");
+    group.setAttribute("transform", "scale(1 -1)");
+    for (const {d, fill} of thumbnail.paths) {
+        const path = document.createElementNS(SVG_NAMESPACE, "path");
+        path.setAttribute("d", d);
+        path.setAttribute("fill", fill);
+        path.setAttribute("fill-rule", "evenodd");
+        path.setAttribute("stroke", "black");
+        path.setAttribute("stroke-width", "1");
+        path.setAttribute("vector-effect", "non-scaling-stroke");
+        group.appendChild(path);
+    }
+    element.appendChild(group);
 }

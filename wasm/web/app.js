@@ -108,7 +108,7 @@ function renderInstanceParameters() {
                 input.appendChild(option);
             }
             input.value = values[parameter.key];
-            input.addEventListener("change", () => { values[parameter.key] = input.value; schedulePreview(); });
+            input.addEventListener("change", () => { values[parameter.key] = input.value; scheduleFormCheck(); });
         } else if (parameter.type === "checkbox") {
             input = document.createElement("input");
             input.type = "checkbox";
@@ -121,7 +121,7 @@ function renderInstanceParameters() {
             input.step = "any";
             input.placeholder = parameter.placeholder;
             input.value = values[parameter.key];
-            input.addEventListener("input", () => { values[parameter.key] = input.value; schedulePreview(); });
+            input.addEventListener("input", () => { values[parameter.key] = input.value; scheduleFormCheck(); });
         }
         input.id = label.htmlFor;
         container.append(label, input);
@@ -237,7 +237,7 @@ const state = {
     // Last update from the worker ('{output, certificate}').
     last: null,
     plotTimer: null,
-    previewTimer: null,
+    formCheckTimer: null,
     // Values of the parameters of the instance ('INSTANCE_PARAMETERS').
     instanceParameters: {},
     startTime: 0,
@@ -406,46 +406,35 @@ function addDefectsLine(body, numberOfColumns, defects) {
 function renderForm() {
     const type = problemType();
     const irregular = (type === "irregular");
-    $("instance-preview-section").hidden = !irregular;
+    $("form-error").hidden = !irregular;
     $("file-items").hidden = !irregular;
     if (irregular) {
         irregularForm.renderTable(
-            $("bin-types"), state.binTypes, false, schedulePreview, renderForm);
+            $("bin-types"), state.binTypes, false, scheduleFormCheck, renderForm);
         irregularForm.renderTable(
-            $("item-types"), state.itemTypes, true, schedulePreview, renderForm);
-        schedulePreview();
+            $("item-types"), state.itemTypes, true, scheduleFormCheck, renderForm);
+        scheduleFormCheck();
         return;
     }
     renderTable($("bin-types"), binColumns(type), state.binTypes);
     renderTable($("item-types"), itemColumns(type), state.itemTypes);
 }
 
-// Preview of the shapes of the irregular form, drawn as they are typed.
-function schedulePreview() {
-    clearTimeout(state.previewTimer);
-    state.previewTimer = setTimeout(preview, 300);
+// Errors of the irregular form, shown as the values are typed (the shape
+// of each row is drawn in its thumbnail).
+function scheduleFormCheck() {
+    clearTimeout(state.formCheckTimer);
+    state.formCheckTimer = setTimeout(checkForm, 300);
 }
 
-async function preview() {
+function checkForm() {
     if (problemType() !== "irregular")
         return;
-    let instanceObject;
     try {
-        instanceObject = formInstance();
+        formInstance();
+        $("form-error").textContent = "";
     } catch (error) {
-        $("preview-error").textContent = error.message;
-        return;
-    }
-    $("preview-error").textContent = "";
-    try {
-        const figure = irregularForm.previewFigure(instanceObject);
-        await Plotly.react($("instance-preview"), figure.data, figure.layout, {
-            responsive: true,
-            displayModeBar: false,
-        });
-    } catch (error) {
-        console.error(error);
-        $("preview-error").textContent = "Error while drawing the preview: " + error.message;
+        $("form-error").textContent = error.message;
     }
 }
 
