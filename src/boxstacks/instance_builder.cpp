@@ -313,19 +313,19 @@ ItemTypeId InstanceBuilder::add_item_type(
         Length y,
         Length z)
 {
-    if (x < 0) {
+    if (x <= 0) {
         throw std::invalid_argument(
                 FUNC_SIGNATURE + ": "
                 "item 'x' must be > 0; "
                 "x: " + std::to_string(x) + ".");
     }
-    if (y < 0) {
+    if (y <= 0) {
         throw std::invalid_argument(
                 FUNC_SIGNATURE + ": "
                 "item 'y' must be > 0; "
                 "y: " + std::to_string(y) + ".");
     }
-    if (z < 0) {
+    if (z <= 0) {
         throw std::invalid_argument(
                 FUNC_SIGNATURE + ": "
                 "item 'z' must be > 0; "
@@ -658,14 +658,12 @@ void InstanceBuilder::read_parameters(
         }
         //std::cout << "name " << name << std::endl;
         if (name == "objective") {
-            Objective objective;
-            std::stringstream ss(value);
-            ss >> objective;
+            Objective objective = read_enum<Objective>(value, name);
             set_objective(objective);
         } if (name == "unloading-constraint") {
-            rectangle::UnloadingConstraint unloading_constraint;
-            std::stringstream ss(value);
-            ss >> unloading_constraint;
+            rectangle::UnloadingConstraint unloading_constraint = read_enum<rectangle::UnloadingConstraint>(
+                    value,
+                    name);
             set_unloading_constraint(unloading_constraint);
         } if (name == "no-check-weight-constraints") {
             GroupId group_id = (GroupId)std::stol(value);

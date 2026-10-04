@@ -249,3 +249,98 @@ TEST(RectangleGuillotine, AddTrimsRejectsTrimsConsumingWholeWidth)
                     0, TrimType::Hard),
             std::invalid_argument);
 }
+
+namespace
+{
+
+Instance read_json(const std::string& json)
+{
+    std::stringstream ss(json);
+    InstanceBuilder instance_builder;
+    instance_builder.read(ss);
+    return instance_builder.build();
+}
+
+const std::string BIN_AND_ITEM_TYPES = R"(
+        "bin_types": [{"width": 100, "height": 50}],
+        "item_types": [{"width": 10, "height": 10}]
+)";
+
+}
+
+TEST(RectangleGuillotine, ReadUnknownEnumValues)
+{
+    // Unrecognized values are rejected, instead of being ignored or leaving
+    // the value uninitialized.
+    for (const std::string& parameter: {
+            R"("cut_type": "inexact")",
+            R"("first_stage_orientation": "diagonal")"}) {
+        EXPECT_THROW(
+                read_json("{\"objective\": \"bin-packing\", " + parameter + ", " + BIN_AND_ITEM_TYPES + "}"),
+                std::invalid_argument);
+    }
+    EXPECT_THROW(
+            read_json(R"({
+                "objective": "bin-packing",
+                "bin_types": [{"width": 100, "height": 50, "left_trim": 5, "left_trim_type": "medium"}],
+                "item_types": [{"width": 10, "height": 10}]})"),
+            std::invalid_argument);
+    Instance instance = read_json(R"({
+            "objective": "bin-packing",
+            "cut_type": "exact",
+            "first_stage_orientation": "any",
+            "bin_types": [{"width": 100, "height": 50, "left_trim": 5, "left_trim_type": "soft"}],
+            "item_types": [{"width": 10, "height": 10}]})");
+    EXPECT_EQ(instance.parameters().cut_type, CutType::Exact);
+    EXPECT_EQ(instance.parameters().first_stage_orientation, CutOrientation::Any);
+    EXPECT_EQ(instance.bin_type(0).left_trim_type, TrimType::Soft);
+}
+
+TEST(RectangleGuillotine, ReadUnlimitedNumberOfStages)
+{
+    // The number of stages is read before the bin types: the bound is
+    // computed when the instance is built.
+    Instance instance = read_json(
+            "{\"objective\": \"bin-packing\", \"number_of_stages\": \"unlimited\", "
+            + BIN_AND_ITEM_TYPES + "}");
+    EXPECT_EQ(instance.parameters().number_of_stages, 150);
+    EXPECT_TRUE(instance.number_of_stages_unlimited());
+    EXPECT_EQ(instance.parameters().cut_type, CutType::Exact);
+    EXPECT_EQ(instance.parameters().first_stage_orientation, CutOrientation::Any);
+    // The unlimited number of stages overrides the cut type and the first
+    // stage orientation.
+    instance = read_json(
+            "{\"objective\": \"bin-packing\", \"number_of_stages\": \"unlimited\", "
+            "\"cut_type\": \"non-exact\", \"first_stage_orientation\": \"vertical\", "
+            + BIN_AND_ITEM_TYPES + "}");
+    EXPECT_EQ(instance.parameters().cut_type, CutType::Exact);
+    EXPECT_EQ(instance.parameters().first_stage_orientation, CutOrientation::Any);
+    EXPECT_EQ(instance.parameters().number_of_stages, 150);
+}
+
+TEST(RectangleGuillotine, ReadCuttingCosts)
+{
+    // Without 'number_of_stages' and 'cut_type': the defaults, 3 stages and
+    // non-exact cuts, so 5 cutting costs.
+    Instance instance = read_json(
+            "{\"objective\": \"bin-packing-cutting-cost\", "
+            "\"cutting_costs\": [{\"fixed\": 10, \"variable\": 1}, {\"fixed\": 5, \"variable\": 2}], "
+            + BIN_AND_ITEM_TYPES + "}");
+    ASSERT_EQ(instance.parameters().cutting_costs.size(), 5);
+    EXPECT_EQ(instance.parameters().cutting_costs[0].fixed, 10);
+    EXPECT_EQ(instance.parameters().cutting_costs[1].variable, 2);
+    EXPECT_EQ(instance.parameters().cutting_costs[4].fixed, 0);
+    // 2 stages and exact cuts: at most 3 cutting costs.
+    EXPECT_THROW(
+            read_json(
+                "{\"objective\": \"bin-packing-cutting-cost\", "
+                "\"number_of_stages\": 2, \"cut_type\": \"exact\", "
+                "\"cutting_costs\": [{\"fixed\": 1, \"variable\": 1}, {\"fixed\": 1, \"variable\": 1}, "
+                "{\"fixed\": 1, \"variable\": 1}, {\"fixed\": 1, \"variable\": 1}], "
+                + BIN_AND_ITEM_TYPES + "}"),
+            std::invalid_argument);
+    // Without cutting costs, all are 0.
+    instance = read_json("{\"objective\": \"bin-packing\", " + BIN_AND_ITEM_TYPES + "}");
+    ASSERT_EQ(instance.parameters().cutting_costs.size(), 5);
+    EXPECT_EQ(instance.parameters().cutting_costs[0].fixed, 0);
+}

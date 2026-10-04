@@ -103,3 +103,35 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "rectangle" / "tests" / "variable_sized_bin_packing_mandatory_bins" / "parameters.csv",
                 fs::path("data") / "rectangle" / "tests" / "variable_sized_bin_packing_mandatory_bins" / "solution.csv",
             }}));
+
+TEST(Rectangle, ReadUnknownEnumValues)
+{
+    // Unrecognized values are rejected instead of being ignored.
+    for (const std::string& parameter: {
+            R"("unloading_constraint": "only-z-movements")",
+            R"("leftover_mode": "volume")"}) {
+        std::stringstream ss(
+                "{\"objective\": \"bin-packing\", " + parameter + ", "
+                "\"bin_types\": [{\"x\": 100, \"y\": 50}], "
+                "\"item_types\": [{\"x\": 10, \"y\": 10}]}");
+        InstanceBuilder instance_builder;
+        EXPECT_THROW(instance_builder.read(ss), std::invalid_argument);
+    }
+    std::stringstream ss(R"({
+            "objective": "bin-packing",
+            "unloading_constraint": "increasing-x",
+            "bin_types": [{"x": 100, "y": 50}],
+            "item_types": [{"x": 10, "y": 10}]})");
+    InstanceBuilder instance_builder;
+    instance_builder.read(ss);
+    Instance instance = instance_builder.build();
+    EXPECT_EQ(instance.unloading_constraint(), UnloadingConstraint::IncreasingX);
+}
+
+TEST(Rectangle, ItemTypeDimensionsMustBePositive)
+{
+    InstanceBuilder instance_builder;
+    EXPECT_THROW(instance_builder.add_item_type(0, 10), std::invalid_argument);
+    EXPECT_THROW(instance_builder.add_item_type(10, 0), std::invalid_argument);
+    EXPECT_NO_THROW(instance_builder.add_item_type(10, 10));
+}
