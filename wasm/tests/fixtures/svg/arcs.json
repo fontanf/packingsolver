@@ -1,0 +1,24 @@
+{
+    "parts": [
+        {
+            "area": 378.53981633974485,
+            "holes": 0,
+            "width": 40,
+            "height": 10
+        },
+        {
+            "area": 235.61944901923448,
+            "holes": 0,
+            "width": 20,
+            "height": 20
+        },
+        {
+            "area": 363.7655705175682,
+            "holes": 0,
+            "width": 20,
+            "height": 20
+        }
+    ],
+    "units": "millimeters",
+    "warnings": 0
+}

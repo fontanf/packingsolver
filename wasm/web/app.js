@@ -408,7 +408,7 @@ function renderForm() {
     const type = problemType();
     const irregular = (type === "irregular");
     $("instance-preview-section").hidden = !irregular;
-    $("dxf-items").hidden = !irregular;
+    $("file-items").hidden = !irregular;
     if (irregular) {
         irregularForm.renderTable(
             $("bin-types"), state.binTypes, false, schedulePreview, renderForm);
@@ -450,27 +450,27 @@ async function preview() {
     }
 }
 
-// Add an item type for each part of a DXF file. The initial item type is
+// Add an item type for each part of a DXF or SVG file. The initial item type is
 // replaced if it wasn't modified.
-async function loadDxfItems(file) {
+async function loadFileItems(file) {
     try {
-        const {parts, units, warnings} = await irregularForm.readDxfFile(file);
+        const {parts, units, warnings} = await irregularForm.readShapeFile(file);
         if (parts.length === 0)
             throw new Error(`no closed contour found in ${file.name}.`);
         const untouched = JSON.stringify(irregularForm.defaultItemRow());
         if (state.itemTypes.length === 1 && JSON.stringify(state.itemTypes[0]) === untouched)
             state.itemTypes = [];
         for (const part of parts)
-            state.itemTypes.push({...irregularForm.defaultItemRow(), shape: "dxf", dxf: part});
-        $("dxf-items-status").classList.remove("error-text");
-        $("dxf-items-status").textContent =
+            state.itemTypes.push({...irregularForm.defaultItemRow(), shape: "file", file: part});
+        $("file-items-status").classList.remove("error-text");
+        $("file-items-status").textContent =
             `Added ${parts.length} item type${(parts.length > 1)? "s": ""} from ${file.name}`
             + ((units !== null)? ` (${units})`: "") + "."
             + ((warnings.length > 0)? ` Warnings: ${warnings.join("; ")}.`: "");
         renderForm();
     } catch (error) {
-        $("dxf-items-status").classList.add("error-text");
-        $("dxf-items-status").textContent = "Error: " + error.message;
+        $("file-items-status").classList.add("error-text");
+        $("file-items-status").textContent = "Error: " + error.message;
     }
 }
 
@@ -787,12 +787,12 @@ function init() {
         renderForm();
     });
     $("load-example").addEventListener("click", loadExample);
-    $("load-dxf-items").addEventListener("click", () => $("dxf-items-file").click());
-    $("dxf-items-file").addEventListener("change", async () => {
-        const file = $("dxf-items-file").files[0];
-        $("dxf-items-file").value = "";
+    $("load-file-items").addEventListener("click", () => $("file-items-file").click());
+    $("file-items-file").addEventListener("change", async () => {
+        const file = $("file-items-file").files[0];
+        $("file-items-file").value = "";
         if (file !== undefined)
-            await loadDxfItems(file);
+            await loadFileItems(file);
     });
     $("json-file").addEventListener("change", async () => {
         const file = $("json-file").files[0];

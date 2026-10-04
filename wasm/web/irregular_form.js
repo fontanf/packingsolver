@@ -1,16 +1,18 @@
 // Form of the irregular problem type: bin and item types whose shapes are
-// rectangles, circles, polygons or read from DXF files, converted to the
+// rectangles, circles, polygons or read from DXF or SVG files, converted to
+// the
 // "general" shapes of the JSON instance format (line segments and circular
 // arcs).
 
-import {readParts} from "./dxf.js";
+import * as dxf from "./dxf.js";
+import * as svg from "./svg.js";
 
 // Shapes of a row, and the fields of their dimensions.
 export const SHAPES = {
     rectangle: "Rectangle",
     circle: "Circle",
     polygon: "Polygon",
-    dxf: "From DXF",
+    file: "From file (DXF, SVG)",
 };
 
 // Allowed rotations of an item type, in degrees.
@@ -105,12 +107,12 @@ function positiveNumber(value, name) {
 // The shape of a row, as a "general" shape of the JSON format, with its
 // holes if it has any.
 export function rowShape(row) {
-    if (row.shape === "dxf") {
-        if (!row.dxf)
-            throw new Error("load a DXF file.");
-        const shape = {...row.dxf.shape};
-        if (row.dxf.holes.length > 0)
-            shape.holes = row.dxf.holes;
+    if (row.shape === "file") {
+        if (!row.file)
+            throw new Error("load a DXF or SVG file.");
+        const shape = {...row.file.shape};
+        if (row.file.holes.length > 0)
+            shape.holes = row.file.holes;
         return shape;
     }
     if (row.shape === "rectangle") {
@@ -314,8 +316,8 @@ function dimensionsCell(row, onChange, onStructureChange) {
             spellcheck: false,
         }, onChange);
         cell.append(vertices);
-    } else if (row.shape === "dxf") {
-        cell.append(dxfInput(row, onStructureChange), dxfDescription(row));
+    } else if (row.shape === "file") {
+        cell.append(fileInput(row, onStructureChange), fileDescription(row));
     }
     return cell;
 }
@@ -324,29 +326,33 @@ function format(value) {
     return String(Number(value.toPrecision(6)));
 }
 
-// Description of the shape of a row loaded from a DXF file.
-function dxfDescription(row) {
+// Description of the shape of a row loaded from a file.
+function fileDescription(row) {
     const description = document.createElement("span");
-    description.className = "dxf-description";
-    if (row.dxfError) {
+    description.className = "file-description";
+    if (row.fileError) {
         description.classList.add("error-text");
-        description.textContent = row.dxfError;
-    } else if (row.dxf) {
-        const holes = row.dxf.holes.length;
-        description.textContent = `${row.dxf.name}: ${format(row.dxf.width)} × ${format(row.dxf.height)}`
+        description.textContent = row.fileError;
+    } else if (row.file) {
+        const holes = row.file.holes.length;
+        description.textContent = `${row.file.name}: ${format(row.file.width)} × ${format(row.file.height)}`
             + ((holes > 0)? `, ${holes} hole${(holes > 1)? "s": ""}`: "")
-            + ((row.dxf.warnings.length > 0)? ` (${row.dxf.warnings.join("; ")})`: "");
+            + ((row.file.warnings.length > 0)? ` (${row.file.warnings.join("; ")})`: "");
     } else {
-        description.textContent = "Choose a DXF file containing one part.";
+        description.textContent = "Choose a DXF or SVG file containing one part.";
     }
     return description;
 }
 
-// Read the parts of a DXF file: '{parts, units, warnings}' (see
-// 'readParts'), each part named after the file.
-export async function readDxfFile(file) {
-    const result = readParts(await file.text());
-    const name = file.name.replace(/\.dxf$/i, "");
+// Read the parts of a DXF or SVG file: '{parts, units, warnings}' (see
+// 'readParts' of 'dxf.js' and 'svg.js'), each part named after the file.
+export async function readShapeFile(file) {
+    const extension = (/\.([^.]*)$/.exec(file.name) || ["", ""])[1].toLowerCase();
+    const readers = {dxf: dxf.readParts, svg: svg.readParts};
+    if (!(extension in readers))
+        throw new Error(`${file.name}: only DXF and SVG files are supported.`);
+    const result = readers[extension](await file.text());
+    const name = file.name.replace(/\.[^.]*$/, "");
     result.parts.forEach((part, i) => {
         part.name = (result.parts.length > 1)? `${name} (${i + 1})`: name;
         part.warnings = [];
@@ -354,18 +360,18 @@ export async function readDxfFile(file) {
     return result;
 }
 
-// A button choosing the DXF file of a row (a file input can't show the file
+// A button choosing the file of a row (a file input can't show the file
 // of a row once the table is rendered again).
-function dxfInput(row, onStructureChange) {
+function fileInput(row, onStructureChange) {
     const container = document.createElement("span");
     const button = document.createElement("button");
     button.type = "button";
-    button.textContent = row.dxf? "Change file": "Choose a DXF file";
+    button.textContent = row.file? "Change file": "Choose a file";
     const element = document.createElement("input");
     element.type = "file";
-    element.accept = ".dxf";
+    element.accept = ".dxf,.svg";
     element.hidden = true;
-    element.setAttribute("aria-label", "DXF file");
+    element.setAttribute("aria-label", "DXF or SVG file");
     button.addEventListener("click", () => element.click());
     container.append(button, element);
     element.addEventListener("change", async () => {
@@ -373,19 +379,19 @@ function dxfInput(row, onStructureChange) {
         if (file === undefined)
             return;
         try {
-            const {parts, warnings} = await readDxfFile(file);
+            const {parts, warnings} = await readShapeFile(file);
             if (parts.length === 0)
                 throw new Error(`no closed contour found in ${file.name}.`);
             if (parts.length > 1) {
                 throw new Error(`${file.name} contains ${parts.length} parts: `
-                    + `use "Load item types from a DXF file" to load them all.`);
+                    + `use "Load item types from a file" to load them all.`);
             }
             // The warnings of a file loaded in a row are shown in the row.
-            row.dxf = {...parts[0], warnings};
-            row.dxfError = null;
+            row.file = {...parts[0], warnings};
+            row.fileError = null;
         } catch (error) {
-            row.dxf = null;
-            row.dxfError = error.message;
+            row.file = null;
+            row.fileError = error.message;
         }
         onStructureChange();
     });

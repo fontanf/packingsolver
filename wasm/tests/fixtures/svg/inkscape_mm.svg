@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+     width="210mm" height="297mm" viewBox="0 0 210 297">
+  <!-- A plate with a hole made of two subpaths of one path, and a circular
+       hole drawn as a separate element. -->
+  <g inkscape:label="Layer 1" inkscape:groupmode="layer" transform="translate(10,20)">
+    <path d="M 0,0 H 60 V 40 H 0 Z M 10,10 h 10 v 10 h -10 z" style="fill:none;stroke:#000000"/>
+    <circle cx="45" cy="20" r="5" style="fill:none;stroke:#ff0000"/>
+  </g>
+</svg>

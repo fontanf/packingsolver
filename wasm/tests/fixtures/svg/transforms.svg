@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+     width="200mm" height="200mm" viewBox="0 0 200 200">
+  <defs>
+    <polygon id="triangle" points="0,0 20,0 0,20"/>
+  </defs>
+  <g transform="translate(20 20)">
+    <!-- Rotated by 90 degrees: 10 x 30. -->
+    <rect x="0" y="0" width="30" height="10" transform="rotate(90 15 5)"/>
+  </g>
+  <g transform="translate(100,20) scale(2)">
+    <!-- Rounded rectangle, scaled: 40 x 20, corner radius 6. -->
+    <rect x="0" y="0" width="20" height="10" rx="3"/>
+  </g>
+  <!-- matrix(a b c d e f): rotation by 90 degrees and translation. -->
+  <polygon points="0,0 30,0 30,10 0,10" transform="matrix(0 1 -1 0 60 100)"/>
+  <!-- Clones of the triangle. -->
+  <use xlink:href="#triangle" x="100" y="100"/>
+  <use href="#triangle" transform="translate(150 100) scale(1.5)"/>
+</svg>
