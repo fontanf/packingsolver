@@ -190,16 +190,37 @@ input.vertices {
     font-size: 0.9em;
 }
 
-#instance-parameters {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: flex-end;
-    column-gap: 1rem;
+/* Fields with one value: the key and the value on the same line, one field
+   per line. */
+.fields {
+    display: grid;
+    /* The same width for the keys of all the groups, so that their values
+       are aligned. */
+    grid-template-columns: minmax(17rem, max-content) minmax(0, 26rem);
+    align-items: center;
+    gap: 0.5rem 1rem;
+    margin-bottom: 1rem;
 }
 
-#instance-parameters label.inline {
-    gap: 0.4rem;
-    margin-bottom: 1.2rem;
+.fields label {
+    display: block;
+    margin: 0;
+}
+
+.fields input[type="checkbox"] {
+    justify-self: start;
+}
+
+/* Its fields are in the grid of its parent. */
+#instance-parameters:not([hidden]) {
+    display: contents;
+}
+
+@media (max-width: 30rem) {
+    .fields {
+        grid-template-columns: minmax(0, 1fr);
+        row-gap: 0.25rem;
+    }
 }
 
 .checkboxes {

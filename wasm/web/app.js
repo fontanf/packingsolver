@@ -92,9 +92,12 @@ function renderInstanceParameters() {
     const parameters = INSTANCE_PARAMETERS[problemType()] || [];
     container.hidden = (parameters.length === 0);
     const values = state.instanceParameters;
+    // A label and an input for each parameter: the two columns of the grid
+    // of the objective.
     for (const parameter of parameters) {
         const label = document.createElement("label");
-        label.append(parameter.label);
+        label.htmlFor = "instance-parameter-" + parameter.key;
+        label.textContent = parameter.label;
         let input;
         if (parameter.type === "select") {
             input = document.createElement("select");
@@ -107,14 +110,10 @@ function renderInstanceParameters() {
             input.value = values[parameter.key];
             input.addEventListener("change", () => { values[parameter.key] = input.value; schedulePreview(); });
         } else if (parameter.type === "checkbox") {
-            label.classList.add("inline");
             input = document.createElement("input");
             input.type = "checkbox";
             input.checked = values[parameter.key];
             input.addEventListener("change", () => { values[parameter.key] = input.checked; });
-            label.prepend(input);
-            container.appendChild(label);
-            continue;
         } else {
             input = document.createElement("input");
             input.type = "number";
@@ -124,8 +123,8 @@ function renderInstanceParameters() {
             input.value = values[parameter.key];
             input.addEventListener("input", () => { values[parameter.key] = input.value; schedulePreview(); });
         }
-        label.appendChild(input);
-        container.appendChild(label);
+        input.id = label.htmlFor;
+        container.append(label, input);
     }
 }
 
