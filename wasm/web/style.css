@@ -235,12 +235,13 @@ input.vertices {
     overflow-x: auto;
 }
 
-/* The defects of a bin type, on a line below it. */
-tr.defects-line td {
+/* The defects of a bin type or the holes of an item type, on a line below
+   it. */
+tr.placed-shapes-line td {
     padding-left: 1.5rem;
 }
 
-.defects-label {
+.placed-shapes-label {
     display: inline-block;
     margin-right: 1rem;
     color: var(--muted);
@@ -248,15 +249,19 @@ tr.defects-line td {
     padding-top: 0.4rem;
 }
 
-.defects {
+.placed-shapes {
     display: inline-flex;
     flex-direction: column;
     gap: 0.3rem;
 }
 
-.defects button {
+.placed-shapes button {
     margin: 0;
     align-self: flex-start;
+}
+
+td.row-buttons {
+    white-space: nowrap;
 }
 
 .error-text {

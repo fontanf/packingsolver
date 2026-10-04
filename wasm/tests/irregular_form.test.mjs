@@ -182,3 +182,44 @@ test("irregular form: defects and spacings", async () => {
     assert.strictEqual(result.error, undefined);
     assert.ok(result.output.Solution.NumberOfItems > 0);
 });
+
+test("irregular form: holes", async () => {
+    const holes = [
+        {...irregularForm.defaultHole(), x: 2, y: 3, width: 4, height: 2},
+        {...irregularForm.defaultHole(), shape: "circle", x: 15, y: 5, radius: 2},
+        {...irregularForm.defaultHole(), shape: "polygon", vertices: "2 12, 6 12, 2 16"},
+    ];
+    const item = {...irregularForm.defaultItemRow(), width: 20, height: 20, holes};
+    const instance = irregularForm.instance(example.objective, binRows, [item]);
+    const shape = instance.item_types[0].shapes[0];
+    assert.strictEqual(shape.holes.length, 3);
+    assert.deepStrictEqual(shape.holes[0].elements[0].start, {x: 2, y: 3});
+    assert.deepStrictEqual(shape.holes[1].elements[0].center, {x: 15, y: 5});
+    assert.deepStrictEqual(shape.holes[2].elements[0].start, {x: 2, y: 12});
+    // The holes are drawn in the thumbnail: one path with the four loops.
+    const thumbnail = irregularForm.rowThumbnail(item, true);
+    assert.strictEqual(thumbnail.paths.length, 1);
+    assert.strictEqual(thumbnail.paths[0].d.split("M").length - 1, 4);
+    // The holes of a file come first.
+    const part = {
+        shape: irregularForm.rowShape({shape: "rectangle", width: 20, height: 20}),
+        holes: [irregularForm.rowShape({shape: "circle", radius: 1})], width: 20, height: 20,
+        name: "plate", warnings: [],
+    };
+    const fileItem = {...item, shape: "file", file: part, holes: [holes[0]]};
+    assert.deepStrictEqual(irregularForm.itemShape(fileItem).holes, [part.holes[0], shape.holes[0]]);
+    // Invalid holes: outside the item, touching its border, invalid values.
+    const error = (hole) => () => irregularForm.instance(
+        example.objective, binRows, [{...item, holes: [holes[0], hole]}]);
+    assert.throws(error({...holes[0], x: 18}), /item type 1: hole 2: it must be inside the item/);
+    assert.throws(error({...holes[0], x: 0}), /hole 2: it must be inside the item/);
+    assert.throws(error({...holes[1], radius: 6}), /hole 2: it must be inside the item/);
+    assert.throws(error({...holes[0], y: ""}), /hole 2: invalid y/);
+    // The solver reads them.
+    const module = await loadModule();
+    const result = JSON.parse(module.solve(
+        "irregular", JSON.stringify(instance),
+        JSON.stringify({optimization_mode: "not-anytime-sequential"})));
+    assert.strictEqual(result.error, undefined);
+    assert.strictEqual(result.output.Solution.NumberOfItems, 1);
+});

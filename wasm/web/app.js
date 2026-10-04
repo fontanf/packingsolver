@@ -307,7 +307,7 @@ function trimsCell(row, column) {
 // Cell of a column of type "defects": a list of rectangles.
 function defectsCell(row, column) {
     const cell = document.createElement("div");
-    cell.className = "defects";
+    cell.className = "placed-shapes";
     const defects = row[column.key];
     defects.forEach((defect, i) => {
         const line = document.createElement("div");
@@ -394,11 +394,11 @@ function renderTable(table, columns, rows) {
 // Line, below a row of a table, with the defects of the row.
 function addDefectsLine(body, numberOfColumns, defects) {
     const tr = body.insertRow();
-    tr.className = "defects-line";
+    tr.className = "placed-shapes-line";
     const cell = tr.insertCell();
     cell.colSpan = numberOfColumns;
     const label = document.createElement("span");
-    label.className = "defects-label";
+    label.className = "placed-shapes-label";
     label.textContent = "Defects";
     cell.append(label, defects);
 }
