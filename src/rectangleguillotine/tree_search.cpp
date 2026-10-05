@@ -435,6 +435,19 @@ BranchingScheme::Node BranchingScheme::child_tmp(
     Length w = bin_type.rect.w
         - bin_type.right_trim
         - bin_type.left_trim;
+    // Coordinates of the right and top borders of the bin, from which no cut
+    // is needed: the hard trims are cut, the soft trims aren't.
+    Length x_end = (bin_type.right_trim_type == TrimType::Soft)?
+        bin_type.rect.w:
+        bin_type.rect.w - bin_type.right_trim;
+    Length y_end = (bin_type.top_trim_type == TrimType::Soft)?
+        bin_type.rect.h:
+        bin_type.rect.h - bin_type.top_trim;
+    // Length of the 1-cuts, and of a 2-cut along the bin.
+    Length h_1_cut = y_end
+        - ((bin_type.bottom_trim_type == TrimType::Soft)? 0: bin_type.bottom_trim);
+    Length w_2_cut = x_end
+        - ((bin_type.left_trim_type == TrimType::Soft)? 0: bin_type.left_trim);
 
     // Compute x1_prev and y2_prev.
     switch (insertion.df) {
@@ -541,20 +554,20 @@ BranchingScheme::Node BranchingScheme::child_tmp(
 
     // Compute bincurr_number_of_1_cuts.
     if (node.df < 0) {
-        if (node.x1_curr == w) {
+        if (node.x1_curr == x_end) {
             node.bincurr_number_of_1_cuts = 0;
         } else {
             node.bincurr_number_of_1_cuts = 1;
         }
     } else if (node.df == 0) {
-        if (node.x1_curr == w) {
+        if (node.x1_curr == x_end) {
             node.bincurr_number_of_1_cuts = parent.bincurr_number_of_1_cuts;
         } else {
             node.bincurr_number_of_1_cuts = parent.bincurr_number_of_1_cuts + 1;
         }
     } else { // node.df > 0
-        if (node.x1_curr == w) {
-            if (parent.x1_curr == w) {
+        if (node.x1_curr == x_end) {
+            if (parent.x1_curr == x_end) {
                 node.bincurr_number_of_1_cuts = parent.bincurr_number_of_1_cuts;
             } else {
                 node.bincurr_number_of_1_cuts = parent.bincurr_number_of_1_cuts - 1;
@@ -566,20 +579,20 @@ BranchingScheme::Node BranchingScheme::child_tmp(
 
     // Compute subplate1curr_number_of_2_cuts.
     if (node.df < 1) {
-        if (node.y2_curr == h) {
+        if (node.y2_curr == y_end) {
             node.subplate1curr_number_of_2_cuts = 0;
         } else {
             node.subplate1curr_number_of_2_cuts = 1;
         }
     } else if (node.df == 1) {
-        if (node.y2_curr == h) {
+        if (node.y2_curr == y_end) {
             node.subplate1curr_number_of_2_cuts = parent.subplate1curr_number_of_2_cuts;
         } else {
             node.subplate1curr_number_of_2_cuts = parent.subplate1curr_number_of_2_cuts + 1;
         }
     } else if (node.df > 1) {
-        if (node.y2_curr == h) {
-            if (parent.y2_curr == h) {
+        if (node.y2_curr == y_end) {
+            if (parent.y2_curr == y_end) {
                 node.subplate1curr_number_of_2_cuts = parent.subplate1curr_number_of_2_cuts;
             } else {
                 node.subplate1curr_number_of_2_cuts = parent.subplate1curr_number_of_2_cuts - 1;
@@ -656,24 +669,63 @@ BranchingScheme::Node BranchingScheme::child_tmp(
             node.cutting_cost
                 += (node.x1_curr - parent.x1_curr) * parent.subplate1curr_number_of_2_cuts * cutting_costs_[2].variable;
         }
+        // With two stages, the waste of a soft left trim is separated in
+        // each 2-level sub-plate, so the 2-cuts start from the left of the
+        // bin.
+        Length w_2_cuts = (instance.parameters().number_of_stages == 2
+                && bin_type.left_trim_type == TrimType::Soft)?
+            node.x1_curr:
+            node.x1_curr - node.x1_prev;
         if (node.df <= 1) { // New 2-level sub-plate.
-            if (node.y2_curr != h) {
-                node.cutting_cost += cutting_costs_[2].fixed + cutting_costs_[2].variable * (node.x1_curr - node.x1_prev);
+            if (node.y2_curr != y_end) {
+                node.cutting_cost += cutting_costs_[2].fixed + cutting_costs_[2].variable * w_2_cuts;
             }
         } else { // Same 2-level sub-plate.
-            if (parent.y2_curr != h && node.y2_curr == h) {
-                node.cutting_cost -= cutting_costs_[2].fixed + cutting_costs_[2].variable * (node.x1_curr - node.x1_prev);
+            if (parent.y2_curr != y_end && node.y2_curr == y_end) {
+                node.cutting_cost -= cutting_costs_[2].fixed + cutting_costs_[2].variable * w_2_cuts;
             }
         }
 
         // 1-cut cost.
         if (node.df <= 0) { // New 1-level sub-plate.
-            if (node.x1_curr != w) {
-                node.cutting_cost += cutting_costs_[1].fixed + cutting_costs_[1].variable * h;
+            if (node.x1_curr != x_end) {
+                node.cutting_cost += cutting_costs_[1].fixed + cutting_costs_[1].variable * h_1_cut;
             }
         } else { // Same 1-level sub-plate.
-            if (parent.x1_curr != w && node.x1_curr == w) {
-                node.cutting_cost -= cutting_costs_[1].fixed + cutting_costs_[1].variable * h;
+            if (parent.x1_curr != x_end && node.x1_curr == x_end) {
+                node.cutting_cost -= cutting_costs_[1].fixed + cutting_costs_[1].variable * h_1_cut;
+            }
+        }
+
+        // Soft trim cuts. The solution separates the waste of a soft left
+        // trim with a 1-cut along the bin (a 3-cut in each 2-level
+        // sub-plate with two stages), and the waste of a soft bottom trim
+        // with a 2-cut in each 1-level sub-plate (a single 2-cut along the
+        // bin with two stages); see 'to_solution'.
+        if (bin_type.left_trim_type == TrimType::Soft
+                && bin_type.left_trim > 0) {
+            if (instance.parameters().number_of_stages >= 3) {
+                if (node.df < 0)
+                    node.cutting_cost += cutting_costs_[1].fixed + cutting_costs_[1].variable * h_1_cut;
+            } else {
+                if (node.df <= 1) { // New 2-level sub-plate.
+                    node.cutting_cost += cutting_costs_[3].fixed + cutting_costs_[3].variable * (node.y2_curr - node.y2_prev);
+                } else { // Same 2-level sub-plate.
+                    node.cutting_cost += cutting_costs_[3].variable * (node.y2_curr - parent.y2_curr);
+                }
+            }
+        }
+        if (bin_type.bottom_trim_type == TrimType::Soft
+                && bin_type.bottom_trim > 0) {
+            if (instance.parameters().number_of_stages >= 3) {
+                if (node.df <= 0) { // New 1-level sub-plate.
+                    node.cutting_cost += cutting_costs_[2].fixed + cutting_costs_[2].variable * (node.x1_curr - node.x1_prev);
+                } else { // Same 1-level sub-plate.
+                    node.cutting_cost += cutting_costs_[2].variable * (node.x1_curr - parent.x1_curr);
+                }
+            } else {
+                if (node.df < 0)
+                    node.cutting_cost += cutting_costs_[2].fixed + cutting_costs_[2].variable * w_2_cut;
             }
         }
 
@@ -1931,10 +1983,17 @@ Solution BranchingScheme::to_solution(
                     1,
                     cut_orientation);
 
-            const BinType& bin_type = instance().bin_type(bin_type_id);
-            if (bin_type.left_trim_type == TrimType::Soft
-                    && bin_type.left_trim > 0) {
-                solution_builder.add_node(1, bin_type.left_trim - cut_thickness);
+            const BinType& bin_type = instance(current_node->first_stage_orientation).bin_type(bin_type_id);
+            if (instance().parameters().number_of_stages >= 3) {
+                if (bin_type.left_trim_type == TrimType::Soft
+                        && bin_type.left_trim > 0) {
+                    solution_builder.add_node(1, bin_type.left_trim - cut_thickness);
+                }
+            } else {
+                if (bin_type.bottom_trim_type == TrimType::Soft
+                        && bin_type.bottom_trim > 0) {
+                    solution_builder.add_node(1, bin_type.bottom_trim - cut_thickness);
+                }
             }
         }
 
@@ -1953,7 +2012,7 @@ Solution BranchingScheme::to_solution(
                 solution_builder.add_node(1, subplate1_curr_x1);
 
                 BinTypeId bin_type_id = bin_type_ids_[number_of_bins - 1];
-                const BinType& bin_type = instance().bin_type(bin_type_id);
+                const BinType& bin_type = instance(current_node->first_stage_orientation).bin_type(bin_type_id);
                 if (bin_type.bottom_trim_type == TrimType::Soft
                         && bin_type.bottom_trim > 0) {
                     solution_builder.add_node(2, bin_type.bottom_trim - cut_thickness);
@@ -1974,6 +2033,15 @@ Solution BranchingScheme::to_solution(
                 subplate2_curr_y2 = descendents[node_pos_2]->y2_curr;
             }
             solution_builder.add_node(d, subplate2_curr_y2);
+
+            if (instance().parameters().number_of_stages == 2) {
+                BinTypeId bin_type_id = bin_type_ids_[number_of_bins - 1];
+                const BinType& bin_type = instance(current_node->first_stage_orientation).bin_type(bin_type_id);
+                if (bin_type.left_trim_type == TrimType::Soft
+                        && bin_type.left_trim > 0) {
+                    solution_builder.add_node(2, bin_type.left_trim - cut_thickness);
+                }
+            }
         }
 
         // Create a new third-level sub-plate.
@@ -2074,6 +2142,10 @@ Solution BranchingScheme::to_solution(
     if (!solution.defects_feasible()) {
         throw std::logic_error(
                 FUNC_SIGNATURE + ": solution doesn't satisfy defects.");
+    }
+    if (!solution.trims_feasible()) {
+        throw std::logic_error(
+                FUNC_SIGNATURE + ": solution doesn't satisfy trims.");
     }
     if (!solution.cut_through_defects_feasible()) {
         throw std::logic_error(

@@ -319,6 +319,17 @@ void Solution::update_indicators(
             }
         }
 
+        // Check trims.
+        if (node.d >= 1
+                && node.item_type_id >= 0) {
+            if (node.l < bin_type.left_trim
+                    || node.r > bin_type.rect.w - bin_type.right_trim
+                    || node.b < bin_type.bottom_trim
+                    || node.t > bin_type.rect.h - bin_type.top_trim) {
+                trims_feasible_ = false;
+            }
+        }
+
         // Check cuts through defects.
         if (!instance().parameters().cut_through_defects
                 && node.d >= 1) {
@@ -469,6 +480,7 @@ void Solution::update_indicators(
         && maximum_number_2_cuts_feasible_
         && stacks_feasible_
         && defects_feasible_
+        && trims_feasible_
         && cut_through_defects_feasible_
         && item_copies_feasible_
         && resource_feasible_
@@ -663,6 +675,7 @@ nlohmann::json Solution::to_json() const
             {"MaximumNumber2Cuts", maximum_number_2_cuts_feasible()},
             {"Stacks", stacks_feasible()},
             {"Defects", defects_feasible()},
+            {"Trims", trims_feasible()},
             {"CutThroughDefects", cut_through_defects_feasible()},
             {"ItemCopies", item_copies_feasible()},
         }},
@@ -700,6 +713,7 @@ void Solution::format(
             << "    Max. no. 2-cuts:       " << maximum_number_2_cuts_feasible() << std::endl
             << "    Stacks:                " << stacks_feasible() << std::endl
             << "    Defects:               " << defects_feasible() << std::endl
+            << "    Trims:                 " << trims_feasible() << std::endl
             << "    Cut through defects:   " << cut_through_defects_feasible() << std::endl
             << "    Item copies:           " << item_copies_feasible() << std::endl
             ;
