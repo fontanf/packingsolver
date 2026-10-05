@@ -1074,7 +1074,7 @@ function renderForm() {
     if (irregular) {
         const objective = $("objective").value;
         irregularForm.renderTable(
-            $("bin-types"), state.binTypes, false, objective, scheduleFormCheck, renderForm);
+            $("bin-types"), state.binTypes, false, objective, scheduleFormCheck, renderForm, state.itemTypes);
         irregularForm.renderTable(
             $("item-types"), state.itemTypes, true, objective, scheduleFormCheck, renderForm);
         scheduleFormCheck();
