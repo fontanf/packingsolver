@@ -326,6 +326,10 @@ tr.details-line td {
     width: 7rem;
 }
 
+.details input.ids {
+    width: 10rem;
+}
+
 /* A field of the details of the row isn't at its default value. */
 .row-buttons button.modified::after {
     content: " •";
