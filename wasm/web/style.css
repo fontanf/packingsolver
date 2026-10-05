@@ -334,6 +334,11 @@ tr.details-line td {
     width: 10rem;
 }
 
+/* A hole of a defect, below it. */
+.dimensions.hole-line {
+    padding-left: 1.5rem;
+}
+
 /* The id of a row. */
 td.row-id {
     color: var(--muted);

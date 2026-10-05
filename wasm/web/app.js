@@ -262,6 +262,12 @@ const INSTANCE_PARAMETERS = {
     irregular: [
         {key: "item_item_minimum_spacing", label: "Minimum spacing between items",
             type: "number", placeholder: "0", inParameters: true},
+        // The corner or side from which the leftover is measured.
+        {key: "leftover_mode", label: "Leftover", type: "select", value: "bottom-left", inParameters: true,
+            options: [["bottom-left", "Bottom left"], ["bottom-right", "Bottom right"], ["top-left", "Top left"],
+                ["top-right", "Top right"], ["left", "Left"], ["right", "Right"], ["bottom", "Bottom"],
+                ["top", "Top"]],
+            objectives: ["bin-packing-with-leftovers"]},
         // Required: the objective isn't supported without it.
         {key: "open_dimension_xy_aspect_ratio", label: "Aspect ratio (height / width)",
             type: "number", value: "1", required: true, positive: true, inParameters: true,
