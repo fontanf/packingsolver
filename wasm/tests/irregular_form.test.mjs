@@ -323,12 +323,12 @@ test("irregular form: fixed items", async () => {
     // The angle and the mirroring must be allowed for the item type.
     assert.throws(
         () => irregularForm.instance("bin-packing", [{...bin, fixed_items: [{...fixedItem, angle: "45"}]}], items),
-        /fixed item 0: the angle 45 isn't allowed for item type 1/);
+        /fixed item 0: the angle 45 mirrored isn't allowed for item type 1/);
     const notMirrored = {...items[1], mirror: false};
     assert.throws(
         () => irregularForm.instance("bin-packing",
             [{...bin, fixed_items: [{...fixedItem, itemRow: notMirrored}]}], [items[0], notMirrored]),
-        /fixed item 0: item type 1 can't be mirrored/);
+        /fixed item 0: the angle 90 mirrored isn't allowed for item type 1/);
     // A fixed item whose item type was removed is ignored.
     const removed = irregularForm.instance("bin-packing", [bin], [items[0]]);
     assert.ok(!("fixed_items" in removed.bin_types[0]));
@@ -385,4 +385,65 @@ test("irregular form: general shapes", async () => {
         JSON.stringify({optimization_mode: "not-anytime-sequential"})));
     assert.strictEqual(result.error, undefined);
     assert.strictEqual(result.output.Solution.NumberOfItems, 4);
+});
+
+test("irregular form: custom rotations, several shapes", async () => {
+    // Custom rotations: the ranges, the mirroring per range.
+    const item = {...irregularForm.defaultItemRow(), copies: 2, rotations: "custom", mirror: true,
+        rotation_ranges: [{start: "0", end: "0", mirror: false}, {start: "90", end: "180", mirror: true}]};
+    const bin = {...binRows[0], copies: 1};
+    const instance = irregularForm.instance("bin-packing", [bin], [item]);
+    assert.deepStrictEqual(instance.item_types[0].allowed_rotations,
+        [{start: 0, end: 0}, {start: 90, end: 180, mirror: true}]);
+    // The "Mirror" of the item type is ignored with custom rotations.
+    assert.ok(!("allow_mirroring" in instance.item_types[0]));
+    const error = (ranges) => () => irregularForm.instance("bin-packing", [bin],
+        [{...item, rotation_ranges: ranges}]);
+    assert.throws(error([]), /item type 0: add at least one range of rotations/);
+    assert.throws(error([{start: "", end: "0"}]), /rotation range 0: invalid start/);
+    assert.throws(error([{start: "90", end: "0"}]), /rotation range 0: the start is greater than the end/);
+    // A fixed item: its angle and mirroring in a range.
+    const fixed = (angle, mirror) => irregularForm.instance("bin-packing",
+        [{...bin, fixed_items: [{...irregularForm.defaultFixedItem(item), x: 50, y: 20, angle, mirror}]}], [item]);
+    assert.strictEqual(fixed("120", true).bin_types[0].fixed_items[0].angle, 120);
+    assert.throws(() => fixed("120", false), /the angle 120 isn't allowed for item type 0/);
+    assert.throws(() => fixed("0", true), /the angle 0 mirrored isn't allowed for item type 0/);
+
+    // Several shapes: the shape of the row, then the other ones.
+    const twoShapes = {...irregularForm.defaultItemRow(), copies: 3, extra_shapes: [
+        {...irregularForm.defaultExtraShape(), x: 20, y: 0, width: 5, height: 5},
+        {...irregularForm.defaultExtraShape(), shape: "general", elements: "A 0 -2 0 -5 0 -2 f"}]};
+    const severalShapes = irregularForm.instance("bin-packing", [bin], [twoShapes]);
+    const shapes = severalShapes.item_types[0].shapes;
+    assert.strictEqual(shapes.length, 3);
+    assert.deepStrictEqual(shapes[1].elements[0].start, {x: 20, y: 0});
+    assert.strictEqual(shapes[2].elements[0].orientation, "Full");
+    // The thumbnail draws them all.
+    const thumbnail = irregularForm.rowThumbnail(twoShapes, true);
+    assert.strictEqual(thumbnail.paths.length, 3);
+    // From x = -3 (the circle) to 25, from y = -8 to 10.
+    assert.strictEqual(thumbnail.title, "28 × 18");
+    assert.throws(
+        () => irregularForm.instance("bin-packing", [bin],
+            [{...twoShapes, extra_shapes: [{...twoShapes.extra_shapes[0], x: ""}]}]),
+        /item type 0: shape 1: invalid x/);
+    // An other shape with a hole, which must be inside it.
+    const hole = {...irregularForm.defaultHole(), x: 21, y: 1, width: 2, height: 2};
+    const withHole = {...twoShapes, extra_shapes: [{...twoShapes.extra_shapes[0], holes: [hole]}]};
+    const holes = irregularForm.instance("bin-packing", [bin], [withHole]).item_types[0].shapes[1].holes;
+    assert.strictEqual(holes.length, 1);
+    assert.deepStrictEqual(holes[0].elements[0].start, {x: 21, y: 1});
+    assert.throws(
+        () => irregularForm.instance("bin-packing", [bin],
+            [{...withHole, extra_shapes: [{...withHole.extra_shapes[0], holes: [{...hole, x: 40}]}]}]),
+        /item type 0: shape 1: hole 0: it must be inside the shape/);
+    // The solver reads them.
+    const module = await loadModule();
+    for (const solved of [instance, severalShapes]) {
+        const result = JSON.parse(module.solve(
+            "irregular", JSON.stringify(solved),
+            JSON.stringify({optimization_mode: "not-anytime-sequential"})));
+        assert.strictEqual(result.error, undefined);
+        assert.ok(result.output.Solution.NumberOfItems > 0);
+    }
 });

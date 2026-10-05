@@ -22,7 +22,21 @@ export const ROTATIONS = {
     half: {label: "Half turns", rotations: [0, 180].map((a) => ({start: a, end: a}))},
     quarter: {label: "Quarter turns", rotations: [0, 90, 180, 270].map((a) => ({start: a, end: a}))},
     any: {label: "Any angle", rotations: [{start: 0, end: 360}]},
+    // The ranges of the row ('rotation_ranges').
+    custom: {label: "Custom", rotations: null},
 };
+
+// A range of allowed angles of an item type, in degrees: a single angle if
+// 'start' and 'end' are equal; the item mirrored for this range if 'mirror'.
+export function defaultRotationRange() {
+    return {start: "0", end: "0", mirror: false};
+}
+
+// Another shape of an item type, placed in the item as a hole.
+export function defaultExtraShape() {
+    return {shape: "rectangle", x: "", y: "", width: 10, height: 10, radius: 5, vertices: "", elements: "",
+        holes: []};
+}
 
 export function defaultBinRow() {
     return {
@@ -81,6 +95,7 @@ export function defaultItemRow() {
     return {
         shape: "rectangle", width: 10, height: 10, radius: 5, vertices: "", elements: "",
         copies: 1, unlimited_copies: false, copies_min: "", profit: "", rotations: "none", mirror: false, holes: [],
+        rotation_ranges: [defaultRotationRange()], extra_shapes: [],
     };
 }
 
@@ -349,12 +364,48 @@ export function itemShape(row) {
     return {...shape, holes: [...(shape.holes || []), ...placedHoles(shape, row.holes, "item")]};
 }
 
-// The shape of a defect in its bin, with its holes, which must be inside it.
-export function defectShape(defect) {
+// The allowed rotations of an item row, in the JSON format.
+export function itemRotations(row) {
+    if (row.rotations !== "custom")
+        return ROTATIONS[row.rotations].rotations;
+    const ranges = row.rotation_ranges || [];
+    if (ranges.length === 0)
+        throw new Error("add at least one range of rotations.");
+    return ranges.map((range, j) => {
+        const angle = (value, name) => {
+            const number = Number(value);
+            if (value === "" || !Number.isFinite(number))
+                throw new Error(`rotation range ${j}: invalid ${name}: "${value}".`);
+            return number;
+        };
+        const result = {start: angle(range.start, "start"), end: angle(range.end, "end")};
+        if (result.start > result.end)
+            throw new Error(`rotation range ${j}: the start is greater than the end.`);
+        if (range.mirror)
+            result.mirror = true;
+        return result;
+    });
+}
+
+// The shapes of an item row: its shape with its holes, then its other shapes.
+export function itemShapes(row) {
+    return [itemShape(row), ...(row.extra_shapes || []).map((extra, j) => {
+        try {
+            // With its holes, which must be inside it.
+            return defectShape(extra, "shape");
+        } catch (error) {
+            throw new Error(`shape ${j + 1}: ${error.message}`);
+        }
+    })];
+}
+
+// The shape of a defect in its bin (or of another shape of an item, in the
+// item), with its holes, which must be inside it.
+export function defectShape(defect, kind = "defect") {
     const shape = placedShape(defect);
     if ((defect.holes || []).length === 0)
         return shape;
-    return {...shape, holes: placedHoles(shape, defect.holes, "defect")};
+    return {...shape, holes: placedHoles(shape, defect.holes, kind)};
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -427,12 +478,24 @@ export function instance(objective, binRows, itemRows) {
                 // The angle and the mirroring must be allowed for the item
                 // type.
                 const angle = result.angle || 0;
-                const allowed = ROTATIONS[fixedItem.itemRow.rotations].rotations.some(
-                    (r) => angle >= r.start - 1e-9 && angle <= r.end + 1e-9);
-                if (!allowed)
-                    throw new Error(`${name}: the angle ${angle} isn't allowed for item type ${itemTypeId}.`);
-                if (fixedItem.mirror && !fixedItem.itemRow.mirror)
-                    throw new Error(`${name}: item type ${itemTypeId} can't be mirrored.`);
+                const mirror = Boolean(fixedItem.mirror);
+                const itemRow = fixedItem.itemRow;
+                // The rotations of the item type, and their mirrored copies
+                // with 'allow_mirroring'.
+                let rotations = [];
+                try {
+                    rotations = itemRotations(itemRow);
+                } catch (error) {
+                    // Reported for the item type.
+                }
+                if (itemRow.mirror && itemRow.rotations !== "custom")
+                    rotations = [...rotations, ...rotations.map((r) => ({...r, mirror: true}))];
+                const allowed = rotations.some((r) => angle >= r.start - 1e-9 && angle <= r.end + 1e-9
+                    && Boolean(r.mirror) === mirror);
+                if (!allowed) {
+                    throw new Error(`${name}: the angle ${angle}${mirror? " mirrored": ""} `
+                        + `isn't allowed for item type ${itemTypeId}.`);
+                }
                 return result;
             });
         }
@@ -468,9 +531,9 @@ export function instance(objective, binRows, itemRows) {
         // An item type can have several shapes: the 'shapes' form is also
         // the one 'instanceFigure' reads.
         const itemType = {
-            shapes: [itemShape(row)],
+            shapes: itemShapes(row),
             copies: rowCopies(row, objective, true),
-            allowed_rotations: ROTATIONS[row.rotations].rotations,
+            allowed_rotations: itemRotations(row),
         };
         const copiesMin = copiesMinUsed(objective, true)? optionalNumber(row.copies_min, "minimum copies"): undefined;
         if (copiesMin !== undefined)
@@ -478,7 +541,8 @@ export function instance(objective, binRows, itemRows) {
         const profit = valueUsed(objective, true)? optionalNumber(row.profit, "profit"): undefined;
         if (profit !== undefined)
             itemType.profit = profit;
-        if (row.mirror)
+        // With custom rotations, the mirroring is given per range.
+        if (row.mirror && row.rotations !== "custom")
             itemType.allow_mirroring = true;
         return itemType;
     }));
@@ -699,13 +763,17 @@ function placedShapesCell(row, key, kind, onChange, onStructureChange) {
             // The type of the defect, for the quality rules.
             line.appendChild(labelled("Type",
                 input(placed, "defect_type", "Defect type", {...NUMBER, step: "1", placeholder: "none"}, onChange)));
-            // A defect can have holes, on lines below it.
+        }
+        // A defect, or another shape of an item, can have holes, on lines
+        // below it.
+        const withHoles = (key === "defects" || key === "extra_shapes");
+        if (withHoles) {
             placed.holes = placed.holes || [];
             line.appendChild(addPlacedShapeButton(placed, "holes", "Hole", defaultHole, onStructureChange));
         }
         line.appendChild(remove);
         cell.appendChild(line);
-        if (key === "defects") {
+        if (withHoles) {
             placed.holes.forEach((hole, j) => {
                 const [holeLine, holeRemove] = placedLine(hole, "Hole", () => placed.holes.splice(j, 1));
                 holeLine.classList.add("hole-line");
@@ -781,6 +849,48 @@ function copiesCell(row, unlimited, onChange, onStructureChange) {
 // Rows whose details line is open.
 const openDetails = new WeakSet();
 
+// The custom rotations of an item row: a line for each range, and a button to
+// add one.
+function rotationRangesCell(row, onChange, onStructureChange) {
+    const cell = document.createElement("div");
+    cell.className = "placed-shapes";
+    row.rotation_ranges = row.rotation_ranges || [];
+    const labelled = (text, element) => {
+        const label = document.createElement("label");
+        label.className = "inline";
+        label.append(text, element);
+        return label;
+    };
+    row.rotation_ranges.forEach((range, i) => {
+        const line = document.createElement("div");
+        line.className = "dimensions";
+        line.append(
+            labelled("Start", input(range, "start", `Rotation range ${i} start`, {type: "number", step: "any"}, onChange)),
+            labelled("End", input(range, "end", `Rotation range ${i} end`, {type: "number", step: "any"}, onChange)),
+            labelled("Mirror", input(range, "mirror", `Rotation range ${i} mirror`, {type: "checkbox"}, onChange)));
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.textContent = "×";
+        remove.title = "Remove the range";
+        remove.addEventListener("click", () => {
+            row.rotation_ranges.splice(i, 1);
+            onStructureChange();
+        });
+        line.appendChild(remove);
+        cell.appendChild(line);
+    });
+    const add = document.createElement("button");
+    add.type = "button";
+    add.textContent = "Add a range";
+    add.title = "A range of allowed angles, in degrees (a single angle if the start and the end are equal)";
+    add.addEventListener("click", () => {
+        row.rotation_ranges.push(defaultRotationRange());
+        onStructureChange();
+    });
+    cell.appendChild(add);
+    return cell;
+}
+
 // Render a bin ('isItem' false) or item type table, for an objective.
 // 'onTableChange' is called when a value changes, 'onStructureChange' when
 // the table must be rendered again (shape changed, row removed).
@@ -843,8 +953,14 @@ export function renderTable(table, rows, isItem, objective, onTableChange, onStr
         if (isItem) {
             const rotationLabels = Object.fromEntries(
                 Object.entries(ROTATIONS).map(([key, value]) => [key, value.label]));
-            tr.insertCell().appendChild(select(row, "rotations", "Rotations", rotationLabels, onChange));
-            tr.insertCell().appendChild(input(row, "mirror", "Mirror", {type: "checkbox"}, onChange));
+            // Custom rotations open a line of ranges below the row.
+            tr.insertCell().appendChild(select(row, "rotations", "Rotations", rotationLabels, onStructureChange));
+            const mirror = input(row, "mirror", "Mirror", {type: "checkbox"}, onChange);
+            if (row.rotations === "custom") {
+                mirror.disabled = true;
+                mirror.title = "With custom rotations, the mirroring is given per range";
+            }
+            tr.insertCell().appendChild(mirror);
         } else {
             tr.insertCell().appendChild(input(row, "spacing", "Item spacing",
                 {...NUMBER, placeholder: "0"}, onChange));
@@ -886,6 +1002,11 @@ export function renderTable(table, rows, isItem, objective, onTableChange, onStr
             ["holes", "Hole", defaultHole]: ["defects", "Defect", defaultDefect];
         row[key] = row[key] || [];
         buttons.appendChild(addPlacedShapeButton(row, key, kind, defaultValue, onStructureChange));
+        // The other shapes of an item, on a line below it if it has some.
+        if (isItem) {
+            row.extra_shapes = row.extra_shapes || [];
+            buttons.appendChild(addPlacedShapeButton(row, "extra_shapes", "Shape", defaultExtraShape, onStructureChange));
+        }
         // The fixed items of a bin, on a line below it if it has some.
         if (!isItem) {
             row.fixed_items = fixedItems(row, itemRows);
@@ -926,6 +1047,20 @@ export function renderTable(table, rows, isItem, objective, onTableChange, onStr
             label.textContent = isItem? "Holes": "Defects";
             cell.append(label, placedShapesCell(row, key, kind, onChange, onStructureChange));
         }
+        const addLine = (text, content) => {
+            const line = body.insertRow();
+            line.className = "placed-shapes-line";
+            const cell = line.insertCell();
+            cell.colSpan = labels.length + 1;
+            const label = document.createElement("span");
+            label.className = "placed-shapes-label";
+            label.textContent = text;
+            cell.append(label, content);
+        };
+        if (isItem && row.extra_shapes.length > 0)
+            addLine("Other shapes", placedShapesCell(row, "extra_shapes", "Shape", onChange, onStructureChange));
+        if (isItem && row.rotations === "custom")
+            addLine("Rotations", rotationRangesCell(row, onChange, onStructureChange));
         if (!isItem && row.fixed_items.length > 0) {
             const line = body.insertRow();
             line.className = "placed-shapes-line";
@@ -1037,16 +1172,16 @@ function pathData(elements) {
 // or '{error}' if the row is invalid. The y axis points up, as in the
 // solutions.
 export function rowThumbnail(row, isItem, itemRows = []) {
-    let shape;
+    let shapes;
     let defects = [];
     try {
-        shape = isItem? itemShape(row): rowShape(row);
+        shapes = isItem? itemShapes(row): [rowShape(row)];
         if (!isItem)
             defects = (row.defects || []).map(defectShape);
     } catch (error) {
         return {error: error.message};
     }
-    const outline = shapePoints(shape.elements);
+    const outline = shapes.flatMap((shape) => shapePoints(shape.elements));
     const xs = outline.map((p) => p[0]);
     const ys = outline.map((p) => p[1]);
     const xMin = Math.min(...xs);
@@ -1054,12 +1189,13 @@ export function rowThumbnail(row, isItem, itemRows = []) {
     const yMin = Math.min(...ys);
     const yMax = Math.max(...ys);
     const margin = 0.03 * Math.max(xMax - xMin, yMax - yMin);
-    const d = [shape, ...(shape.holes || [])].map((s) => pathData(s.elements)).join(" ");
     return {
         // In the coordinates flipped vertically.
         viewBox: [xMin - margin, -yMax - margin, xMax - xMin + 2 * margin, yMax - yMin + 2 * margin],
         paths: [
-            {d, fill: isItem? ITEM_COLOR: BIN_COLOR},
+            ...shapes.map((shape) => ({
+                d: [shape, ...(shape.holes || [])].map((s) => pathData(s.elements)).join(" "),
+                fill: isItem? ITEM_COLOR: BIN_COLOR})),
             ...defects.map((defect) => ({
                 d: [defect, ...(defect.holes || [])].map((s) => pathData(s.elements)).join(" "),
                 fill: DEFECT_COLOR})),
@@ -1076,15 +1212,17 @@ function fixedItemPaths(row, itemRows) {
     for (const fixedItem of fixedItems(row, itemRows)) {
         if (fixedItem.itemRow === null || fixedItem.x === "" || fixedItem.y === "")
             continue;
-        let shape;
+        let shapes;
         try {
-            shape = itemShape(fixedItem.itemRow);
+            shapes = itemShapes(fixedItem.itemRow);
         } catch (error) {
             continue;
         }
-        const d = [shape, ...(shape.holes || [])].map((s) =>
-            "M" + fixedItemPoints(s.elements, fixedItem).map(([x, y]) => `${x} ${y}`).join(" L") + " Z").join(" ");
-        paths.push({d, fill: ITEM_COLOR});
+        for (const shape of shapes) {
+            const d = [shape, ...(shape.holes || [])].map((s) =>
+                "M" + fixedItemPoints(s.elements, fixedItem).map(([x, y]) => `${x} ${y}`).join(" L") + " Z").join(" ");
+            paths.push({d, fill: ITEM_COLOR});
+        }
     }
     return paths;
 }
