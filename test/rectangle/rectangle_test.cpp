@@ -102,6 +102,15 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "rectangle" / "tests" / "variable_sized_bin_packing_mandatory_bins" / "bins.csv",
                 fs::path("data") / "rectangle" / "tests" / "variable_sized_bin_packing_mandatory_bins" / "parameters.csv",
                 fs::path("data") / "rectangle" / "tests" / "variable_sized_bin_packing_mandatory_bins" / "solution.csv",
+            }, {
+                // Large dimensions: the reduction used to need memory
+                // proportional to the dimensions of the bin (multiple-choice
+                // subset sum dynamic programming in
+                // 'max_achievable_dimension_sum'), ~1 GB here.
+                fs::path("data") / "rectangle" / "tests" / "bin_packing_large_dimensions" / "items.csv",
+                fs::path("data") / "rectangle" / "tests" / "bin_packing_large_dimensions" / "bins.csv",
+                fs::path("data") / "rectangle" / "tests" / "bin_packing_large_dimensions" / "parameters.csv",
+                fs::path("data") / "rectangle" / "tests" / "bin_packing_large_dimensions" / "solution.csv",
             }}));
 
 TEST(Rectangle, ReadUnknownEnumValues)
