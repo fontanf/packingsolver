@@ -63,6 +63,29 @@ function openDimension(objective) {
     return objective.startsWith("open-dimension");
 }
 
+// The semi-trailer truck of a bin type of the boxstacks problem type: a
+// checkbox, and its data when it is checked (the details of the row,
+// 'semi_trailer_truck' object of the JSON format). Empty fields keep their
+// default value, except the two distances which must be > 0.
+function truckColumns() {
+    const truck = (key, label, placeholder, required = false) => detailsNumber(key, label, placeholder, {
+        truck: true, required, rowShown: (row) => row.semi_trailer_truck});
+    return [
+        {key: "semi_trailer_truck", label: "Semi-trailer truck", type: "checkbox", value: false,
+            details: true, structural: true},
+        truck("tractor_weight", "Tractor weight", "0"),
+        truck("front_axle_middle_axle_distance", "Front axle - middle axle distance", "", true),
+        truck("front_axle_tractor_gravity_center_distance", "Front axle - tractor gravity center distance", "0"),
+        truck("front_axle_harness_distance", "Front axle - harness distance", "0"),
+        truck("empty_trailer_weight", "Empty trailer weight", "0"),
+        truck("harness_rear_axle_distance", "Harness - rear axle distance", "", true),
+        truck("trailer_gravity_center_rear_axle_distance", "Trailer gravity center - rear axle distance", "0"),
+        truck("trailer_start_harness_distance", "Trailer start - harness distance", "0"),
+        truck("rear_axle_maximum_weight", "Rear axle maximum weight", "unlimited"),
+        truck("middle_axle_maximum_weight", "Middle axle maximum weight", "unlimited"),
+    ];
+}
+
 // Problem types with eligibility: ids of the bin types, id of the item types.
 const ELIGIBILITY = ["rectangle", "onedimensional"];
 
@@ -93,7 +116,13 @@ function binColumns(problemType) {
         columns.push({key: "eligibility_ids", label: "Eligibility ids", type: "ids", value: "",
             details: true, placeholder: "none, e.g. 1, 2"});
     }
-    if (problemType === "rectangleguillotine" || problemType === "rectangle")
+    if (problemType === "boxstacks") {
+        // Maximum weight of a stack per unit of area of its footprint.
+        columns.push(detailsNumber("maximum_stack_density", "Maximum stack density", "unlimited"));
+        columns.push(...truckColumns());
+    }
+    // The defects of the bins (of their floor for boxstacks).
+    if (["rectangleguillotine", "rectangle", "boxstacks"].includes(problemType))
         columns.push({key: "defects", label: "Defects", type: "defects", value: []});
     // Columns of type "defects" are rendered on a line below their row.
     return columns;
@@ -110,10 +139,18 @@ function itemColumns(problemType) {
         columns.push({...numberColumn(["weight", "Weight"], "", true), placeholder: "0"});
     if (problemType === "rectangleguillotine" || problemType === "rectangle")
         columns.push({key: "oriented", label: "Oriented", type: "checkbox", value: false});
-    if (problemType === "rectangle") {
+    if (problemType === "rectangle" || problemType === "boxstacks") {
         // The group of an item type, for the unloading constraint.
         columns.push(detailsNumber("group_id", "Group", "0", {integer: true,
             shown: (values) => values.unloading_constraint !== "none"}));
+    }
+    if (problemType === "boxstacks") {
+        // Height removed when the item is stacked on another item.
+        columns.push(detailsNumber("nesting_height", "Nesting height", "0"));
+        // Maximum number of items in a stack containing this item type.
+        columns.push(detailsNumber("maximum_stackability", "Maximum stackability", "unlimited", {integer: true}));
+        // Maximum weight of the items stacked above the items of this type.
+        columns.push(detailsNumber("maximum_weight_above", "Maximum weight above", "unlimited"));
     }
     if (ELIGIBILITY.includes(problemType))
         columns.push(detailsNumber("eligibility_id", "Eligibility id", "any bin", {integer: true}));
@@ -133,6 +170,12 @@ function itemColumns(problemType) {
         columns.push(numberColumn(["stackability_id", "Stackability id"], 0));
     if (problemType === "box")
         columns.push({key: "rotations", label: "Rotations", type: "rotations", value: ["XYZ"]});
+    // The items of boxstacks stay on their base: only the rotation around the
+    // vertical axis.
+    if (problemType === "boxstacks") {
+        columns.push({key: "rotations", label: "Rotations", type: "rotations", value: ["XYZ"],
+            rotations: ["XYZ", "YXZ"]});
+    }
     return columns;
 }
 
@@ -170,6 +213,14 @@ const UNLOADING_CONSTRAINTS = [
 ];
 
 const INSTANCE_PARAMETERS = {
+    boxstacks: [
+        {key: "unloading_constraint", label: "Unloading constraint", type: "select", value: "none",
+            options: UNLOADING_CONSTRAINTS, structural: true},
+        // The weight constraints are not checked for the items of these
+        // groups.
+        {key: "no_check_weight_constraints", label: "Groups without weight constraints", type: "ids",
+            placeholder: "none, e.g. 1, 2"},
+    ],
     rectangle: [
         {key: "unloading_constraint", label: "Unloading constraint", type: "select", value: "none",
             options: UNLOADING_CONSTRAINTS, structural: true},
@@ -341,6 +392,12 @@ function renderInstanceParameters() {
             input.type = "checkbox";
             input.checked = values[parameter.key];
             input.addEventListener("change", () => { values[parameter.key] = input.checked; });
+        } else if (parameter.type === "ids") {
+            input = document.createElement("input");
+            input.type = "text";
+            input.placeholder = parameter.placeholder || "";
+            input.value = values[parameter.key];
+            input.addEventListener("input", () => { values[parameter.key] = input.value; scheduleFormCheck(); });
         } else if (parameter.type === "cutting-costs") {
             cell = cuttingCostsInput(values);
             label.removeAttribute("for");
@@ -396,6 +453,15 @@ function addInstanceParameters(instanceObject) {
             converted = true;
         } else if (parameter.type === "select") {
             converted = (parameter.key === "number_of_stages" && value !== "unlimited")? Number(value): value;
+        } else if (parameter.type === "ids") {
+            const ids = String(value).split(",").map((s) => s.trim()).filter((s) => s !== "");
+            for (const id of ids) {
+                if (!/^[0-9]+$/.test(id))
+                    throw new Error(`invalid ${name}: "${id}".`);
+            }
+            if (ids.length === 0)
+                continue;
+            converted = ids.map(Number);
         } else if (parameter.type === "cutting-costs") {
             const rows = cuttingCostRows(values);
             converted = rows.map(([label], i) => {
@@ -583,15 +649,18 @@ function numberInput(value, label, onInput, placeholder = "") {
 // Cell of a column of type "rotations": a checkbox for each rotation.
 function rotationsCell(row, column) {
     const cell = document.createElement("div");
-    cell.className = "checkboxes";
-    for (const rotation of BOX_ROTATIONS) {
+    const rotations = column.rotations || BOX_ROTATIONS;
+    // The 6 rotations of box on 2 lines, the 2 of boxstacks one above the
+    // other.
+    cell.className = (rotations.length <= 2)? "checkboxes single-column": "checkboxes";
+    for (const rotation of rotations) {
         const label = document.createElement("label");
         label.className = "inline";
         const input = document.createElement("input");
         input.type = "checkbox";
         input.checked = row[column.key].includes(rotation);
         input.addEventListener("change", () => {
-            row[column.key] = BOX_ROTATIONS.filter((r) => (r === rotation)?
+            row[column.key] = rotations.filter((r) => (r === rotation)?
                 input.checked: row[column.key].includes(r));
         });
         label.append(input, rotation);
@@ -669,7 +738,11 @@ function fieldInput(row, column) {
     input.setAttribute("aria-label", column.label);
     if (column.type === "checkbox") {
         input.checked = Boolean(row[column.key]);
-        input.addEventListener("change", () => { row[column.key] = input.checked; });
+        input.addEventListener("change", () => {
+            row[column.key] = input.checked;
+            if (column.structural)
+                renderForm();
+        });
     } else if (column.type === "ids") {
         input.value = row[column.key];
         input.placeholder = column.placeholder || "";
@@ -732,6 +805,8 @@ function addDetailsLine(body, numberOfColumns, row, detailsColumns) {
     const fields = document.createElement("div");
     fields.className = "details";
     for (const column of detailsColumns) {
+        if (column.rowShown !== undefined && !column.rowShown(row))
+            continue;
         const label = document.createElement("label");
         label.className = "inline";
         label.append(column.label, fieldInput(row, column));
@@ -991,6 +1066,27 @@ function formInstance() {
             // The fields which are not shown for the objective are ignored.
             if (!columnShown(column))
                 continue;
+            // The semi-trailer truck: an object with its fields, if checked.
+            if (column.key === "semi_trailer_truck") {
+                if (value)
+                    result.semi_trailer_truck = result.semi_trailer_truck || {};
+                continue;
+            }
+            if (column.truck) {
+                if (!row.semi_trailer_truck)
+                    continue;
+                result.semi_trailer_truck = result.semi_trailer_truck || {};
+                if (value === "" || value === null || value === undefined) {
+                    if (column.required)
+                        throw new Error(`semi-trailer truck: missing ${column.label.toLowerCase()}.`);
+                    continue;
+                }
+                const number = Number(value);
+                if (!Number.isFinite(number) || number < 0 || (column.required && number <= 0))
+                    throw new Error(`semi-trailer truck: invalid ${column.label.toLowerCase()}: "${value}".`);
+                result.semi_trailer_truck[column.key] = number;
+                continue;
+            }
             if (unlimitedValue(row, column)) {
                 result[column.key] = -1;
             } else if (column.type === "rotations") {

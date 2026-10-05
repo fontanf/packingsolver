@@ -235,6 +235,10 @@ input.vertices {
     font-size: 0.9em;
 }
 
+.checkboxes.single-column {
+    grid-template-columns: auto;
+}
+
 .table-scroll {
     overflow-x: auto;
 }
