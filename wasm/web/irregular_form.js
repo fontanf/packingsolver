@@ -218,7 +218,7 @@ export function itemShape(row) {
                 throw new Error("it must be inside the item.");
             return result;
         } catch (error) {
-            throw new Error(`hole ${j + 1}: ${error.message}`);
+            throw new Error(`hole ${j}: ${error.message}`);
         }
     });
     return {...shape, holes: [...(shape.holes || []), ...holes]};
@@ -254,7 +254,7 @@ export function instance(objective, binRows, itemRows) {
         try {
             return f();
         } catch (error) {
-            throw new Error(`${kind} type ${i + 1}: ${error.message}`);
+            throw new Error(`${kind} type ${i}: ${error.message}`);
         }
     };
     return {
@@ -279,7 +279,7 @@ export function instance(objective, binRows, itemRows) {
                             result.item_defect_minimum_spacing = defectSpacing;
                         return result;
                     } catch (error) {
-                        throw new Error(`defect ${j + 1}: ${error.message}`);
+                        throw new Error(`defect ${j}: ${error.message}`);
                     }
                 });
             }
@@ -555,7 +555,9 @@ export function renderTable(table, rows, isItem, objective, onTableChange, onStr
     table.replaceChildren();
     const header = table.createTHead().insertRow();
     const withValue = valueUsed(objective, isItem);
-    const labels = ["", "Shape", "Dimensions", "Copies"];
+    // The id of each row (its position, from 0, as in the C++ code), then its
+    // thumbnail.
+    const labels = ["Id", "", "Shape", "Dimensions", "Copies"];
     if (withValue)
         labels.push(isItem? "Profit": "Cost");
     if (isItem)
@@ -587,6 +589,9 @@ export function renderTable(table, rows, isItem, objective, onTableChange, onStr
             drawThumbnail(thumbnail, row, isItem);
             onTableChange();
         };
+        const id = tr.insertCell();
+        id.className = "row-id";
+        id.textContent = String(rowIndex);
         tr.insertCell().appendChild(thumbnail);
         tr.insertCell().appendChild(select(row, "shape", "Shape", SHAPES, onStructureChange));
         tr.insertCell().appendChild(dimensionsCell(row, onChange, onStructureChange));

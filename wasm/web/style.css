@@ -334,6 +334,26 @@ tr.details-line td {
     width: 10rem;
 }
 
+/* The id of a row. */
+td.row-id {
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+
+input.item-type-id {
+    width: 4rem;
+}
+
+/* The resources of a bin type, and their consumptions below them. */
+.dimensions.resource, .dimensions.consumption-line {
+    flex-wrap: wrap;
+}
+
+.dimensions.consumption-line {
+    padding-left: 1.5rem;
+}
+
 /* A field of the details of the row isn't at its default value. */
 .row-buttons button.modified::after {
     content: " •";
