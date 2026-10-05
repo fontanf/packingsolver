@@ -26,7 +26,7 @@ export const ROTATIONS = {
 export function defaultBinRow() {
     return {
         shape: "rectangle", width: 100, height: 100, radius: 50, vertices: "",
-        copies: 1, unlimited_copies: false, copies_min: "", cost: "", spacing: "", defects: [],
+        copies: 1, unlimited_copies: false, copies_min: "", cost: "", spacing: "", defects: [], fixed_items: [],
     };
 }
 
@@ -35,6 +35,32 @@ export function defaultBinRow() {
 export function defaultDefect() {
     return {shape: "rectangle", x: "", y: "", width: 10, height: 10, radius: 5, vertices: "", spacing: "",
         defect_type: "", holes: []};
+}
+
+// A fixed item of a bin: an item placed before the search. It refers to the
+// row of its item type ('itemRow', null if its id is invalid), so that it
+// follows the row when other rows are removed; 'bl_corner' is the position
+// of the item once mirrored (if 'mirror') then rotated by 'angle' degrees.
+export function defaultFixedItem(itemRow) {
+    return {itemRow, x: "", y: "", angle: "", mirror: false};
+}
+
+// The fixed items of a bin row whose item type still exists (or whose id is
+// invalid).
+function fixedItems(row, itemRows) {
+    return (row.fixed_items || []).filter((f) => f.itemRow === null || itemRows.includes(f.itemRow));
+}
+
+// The points of a fixed item: mirrored (x -> -x) if 'mirror', rotated by
+// 'angle' degrees, then moved to its position.
+function fixedItemPoints(elements, fixedItem) {
+    const angle = (Number(fixedItem.angle) || 0) * Math.PI / 180;
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
+    return shapePoints(elements).map(([x, y]) => {
+        const mx = fixedItem.mirror? -x: x;
+        return [cos * mx - sin * y + Number(fixedItem.x), sin * mx + cos * y + Number(fixedItem.y)];
+    });
 }
 
 // A hole of an item: placed in the item as a defect in a bin.
@@ -259,6 +285,8 @@ function copies(value) {
 
 // The instance in the JSON format. Errors mention the row they come from.
 export function instance(objective, binRows, itemRows) {
+    // The copies of the item types used by the fixed items.
+    const fixedCopies = itemRows.map(() => 0);
     if (binRows.length === 0)
         throw new Error("add at least one bin type.");
     if (itemRows.length === 0)
@@ -270,63 +298,103 @@ export function instance(objective, binRows, itemRows) {
             throw new Error(`${kind} type ${i}: ${error.message}`);
         }
     };
-    return {
-        objective,
-        bin_types: binRows.map((row, i) => withRow("bin", i, () => {
-            const shape = rowShape(row);
-            if (shape.holes !== undefined)
-                throw new Error("a bin can't have holes.");
-            const binType = {...shape, copies: rowCopies(row, objective, false)};
-            const copiesMin = copiesMinUsed(objective, false)? optionalNumber(row.copies_min, "minimum copies"): undefined;
-            if (copiesMin !== undefined)
-                binType.copies_min = copiesMin;
-            const cost = valueUsed(objective, false)? optionalNumber(row.cost, "cost"): undefined;
-            if (cost !== undefined)
-                binType.cost = cost;
-            const spacing = optionalNumber(row.spacing, "item spacing");
-            if (spacing !== undefined)
-                binType.item_bin_minimum_spacing = spacing;
-            if ((row.defects || []).length > 0) {
-                binType.defects = row.defects.map((defect, j) => {
-                    try {
-                        const result = defectShape(defect);
-                        const defectSpacing = optionalNumber(defect.spacing, "spacing");
-                        if (defectSpacing !== undefined)
-                            result.item_defect_minimum_spacing = defectSpacing;
-                        // The type of the defect, for the quality rules.
-                        const defectType = optionalNumber(defect.defect_type, "type");
-                        if (defectType !== undefined) {
-                            if (!Number.isInteger(defectType) || defectType < 0)
-                                throw new Error(`invalid type: "${defect.defect_type}".`);
-                            result.defect_type = defectType;
-                        }
-                        return result;
-                    } catch (error) {
-                        throw new Error(`defect ${j}: ${error.message}`);
+    const binTypes = binRows.map((row, i) => withRow("bin", i, () => {
+        const shape = rowShape(row);
+        if (shape.holes !== undefined)
+            throw new Error("a bin can't have holes.");
+        const binType = {...shape, copies: rowCopies(row, objective, false)};
+        const copiesMin = copiesMinUsed(objective, false)? optionalNumber(row.copies_min, "minimum copies"): undefined;
+        if (copiesMin !== undefined)
+            binType.copies_min = copiesMin;
+        const fixed = fixedItems(row, itemRows);
+        if (fixed.length > 0) {
+            if (binType.copies === -1)
+                throw new Error("a bin type with fixed items can't have unlimited copies.");
+            binType.fixed_items = fixed.map((fixedItem, j) => {
+                const name = `fixed item ${j}`;
+                if (fixedItem.itemRow === null)
+                    throw new Error(`${name}: invalid item type id.`);
+                const itemTypeId = itemRows.indexOf(fixedItem.itemRow);
+                fixedCopies[itemTypeId] += binType.copies;
+                const position = (value, key) => {
+                    const number = Number(value);
+                    if (value === "" || !Number.isFinite(number))
+                        throw new Error(`${name}: invalid ${key}: "${value}".`);
+                    return number;
+                };
+                const result = {
+                    item_type_id: itemTypeId,
+                    bl_corner: {x: position(fixedItem.x, "x"), y: position(fixedItem.y, "y")},
+                };
+                if (fixedItem.angle !== "")
+                    result.angle = position(fixedItem.angle, "angle");
+                if (fixedItem.mirror)
+                    result.mirror = true;
+                // The angle and the mirroring must be allowed for the item
+                // type.
+                const angle = result.angle || 0;
+                const allowed = ROTATIONS[fixedItem.itemRow.rotations].rotations.some(
+                    (r) => angle >= r.start - 1e-9 && angle <= r.end + 1e-9);
+                if (!allowed)
+                    throw new Error(`${name}: the angle ${angle} isn't allowed for item type ${itemTypeId}.`);
+                if (fixedItem.mirror && !fixedItem.itemRow.mirror)
+                    throw new Error(`${name}: item type ${itemTypeId} can't be mirrored.`);
+                return result;
+            });
+        }
+        const cost = valueUsed(objective, false)? optionalNumber(row.cost, "cost"): undefined;
+        if (cost !== undefined)
+            binType.cost = cost;
+        const spacing = optionalNumber(row.spacing, "item spacing");
+        if (spacing !== undefined)
+            binType.item_bin_minimum_spacing = spacing;
+        if ((row.defects || []).length > 0) {
+            binType.defects = row.defects.map((defect, j) => {
+                try {
+                    const result = defectShape(defect);
+                    const defectSpacing = optionalNumber(defect.spacing, "spacing");
+                    if (defectSpacing !== undefined)
+                        result.item_defect_minimum_spacing = defectSpacing;
+                    // The type of the defect, for the quality rules.
+                    const defectType = optionalNumber(defect.defect_type, "type");
+                    if (defectType !== undefined) {
+                        if (!Number.isInteger(defectType) || defectType < 0)
+                            throw new Error(`invalid type: "${defect.defect_type}".`);
+                        result.defect_type = defectType;
                     }
-                });
-            }
-            return binType;
-        })),
-        item_types: itemRows.map((row, i) => withRow("item", i, () => {
-            // An item type can have several shapes: the 'shapes' form is also
-            // the one 'instanceFigure' reads.
-            const itemType = {
-                shapes: [itemShape(row)],
-                copies: rowCopies(row, objective, true),
-                allowed_rotations: ROTATIONS[row.rotations].rotations,
-            };
-            const copiesMin = copiesMinUsed(objective, true)? optionalNumber(row.copies_min, "minimum copies"): undefined;
-            if (copiesMin !== undefined)
-                itemType.copies_min = copiesMin;
-            const profit = valueUsed(objective, true)? optionalNumber(row.profit, "profit"): undefined;
-            if (profit !== undefined)
-                itemType.profit = profit;
-            if (row.mirror)
-                itemType.allow_mirroring = true;
-            return itemType;
-        })),
-    };
+                    return result;
+                } catch (error) {
+                    throw new Error(`defect ${j}: ${error.message}`);
+                }
+            });
+        }
+        return binType;
+    }));
+    const itemTypes = itemRows.map((row, i) => withRow("item", i, () => {
+        // An item type can have several shapes: the 'shapes' form is also
+        // the one 'instanceFigure' reads.
+        const itemType = {
+            shapes: [itemShape(row)],
+            copies: rowCopies(row, objective, true),
+            allowed_rotations: ROTATIONS[row.rotations].rotations,
+        };
+        const copiesMin = copiesMinUsed(objective, true)? optionalNumber(row.copies_min, "minimum copies"): undefined;
+        if (copiesMin !== undefined)
+            itemType.copies_min = copiesMin;
+        const profit = valueUsed(objective, true)? optionalNumber(row.profit, "profit"): undefined;
+        if (profit !== undefined)
+            itemType.profit = profit;
+        if (row.mirror)
+            itemType.allow_mirroring = true;
+        return itemType;
+    }));
+    // The item types must have enough copies for the fixed items.
+    itemTypes.forEach((itemType, i) => {
+        if (fixedCopies[i] > 0 && itemType.copies !== -1 && itemType.copies < fixedCopies[i]) {
+            throw new Error(`item type ${i}: ${itemType.copies} copies, but the fixed items need ${fixedCopies[i]}.`);
+        }
+    });
+    return {objective, bin_types: binTypes, item_types: itemTypes};
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -608,7 +676,7 @@ const openDetails = new WeakSet();
 // Render a bin ('isItem' false) or item type table, for an objective.
 // 'onTableChange' is called when a value changes, 'onStructureChange' when
 // the table must be rendered again (shape changed, row removed).
-export function renderTable(table, rows, isItem, objective, onTableChange, onStructureChange) {
+export function renderTable(table, rows, isItem, objective, onTableChange, onStructureChange, itemRows = []) {
     table.replaceChildren();
     const header = table.createTHead().insertRow();
     const withValue = valueUsed(objective, isItem);
@@ -641,9 +709,9 @@ export function renderTable(table, rows, isItem, objective, onTableChange, onStr
         const thumbnail = document.createElementNS(SVG_NAMESPACE, "svg");
         thumbnail.setAttribute("class", "thumbnail");
         thumbnail.setAttribute("role", "img");
-        drawThumbnail(thumbnail, row, isItem);
+        drawThumbnail(thumbnail, row, isItem, itemRows);
         const onChange = () => {
-            drawThumbnail(thumbnail, row, isItem);
+            drawThumbnail(thumbnail, row, isItem, itemRows);
             onTableChange();
         };
         const id = tr.insertCell();
@@ -710,6 +778,19 @@ export function renderTable(table, rows, isItem, objective, onTableChange, onStr
             ["holes", "Hole", defaultHole]: ["defects", "Defect", defaultDefect];
         row[key] = row[key] || [];
         buttons.appendChild(addPlacedShapeButton(row, key, kind, defaultValue, onStructureChange));
+        // The fixed items of a bin, on a line below it if it has some.
+        if (!isItem) {
+            row.fixed_items = fixedItems(row, itemRows);
+            const add = document.createElement("button");
+            add.type = "button";
+            add.textContent = "Add a fixed item";
+            add.disabled = (itemRows.length === 0);
+            add.addEventListener("click", () => {
+                row.fixed_items.push(defaultFixedItem(itemRows[0]));
+                onStructureChange();
+            });
+            buttons.appendChild(add);
+        }
         if (more !== null)
             buttons.appendChild(more);
         buttons.appendChild(remove);
@@ -737,7 +818,67 @@ export function renderTable(table, rows, isItem, objective, onTableChange, onStr
             label.textContent = isItem? "Holes": "Defects";
             cell.append(label, placedShapesCell(row, key, kind, onChange, onStructureChange));
         }
+        if (!isItem && row.fixed_items.length > 0) {
+            const line = body.insertRow();
+            line.className = "placed-shapes-line";
+            const cell = line.insertCell();
+            cell.colSpan = labels.length + 1;
+            const label = document.createElement("span");
+            label.className = "placed-shapes-label";
+            label.textContent = "Fixed items";
+            cell.append(label, fixedItemsCell(row, itemRows, onChange, onStructureChange));
+        }
     });
+}
+
+// The fixed items of a bin row: a line for each.
+function fixedItemsCell(row, itemRows, onChange, onStructureChange) {
+    const cell = document.createElement("div");
+    cell.className = "placed-shapes";
+    const labelled = (text, element) => {
+        const label = document.createElement("label");
+        label.className = "inline";
+        label.append(text, element);
+        return label;
+    };
+    row.fixed_items.forEach((fixedItem, i) => {
+        const line = document.createElement("div");
+        line.className = "dimensions";
+        // The id of the item type (its position, from 0, as in the "Id"
+        // column).
+        const itemTypeId = document.createElement("input");
+        itemTypeId.type = "number";
+        itemTypeId.min = "0";
+        itemTypeId.max = String(itemRows.length - 1);
+        itemTypeId.step = "1";
+        itemTypeId.className = "item-type-id";
+        itemTypeId.value = (fixedItem.itemRow !== null)? String(itemRows.indexOf(fixedItem.itemRow)): "";
+        itemTypeId.setAttribute("aria-label", `Fixed item ${i} item type id`);
+        itemTypeId.addEventListener("input", () => {
+            const id = Number(itemTypeId.value);
+            fixedItem.itemRow = (itemTypeId.value !== "" && Number.isInteger(id) && id >= 0 && id < itemRows.length)?
+                itemRows[id]: null;
+            onChange();
+        });
+        line.append(
+            labelled("Item type", itemTypeId),
+            labelled("X", input(fixedItem, "x", "Fixed item x", {type: "number", step: "any"}, onChange)),
+            labelled("Y", input(fixedItem, "y", "Fixed item y", {type: "number", step: "any"}, onChange)),
+            labelled("Angle", input(fixedItem, "angle", "Fixed item angle",
+                {type: "number", step: "any", placeholder: "0"}, onChange)),
+            labelled("Mirror", input(fixedItem, "mirror", "Fixed item mirror", {type: "checkbox"}, onChange)));
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.textContent = "×";
+        remove.title = "Remove the fixed item";
+        remove.addEventListener("click", () => {
+            row.fixed_items.splice(i, 1);
+            onStructureChange();
+        });
+        line.appendChild(remove);
+        cell.appendChild(line);
+    });
+    return cell;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -787,7 +928,7 @@ function pathData(elements) {
 // '{d, fill}' (its holes in the same path, filled with the even-odd rule),
 // or '{error}' if the row is invalid. The y axis points up, as in the
 // solutions.
-export function rowThumbnail(row, isItem) {
+export function rowThumbnail(row, isItem, itemRows = []) {
     let shape;
     let defects = [];
     try {
@@ -814,16 +955,37 @@ export function rowThumbnail(row, isItem) {
             ...defects.map((defect) => ({
                 d: [defect, ...(defect.holes || [])].map((s) => pathData(s.elements)).join(" "),
                 fill: DEFECT_COLOR})),
+            ...(isItem? []: fixedItemPaths(row, itemRows)),
         ],
         title: `${format(xMax - xMin)} × ${format(yMax - yMin)}`,
     };
 }
 
+// The paths of the fixed items of a bin row (those whose item type or
+// position is invalid are not drawn).
+function fixedItemPaths(row, itemRows) {
+    const paths = [];
+    for (const fixedItem of fixedItems(row, itemRows)) {
+        if (fixedItem.itemRow === null || fixedItem.x === "" || fixedItem.y === "")
+            continue;
+        let shape;
+        try {
+            shape = itemShape(fixedItem.itemRow);
+        } catch (error) {
+            continue;
+        }
+        const d = [shape, ...(shape.holes || [])].map((s) =>
+            "M" + fixedItemPoints(s.elements, fixedItem).map(([x, y]) => `${x} ${y}`).join(" L") + " Z").join(" ");
+        paths.push({d, fill: ITEM_COLOR});
+    }
+    return paths;
+}
+
 const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
 
 // Draw the thumbnail of a row in an 'svg' element.
-function drawThumbnail(element, row, isItem) {
-    const thumbnail = rowThumbnail(row, isItem);
+function drawThumbnail(element, row, isItem, itemRows = []) {
+    const thumbnail = rowThumbnail(row, isItem, itemRows);
     element.replaceChildren();
     const title = document.createElementNS(SVG_NAMESPACE, "title");
     title.textContent = thumbnail.error || thumbnail.title;

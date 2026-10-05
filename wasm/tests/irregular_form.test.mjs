@@ -294,3 +294,49 @@ test("irregular form: defect types and holes, minimum copies", async () => {
         JSON.stringify({optimization_mode: "not-anytime-sequential"})));
     assert.strictEqual(result.error, undefined);
 });
+
+test("irregular form: fixed items", async () => {
+    // Item type 1: quarter turns, mirroring allowed.
+    const items = [{...itemRows[1], copies: 3}, {...itemRows[0], copies: 2, rotations: "quarter", mirror: true}];
+    const fixedItem = {...irregularForm.defaultFixedItem(items[1]), x: 30, y: 20, angle: "90", mirror: true};
+    const bin = {...binRows[0], copies: 1, fixed_items: [fixedItem]};
+    const instance = irregularForm.instance("bin-packing", [bin], items);
+    assert.deepStrictEqual(instance.bin_types[0].fixed_items, [
+        {item_type_id: 1, bl_corner: {x: 30, y: 20}, angle: 90, mirror: true}]);
+    // The fixed item is drawn in the thumbnail of the bin.
+    const thumbnail = irregularForm.rowThumbnail(bin, false, items);
+    assert.strictEqual(thumbnail.paths.filter((p) => p.fill === "#636efa").length, 1);
+    // Invalid: an invalid item type id, unlimited copies of the bin, not
+    // enough copies of the item type, a missing position.
+    assert.throws(
+        () => irregularForm.instance("bin-packing", [{...bin, fixed_items: [{...fixedItem, itemRow: null}]}], items),
+        /bin type 0: fixed item 0: invalid item type id/);
+    assert.throws(
+        () => irregularForm.instance("bin-packing", [{...bin, unlimited_copies: true}], items),
+        /bin type 0: a bin type with fixed items can't have unlimited copies/);
+    assert.throws(
+        () => irregularForm.instance("bin-packing", [{...bin, copies: 3}], items),
+        /item type 1: 2 copies, but the fixed items need 3/);
+    assert.throws(
+        () => irregularForm.instance("bin-packing", [{...bin, fixed_items: [{...fixedItem, x: ""}]}], items),
+        /bin type 0: fixed item 0: invalid x/);
+    // The angle and the mirroring must be allowed for the item type.
+    assert.throws(
+        () => irregularForm.instance("bin-packing", [{...bin, fixed_items: [{...fixedItem, angle: "45"}]}], items),
+        /fixed item 0: the angle 45 isn't allowed for item type 1/);
+    const notMirrored = {...items[1], mirror: false};
+    assert.throws(
+        () => irregularForm.instance("bin-packing",
+            [{...bin, fixed_items: [{...fixedItem, itemRow: notMirrored}]}], [items[0], notMirrored]),
+        /fixed item 0: item type 1 can't be mirrored/);
+    // A fixed item whose item type was removed is ignored.
+    const removed = irregularForm.instance("bin-packing", [bin], [items[0]]);
+    assert.ok(!("fixed_items" in removed.bin_types[0]));
+    // The solver reads them.
+    const module = await loadModule();
+    const result = JSON.parse(module.solve(
+        "irregular", JSON.stringify(instance),
+        JSON.stringify({optimization_mode: "not-anytime-sequential"})));
+    assert.strictEqual(result.error, undefined);
+    assert.strictEqual(result.output.Solution.NumberOfItems, 5);
+});
