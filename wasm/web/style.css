@@ -178,6 +178,10 @@ table.types .dimensions input[type="number"] {
     width: 5.5rem;
 }
 
+input.vertices.general {
+    width: 32rem;
+}
+
 input.vertices {
     width: 22rem;
     font-family: ui-monospace, "SF Mono", Menlo, monospace;

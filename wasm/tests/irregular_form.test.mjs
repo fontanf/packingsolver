@@ -340,3 +340,49 @@ test("irregular form: fixed items", async () => {
     assert.strictEqual(result.error, undefined);
     assert.strictEqual(result.output.Solution.NumberOfItems, 5);
 });
+
+test("irregular form: general shapes", async () => {
+    // A slot: two line segments and two half circles.
+    const slot = "L 0 0 30 0, A 30 0 30 5 30 10 a, L 30 10 0 10, A 0 10 0 5 0 0 a";
+    const shape = irregularForm.rowShape({shape: "general", elements: slot});
+    assert.strictEqual(shape.elements.length, 4);
+    assert.deepStrictEqual(shape.elements[1], {
+        type: "CircularArc", start: {x: 30, y: 0}, end: {x: 30, y: 10}, center: {x: 30, y: 5},
+        orientation: "Anticlockwise"});
+    // Back to the text.
+    assert.strictEqual(irregularForm.formatGeneralShape(shape.elements), slot);
+    // A full circle.
+    const circle = irregularForm.rowShape({shape: "general", elements: "A 5 0 0 0 5 0 f"});
+    assert.strictEqual(circle.elements[0].orientation, "Full");
+    // Clockwise: reversed, the arcs with the opposite orientation.
+    const clockwise = irregularForm.rowShape({shape: "general",
+        elements: "L 0 0 0 10, A 0 10 0 5 0 0 c"});
+    assert.deepStrictEqual(clockwise.elements.map((e) => [e.type, e.start, e.orientation]), [
+        ["CircularArc", {x: 0, y: 0}, "Anticlockwise"],
+        ["LineSegment", {x: 0, y: 10}, undefined],
+    ]);
+    // Errors.
+    const error = (elements) => () => irregularForm.rowShape({shape: "general", elements});
+    assert.throws(error(""), /at least one element/);
+    assert.throws(error("L 0 0 1"), /element 0: expected "L x_start y_start x_end y_end"/);
+    assert.throws(error("A 0 0 1 1 2 2"), /element 0: expected "A x_start/);
+    assert.throws(error("A 0 0 1 1 2 2 x"), /element 0: expected "A x_start/);
+    assert.throws(error("Q 0 0 1 1"), /element 0: unknown element "Q"/);
+    assert.throws(error("L 0 0 1 x, L 1 0 0 0"), /element 0: invalid number "x"/);
+    assert.throws(error("L 0 0 1 0, L 2 0 0 0"), /element 1 doesn't start where element 0 ends/);
+    assert.throws(error("L 0 0 1 0, L 1 0 1 1"), /the shape isn't closed/);
+    assert.throws(error("L 0 0 1 0, L 1 0 0 0"), /no area/);
+    // In the instance: a bin, an item and a defect; the solver reads them.
+    const bin = {...irregularForm.defaultBinRow(), shape: "general",
+        elements: "L 0 0 100 0, L 100 0 100 50, L 100 50 0 50, L 0 50 0 0",
+        defects: [{...irregularForm.defaultDefect(), shape: "general", elements: "A 60 25 55 25 60 25 f"}]};
+    const item = {...irregularForm.defaultItemRow(), shape: "general", elements: slot, copies: 4};
+    const instance = irregularForm.instance("bin-packing", [bin], [item]);
+    assert.strictEqual(instance.bin_types[0].defects[0].elements[0].orientation, "Full");
+    const module = await loadModule();
+    const result = JSON.parse(module.solve(
+        "irregular", JSON.stringify(instance),
+        JSON.stringify({optimization_mode: "not-anytime-sequential"})));
+    assert.strictEqual(result.error, undefined);
+    assert.strictEqual(result.output.Solution.NumberOfItems, 4);
+});
