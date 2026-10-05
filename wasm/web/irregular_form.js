@@ -12,6 +12,7 @@ export const SHAPES = {
     rectangle: "Rectangle",
     circle: "Circle",
     polygon: "Polygon",
+    general: "General shape",
     file: "From file (DXF, SVG)",
 };
 
@@ -25,7 +26,7 @@ export const ROTATIONS = {
 
 export function defaultBinRow() {
     return {
-        shape: "rectangle", width: 100, height: 100, radius: 50, vertices: "",
+        shape: "rectangle", width: 100, height: 100, radius: 50, vertices: "", elements: "",
         copies: 1, unlimited_copies: false, copies_min: "", cost: "", spacing: "", defects: [], fixed_items: [],
     };
 }
@@ -33,8 +34,8 @@ export function defaultBinRow() {
 // A defect: a rectangle placed at (x, y), a circle centered at (x, y), or a
 // polygon given by its vertices in the bin.
 export function defaultDefect() {
-    return {shape: "rectangle", x: "", y: "", width: 10, height: 10, radius: 5, vertices: "", spacing: "",
-        defect_type: "", holes: []};
+    return {shape: "rectangle", x: "", y: "", width: 10, height: 10, radius: 5, vertices: "", elements: "",
+        spacing: "", defect_type: "", holes: []};
 }
 
 // A fixed item of a bin: an item placed before the search. It refers to the
@@ -65,7 +66,7 @@ function fixedItemPoints(elements, fixedItem) {
 
 // A hole of an item: placed in the item as a defect in a bin.
 export function defaultHole() {
-    return {shape: "rectangle", x: "", y: "", width: 5, height: 5, radius: 2, vertices: ""};
+    return {shape: "rectangle", x: "", y: "", width: 5, height: 5, radius: 2, vertices: "", elements: ""};
 }
 
 // Shapes of the defects and of the holes.
@@ -73,11 +74,12 @@ const PLACED_SHAPES = {
     rectangle: "Rectangle",
     circle: "Circle",
     polygon: "Polygon",
+    general: "General shape",
 };
 
 export function defaultItemRow() {
     return {
-        shape: "rectangle", width: 10, height: 10, radius: 5, vertices: "",
+        shape: "rectangle", width: 10, height: 10, radius: 5, vertices: "", elements: "",
         copies: 1, unlimited_copies: false, copies_min: "", profit: "", rotations: "none", mirror: false, holes: [],
     };
 }
@@ -117,6 +119,87 @@ export function parseVertices(text) {
     if (vertices.length < 3)
         throw new Error("a polygon needs at least 3 vertices.");
     return vertices;
+}
+
+// The orientations of the arcs of a general shape, and their letters.
+const ORIENTATIONS = {a: "Anticlockwise", c: "Clockwise", f: "Full"};
+const ORIENTATION_LETTERS = {Anticlockwise: "a", Clockwise: "c", Full: "f"};
+
+// Placeholder of the inputs of the general shapes.
+export const GENERAL_SHAPE_PLACEHOLDER =
+    "L x_start y_start x_end y_end, A x_start y_start x_center y_center x_end y_end a|c|f, ...";
+
+function close(a, b) {
+    return Math.abs(a - b) <= 1e-9 * Math.max(1, Math.abs(a), Math.abs(b));
+}
+
+// Parse the elements of a general shape, written as
+// "L x_start y_start x_end y_end" (line segment) and
+// "A x_start y_start x_center y_center x_end y_end o" (circular arc, 'o' its
+// orientation: 'a' anticlockwise, 'c' clockwise, 'f' full circle), separated
+// by commas. Each element must start where the previous one ends, and the
+// shape must be closed.
+export function parseGeneralShape(text) {
+    const parts = text.split(",").map((s) => s.trim()).filter((s) => s !== "");
+    if (parts.length === 0)
+        throw new Error("a general shape needs at least one element.");
+    const elements = parts.map((part, i) => {
+        const tokens = part.split(/\s+/);
+        const numbers = (values) => values.map((v) => {
+            const number = Number(v);
+            if (v === "" || !Number.isFinite(number))
+                throw new Error(`element ${i}: invalid number "${v}".`);
+            return number;
+        });
+        if (tokens[0] === "L") {
+            if (tokens.length !== 5)
+                throw new Error(`element ${i}: expected "L x_start y_start x_end y_end".`);
+            const [xs, ys, xe, ye] = numbers(tokens.slice(1));
+            return {type: "LineSegment", start: point(xs, ys), end: point(xe, ye)};
+        }
+        if (tokens[0] === "A") {
+            if (tokens.length !== 8 || !(tokens[7] in ORIENTATIONS))
+                throw new Error(`element ${i}: expected "A x_start y_start x_center y_center x_end y_end a|c|f".`);
+            const [xs, ys, xc, yc, xe, ye] = numbers(tokens.slice(1, 7));
+            return {
+                type: "CircularArc",
+                start: point(xs, ys),
+                end: point(xe, ye),
+                center: point(xc, yc),
+                orientation: ORIENTATIONS[tokens[7]],
+            };
+        }
+        throw new Error(`element ${i}: unknown element "${tokens[0]}" (L or A).`);
+    });
+    elements.forEach((element, i) => {
+        const next = elements[(i + 1) % elements.length];
+        if (!close(element.end.x, next.start.x) || !close(element.end.y, next.start.y)) {
+            throw new Error((i + 1 < elements.length)?
+                `element ${i + 1} doesn't start where element ${i} ends.`:
+                "the shape isn't closed: the last element doesn't end where the first one starts.");
+        }
+    });
+    return elements;
+}
+
+// The text of the elements of a general shape (see 'parseGeneralShape').
+export function formatGeneralShape(elements) {
+    const text = (v) => String(v);
+    return elements.map((e) => (e.type === "CircularArc")?
+        `A ${text(e.start.x)} ${text(e.start.y)} ${text(e.center.x)} ${text(e.center.y)} `
+            + `${text(e.end.x)} ${text(e.end.y)} ${ORIENTATION_LETTERS[e.orientation]}`:
+        `L ${text(e.start.x)} ${text(e.start.y)} ${text(e.end.x)} ${text(e.end.y)}`).join(", ");
+}
+
+// The elements of a shape in the opposite direction.
+function reverseElements(elements) {
+    const opposite = {Anticlockwise: "Clockwise", Clockwise: "Anticlockwise", Full: "Full"};
+    return elements.slice().reverse().map((e) => {
+        const reversed = {...e, start: e.end, end: e.start};
+        if (e.type === "CircularArc")
+            reversed.orientation = opposite[e.orientation];
+        return reversed;
+    });
 }
 
 // Twice the signed area of a polygon (positive if anticlockwise).
@@ -169,6 +252,16 @@ export function rowShape(row) {
             }],
         };
     }
+    if (row.shape === "general") {
+        let elements = parseGeneralShape(row.elements || "");
+        // Shapes are anticlockwise (the arcs approximated by segments).
+        const area = signedArea(shapePoints(elements).map(([x, y]) => point(x, y)));
+        if (Math.abs(area) < 1e-12)
+            throw new Error("the general shape has no area.");
+        if (area < 0)
+            elements = reverseElements(elements);
+        return {type: "general", elements};
+    }
     if (row.shape === "polygon") {
         let vertices = parseVertices(row.vertices);
         if (signedArea(vertices) === 0)
@@ -200,7 +293,8 @@ function translateShape(shape, dx, dy) {
 // The shape of a defect in its bin, or of a hole in its item.
 export function placedShape(defect) {
     const shape = rowShape(defect);
-    if (defect.shape === "polygon")
+    // The polygons and the general shapes are given in the bin (item).
+    if (defect.shape === "polygon" || defect.shape === "general")
         return shape;
     const position = (value, name) => {
         const number = Number(value);
@@ -455,6 +549,13 @@ function dimensionsCell(row, onChange, onStructureChange) {
             spellcheck: false,
         }, onChange);
         cell.append(vertices);
+    } else if (row.shape === "general") {
+        cell.append(input(row, "elements", "Elements", {
+            type: "text",
+            placeholder: GENERAL_SHAPE_PLACEHOLDER,
+            className: "vertices general",
+            spellcheck: false,
+        }, onChange));
     } else if (row.shape === "file") {
         cell.append(fileInput(row, onStructureChange), fileDescription(row));
     }
@@ -554,7 +655,7 @@ function placedShapesCell(row, key, kind, onChange, onStructureChange) {
         const line = document.createElement("div");
         line.className = "dimensions";
         line.appendChild(select(placed, "shape", `${kind} shape`, PLACED_SHAPES, onStructureChange));
-        if (placed.shape !== "polygon") {
+        if (placed.shape !== "polygon" && placed.shape !== "general") {
             line.append(
                 labelled("X", input(placed, "x", `${kind} x`, NUMBER, onChange)),
                 labelled("Y", input(placed, "y", `${kind} y`, NUMBER, onChange)));
@@ -565,6 +666,13 @@ function placedShapesCell(row, key, kind, onChange, onStructureChange) {
                 labelled("H", input(placed, "height", `${kind} height`, NUMBER, onChange)));
         } else if (placed.shape === "circle") {
             line.append(labelled("R", input(placed, "radius", `${kind} radius`, NUMBER, onChange)));
+        } else if (placed.shape === "general") {
+            line.appendChild(input(placed, "elements", `${kind} elements`, {
+                type: "text",
+                placeholder: GENERAL_SHAPE_PLACEHOLDER,
+                className: "vertices general",
+                spellcheck: false,
+            }, onChange));
         } else {
             line.appendChild(input(placed, "vertices", `${kind} vertices`, {
                 type: "text",
