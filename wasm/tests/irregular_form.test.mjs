@@ -54,7 +54,7 @@ test("irregular form: invalid inputs", () => {
     assert.throws(
         () => irregularForm.instance("bin-packing", binRows, [
             itemRows[0], {...itemRows[1], copies: 0}]),
-        /item type 2: invalid number of copies/);
+        /item type 1: invalid number of copies/);
 });
 
 test("irregular form: rotations and mirroring", () => {
@@ -142,10 +142,10 @@ test("irregular form: shapes from files", () => {
     // A bin can't have holes; a row needs its file.
     assert.throws(
         () => irregularForm.instance("knapsack", [{...binRows[0], shape: "file", file: part}], [item]),
-        /bin type 1: a bin can't have holes/);
+        /bin type 0: a bin can't have holes/);
     assert.throws(
         () => irregularForm.instance("knapsack", binRows, [{...item, file: null}]),
-        /item type 1: load a DXF or SVG file/);
+        /item type 0: load a DXF or SVG file/);
 });
 
 test("irregular form: defects and spacings", async () => {
@@ -169,7 +169,7 @@ test("irregular form: defects and spacings", async () => {
     assert.throws(
         () => irregularForm.instance(example.objective,
             [{...bin, defects: [{...defects[0], x: ""}]}], itemRows),
-        /bin type 1: defect 1: invalid x/);
+        /bin type 0: defect 0: invalid x/);
     // The thumbnail of the bin draws the defects.
     const thumbnail = irregularForm.rowThumbnail(bin, false);
     assert.strictEqual(thumbnail.paths.filter((p) => p.fill === "#ef553b").length, 3);
@@ -211,10 +211,10 @@ test("irregular form: holes", async () => {
     // Invalid holes: outside the item, touching its border, invalid values.
     const error = (hole) => () => irregularForm.instance(
         example.objective, binRows, [{...item, holes: [holes[0], hole]}]);
-    assert.throws(error({...holes[0], x: 18}), /item type 1: hole 2: it must be inside the item/);
-    assert.throws(error({...holes[0], x: 0}), /hole 2: it must be inside the item/);
-    assert.throws(error({...holes[1], radius: 6}), /hole 2: it must be inside the item/);
-    assert.throws(error({...holes[0], y: ""}), /hole 2: invalid y/);
+    assert.throws(error({...holes[0], x: 18}), /item type 0: hole 1: it must be inside the item/);
+    assert.throws(error({...holes[0], x: 0}), /hole 1: it must be inside the item/);
+    assert.throws(error({...holes[1], radius: 6}), /hole 1: it must be inside the item/);
+    assert.throws(error({...holes[0], y: ""}), /hole 1: invalid y/);
     // The solver reads them.
     const module = await loadModule();
     const result = JSON.parse(module.solve(

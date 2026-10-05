@@ -121,6 +121,9 @@ function binColumns(problemType) {
         columns.push(detailsNumber("maximum_stack_density", "Maximum stack density", "unlimited"));
         columns.push(...truckColumns());
     }
+    // Resources consumed by the items packed in the bins.
+    if (["rectangleguillotine", "rectangle", "box", "onedimensional"].includes(problemType))
+        columns.push({key: "resources", label: "Resources", type: "resources", value: []});
     // The defects of the bins (of their floor for boxstacks).
     if (["rectangleguillotine", "rectangle", "boxstacks"].includes(problemType))
         columns.push({key: "defects", label: "Defects", type: "defects", value: []});
@@ -823,9 +826,15 @@ function renderTable(table, columns, rows) {
     const header = table.createTHead().insertRow();
     // The defects are on a line below their row, the details on another one.
     const defectsColumn = columns.find((column) => column.type === "defects");
+    const resourcesColumn = columns.find((column) => column.type === "resources");
     const detailsColumns = columns.filter((column) => column.details && columnShown(column));
     columns = columns.filter(
-        (column) => column.type !== "defects" && !column.details && columnShown(column));
+        (column) => column.type !== "defects" && column.type !== "resources"
+            && !column.details && columnShown(column));
+    // The id of each row: its position, from 0, as in the C++ code.
+    const idHeader = document.createElement("th");
+    idHeader.textContent = "Id";
+    header.appendChild(idHeader);
     for (const column of columns) {
         const th = document.createElement("th");
         th.textContent = column.label;
@@ -841,6 +850,9 @@ function renderTable(table, columns, rows) {
     const body = table.createTBody();
     rows.forEach((row, rowIndex) => {
         const tr = body.insertRow();
+        const id = tr.insertCell();
+        id.className = "row-id";
+        id.textContent = String(rowIndex);
         for (const column of columns) {
             if (column.type === "rotations") {
                 tr.insertCell().appendChild(rotationsCell(row, column));
@@ -878,6 +890,17 @@ function renderTable(table, columns, rows) {
             });
             buttons.appendChild(add);
         }
+        // Same for the resources.
+        if (resourcesColumn !== undefined) {
+            const add = document.createElement("button");
+            add.type = "button";
+            add.textContent = "Add a resource";
+            add.addEventListener("click", () => {
+                row[resourcesColumn.key].push(defaultResource());
+                renderForm();
+            });
+            buttons.appendChild(add);
+        }
         if (detailsColumns.length > 0) {
             const more = document.createElement("button");
             more.type = "button";
@@ -909,22 +932,130 @@ function renderTable(table, columns, rows) {
         });
         buttons.appendChild(remove);
         if (openDetails.has(row) && detailsColumns.length > 0)
-            addDetailsLine(body, columns.length + 1, row, detailsColumns);
+            addDetailsLine(body, columns.length + 2, row, detailsColumns);
         if (defectsColumn !== undefined && row[defectsColumn.key].length > 0)
-            addDefectsLine(body, columns.length + 1, defectsCell(row, defectsColumn));
+            addDefectsLine(body, columns.length + 2, defectsCell(row, defectsColumn));
+        if (resourcesColumn !== undefined && row[resourcesColumn.key].length > 0)
+            addDefectsLine(body, columns.length + 2, resourcesCell(row, resourcesColumn), "Resources");
     });
 }
 
 // Line, below a row of a table, with the defects of the row.
-function addDefectsLine(body, numberOfColumns, defects) {
+function addDefectsLine(body, numberOfColumns, defects, text = "Defects") {
     const tr = body.insertRow();
     tr.className = "placed-shapes-line";
     const cell = tr.insertCell();
     cell.colSpan = numberOfColumns;
     const label = document.createElement("span");
     label.className = "placed-shapes-label";
-    label.textContent = "Defects";
+    label.textContent = text;
     cell.append(label, defects);
+}
+
+// A resource of a bin type: its capacity, whether exceeding it is allowed
+// with a penalty, and the consumptions of the item types which use it. A
+// consumption refers to the row of its item type (so that it follows the row
+// when other rows are removed), and gives the consumption of the successive
+// copies, as a list "1, 2, 3" (a single value: the same for all the copies;
+// else the last value for the next copies).
+function defaultResource() {
+    return {capacity: "", penalize: false, penalty: "", consumptions: []};
+}
+
+// The consumptions of a resource whose item type still exists (or which
+// don't have a valid item type yet, 'itemRow' null).
+function resourceConsumptions(resource) {
+    return resource.consumptions.filter(
+        (consumption) => consumption.itemRow === null || state.itemTypes.includes(consumption.itemRow));
+}
+
+// Cell of a column of type "resources": a line for each resource, then a line
+// for each of its consumptions.
+function resourcesCell(row, column) {
+    const cell = document.createElement("div");
+    cell.className = "placed-shapes";
+    const resources = row[column.key];
+    const labelled = (text, element) => {
+        const label = document.createElement("label");
+        label.className = "inline";
+        label.append(text, element);
+        return label;
+    };
+    const button = (text, title, onClick) => {
+        const element = document.createElement("button");
+        element.type = "button";
+        element.textContent = text;
+        if (title)
+            element.title = title;
+        element.addEventListener("click", onClick);
+        return element;
+    };
+    resources.forEach((resource, i) => {
+        resource.consumptions = resourceConsumptions(resource);
+        const name = `resource ${i}`;
+        const line = document.createElement("div");
+        line.className = "dimensions resource";
+        line.appendChild(labelled("Capacity", numberInput(resource.capacity, `${name} capacity`,
+            (value) => { resource.capacity = value; })));
+        const penalize = document.createElement("input");
+        penalize.type = "checkbox";
+        penalize.checked = resource.penalize;
+        penalize.setAttribute("aria-label", `${name} penalize`);
+        penalize.addEventListener("change", () => { resource.penalize = penalize.checked; renderForm(); });
+        line.appendChild(labelled("Penalize", penalize));
+        // Exceeding the capacity is allowed, at this cost.
+        if (resource.penalize) {
+            line.appendChild(labelled("Penalty", numberInput(resource.penalty, `${name} penalty`,
+                (value) => { resource.penalty = value; }, "0")));
+        }
+        line.appendChild(button("Add a consumption", "", () => {
+            // The first item type without a consumption.
+            const used = resource.consumptions.map((consumption) => consumption.itemRow);
+            const itemRow = state.itemTypes.find((r) => !used.includes(r)) || state.itemTypes[0];
+            resource.consumptions.push({itemRow, values: ""});
+            renderForm();
+        }));
+        line.appendChild(button("×", "Remove the resource", () => { resources.splice(i, 1); renderForm(); }));
+        cell.appendChild(line);
+        resource.consumptions.forEach((consumption, j) => {
+            const consumptionLine = document.createElement("div");
+            consumptionLine.className = "dimensions consumption-line";
+            // The id of the item type (its position, from 0, as in the "Id"
+            // column).
+            const itemTypeId = document.createElement("input");
+            itemTypeId.type = "number";
+            itemTypeId.min = "0";
+            itemTypeId.max = String(state.itemTypes.length - 1);
+            itemTypeId.step = "1";
+            itemTypeId.className = "item-type-id";
+            itemTypeId.value = (consumption.itemRow !== null)? String(state.itemTypes.indexOf(consumption.itemRow)): "";
+            itemTypeId.setAttribute("aria-label", `${name} consumption ${j} item type id`);
+            itemTypeId.addEventListener("input", () => {
+                const id = Number(itemTypeId.value);
+                consumption.itemRow = (itemTypeId.value !== "" && Number.isInteger(id)
+                        && id >= 0 && id < state.itemTypes.length)?
+                    state.itemTypes[id]: null;
+            });
+            consumptionLine.appendChild(labelled("Item type", itemTypeId));
+            const values = document.createElement("input");
+            values.type = "text";
+            values.className = "vertices";
+            values.spellcheck = false;
+            values.placeholder = "e.g. 2, or 1, 2, 3 for the successive copies";
+            values.title = "The consumption of each copy, or of the successive copies "
+                + "(the last value for the next copies)";
+            values.value = consumption.values;
+            values.setAttribute("aria-label", `${name} consumption ${j}`);
+            values.addEventListener("input", () => { consumption.values = values.value; });
+            consumptionLine.appendChild(labelled("Consumption", values));
+            consumptionLine.appendChild(button("×", "Remove the consumption", () => {
+                resource.consumptions.splice(j, 1);
+                renderForm();
+            }));
+            cell.appendChild(consumptionLine);
+        });
+    });
+    return cell;
 }
 
 function renderForm() {
@@ -1050,7 +1181,7 @@ function formInstance() {
         try {
             return convertRow(columns, row);
         } catch (error) {
-            throw new Error(`${kind} type ${i + 1}: ${error.message}`);
+            throw new Error(`${kind} type ${i}: ${error.message}`);
         }
     });
     const convertNumber = (value, name) => {
@@ -1098,12 +1229,44 @@ function formInstance() {
                     if (value[side] !== undefined && value[side] !== "")
                         result[side + "_trim"] = convertNumber(value[side], side + " trim");
                 }
+            } else if (column.type === "resources") {
+                if (value.length > 0) {
+                    result.resources = value.map((resource, j) => {
+                        const name = `resource ${j}`;
+                        const converted = {capacity: convertNumber(resource.capacity, `${name} capacity`)};
+                        if (resource.penalize) {
+                            converted.penalize = true;
+                            if (resource.penalty !== "")
+                                converted.penalty = convertNumber(resource.penalty, `${name} penalty`);
+                        }
+                        const consumptions = [];
+                        for (const consumption of resourceConsumptions(resource)) {
+                            if (consumption.itemRow === null)
+                                throw new Error(`${name}: invalid item type id of a consumption.`);
+                            const k = state.itemTypes.indexOf(consumption.itemRow);
+                            if (consumptions.some((c) => c.item_type_id === k))
+                                throw new Error(`${name}: several consumptions for item type ${k}.`);
+                            const values = String(consumption.values).split(",")
+                                .map((v) => v.trim()).filter((v) => v !== "")
+                                .map((v) => convertNumber(v, `${name} consumption of item type ${k}`));
+                            if (values.length === 0)
+                                throw new Error(`${name}: missing consumption of item type ${k}.`);
+                            if (values.length === 1)
+                                consumptions.push({item_type_id: k, consumption: values[0]});
+                            else
+                                consumptions.push({item_type_id: k, consumption_schedule: values});
+                        }
+                        if (consumptions.length > 0)
+                            converted.consumptions = consumptions;
+                        return converted;
+                    });
+                }
             } else if (column.type === "defects") {
                 if (value.length > 0) {
                     result.defects = value.map((defect, j) => {
                         const converted = {};
                         for (const key of ["x", "y", "width", "height"])
-                            converted[key] = convertNumber(defect[key], `defect ${j + 1} ${key}`);
+                            converted[key] = convertNumber(defect[key], `defect ${j} ${key}`);
                         return converted;
                     });
                 }
@@ -1146,14 +1309,14 @@ function formInstance() {
         if (itemType.eligibility_id === undefined)
             return;
         if (!binTypes.some((binType) => (binType.eligibility_ids || []).includes(itemType.eligibility_id))) {
-            throw new Error(`item type ${i + 1}: no bin type has the eligibility id ${itemType.eligibility_id}.`);
+            throw new Error(`item type ${i}: no bin type has the eligibility id ${itemType.eligibility_id}.`);
         }
     });
     // The stack ids: all the item types or none.
     const withStack = itemTypes.filter((itemType) => itemType.stack_id !== undefined).length;
     if (withStack > 0 && withStack < itemTypes.length) {
         const i = itemTypes.findIndex((itemType) => itemType.stack_id === undefined);
-        throw new Error(`item type ${i + 1}: missing stack id (if an item type has a stack id, they all must).`);
+        throw new Error(`item type ${i}: missing stack id (if an item type has a stack id, they all must).`);
     }
     return addInstanceParameters({
         objective: $("objective").value,
