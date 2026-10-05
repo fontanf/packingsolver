@@ -15,6 +15,7 @@ target_sources(PackingSolver_rectangleguillotine_test PRIVATE
     sequential_strips_onedimensional_test.cpp
     tree_search_hypergraph_infinite_copies_test.cpp
     tree_search_hypergraph_test.cpp
+    tree_search_maximal_spaces_test.cpp
     post_process_test.cpp
     resource_test.cpp
     reduction_test.cpp)
