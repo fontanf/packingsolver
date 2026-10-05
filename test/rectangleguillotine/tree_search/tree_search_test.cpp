@@ -30,10 +30,15 @@ TEST_P(RectangleGuillotineTreeSearchTest, RectangleGuillotineTreeSearch)
 {
     RectangleGuillotineTreeSearchTestParams test_params = GetParam();
     InstanceBuilder instance_builder;
-    instance_builder.read_bin_types(test_params.bins_path.string());
-    instance_builder.read_defects(test_params.defects_path.string());
-    instance_builder.read_item_types(test_params.items_path.string());
-    instance_builder.read_parameters(test_params.parameters_path.string());
+    // An instance in the JSON format is given as the items path.
+    if (test_params.items_path.extension() == ".json") {
+        instance_builder.read(test_params.items_path.string());
+    } else {
+        instance_builder.read_bin_types(test_params.bins_path.string());
+        instance_builder.read_defects(test_params.defects_path.string());
+        instance_builder.read_item_types(test_params.items_path.string());
+        instance_builder.read_parameters(test_params.parameters_path.string());
+    }
     Instance instance = instance_builder.build();
 
     OptimizeParameters optimize_parameters;
@@ -422,7 +427,32 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path(""),
                 fs::path("data") / "rectangleguillotine" / "tests" / "bin_packing_cutting_cost_2nho" / "items.csv",
                 fs::path("data") / "rectangleguillotine" / "tests" / "bin_packing_cutting_cost_2nho" / "parameters.csv",
-                fs::path("data") / "rectangleguillotine" / "tests" / "bin_packing_cutting_cost_2nho" / "solution.csv",}}));
+                fs::path("data") / "rectangleguillotine" / "tests" / "bin_packing_cutting_cost_2nho" / "solution.csv",
+            }, {
+                fs::path("data") / "rectangleguillotine" / "tests" / "soft_trims_horizontal" / "bins.csv",
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "soft_trims_horizontal" / "items.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "soft_trims_horizontal" / "parameters.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "soft_trims_horizontal" / "solution.csv",
+            }, {
+                fs::path("data") / "rectangleguillotine" / "tests" / "soft_trims_two_stages" / "bins.csv",
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "soft_trims_two_stages" / "items.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "soft_trims_two_stages" / "parameters.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "soft_trims_two_stages" / "solution.csv",
+            }, {
+                fs::path(""),
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "soft_trims_cutting_cost" / "instance.json",
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "soft_trims_cutting_cost" / "solution.csv",
+            }, {
+                fs::path(""),
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "soft_trims_cutting_cost_two_stages" / "instance.json",
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "soft_trims_cutting_cost_two_stages" / "solution.csv",
+            }}));
 
 
 

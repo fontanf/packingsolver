@@ -125,10 +125,15 @@ TEST_P(RectangleGuillotineOptimizeTest, RectangleGuillotineOptimize)
 {
     RectangleGuillotineOptimizeTestParams test_params = GetParam();
     InstanceBuilder instance_builder;
-    instance_builder.read_item_types(test_params.items_path.string());
-    instance_builder.read_bin_types(test_params.bins_path.string());
-    instance_builder.read_defects(test_params.defects_path.string());
-    instance_builder.read_parameters(test_params.parameters_path.string());
+    // An instance in the JSON format is given as the items path.
+    if (test_params.items_path.extension() == ".json") {
+        instance_builder.read(test_params.items_path.string());
+    } else {
+        instance_builder.read_item_types(test_params.items_path.string());
+        instance_builder.read_bin_types(test_params.bins_path.string());
+        instance_builder.read_defects(test_params.defects_path.string());
+        instance_builder.read_parameters(test_params.parameters_path.string());
+    }
     Instance instance = instance_builder.build();
 
     OptimizeParameters optimize_parameters;
@@ -197,7 +202,74 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path(""),
                 fs::path("data") / "rectangleguillotine" / "users" / "2025-01-29" / "parameters.csv",
                 fs::path("data") / "rectangleguillotine" / "users" / "2025-01-29" / "solution.csv",
+            }, {
+                // The soft trims of the solution of the tree search were
+                // those of the flipped instance when the first stage is
+                // horizontal, and on the wrong depths with two stages.
+                fs::path("data") / "rectangleguillotine" / "tests" / "soft_trims_horizontal" / "items.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "soft_trims_horizontal" / "bins.csv",
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "soft_trims_horizontal" / "parameters.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "soft_trims_horizontal" / "solution.csv",
+            }, {
+                fs::path("data") / "rectangleguillotine" / "tests" / "soft_trims_two_stages" / "items.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "soft_trims_two_stages" / "bins.csv",
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "soft_trims_two_stages" / "parameters.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "soft_trims_two_stages" / "solution.csv",
+            }, {
+                // The tree search didn't charge the cuts separating the
+                // waste of the soft trims in its solutions, and with two
+                // stages, the 2-cuts didn't go through the soft left trim.
+                fs::path("data") / "rectangleguillotine" / "tests" / "soft_trims_cutting_cost" / "instance.json",
+                fs::path(""),
+                fs::path(""),
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "soft_trims_cutting_cost" / "solution.csv",
+            }, {
+                fs::path("data") / "rectangleguillotine" / "tests" / "soft_trims_cutting_cost_two_stages" / "instance.json",
+                fs::path(""),
+                fs::path(""),
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "soft_trims_cutting_cost_two_stages" / "solution.csv",
             }}));
+
+TEST(RectangleGuillotine, SolutionItemInSoftTrim)
+{
+    // Bin 100x100 with a soft left trim of 10: an item may not be placed in
+    // the trim, even though the trim isn't cut.
+    InstanceBuilder instance_builder;
+    instance_builder.add_item_type(40, 50);
+    packingsolver::BinTypeId bin_type_id = instance_builder.add_bin_type(100, 100);
+    instance_builder.add_trims(
+            bin_type_id,
+            10, TrimType::Soft,
+            0, TrimType::Soft,
+            0, TrimType::Soft,
+            0, TrimType::Soft);
+    Instance instance = instance_builder.build();
+
+    // Item at x = 0, in the trim.
+    SolutionBuilder solution_builder_1(instance);
+    solution_builder_1.add_bin(0, 1, CutOrientation::Vertical);
+    solution_builder_1.add_node(1, 40);
+    solution_builder_1.add_node(2, 50);
+    solution_builder_1.set_last_node_item(0);
+    Solution solution_1 = solution_builder_1.build();
+    EXPECT_FALSE(solution_1.trims_feasible());
+    EXPECT_FALSE(solution_1.feasible());
+
+    // Item at x = 10, after the trim.
+    SolutionBuilder solution_builder_2(instance);
+    solution_builder_2.add_bin(0, 1, CutOrientation::Vertical);
+    solution_builder_2.add_node(1, 10);
+    solution_builder_2.add_node(1, 50);
+    solution_builder_2.add_node(2, 50);
+    solution_builder_2.set_last_node_item(0);
+    Solution solution_2 = solution_builder_2.build();
+    EXPECT_TRUE(solution_2.trims_feasible());
+    EXPECT_TRUE(solution_2.feasible());
+}
 
 TEST(RectangleGuillotine, AddTrimsAcceptsValidRightTrim)
 {

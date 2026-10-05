@@ -1,0 +1,42 @@
+{
+    "objective": "bin-packing-cutting-cost",
+    "number_of_stages": 2,
+    "cutting_costs": [
+        {
+            "fixed": 100,
+            "variable": 0
+        },
+        {
+            "fixed": 50,
+            "variable": 3
+        },
+        {
+            "fixed": 30,
+            "variable": 2
+        }
+    ],
+    "bin_types": [
+        {
+            "width": 1000,
+            "height": 700,
+            "copies": 3,
+            "left_trim": 10,
+            "left_trim_type": "soft",
+            "bottom_trim": 7,
+            "bottom_trim_type": "soft"
+        }
+    ],
+    "item_types": [
+        {
+            "width": 250,
+            "height": 200,
+            "copies": 2,
+            "oriented": true
+        },
+        {
+            "width": 150,
+            "height": 300,
+            "copies": 3
+        }
+    ]
+}

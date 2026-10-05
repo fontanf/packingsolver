@@ -152,6 +152,8 @@ public:
 
     bool defects_feasible() const { return defects_feasible_; }
 
+    bool trims_feasible() const { return trims_feasible_; }
+
     bool cut_through_defects_feasible() const { return cut_through_defects_feasible_; }
 
     bool item_copies_feasible() const { return item_copies_feasible_; }
@@ -331,6 +333,9 @@ private:
 
     /** Feasibility for the defect intersections. */
     bool defects_feasible_ = true;
+
+    /** Feasibility for the trims: no item in a trim. */
+    bool trims_feasible_ = true;
 
     /** Feasibility for the cut through defects. */
     bool cut_through_defects_feasible_ = true;
