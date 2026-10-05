@@ -758,6 +758,23 @@ Instance InstanceBuilder::build()
     // Unlimited copies of the item types.
     resolve_item_types_unlimited_copies();
 
+    // Remap fixed item type IDs if a sub-instance mapping is present, before
+    // checking them: they refer to the item types of the original instance.
+    if (!orig_to_sub_item_type_ids_.empty()) {
+        for (BinType& bin_type: instance_.bin_types_) {
+            for (FixedItem& fixed_item: bin_type.fixed_items) {
+                if (fixed_item.item_type_id >= (ItemTypeId)orig_to_sub_item_type_ids_.size()
+                        || orig_to_sub_item_type_ids_[fixed_item.item_type_id] == -1) {
+                    throw std::invalid_argument(
+                            FUNC_SIGNATURE + ": "
+                            "fixed item type id not found in sub-instance mapping; "
+                            "item_type_id: " + std::to_string(fixed_item.item_type_id) + ".");
+                }
+                fixed_item.item_type_id = orig_to_sub_item_type_ids_[fixed_item.item_type_id];
+            }
+        }
+    }
+
     // Check the item types of the fixed items (see 'add_fixed_item').
     for (BinTypeId bin_type_id = 0;
             bin_type_id < (BinTypeId)instance_.bin_types_.size();
@@ -1174,22 +1191,6 @@ Instance InstanceBuilder::build()
                     }
                 }
                 item_type.periodic_packings_computed = true;
-            }
-        }
-    }
-
-    // Remap fixed item type IDs if a sub-instance mapping is present.
-    if (!orig_to_sub_item_type_ids_.empty()) {
-        for (BinType& bin_type: instance_.bin_types_) {
-            for (FixedItem& fixed_item: bin_type.fixed_items) {
-                if (fixed_item.item_type_id >= (ItemTypeId)orig_to_sub_item_type_ids_.size()
-                        || orig_to_sub_item_type_ids_[fixed_item.item_type_id] == -1) {
-                    throw std::invalid_argument(
-                            FUNC_SIGNATURE + ": "
-                            "fixed item type id not found in sub-instance mapping; "
-                            "item_type_id: " + std::to_string(fixed_item.item_type_id) + ".");
-                }
-                fixed_item.item_type_id = orig_to_sub_item_type_ids_[fixed_item.item_type_id];
             }
         }
     }

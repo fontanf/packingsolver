@@ -116,6 +116,13 @@ INSTANTIATE_TEST_SUITE_P(
                 // (cost 3), but the bound was 4.
                 fs::path("data") / "irregular" / "tests" / "variable_sized_bin_packing_mandatory_bins.json",
                 fs::path("data") / "irregular" / "tests" / "variable_sized_bin_packing_mandatory_bins_solution.json",
+            }, {
+                // Fixed items with several bins: the sub-instances of the
+                // algorithms for several bins, with fewer item types, used to
+                // check the ids of the item types of the fixed items before
+                // remapping them.
+                fs::path("data") / "irregular" / "tests" / "fixed_items_several_bins.json",
+                fs::path("data") / "irregular" / "tests" / "fixed_items_several_bins_solution.json",
             }}));
 
 TEST(Irregular, QualityRules)
