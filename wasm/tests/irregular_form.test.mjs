@@ -257,3 +257,40 @@ test("irregular form: unlimited copies", async () => {
         assert.ok(result.output.Solution.NumberOfItems > 0);
     }
 });
+
+test("irregular form: defect types and holes, minimum copies", async () => {
+    const hole = {...irregularForm.defaultHole(), x: 12, y: 22, width: 2, height: 1};
+    const defect = {...irregularForm.defaultDefect(), x: 10, y: 20, width: 6, height: 4, defect_type: "2", holes: [hole]};
+    const bin = {...binRows[0], defects: [defect], copies_min: "1"};
+    const item = {...itemRows[0], copies_min: "3"};
+    // The defect has its type and its hole.
+    const instance = irregularForm.instance("variable-sized-bin-packing", [bin], [item]);
+    const d = instance.bin_types[0].defects[0];
+    assert.strictEqual(d.defect_type, 2);
+    assert.strictEqual(d.holes.length, 1);
+    assert.deepStrictEqual(d.holes[0].elements[0].start, {x: 12, y: 22});
+    // The minimum copies: bins for variable-sized bin packing, items for
+    // knapsack.
+    assert.strictEqual(instance.bin_types[0].copies_min, 1);
+    assert.ok(!("copies_min" in instance.item_types[0]));
+    const knapsack = irregularForm.instance("knapsack", [bin], [item]);
+    assert.ok(!("copies_min" in knapsack.bin_types[0]));
+    assert.strictEqual(knapsack.item_types[0].copies_min, 3);
+    // The hole is cut out of the defect in the thumbnail.
+    const thumbnail = irregularForm.rowThumbnail(bin, false);
+    const defectPath = thumbnail.paths.find((p) => p.fill === "#ef553b");
+    assert.strictEqual(defectPath.d.split("M").length - 1, 2);
+    // Invalid: a hole outside the defect, a negative type.
+    assert.throws(
+        () => irregularForm.instance("bin-packing", [{...bin, defects: [{...defect, holes: [{...hole, x: 30}]}]}], [item]),
+        /bin type 0: defect 0: hole 0: it must be inside the defect/);
+    assert.throws(
+        () => irregularForm.instance("bin-packing", [{...bin, defects: [{...defect, defect_type: "-1"}]}], [item]),
+        /bin type 0: defect 0: invalid type/);
+    // The solver reads them.
+    const module = await loadModule();
+    const result = JSON.parse(module.solve(
+        "irregular", JSON.stringify(instance),
+        JSON.stringify({optimization_mode: "not-anytime-sequential"})));
+    assert.strictEqual(result.error, undefined);
+});

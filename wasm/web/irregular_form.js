@@ -26,14 +26,15 @@ export const ROTATIONS = {
 export function defaultBinRow() {
     return {
         shape: "rectangle", width: 100, height: 100, radius: 50, vertices: "",
-        copies: 1, unlimited_copies: false, cost: "", spacing: "", defects: [],
+        copies: 1, unlimited_copies: false, copies_min: "", cost: "", spacing: "", defects: [],
     };
 }
 
 // A defect: a rectangle placed at (x, y), a circle centered at (x, y), or a
 // polygon given by its vertices in the bin.
 export function defaultDefect() {
-    return {shape: "rectangle", x: "", y: "", width: 10, height: 10, radius: 5, vertices: "", spacing: ""};
+    return {shape: "rectangle", x: "", y: "", width: 10, height: 10, radius: 5, vertices: "", spacing: "",
+        defect_type: "", holes: []};
 }
 
 // A hole of an item: placed in the item as a defect in a bin.
@@ -51,7 +52,7 @@ const PLACED_SHAPES = {
 export function defaultItemRow() {
     return {
         shape: "rectangle", width: 10, height: 10, radius: 5, vertices: "",
-        copies: 1, unlimited_copies: false, profit: "", rotations: "none", mirror: false, holes: [],
+        copies: 1, unlimited_copies: false, copies_min: "", profit: "", rotations: "none", mirror: false, holes: [],
     };
 }
 
@@ -204,24 +205,36 @@ function strictlyInside(polygon, [x, y]) {
     return inside;
 }
 
+// The holes typed in the form, which must be inside the shape.
+function placedHoles(shape, holes, kind) {
+    const outline = shapePoints(shape.elements);
+    return holes.map((hole, j) => {
+        try {
+            const result = placedShape(hole);
+            if (!shapePoints(result.elements).every((p) => strictlyInside(outline, p)))
+                throw new Error(`it must be inside the ${kind}.`);
+            return result;
+        } catch (error) {
+            throw new Error(`hole ${j}: ${error.message}`);
+        }
+    });
+}
+
 // The shape of an item row with its holes: the holes of its file, then the
 // holes typed in the form, which must be inside the item.
 export function itemShape(row) {
     const shape = rowShape(row);
     if ((row.holes || []).length === 0)
         return shape;
-    const outline = shapePoints(shape.elements);
-    const holes = row.holes.map((hole, j) => {
-        try {
-            const result = placedShape(hole);
-            if (!shapePoints(result.elements).every((p) => strictlyInside(outline, p)))
-                throw new Error("it must be inside the item.");
-            return result;
-        } catch (error) {
-            throw new Error(`hole ${j}: ${error.message}`);
-        }
-    });
-    return {...shape, holes: [...(shape.holes || []), ...holes]};
+    return {...shape, holes: [...(shape.holes || []), ...placedHoles(shape, row.holes, "item")]};
+}
+
+// The shape of a defect in its bin, with its holes, which must be inside it.
+export function defectShape(defect) {
+    const shape = placedShape(defect);
+    if ((defect.holes || []).length === 0)
+        return shape;
+    return {...shape, holes: placedHoles(shape, defect.holes, "defect")};
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -264,6 +277,9 @@ export function instance(objective, binRows, itemRows) {
             if (shape.holes !== undefined)
                 throw new Error("a bin can't have holes.");
             const binType = {...shape, copies: rowCopies(row, objective, false)};
+            const copiesMin = copiesMinUsed(objective, false)? optionalNumber(row.copies_min, "minimum copies"): undefined;
+            if (copiesMin !== undefined)
+                binType.copies_min = copiesMin;
             const cost = valueUsed(objective, false)? optionalNumber(row.cost, "cost"): undefined;
             if (cost !== undefined)
                 binType.cost = cost;
@@ -273,10 +289,17 @@ export function instance(objective, binRows, itemRows) {
             if ((row.defects || []).length > 0) {
                 binType.defects = row.defects.map((defect, j) => {
                     try {
-                        const result = placedShape(defect);
+                        const result = defectShape(defect);
                         const defectSpacing = optionalNumber(defect.spacing, "spacing");
                         if (defectSpacing !== undefined)
                             result.item_defect_minimum_spacing = defectSpacing;
+                        // The type of the defect, for the quality rules.
+                        const defectType = optionalNumber(defect.defect_type, "type");
+                        if (defectType !== undefined) {
+                            if (!Number.isInteger(defectType) || defectType < 0)
+                                throw new Error(`invalid type: "${defect.defect_type}".`);
+                            result.defect_type = defectType;
+                        }
                         return result;
                     } catch (error) {
                         throw new Error(`defect ${j}: ${error.message}`);
@@ -293,6 +316,9 @@ export function instance(objective, binRows, itemRows) {
                 copies: rowCopies(row, objective, true),
                 allowed_rotations: ROTATIONS[row.rotations].rotations,
             };
+            const copiesMin = copiesMinUsed(objective, true)? optionalNumber(row.copies_min, "minimum copies"): undefined;
+            if (copiesMin !== undefined)
+                itemType.copies_min = copiesMin;
             const profit = valueUsed(objective, true)? optionalNumber(row.profit, "profit"): undefined;
             if (profit !== undefined)
                 itemType.profit = profit;
@@ -455,7 +481,8 @@ function placedShapesCell(row, key, kind, onChange, onStructureChange) {
         label.append(text, element);
         return label;
     };
-    row[key].forEach((placed, i) => {
+    // A line with the shape of a placed shape, and a button to remove it.
+    const placedLine = (placed, kind, onRemove) => {
         const line = document.createElement("div");
         line.className = "dimensions";
         line.appendChild(select(placed, "shape", `${kind} shape`, PLACED_SHAPES, onStructureChange));
@@ -478,20 +505,40 @@ function placedShapesCell(row, key, kind, onChange, onStructureChange) {
                 spellcheck: false,
             }, onChange));
         }
-        if (key === "defects") {
-            line.appendChild(labelled("Spacing",
-                input(placed, "spacing", "Defect spacing", {...NUMBER, placeholder: "0"}, onChange)));
-        }
         const remove = document.createElement("button");
         remove.type = "button";
         remove.textContent = "×";
         remove.title = `Remove the ${kind.toLowerCase()}`;
         remove.addEventListener("click", () => {
-            row[key].splice(i, 1);
+            onRemove();
             onStructureChange();
         });
+        return [line, remove];
+    };
+    row[key].forEach((placed, i) => {
+        const [line, remove] = placedLine(placed, kind, () => row[key].splice(i, 1));
+        if (key === "defects") {
+            line.appendChild(labelled("Spacing",
+                input(placed, "spacing", "Defect spacing", {...NUMBER, placeholder: "0"}, onChange)));
+            // The type of the defect, for the quality rules.
+            line.appendChild(labelled("Type",
+                input(placed, "defect_type", "Defect type", {...NUMBER, step: "1", placeholder: "none"}, onChange)));
+            // A defect can have holes, on lines below it.
+            placed.holes = placed.holes || [];
+            line.appendChild(addPlacedShapeButton(placed, "holes", "Hole", defaultHole, onStructureChange));
+        }
         line.appendChild(remove);
         cell.appendChild(line);
+        if (key === "defects") {
+            placed.holes.forEach((hole, j) => {
+                const [holeLine, holeRemove] = placedLine(hole, "Hole", () => placed.holes.splice(j, 1));
+                holeLine.classList.add("hole-line");
+                holeLine.prepend(Object.assign(document.createElement("span"),
+                    {className: "note", textContent: "Hole"}));
+                holeLine.appendChild(holeRemove);
+                cell.appendChild(holeLine);
+            });
+        }
     });
     return cell;
 }
@@ -523,6 +570,13 @@ function rowCopies(row, objective, isItem) {
     return copies(row.copies);
 }
 
+// Whether the minimum number of copies of the items (bins) is used for an
+// objective: only for the knapsack (variable-sized bin packing) objective
+// (all the items must be packed with the other objectives).
+export function copiesMinUsed(objective, isItem) {
+    return objective === (isItem? "knapsack": "variable-sized-bin-packing");
+}
+
 // Whether the profit of the items (cost of the bins) is used for an
 // objective: only for the knapsack (variable-sized bin packing) objective.
 export function valueUsed(objective, isItem) {
@@ -547,6 +601,9 @@ function copiesCell(row, unlimited, onChange, onStructureChange) {
     cell.append(copies, checkbox);
     return cell;
 }
+
+// Rows whose details line is open.
+const openDetails = new WeakSet();
 
 // Render a bin ('isItem' false) or item type table, for an objective.
 // 'onTableChange' is called when a value changes, 'onStructureChange' when
@@ -625,13 +682,51 @@ export function renderTable(table, rows, isItem, objective, onTableChange, onStr
         });
         const buttons = tr.insertCell();
         buttons.className = "row-buttons";
+        // The details of the row, on a line below it: the minimum copies, for
+        // the objectives which use them.
+        const withDetails = copiesMinUsed(objective, isItem);
+        let more = null;
+        if (withDetails) {
+            more = document.createElement("button");
+            more.type = "button";
+            const open = openDetails.has(row);
+            more.textContent = open? "Less": "More";
+            more.setAttribute("aria-expanded", String(open));
+            if (row.copies_min !== "" && row.copies_min !== undefined) {
+                more.classList.add("modified");
+                more.title = "Set: minimum copies";
+            }
+            more.addEventListener("click", () => {
+                if (openDetails.has(row))
+                    openDetails.delete(row);
+                else
+                    openDetails.add(row);
+                onStructureChange();
+            });
+        }
         // The defects of a bin, or the holes of an item, on a line below it
         // if it has some; the button to add one is on its row.
         const [key, kind, defaultValue] = isItem?
             ["holes", "Hole", defaultHole]: ["defects", "Defect", defaultDefect];
         row[key] = row[key] || [];
         buttons.appendChild(addPlacedShapeButton(row, key, kind, defaultValue, onStructureChange));
+        if (more !== null)
+            buttons.appendChild(more);
         buttons.appendChild(remove);
+        if (withDetails && openDetails.has(row)) {
+            const line = body.insertRow();
+            line.className = "details-line";
+            const cell = line.insertCell();
+            cell.colSpan = labels.length + 1;
+            const fields = document.createElement("div");
+            fields.className = "details";
+            const label = document.createElement("label");
+            label.className = "inline";
+            label.append("Minimum copies", input(row, "copies_min", "Minimum copies",
+                {...NUMBER, step: "1", placeholder: "0"}, onChange));
+            fields.appendChild(label);
+            cell.appendChild(fields);
+        }
         if (row[key].length > 0) {
             const line = body.insertRow();
             line.className = "placed-shapes-line";
@@ -698,7 +793,7 @@ export function rowThumbnail(row, isItem) {
     try {
         shape = isItem? itemShape(row): rowShape(row);
         if (!isItem)
-            defects = (row.defects || []).map(placedShape);
+            defects = (row.defects || []).map(defectShape);
     } catch (error) {
         return {error: error.message};
     }
@@ -716,7 +811,9 @@ export function rowThumbnail(row, isItem) {
         viewBox: [xMin - margin, -yMax - margin, xMax - xMin + 2 * margin, yMax - yMin + 2 * margin],
         paths: [
             {d, fill: isItem? ITEM_COLOR: BIN_COLOR},
-            ...defects.map((defect) => ({d: pathData(defect.elements), fill: DEFECT_COLOR})),
+            ...defects.map((defect) => ({
+                d: [defect, ...(defect.holes || [])].map((s) => pathData(s.elements)).join(" "),
+                fill: DEFECT_COLOR})),
         ],
         title: `${format(xMax - xMin)} × ${format(yMax - yMin)}`,
     };
