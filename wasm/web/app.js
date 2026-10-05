@@ -63,6 +63,9 @@ function openDimension(objective) {
     return objective.startsWith("open-dimension");
 }
 
+// Problem types with eligibility: ids of the bin types, id of the item types.
+const ELIGIBILITY = ["rectangle", "onedimensional"];
+
 // Problem types with weights: the maximum weight of the bins and the weight
 // of the items.
 const WEIGHTS = ["rectangle", "box", "boxstacks", "onedimensional"];
@@ -79,14 +82,14 @@ function binColumns(problemType) {
         {...numberColumn(["cost", "Cost"], "", true), objectives: ["variable-sized-bin-packing"]},
     ];
     if (WEIGHTS.includes(problemType))
-        columns.push(detailsNumber("maximum_weight", "Maximum weight", "none"));
+        columns.push({...numberColumn(["maximum_weight", "Maximum weight"], "", true), placeholder: "none"});
     if (problemType === "rectangleguillotine") {
         columns.push({key: "trims", label: "Trims", type: "trims", value: {}});
         columns.push(...trimTypeColumns());
     }
     // The item types with an eligibility id can only be packed in the bin types
     // which have it.
-    if (problemType === "rectangle") {
+    if (ELIGIBILITY.includes(problemType)) {
         columns.push({key: "eligibility_ids", label: "Eligibility ids", type: "ids", value: "",
             details: true, placeholder: "none, e.g. 1, 2"});
     }
@@ -104,14 +107,23 @@ function itemColumns(problemType) {
         {...numberColumn(["profit", "Profit"], "", true), objectives: ["knapsack"]},
     ];
     if (WEIGHTS.includes(problemType))
-        columns.push(detailsNumber("weight", "Weight", "0"));
+        columns.push({...numberColumn(["weight", "Weight"], "", true), placeholder: "0"});
     if (problemType === "rectangleguillotine" || problemType === "rectangle")
         columns.push({key: "oriented", label: "Oriented", type: "checkbox", value: false});
     if (problemType === "rectangle") {
         // The group of an item type, for the unloading constraint.
         columns.push(detailsNumber("group_id", "Group", "0", {integer: true,
             shown: (values) => values.unloading_constraint !== "none"}));
+    }
+    if (ELIGIBILITY.includes(problemType))
         columns.push(detailsNumber("eligibility_id", "Eligibility id", "any bin", {integer: true}));
+    if (problemType === "onedimensional") {
+        // Length removed when the item is packed after another item.
+        columns.push(detailsNumber("nesting_length", "Nesting length", "0"));
+        // Maximum number of items in a bin containing this item type.
+        columns.push(detailsNumber("maximum_stackability", "Maximum stackability", "unlimited", {integer: true}));
+        // Maximum weight of the items packed after the items of this type.
+        columns.push(detailsNumber("maximum_weight_after", "Maximum weight after", "unlimited"));
     }
     // Items with the same stack id are cut in their order (all the item types
     // have a stack id, or none).
