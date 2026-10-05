@@ -84,6 +84,12 @@ function binColumns(problemType) {
         columns.push({key: "trims", label: "Trims", type: "trims", value: {}});
         columns.push(...trimTypeColumns());
     }
+    // The item types with an eligibility id can only be packed in the bin types
+    // which have it.
+    if (problemType === "rectangle") {
+        columns.push({key: "eligibility_ids", label: "Eligibility ids", type: "ids", value: "",
+            details: true, placeholder: "none, e.g. 1, 2"});
+    }
     if (problemType === "rectangleguillotine" || problemType === "rectangle")
         columns.push({key: "defects", label: "Defects", type: "defects", value: []});
     // Columns of type "defects" are rendered on a line below their row.
@@ -101,6 +107,12 @@ function itemColumns(problemType) {
         columns.push(detailsNumber("weight", "Weight", "0"));
     if (problemType === "rectangleguillotine" || problemType === "rectangle")
         columns.push({key: "oriented", label: "Oriented", type: "checkbox", value: false});
+    if (problemType === "rectangle") {
+        // The group of an item type, for the unloading constraint.
+        columns.push(detailsNumber("group_id", "Group", "0", {integer: true,
+            shown: (values) => values.unloading_constraint !== "none"}));
+        columns.push(detailsNumber("eligibility_id", "Eligibility id", "any bin", {integer: true}));
+    }
     // Items with the same stack id are cut in their order (all the item types
     // have a stack id, or none).
     if (problemType === "rectangleguillotine")
@@ -135,7 +147,24 @@ const TWO_CUTS = (values) => values.number_of_stages !== "2";
 const UNLIMITED_STAGES = (values) => values.number_of_stages === "unlimited";
 const CUTTING_COST = ["bin-packing-cutting-cost"];
 
+// The unloading constraints of the rectangle and boxstacks problem types:
+// the order in which the groups of items are unloaded.
+const UNLOADING_CONSTRAINTS = [
+    ["none", "None"],
+    ["only-x-movements", "Only X movements"],
+    ["only-y-movements", "Only Y movements"],
+    ["increasing-x", "Increasing X"],
+    ["increasing-y", "Increasing Y"],
+];
+
 const INSTANCE_PARAMETERS = {
+    rectangle: [
+        {key: "unloading_constraint", label: "Unloading constraint", type: "select", value: "none",
+            options: UNLOADING_CONSTRAINTS, structural: true},
+        {key: "leftover_mode", label: "Leftover", type: "select", value: "area",
+            options: [["area", "Area"], ["x", "Along X"], ["y", "Along Y"]],
+            objectives: ["bin-packing-with-leftovers"]},
+    ],
     rectangleguillotine: [
         {key: "number_of_stages", label: "Number of stages", type: "select", value: "3",
             options: [["2", "2"], ["3", "3"], ["unlimited", "Unlimited"]], structural: true},
@@ -275,8 +304,10 @@ function renderInstanceParameters() {
         label.htmlFor = "instance-parameter-" + parameter.key;
         label.textContent = parameter.label;
         const onChange = () => {
-            if (parameter.structural)
+            if (parameter.structural) {
                 renderInstanceParameters();
+                renderForm();
+            }
             scheduleFormCheck();
         };
         let input;
@@ -598,8 +629,11 @@ function defectsCell(row, column) {
 }
 
 // Whether a column is shown for the current objective.
+// Whether a column is shown for the current objective and parameters of the
+// instance ('shown(values)').
 function columnShown(column) {
-    return column.objectives === undefined || column.objectives.includes($("objective").value);
+    return (column.objectives === undefined || column.objectives.includes($("objective").value))
+        && (column.shown === undefined || column.shown(state.instanceParameters));
 }
 
 // Input of a number, checkbox or select field of a row.
@@ -618,11 +652,17 @@ function fieldInput(row, column) {
         return select;
     }
     const input = document.createElement("input");
-    input.type = column.type;
+    // A list of ids: "1, 2, 3".
+    input.type = (column.type === "ids")? "text": column.type;
     input.setAttribute("aria-label", column.label);
     if (column.type === "checkbox") {
         input.checked = Boolean(row[column.key]);
         input.addEventListener("change", () => { row[column.key] = input.checked; });
+    } else if (column.type === "ids") {
+        input.value = row[column.key];
+        input.placeholder = column.placeholder || "";
+        input.className = "ids";
+        input.addEventListener("input", () => { row[column.key] = input.value; });
     } else {
         input.min = "0";
         input.step = column.integer? "1": "any";
@@ -966,6 +1006,14 @@ function formInstance() {
                 // The default value isn't written.
                 if (value !== column.value)
                     result[column.key] = value;
+            } else if (column.type === "ids") {
+                const ids = String(value).split(",").map((s) => s.trim()).filter((s) => s !== "");
+                for (const id of ids) {
+                    if (!/^[0-9]+$/.test(id))
+                        throw new Error(`invalid ${column.label.toLowerCase()}: "${id}".`);
+                }
+                if (ids.length > 0)
+                    result[column.key] = ids.map(Number);
             } else if (value !== "" && value !== null && value !== undefined) {
                 const number = Number(value);
                 if (!Number.isFinite(number))
@@ -984,6 +1032,15 @@ function formInstance() {
     if (state.itemTypes.length === 0)
         throw new Error("add at least one item type.");
     const itemTypes = convert("item", itemColumns(type), state.itemTypes);
+    const binTypes = convert("bin", binColumns(type), state.binTypes);
+    // An item type with an eligibility id must fit a bin type.
+    itemTypes.forEach((itemType, i) => {
+        if (itemType.eligibility_id === undefined)
+            return;
+        if (!binTypes.some((binType) => (binType.eligibility_ids || []).includes(itemType.eligibility_id))) {
+            throw new Error(`item type ${i + 1}: no bin type has the eligibility id ${itemType.eligibility_id}.`);
+        }
+    });
     // The stack ids: all the item types or none.
     const withStack = itemTypes.filter((itemType) => itemType.stack_id !== undefined).length;
     if (withStack > 0 && withStack < itemTypes.length) {
@@ -992,7 +1049,7 @@ function formInstance() {
     }
     return addInstanceParameters({
         objective: $("objective").value,
-        bin_types: convert("bin", binColumns(type), state.binTypes),
+        bin_types: binTypes,
         item_types: itemTypes,
     });
 }
