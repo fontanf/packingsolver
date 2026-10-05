@@ -673,6 +673,7 @@ Length Reduction::max_achievable_length_sum(
 {
     subsetsumsolver::InstanceBuilder sss_instance_builder;
     sss_instance_builder.set_capacity(capacity);
+    Length length_sum = 0;
     for (ItemTypeId item_type_id = 0;
             item_type_id < (ItemTypeId)reduction_item_types.size();
             ++item_type_id) {
@@ -704,7 +705,15 @@ Length Reduction::max_achievable_length_sum(
         copies = (std::min)(copies, (ItemPos)(capacity / length));
         for (ItemPos copy = 0; copy < copies; ++copy)
             sss_instance_builder.add_item(length);
+        length_sum += copies * length;
     }
+
+    // The memory of the dynamic programming is proportional to the capacity
+    // (e.g. several GB for the volumes of the one-dimensional relaxation of
+    // boxstacks): for large capacities, the sum of the lengths, a weaker but
+    // still valid bound.
+    if (capacity > 100000000)
+        return (std::min)(capacity, length_sum);
 
     subsetsumsolver::Instance sss_instance = sss_instance_builder.build();
     subsetsumsolver::Parameters sss_parameters;

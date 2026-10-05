@@ -55,6 +55,14 @@ INSTANTIATE_TEST_SUITE_P(
         BoxStacksOptimizeTest,
         testing::ValuesIn(std::vector<BoxStacksOptimizeTestParams>{
             {
+                // Large volumes: the one-dimensional relaxation used to need
+                // several GB (subset sum dynamic programming over the volume
+                // of the bin in its reduction).
+                fs::path("data") / "boxstacks" / "tests" / "bin_packing_large_volumes" / "items.csv",
+                fs::path("data") / "boxstacks" / "tests" / "bin_packing_large_volumes" / "bins.csv",
+                fs::path("data") / "boxstacks" / "tests" / "bin_packing_large_volumes" / "parameters.csv",
+                fs::path("data") / "boxstacks" / "tests" / "bin_packing_large_volumes" / "solution.csv",
+            }, {
                 fs::path("data") / "boxstacks" / "tests" / "variable_sized_bin_packing_two_bin_types" / "items.csv",
                 fs::path("data") / "boxstacks" / "tests" / "variable_sized_bin_packing_two_bin_types" / "bins.csv",
                 fs::path("data") / "boxstacks" / "tests" / "variable_sized_bin_packing_two_bin_types" / "parameters.csv",

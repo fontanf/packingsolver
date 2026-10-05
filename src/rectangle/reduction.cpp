@@ -1973,6 +1973,7 @@ Length Reduction::max_achievable_dimension_sum(
     multiplechoicesubsetsumsolver::InstanceBuilder mcss_instance_builder;
     mcss_instance_builder.set_capacity(capacity);
     multiplechoicesubsetsumsolver::GroupId mcss_group_id = 0;
+    Length dimension_sum = 0;
     for (ItemTypeId item_type_id = 0;
             item_type_id < (ItemTypeId)reduction_item_types.size();
             ++item_type_id) {
@@ -1991,7 +1992,16 @@ Length Reduction::max_achievable_dimension_sum(
                 mcss_instance_builder.add_item(mcss_group_id, rotated_value);
             ++mcss_group_id;
         }
+        if (copies > 0)
+            dimension_sum += copies * ((oriented)? value: (std::max)(value, rotated_value));
     }
+
+    // The memory of the dynamic programming is proportional to the capacity:
+    // for large capacities, the sum of the largest dimensions of the items, a
+    // weaker but still valid bound.
+    if (capacity > 100000000)
+        return (std::min)(capacity, dimension_sum);
+
     multiplechoicesubsetsumsolver::Instance mcss_instance = mcss_instance_builder.build();
     multiplechoicesubsetsumsolver::Parameters mcss_parameters;
     mcss_parameters.verbosity_level = 0;
