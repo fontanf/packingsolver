@@ -524,9 +524,9 @@ Solution BranchingSchemeMaximalSpaces::to_solution(
         const Block& block = blocks_[bin_type_id][block_id];
 
         // Excess width: emit a vertical cut, block on the left, waste on the right.
-        // Only create a waste node when the gap exceeds cut_thickness (otherwise
-        // the solution_builder cannot fit a valid sibling after the cut).
-        if (avail_w > block.rect.w + cut_thickness_) {
+        // The cut is needed even when the gap does not exceed cut_thickness,
+        // but then no waste node is created (the cut consumes the whole gap).
+        if (avail_w > block.rect.w) {
             bool required_vertical = cut_is_vertical(d_parent, fco);
             if (!required_vertical) {
                 ItemPos wrap_idx = (ItemPos)cut_nodes.size();
@@ -538,16 +538,18 @@ Solution BranchingSchemeMaximalSpaces::to_solution(
             ItemPos left_idx = (ItemPos)cut_nodes.size();
             { CutNode cn; cn.depth=d_parent+1; cn.l=bx0; cn.r=bx0+block.rect.w; cn.b=by0; cn.t=by0+avail_h; cut_nodes.push_back(cn); }
             cut_nodes[parent_idx].children.push_back(left_idx);
-            { CutNode cn; cn.depth=d_parent+1; cn.l=bx0+block.rect.w; cn.r=bx0+avail_w; cn.b=by0; cn.t=by0+avail_h; cut_nodes.push_back(cn); }
-            cut_nodes[parent_idx].children.push_back((ItemPos)cut_nodes.size() - 1);
+            if (avail_w > block.rect.w + cut_thickness_) {
+                { CutNode cn; cn.depth=d_parent+1; cn.l=bx0+block.rect.w; cn.r=bx0+avail_w; cn.b=by0; cn.t=by0+avail_h; cut_nodes.push_back(cn); }
+                cut_nodes[parent_idx].children.push_back((ItemPos)cut_nodes.size() - 1);
+            }
             place_block(left_idx, block_id, d_parent+1, bx0, by0, block.rect.w, avail_h);
             return;
         }
 
         // Excess height: emit a horizontal cut, block below, waste above.
-        // Only create a waste node when the gap exceeds cut_thickness (otherwise
-        // the solution_builder cannot fit a valid sibling after the cut).
-        if (avail_h > block.rect.h + cut_thickness_) {
+        // The cut is needed even when the gap does not exceed cut_thickness,
+        // but then no waste node is created (the cut consumes the whole gap).
+        if (avail_h > block.rect.h) {
             bool required_vertical = cut_is_vertical(d_parent, fco);
             if (required_vertical) {
                 ItemPos wrap_idx = (ItemPos)cut_nodes.size();
@@ -559,8 +561,10 @@ Solution BranchingSchemeMaximalSpaces::to_solution(
             ItemPos bottom_idx = (ItemPos)cut_nodes.size();
             { CutNode cn; cn.depth=d_parent+1; cn.l=bx0; cn.r=bx0+avail_w; cn.b=by0; cn.t=by0+block.rect.h; cut_nodes.push_back(cn); }
             cut_nodes[parent_idx].children.push_back(bottom_idx);
-            { CutNode cn; cn.depth=d_parent+1; cn.l=bx0; cn.r=bx0+avail_w; cn.b=by0+block.rect.h; cn.t=by0+avail_h; cut_nodes.push_back(cn); }
-            cut_nodes[parent_idx].children.push_back((ItemPos)cut_nodes.size() - 1);
+            if (avail_h > block.rect.h + cut_thickness_) {
+                { CutNode cn; cn.depth=d_parent+1; cn.l=bx0; cn.r=bx0+avail_w; cn.b=by0+block.rect.h; cn.t=by0+avail_h; cut_nodes.push_back(cn); }
+                cut_nodes[parent_idx].children.push_back((ItemPos)cut_nodes.size() - 1);
+            }
             place_block(bottom_idx, block_id, d_parent+1, bx0, by0, avail_w, block.rect.h);
             return;
         }

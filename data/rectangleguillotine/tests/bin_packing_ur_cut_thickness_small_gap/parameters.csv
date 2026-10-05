@@ -1,0 +1,4 @@
+NAME,VALUE
+objective,bin-packing
+number_of_stages,u
+cut_thickness,4
