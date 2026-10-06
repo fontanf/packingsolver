@@ -452,6 +452,42 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "rectangleguillotine" / "tests" / "soft_trims_cutting_cost_two_stages" / "instance.json",
                 fs::path(""),
                 fs::path("data") / "rectangleguillotine" / "tests" / "soft_trims_cutting_cost_two_stages" / "solution.csv",
+            }, {
+                fs::path(""),
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "waste_cost_top_trim" / "instance.json",
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "waste_cost_top_trim" / "solution.csv",
+            }, {
+                fs::path(""),
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "cutting_cost_defect_waste" / "instance.json",
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "cutting_cost_defect_waste" / "solution.csv",
+            }, {
+                fs::path(""),
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "waste_cost_cut_thickness" / "instance.json",
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "waste_cost_cut_thickness" / "solution.csv",
+            }, {
+                fs::path(""),
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "cutting_cost_defect_3_cuts" / "instance.json",
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "cutting_cost_defect_3_cuts" / "solution.csv",
+            }, {
+                fs::path(""),
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "soft_trim_maximum_number_1_cuts" / "instance.json",
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "soft_trim_maximum_number_1_cuts" / "solution.csv",
+            }, {
+                fs::path(""),
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "soft_trim_maximum_number_2_cuts" / "instance.json",
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "soft_trim_maximum_number_2_cuts" / "solution.csv",
             }}));
 
 

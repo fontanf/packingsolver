@@ -273,6 +273,12 @@ struct BinType
 
     inline Area space() const { return area(); }
 
+    /** Return 'true' iff the bin type has a soft left trim. */
+    inline bool has_soft_left_trim() const { return left_trim_type == TrimType::Soft && left_trim > 0; }
+
+    /** Return 'true' iff the bin type has a soft bottom trim. */
+    inline bool has_soft_bottom_trim() const { return bottom_trim_type == TrimType::Soft && bottom_trim > 0; }
+
     /** Get the number of resources of this bin type. */
     inline ResourceId number_of_resources() const { return resources.size(); }
 
