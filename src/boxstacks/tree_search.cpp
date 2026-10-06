@@ -1746,7 +1746,9 @@ const packingsolver::boxstacks::TreeSearchOutput packingsolver::boxstacks::tree_
     }
 
     std::vector<Direction> directions;
-    if (instance.objective() == Objective::OpenDimensionX) {
+    if (!parameters.directions.empty()) {
+        directions = parameters.directions;
+    } else if (instance.objective() == Objective::OpenDimensionX) {
         directions = {Direction::X};
     } else if (instance.objective() == Objective::OpenDimensionY) {
         directions = {Direction::Y};
@@ -1756,6 +1758,11 @@ const packingsolver::boxstacks::TreeSearchOutput packingsolver::boxstacks::tree_
     } else if (instance.unloading_constraint() == rectangle::UnloadingConstraint::IncreasingY
             || instance.unloading_constraint() == rectangle::UnloadingConstraint::OnlyYMovements) {
         directions = {Direction::Y};
+    } else if (instance.number_of_bin_types() == 1
+            && instance.bin_type(0).semi_trailer_truck_data.is) {
+        // The axle weight constraints of a semi-trailer truck are only
+        // defined along X.
+        directions = {Direction::X};
     } else if (instance.number_of_bin_types() == 1) {
         directions = {Direction::X, Direction::Y};
     } else {

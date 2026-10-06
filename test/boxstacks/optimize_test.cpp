@@ -88,4 +88,12 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "boxstacks" / "tests" / "variable_sized_bin_packing_two_pallet_types_time_limit" / "bins.csv",
                 fs::path("data") / "boxstacks" / "tests" / "variable_sized_bin_packing_two_pallet_types_time_limit" / "parameters.csv",
                 fs::path("data") / "boxstacks" / "tests" / "variable_sized_bin_packing_two_pallet_types_time_limit" / "solution.csv",
+            }, {
+                // Open dimension Y: the bin must be filled along Y. Filling it
+                // along X with the sequential onedimensional rectangle
+                // algorithm leads to a worse solution.
+                fs::path("data") / "boxstacks" / "tests" / "open_dimension_y_rotated_items" / "items.csv",
+                fs::path("data") / "boxstacks" / "tests" / "open_dimension_y_rotated_items" / "bins.csv",
+                fs::path("data") / "boxstacks" / "tests" / "open_dimension_y_rotated_items" / "parameters.csv",
+                fs::path("data") / "boxstacks" / "tests" / "open_dimension_y_rotated_items" / "solution.csv",
             }}));
