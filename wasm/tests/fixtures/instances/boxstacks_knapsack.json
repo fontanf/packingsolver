@@ -1,0 +1,28 @@
+{
+    "objective": "Knapsack",
+    "bin_types": [
+        {
+            "x": 13600,
+            "y": 2400,
+            "z": 2700
+        }
+    ],
+    "item_types": [
+        {
+            "x": 1200,
+            "y": 800,
+            "z": 1000,
+            "copies": -1,
+            "profit": 3
+        },
+        {
+            "x": 1200,
+            "y": 1000,
+            "z": 800,
+            "copies": 4,
+            "copies_min": 1,
+            "profit": 2,
+            "stackability_id": 1
+        }
+    ]
+}

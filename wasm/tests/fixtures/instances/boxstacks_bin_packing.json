@@ -1,0 +1,62 @@
+{
+    "objective": "bin-packing",
+    "unloading_constraint": "only-x-movements",
+    "no_check_weight_constraints": [
+        1
+    ],
+    "bin_types": [
+        {
+            "x": 13600,
+            "y": 2400,
+            "z": 2700,
+            "copies": 2,
+            "maximum_weight": 24000,
+            "maximum_stack_density": 3000,
+            "semi_trailer_truck": {
+                "tractor_weight": 7000,
+                "front_axle_middle_axle_distance": 3600,
+                "front_axle_tractor_gravity_center_distance": 1500,
+                "front_axle_harness_distance": 3000,
+                "empty_trailer_weight": 6000,
+                "harness_rear_axle_distance": 7500,
+                "trailer_gravity_center_rear_axle_distance": 3000,
+                "trailer_start_harness_distance": 1500,
+                "rear_axle_maximum_weight": 24000,
+                "middle_axle_maximum_weight": 11500
+            },
+            "defects": [
+                {
+                    "x": 0,
+                    "y": 0,
+                    "width": 100,
+                    "height": 100
+                }
+            ]
+        }
+    ],
+    "item_types": [
+        {
+            "x": 1200,
+            "y": 800,
+            "z": 1000,
+            "copies": 6,
+            "weight": 300,
+            "group_id": 1,
+            "stackability_id": 1,
+            "nesting_height": 10,
+            "maximum_stackability": 2,
+            "maximum_weight_above": 1000,
+            "rotations": [
+                "XYZ",
+                "YXZ"
+            ]
+        },
+        {
+            "x": 1200,
+            "y": 1000,
+            "z": 800,
+            "copies": 4,
+            "weight": 200
+        }
+    ]
+}

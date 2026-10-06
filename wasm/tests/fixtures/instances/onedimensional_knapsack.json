@@ -1,0 +1,22 @@
+{
+    "objective": "knapsack",
+    "bin_types": [
+        {
+            "length": 100,
+            "copies": 2
+        }
+    ],
+    "item_types": [
+        {
+            "length": 30,
+            "copies": -1,
+            "profit": 3
+        },
+        {
+            "length": 20,
+            "copies": 3,
+            "copies_min": 1,
+            "profit": 1
+        }
+    ]
+}

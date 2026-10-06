@@ -1,0 +1,21 @@
+{
+    "objective": "open-dimension-xy",
+    "parameters": {
+        "open_dimension_xy_aspect_ratio": 2
+    },
+    "bin_types": [
+        {
+            "type": "rectangle",
+            "width": 1000,
+            "height": 1000
+        }
+    ],
+    "item_types": [
+        {
+            "type": "rectangle",
+            "width": 20,
+            "height": 10,
+            "copies": 6
+        }
+    ]
+}
