@@ -1,0 +1,28 @@
+{
+    "objective": "VariableSizedBinPacking",
+    "bin_types": [
+        {
+            "x": 10,
+            "y": 10,
+            "z": 10,
+            "copies": 3,
+            "copies_min": 1,
+            "cost": 5
+        },
+        {
+            "x": 20,
+            "y": 10,
+            "z": 10,
+            "copies": 2,
+            "cost": 8
+        }
+    ],
+    "item_types": [
+        {
+            "x": 5,
+            "y": 5,
+            "z": 5,
+            "copies": 6
+        }
+    ]
+}

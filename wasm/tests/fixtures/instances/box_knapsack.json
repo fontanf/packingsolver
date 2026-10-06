@@ -1,0 +1,56 @@
+{
+    "objective": "knapsack",
+    "bin_types": [
+        {
+            "x": 6,
+            "y": 5,
+            "z": 4,
+            "copies": 2,
+            "maximum_weight": 50,
+            "resources": [
+                {
+                    "capacity": 10,
+                    "penalize": true,
+                    "penalty": 2,
+                    "consumptions": [
+                        {
+                            "item_type_id": 0,
+                            "consumption": 1
+                        },
+                        {
+                            "item_type_id": 1,
+                            "consumption_schedule": [
+                                1,
+                                2,
+                                3
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "item_types": [
+        {
+            "x": 5,
+            "y": 4,
+            "z": 3,
+            "copies": -1,
+            "profit": 2,
+            "weight": 1,
+            "rotations": [
+                "XYZ",
+                "ZYX",
+                "YXZ"
+            ]
+        },
+        {
+            "x": 2,
+            "y": 2,
+            "z": 2,
+            "copies": 3,
+            "copies_min": 1,
+            "profit": 1
+        }
+    ]
+}

@@ -1,0 +1,25 @@
+{
+    "objective": "knapsack",
+    "number_of_stages": "unlimited",
+    "bin_types": [
+        {
+            "width": 1000,
+            "height": 700
+        }
+    ],
+    "item_types": [
+        {
+            "width": 250,
+            "height": 200,
+            "copies": -1,
+            "profit": 10
+        },
+        {
+            "width": 150,
+            "height": 300,
+            "copies": 3,
+            "copies_min": 1,
+            "profit": 20
+        }
+    ]
+}

@@ -556,6 +556,209 @@ export function instance(objective, binRows, itemRows) {
 }
 
 /////////////////////////////////////////////////////////////////////////////
+// From an instance
+/////////////////////////////////////////////////////////////////////////////
+
+// The spellings of the element types and the orientations of the arcs
+// accepted by the solver.
+const ELEMENT_TYPES = {
+    LineSegment: "LineSegment", line_segment: "LineSegment", L: "LineSegment", l: "LineSegment",
+    CircularArc: "CircularArc", circular_arc: "CircularArc", C: "CircularArc", c: "CircularArc",
+};
+const ARC_ORIENTATIONS = {
+    Anticlockwise: "Anticlockwise", anticlockwise: "Anticlockwise", A: "Anticlockwise", a: "Anticlockwise",
+    Clockwise: "Clockwise", clockwise: "Clockwise", C: "Clockwise", c: "Clockwise",
+    Full: "Full", full: "Full", F: "Full", f: "Full",
+};
+
+// The fields of an object which the form doesn't read: added to 'ignored'
+// (with their path), since the solver doesn't read them either.
+function ignoreOthers(object, known, path, ignored) {
+    for (const key of Object.keys(object)) {
+        if (!known.includes(key))
+            ignored.add(`${path}.${key}`);
+    }
+}
+
+// The elements of a "general" shape of the JSON format, with the spellings
+// of the form.
+function shapeElements(json, path) {
+    return (json.elements || []).map((element, i) => {
+        const type = ELEMENT_TYPES[element.type];
+        if (type === undefined)
+            throw new Error(`${path}.elements[${i}]: unknown element type "${element.type}".`);
+        const result = {type, start: point(element.start.x, element.start.y), end: point(element.end.x, element.end.y)};
+        if (type === "CircularArc") {
+            const orientation = ARC_ORIENTATIONS[element.orientation];
+            if (orientation === undefined)
+                throw new Error(`${path}.elements[${i}]: unknown orientation "${element.orientation}".`);
+            result.center = point(element.center.x, element.center.y);
+            result.orientation = orientation;
+        }
+        return result;
+    });
+}
+
+// The fields of a row (or of a placed shape, 'placed') for a shape of the
+// JSON format: a rectangle or a circle (at the origin, unless 'placed'), a
+// polygon, else a general shape.
+function shapeFields(json, path, placed, ignored) {
+    const known = ["type", "x", "y", "width", "height", "radius", "vertices", "elements", "holes"];
+    // 'is_path' (always false for the shapes of an instance) isn't read.
+    ignoreOthers(json, [...known, "is_path"], path, ignored);
+    const x = json.x || 0;
+    const y = json.y || 0;
+    if (json.type === "rectangle" && (placed || (x === 0 && y === 0)))
+        return {shape: "rectangle", x, y, width: json.width, height: json.height};
+    if (json.type === "circle" && (placed || (x === 0 && y === 0)))
+        return {shape: "circle", x, y, radius: json.radius};
+    if (json.type === "polygon")
+        return {shape: "polygon", vertices: json.vertices.map((v) => `${v.x} ${v.y}`).join(", ")};
+    let elements;
+    if (json.type === "rectangle") {
+        const corners = [point(x, y), point(x + json.width, y), point(x + json.width, y + json.height),
+            point(x, y + json.height)];
+        elements = corners.map((c, i) => lineSegment(c, corners[(i + 1) % 4]));
+    } else if (json.type === "circle") {
+        const start = point(x + json.radius, y);
+        elements = [{type: "CircularArc", start, end: start, center: point(x, y), orientation: "Full"}];
+    } else if (json.type === "general") {
+        elements = shapeElements(json, path);
+    } else {
+        throw new Error(`${path}: unknown shape type "${json.type}".`);
+    }
+    return {shape: "general", elements: formatGeneralShape(elements)};
+}
+
+// The fields of a row which aren't given: their defaults.
+function withDefaults(defaults, fields) {
+    return {...defaults, ...fields};
+}
+
+// The holes of a shape of the JSON format, as placed shapes.
+function holesFields(json, path, ignored) {
+    return (json.holes || []).map((hole, j) =>
+        withDefaults(defaultHole(), shapeFields(hole, `${path}.holes[${j}]`, true, ignored)));
+}
+
+function sameRotations(a, b) {
+    return a.length === b.length && a.every((r, i) => r.start === b[i].start && r.end === b[i].end);
+}
+
+// The rotations of an item type of the JSON format: one of the 'ROTATIONS',
+// or custom ranges.
+function rotationFields(json) {
+    const ranges = (json.allowed_rotations || []).map((r) => ({start: r.start, end: r.end, mirror: Boolean(r.mirror)}));
+    if (ranges.length === 0)
+        ranges.push({start: 0, end: 0, mirror: false});
+    const mirror = Boolean(json.allow_mirroring);
+    if (ranges.every((r) => !r.mirror)) {
+        for (const [key, value] of Object.entries(ROTATIONS)) {
+            if (value.rotations !== null && sameRotations(ranges, value.rotations))
+                return {rotations: key, mirror};
+        }
+    }
+    // 'allow_mirroring' adds a mirrored copy of each range which isn't
+    // mirrored.
+    const all = mirror? [...ranges, ...ranges.filter((r) => !r.mirror).map((r) => ({...r, mirror: true}))]: ranges;
+    return {
+        rotations: "custom",
+        mirror: false,
+        rotation_ranges: all.map((r) => ({start: String(r.start), end: String(r.end), mirror: r.mirror})),
+    };
+}
+
+// The copies of a bin or item type of the JSON format.
+function copiesFields(json) {
+    const copies = (json.copies === undefined)? 1: json.copies;
+    const fields = (copies === -1)? {copies: 1, unlimited_copies: true}: {copies, unlimited_copies: false};
+    if (json.copies_min !== undefined && json.copies_min !== -1)
+        fields.copies_min = json.copies_min;
+    return fields;
+}
+
+// The rows of the bin and item types of an instance of the JSON format:
+// '{binRows, itemRows}'. The fields which the form doesn't read (and the
+// solver neither) are added to 'ignored'.
+export function rowsFromInstance(json, ignored) {
+    const itemRows = (json.item_types || []).map((itemType, i) => {
+        const path = `item_types[${i}]`;
+        ignoreOthers(itemType, ["type", "x", "y", "width", "height", "radius", "vertices", "elements", "holes",
+            "is_path", "shapes", "copies", "copies_min", "profit", "allowed_rotations", "allow_mirroring"],
+            path, ignored);
+        const shapes = itemType.shapes || [itemType];
+        if (shapes.length === 0)
+            throw new Error(`${path}: an item type needs at least one shape.`);
+        const first = shapes[0];
+        const firstPath = (itemType.shapes !== undefined)? `${path}.shapes[0]`: path;
+        const row = withDefaults(defaultItemRow(), {
+            ...shapeFields(itemType.shapes? first: {...first, holes: undefined}, firstPath, false, new Set()),
+            holes: holesFields(first, firstPath, ignored),
+            extra_shapes: shapes.slice(1).map((shape, j) => ({
+                ...withDefaults(defaultExtraShape(), shapeFields(shape, `${path}.shapes[${j + 1}]`, true, ignored)),
+                holes: holesFields(shape, `${path}.shapes[${j + 1}]`, ignored),
+            })),
+            ...copiesFields(itemType),
+            ...rotationFields(itemType),
+        });
+        if (itemType.shapes !== undefined)
+            shapeFields(first, firstPath, false, ignored);
+        if (itemType.profit !== undefined)
+            row.profit = itemType.profit;
+        // The default of the form when not custom.
+        if (row.rotations !== "custom")
+            row.rotation_ranges = [defaultRotationRange()];
+        return row;
+    });
+    const binRows = (json.bin_types || []).map((binType, i) => {
+        const path = `bin_types[${i}]`;
+        ignoreOthers(binType, ["type", "x", "y", "width", "height", "radius", "vertices", "elements", "holes",
+            "is_path", "copies", "copies_min", "cost", "item_bin_minimum_spacing", "defects", "fixed_items"],
+            path, ignored);
+        // The holes of a bin are ignored by the solver.
+        if (binType.holes !== undefined)
+            ignored.add(`${path}.holes`);
+        const row = withDefaults(defaultBinRow(), {
+            ...shapeFields({...binType, holes: undefined}, path, false, new Set()),
+            ...copiesFields(binType),
+        });
+        if (binType.cost !== undefined && binType.cost !== -1)
+            row.cost = binType.cost;
+        if (binType.item_bin_minimum_spacing !== undefined)
+            row.spacing = binType.item_bin_minimum_spacing;
+        row.defects = (binType.defects || []).map((defect, j) => {
+            const defectPath = `${path}.defects[${j}]`;
+            ignoreOthers(defect, ["type", "x", "y", "width", "height", "radius", "vertices", "elements", "holes",
+                "is_path", "defect_type", "item_defect_minimum_spacing"], defectPath, ignored);
+            const fields = withDefaults(defaultDefect(), shapeFields(
+                {...defect, defect_type: undefined, item_defect_minimum_spacing: undefined}, defectPath, true, new Set()));
+            fields.holes = holesFields(defect, defectPath, ignored);
+            if (defect.defect_type !== undefined && defect.defect_type !== -1)
+                fields.defect_type = defect.defect_type;
+            if (defect.item_defect_minimum_spacing !== undefined)
+                fields.spacing = defect.item_defect_minimum_spacing;
+            return fields;
+        });
+        row.fixed_items = (binType.fixed_items || []).map((fixedItem, j) => {
+            const fixedPath = `${path}.fixed_items[${j}]`;
+            ignoreOthers(fixedItem, ["item_type_id", "bl_corner", "angle", "mirror"], fixedPath, ignored);
+            const itemRow = itemRows[fixedItem.item_type_id];
+            if (itemRow === undefined)
+                throw new Error(`${fixedPath}: invalid item type id ${fixedItem.item_type_id}.`);
+            return {
+                ...defaultFixedItem(itemRow),
+                x: fixedItem.bl_corner.x,
+                y: fixedItem.bl_corner.y,
+                angle: (fixedItem.angle === undefined)? "": fixedItem.angle,
+                mirror: Boolean(fixedItem.mirror),
+            };
+        });
+        return row;
+    });
+    return {binRows, itemRows};
+}
+
+/////////////////////////////////////////////////////////////////////////////
 // Tables
 /////////////////////////////////////////////////////////////////////////////
 

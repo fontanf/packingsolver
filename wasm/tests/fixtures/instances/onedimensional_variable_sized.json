@@ -1,0 +1,57 @@
+{
+    "objective": "VBPP",
+    "bin_types": [
+        {
+            "length": 100,
+            "copies": 5,
+            "copies_min": 1,
+            "cost": 10,
+            "maximum_weight": 50,
+            "eligibility_ids": [
+                0,
+                1
+            ],
+            "resources": [
+                {
+                    "capacity": 10,
+                    "penalize": true,
+                    "penalty": 2,
+                    "consumptions": [
+                        {
+                            "item_type_id": 0,
+                            "consumption": 1
+                        },
+                        {
+                            "item_type_id": 1,
+                            "consumption_schedule": [
+                                1,
+                                2,
+                                3
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "length": 60,
+            "copies": 5,
+            "cost": 7
+        }
+    ],
+    "item_types": [
+        {
+            "length": 30,
+            "copies": 4,
+            "weight": 5,
+            "eligibility_id": 1,
+            "nesting_length": 2,
+            "maximum_stackability": 3,
+            "maximum_weight_after": 20
+        },
+        {
+            "length": 20,
+            "copies": 3
+        }
+    ]
+}

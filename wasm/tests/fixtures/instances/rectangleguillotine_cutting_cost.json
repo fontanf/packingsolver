@@ -1,0 +1,91 @@
+{
+    "objective": "BinPackingCuttingCost",
+    "number_of_stages": 3,
+    "cut_type": "Exact",
+    "first_stage_orientation": "Horizontal",
+    "cut_thickness": 1,
+    "minimum_waste_length": 2,
+    "minimum_distance_1_cuts": 1,
+    "maximum_distance_1_cuts": 900,
+    "minimum_distance_2_cuts": 1,
+    "maximum_distance_2_cuts": 600,
+    "maximum_number_1_cuts": 20,
+    "maximum_number_2_cuts": 20,
+    "cut_through_defects": true,
+    "waste_cost": 0,
+    "cutting_costs": [
+        {
+            "fixed": 100,
+            "variable": 0
+        },
+        {
+            "fixed": 50,
+            "variable": 3
+        },
+        {
+            "fixed": 30,
+            "variable": 2
+        },
+        {
+            "fixed": 10,
+            "variable": 1
+        }
+    ],
+    "bin_types": [
+        {
+            "width": 1000,
+            "height": 700,
+            "copies": 3,
+            "left_trim": 10,
+            "left_trim_type": "soft",
+            "right_trim": 5,
+            "right_trim_type": "Hard",
+            "bottom_trim": 4,
+            "top_trim": 3,
+            "defects": [
+                {
+                    "x": 500,
+                    "y": 300,
+                    "width": 10,
+                    "height": 10
+                }
+            ],
+            "resources": [
+                {
+                    "capacity": 10,
+                    "penalize": true,
+                    "penalty": 2,
+                    "consumptions": [
+                        {
+                            "item_type_id": 0,
+                            "consumption": 1
+                        },
+                        {
+                            "item_type_id": 1,
+                            "consumption_schedule": [
+                                1,
+                                2,
+                                3
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "item_types": [
+        {
+            "width": 250,
+            "height": 200,
+            "copies": 2,
+            "oriented": true,
+            "stack_id": 0
+        },
+        {
+            "width": 150,
+            "height": 300,
+            "copies": 3,
+            "stack_id": 1
+        }
+    ]
+}

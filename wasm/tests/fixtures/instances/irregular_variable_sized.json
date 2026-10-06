@@ -1,0 +1,213 @@
+{
+    "objective": "variable-sized-bin-packing",
+    "parameters": {
+        "item_item_minimum_spacing": 0.5
+    },
+    "bin_types": [
+        {
+            "type": "rectangle",
+            "width": 200,
+            "height": 100,
+            "copies": 2,
+            "copies_min": 1,
+            "cost": 30,
+            "item_bin_minimum_spacing": 1,
+            "defects": [
+                {
+                    "type": "rectangle",
+                    "x": 150,
+                    "y": 50,
+                    "width": 20,
+                    "height": 20,
+                    "defect_type": 1,
+                    "item_defect_minimum_spacing": 1,
+                    "holes": [
+                        {
+                            "type": "circle",
+                            "x": 160,
+                            "y": 60,
+                            "radius": 3
+                        }
+                    ]
+                },
+                {
+                    "type": "polygon",
+                    "vertices": [
+                        {
+                            "x": 10,
+                            "y": 80
+                        },
+                        {
+                            "x": 20,
+                            "y": 80
+                        },
+                        {
+                            "x": 15,
+                            "y": 90
+                        }
+                    ]
+                }
+            ],
+            "fixed_items": [
+                {
+                    "item_type_id": 1,
+                    "bl_corner": {
+                        "x": 100,
+                        "y": 10
+                    },
+                    "angle": 90,
+                    "mirror": true
+                }
+            ]
+        },
+        {
+            "type": "circle",
+            "radius": 60,
+            "copies": 2,
+            "cost": 25
+        }
+    ],
+    "item_types": [
+        {
+            "type": "general",
+            "elements": [
+                {
+                    "type": "LineSegment",
+                    "start": {
+                        "x": 0,
+                        "y": 0
+                    },
+                    "end": {
+                        "x": 30,
+                        "y": 0
+                    }
+                },
+                {
+                    "type": "CircularArc",
+                    "start": {
+                        "x": 30,
+                        "y": 0
+                    },
+                    "center": {
+                        "x": 30,
+                        "y": 5
+                    },
+                    "end": {
+                        "x": 30,
+                        "y": 10
+                    },
+                    "orientation": "Anticlockwise"
+                },
+                {
+                    "type": "LineSegment",
+                    "start": {
+                        "x": 30,
+                        "y": 10
+                    },
+                    "end": {
+                        "x": 0,
+                        "y": 10
+                    }
+                },
+                {
+                    "type": "CircularArc",
+                    "start": {
+                        "x": 0,
+                        "y": 10
+                    },
+                    "center": {
+                        "x": 0,
+                        "y": 5
+                    },
+                    "end": {
+                        "x": 0,
+                        "y": 0
+                    },
+                    "orientation": "Anticlockwise"
+                }
+            ],
+            "copies": 3,
+            "holes": [
+                {
+                    "type": "rectangle",
+                    "x": 5,
+                    "y": 3,
+                    "width": 4,
+                    "height": 4
+                }
+            ]
+        },
+        {
+            "shapes": [
+                {
+                    "type": "rectangle",
+                    "width": 20,
+                    "height": 10
+                },
+                {
+                    "type": "circle",
+                    "x": 25,
+                    "y": 5,
+                    "radius": 4,
+                    "holes": [
+                        {
+                            "type": "circle",
+                            "x": 25,
+                            "y": 5,
+                            "radius": 1
+                        }
+                    ]
+                }
+            ],
+            "copies": 2,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                },
+                {
+                    "start": 90,
+                    "end": 180,
+                    "mirror": true
+                }
+            ]
+        },
+        {
+            "type": "polygon",
+            "vertices": [
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 15,
+                    "y": 0
+                },
+                {
+                    "x": 0,
+                    "y": 15
+                }
+            ],
+            "copies": 4,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                },
+                {
+                    "start": 90,
+                    "end": 90
+                },
+                {
+                    "start": 180,
+                    "end": 180
+                },
+                {
+                    "start": 270,
+                    "end": 270
+                }
+            ],
+            "allow_mirroring": true
+        }
+    ]
+}

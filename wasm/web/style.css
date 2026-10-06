@@ -92,8 +92,22 @@ button:disabled {
     opacity: 0.5;
 }
 
+/* The objective, the bin types and the item types of the form, separated
+   from each other. */
+.form-group {
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+}
+
+.form-group h3 {
+    margin-bottom: 0.5rem;
+}
+
 #instance-download {
-    margin: 1rem 0 0;
+    margin: 1.5rem 0 0;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
 }
 
 #actions {
@@ -112,24 +126,6 @@ button:disabled {
     border-color: var(--accent);
     background: var(--accent);
     color: #ffffff;
-}
-
-.tabs {
-    margin: 0.5rem 0 1rem;
-    border-bottom: 1px solid var(--border);
-}
-
-.tabs button {
-    margin: 0;
-    border: none;
-    border-bottom: 2px solid transparent;
-    border-radius: 0;
-    background: none;
-}
-
-.tabs button[aria-selected="true"] {
-    border-bottom-color: var(--accent);
-    font-weight: 600;
 }
 
 table {
