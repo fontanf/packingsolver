@@ -316,6 +316,45 @@ BinBorders bin_borders(const BinType& bin_type)
 
 }
 
+namespace
+{
+
+/**
+ * Coordinate from which the items are packed after a left or bottom trim.
+ *
+ * The waste of a soft trim isn't cut off with the trim, so it must satisfy
+ * the minimum waste length, after the cut thickness of its cut.
+ */
+Length trim_start(
+        const Instance& instance,
+        Length trim,
+        TrimType trim_type)
+{
+    if (trim_type == TrimType::Soft && trim > 0) {
+        const rectangleguillotine::Parameters& parameters = instance.parameters();
+        return (std::max)(
+                trim,
+                parameters.cut_thickness + (std::max)(parameters.minimum_waste_length, Length(1)));
+    }
+    return trim;
+}
+
+Length x_start(
+        const Instance& instance,
+        const BinType& bin_type)
+{
+    return trim_start(instance, bin_type.left_trim, bin_type.left_trim_type);
+}
+
+Length y_start(
+        const Instance& instance,
+        const BinType& bin_type)
+{
+    return trim_start(instance, bin_type.bottom_trim, bin_type.bottom_trim_type);
+}
+
+}
+
 BranchingScheme::OpenCuts BranchingScheme::open_cuts(const Node& node) const
 {
     const Instance& instance = this->instance(node.first_stage_orientation);
@@ -357,7 +396,7 @@ Length BranchingScheme::x1_prev(const Node& node, Depth df) const
         const Instance& instance = this->instance(df);
         BinPos bin_pos = node.number_of_bins + (-df - 1) / 2;
         BinTypeId bin_type_id = bin_type_ids_[bin_pos];
-        return instance.bin_type(bin_type_id).left_trim;
+        return x_start(instance, instance.bin_type(bin_type_id));
     }
     }
 }
@@ -375,7 +414,7 @@ Length BranchingScheme::x3_prev(const Node& node, Depth df) const
         const Instance& instance = this->instance(df);
         BinPos bin_pos = node.number_of_bins + (-df - 1) / 2;
         BinTypeId bin_type_id = bin_type_ids_[bin_pos];
-        return instance.bin_type(bin_type_id).left_trim;
+        return x_start(instance, instance.bin_type(bin_type_id));
     }
     }
 }
@@ -386,7 +425,7 @@ Length BranchingScheme::y2_prev(const Node& node, Depth df) const
     case 0: {
         const Instance& instance = this->instance(node.first_stage_orientation);
         BinTypeId bin_type_id = bin_type_ids_[node.number_of_bins - 1];
-        return instance.bin_type(bin_type_id).bottom_trim;
+        return y_start(instance, instance.bin_type(bin_type_id));
     } case 1: {
         return node.y2_curr + instance().parameters().cut_thickness;
     } case 2: {
@@ -395,7 +434,7 @@ Length BranchingScheme::y2_prev(const Node& node, Depth df) const
         const Instance& instance = this->instance(df);
         BinPos bin_pos = node.number_of_bins + (-df - 1) / 2;
         BinTypeId bin_type_id = bin_type_ids_[bin_pos];
-        return instance.bin_type(bin_type_id).bottom_trim;
+        return y_start(instance, instance.bin_type(bin_type_id));
     }
     }
 }
@@ -502,7 +541,7 @@ BranchingScheme::Node BranchingScheme::child_tmp(
     switch (insertion.df) {
     case 0: {
         node.x1_prev = parent.x1_curr + instance.parameters().cut_thickness;
-        node.y2_prev = bin_type.bottom_trim;
+        node.y2_prev = y_start(instance, bin_type);
         break;
     } case 1: {
         node.x1_prev = parent.x1_prev;
@@ -513,8 +552,8 @@ BranchingScheme::Node BranchingScheme::child_tmp(
         node.y2_prev = parent.y2_prev;
         break;
     } default: {
-        node.x1_prev = bin_type.left_trim;
-        node.y2_prev = bin_type.bottom_trim;
+        node.x1_prev = x_start(instance, bin_type);
+        node.y2_prev = y_start(instance, bin_type);
     }
     }
 
@@ -2033,11 +2072,11 @@ Solution BranchingScheme::to_solution(
             const BinType& bin_type = instance(current_node->first_stage_orientation).bin_type(bin_type_id);
             if (instance().parameters().number_of_stages >= 3) {
                 if (bin_type.has_soft_left_trim()) {
-                    solution_builder.add_node(1, bin_type.left_trim - cut_thickness);
+                    solution_builder.add_node(1, x_start(instance(current_node->first_stage_orientation), bin_type) - cut_thickness);
                 }
             } else {
                 if (bin_type.has_soft_bottom_trim()) {
-                    solution_builder.add_node(1, bin_type.bottom_trim - cut_thickness);
+                    solution_builder.add_node(1, y_start(instance(current_node->first_stage_orientation), bin_type) - cut_thickness);
                 }
             }
         }
@@ -2059,7 +2098,7 @@ Solution BranchingScheme::to_solution(
                 BinTypeId bin_type_id = bin_type_ids_[number_of_bins - 1];
                 const BinType& bin_type = instance(current_node->first_stage_orientation).bin_type(bin_type_id);
                 if (bin_type.has_soft_bottom_trim()) {
-                    solution_builder.add_node(2, bin_type.bottom_trim - cut_thickness);
+                    solution_builder.add_node(2, y_start(instance(current_node->first_stage_orientation), bin_type) - cut_thickness);
                 }
             }
         }
@@ -2082,7 +2121,7 @@ Solution BranchingScheme::to_solution(
                 BinTypeId bin_type_id = bin_type_ids_[number_of_bins - 1];
                 const BinType& bin_type = instance(current_node->first_stage_orientation).bin_type(bin_type_id);
                 if (bin_type.has_soft_left_trim()) {
-                    solution_builder.add_node(2, bin_type.left_trim - cut_thickness);
+                    solution_builder.add_node(2, x_start(instance(current_node->first_stage_orientation), bin_type) - cut_thickness);
                 }
             }
         }

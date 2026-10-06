@@ -1,0 +1,22 @@
+{
+    "objective": "bin-packing",
+    "cut_thickness": 3,
+    "bin_types": [
+        {
+            "width": 600,
+            "height": 600,
+            "copies": 4,
+            "left_trim": 2,
+            "left_trim_type": "soft",
+            "bottom_trim": 3,
+            "bottom_trim_type": "soft"
+        }
+    ],
+    "item_types": [
+        {
+            "width": 152,
+            "height": 166,
+            "copies": 3
+        }
+    ]
+}

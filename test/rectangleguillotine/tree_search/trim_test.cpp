@@ -399,11 +399,13 @@ TEST(RectangleGuillotineBranchingScheme, TrimAndDefect)
     BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
 
+    // The waste of the soft trims (10) must satisfy the minimum waste length
+    // (10) after the cut thickness (3): the items start at 13.
     std::vector<BranchingScheme::Insertion> is {
-        {0, -1, 2, 1225, 856, 1225, 3200, 2250, 0, 2},
-        {0, -1, 2, 1161, 920, 1161, 3200, 2250, 0, 2},
-        {0, -1, 1, 920, 912, 920, 3200, 2250, 0, 2},
-        {0, -1, 1, 856, 976, 856, 3200, 2250, 0, 2},
+        {0, -1, 2, 1225, 859, 1225, 3200, 2250, 0, 2},
+        {0, -1, 2, 1161, 923, 1161, 3200, 2250, 0, 2},
+        {0, -1, 1, 923, 912, 923, 3200, 2250, 0, 2},
+        {0, -1, 1, 859, 976, 859, 3200, 2250, 0, 2},
     };
 
     EXPECT_EQ(branching_scheme.insertions(branching_scheme.children(root)), is);

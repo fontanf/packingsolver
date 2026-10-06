@@ -281,6 +281,39 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path(""),
                 fs::path(""),
                 fs::path("data") / "rectangleguillotine" / "tests" / "soft_trim_maximum_number_2_cuts" / "solution.csv",
+            }, {
+                // The waste of a soft trim must satisfy the minimum waste
+                // length: the items were placed right after a soft left trim
+                // narrower than it.
+                fs::path("data") / "rectangleguillotine" / "tests" / "soft_trim_minimum_waste_left" / "instance.json",
+                fs::path(""),
+                fs::path(""),
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "soft_trim_minimum_waste_left" / "solution.csv",
+            }, {
+                // Same with a soft bottom trim.
+                fs::path("data") / "rectangleguillotine" / "tests" / "soft_trim_minimum_waste_bottom" / "instance.json",
+                fs::path(""),
+                fs::path(""),
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "soft_trim_minimum_waste_bottom" / "solution.csv",
+            }, {
+                // The waste of a soft trim not larger than the cut thickness
+                // couldn't be cut.
+                fs::path("data") / "rectangleguillotine" / "tests" / "soft_trim_cut_thickness" / "instance.json",
+                fs::path(""),
+                fs::path(""),
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "soft_trim_cut_thickness" / "solution.csv",
+            }, {
+                // Soft left trim narrower than the minimum waste length, and
+                // last sub-plate up to the border of a soft right trim, with a
+                // waste cost.
+                fs::path("data") / "rectangleguillotine" / "tests" / "soft_trim_minimum_waste_waste_cost" / "instance.json",
+                fs::path(""),
+                fs::path(""),
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "soft_trim_minimum_waste_waste_cost" / "solution.csv",
             }}));
 
 TEST(RectangleGuillotine, SolutionItemInSoftTrim)

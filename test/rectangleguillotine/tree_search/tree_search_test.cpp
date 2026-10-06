@@ -488,6 +488,30 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "rectangleguillotine" / "tests" / "soft_trim_maximum_number_2_cuts" / "instance.json",
                 fs::path(""),
                 fs::path("data") / "rectangleguillotine" / "tests" / "soft_trim_maximum_number_2_cuts" / "solution.csv",
+            }, {
+                fs::path(""),
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "soft_trim_minimum_waste_left" / "instance.json",
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "soft_trim_minimum_waste_left" / "solution.csv",
+            }, {
+                fs::path(""),
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "soft_trim_minimum_waste_bottom" / "instance.json",
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "soft_trim_minimum_waste_bottom" / "solution.csv",
+            }, {
+                fs::path(""),
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "soft_trim_cut_thickness" / "instance.json",
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "soft_trim_cut_thickness" / "solution.csv",
+            }, {
+                fs::path(""),
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "soft_trim_minimum_waste_waste_cost" / "instance.json",
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "soft_trim_minimum_waste_waste_cost" / "solution.csv",
             }}));
 
 
