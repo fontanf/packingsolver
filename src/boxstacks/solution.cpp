@@ -51,7 +51,7 @@ void Solution::update_indicators(
             Length xi = bin_type.box.x;
             Length yi = bin_type.box.y;
             Length zi = bin_type.box.z;
-            volume_ = bin_volume_ - zi * std::max((xi - x_max_) * yi, (yi - y_max_ * xi));
+            volume_ = bin_volume_ - zi * std::max((xi - x_max_) * yi, (yi - y_max_) * xi);
         }
 
         number_of_stacks_ += bin.copies;
