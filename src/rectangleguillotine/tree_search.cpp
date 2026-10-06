@@ -339,6 +339,33 @@ Length trim_start(
     return trim;
 }
 
+/**
+ * Thickness of the cut below an item on top of its 3-level sub-plate (above a
+ * defect) which must not intersect the defect.
+ */
+Length cut_below_item_above_defect(const Instance& instance)
+{
+    return (instance.parameters().cut_through_defects)? 0: instance.parameters().cut_thickness;
+}
+
+/**
+ * Return the id of a defect intersecting an item on top of its 3-level
+ * sub-plate (above a defect) at (l, b), or the cut below it.
+ */
+DefectId item_above_defect_intersects_defect(
+        const Instance& instance,
+        Length l,
+        Length b,
+        const rectangleguillotine::ItemType& item_type,
+        bool rotate,
+        const BinType& bin_type)
+{
+    return instance.rect_intersects_defect(
+            l, l + item_type.width(rotate),
+            b - cut_below_item_above_defect(instance), b + item_type.height(rotate),
+            bin_type);
+}
+
 Length x_start(
         const Instance& instance,
         const BinType& bin_type)
@@ -1280,13 +1307,21 @@ void BranchingScheme::insertion_1_item(
         x, y, x,
         x1_max(parent, df), y2_max(parent, df, x), 0, 0};
 
-    // Check defect intersection
+    // Check defect intersection, of the item and of the cut above it.
     DefectId defect_id = instance.item_intersects_defect(
             x3_prev(parent, df),
             y2_prev(parent, df),
             item_type,
             rotate,
             bin_type);
+    if (defect_id < 0 && !instance.parameters().cut_through_defects) {
+        defect_id = instance.rect_intersects_defect(
+                x3_prev(parent, df),
+                x,
+                y,
+                y + instance.parameters().cut_thickness,
+                bin_type);
+    }
     if (defect_id >= 0) {
         if (instance.parameters().cut_type == CutType::Roadef2018
                 || instance.parameters().cut_type == CutType::NonExact) {
@@ -1297,7 +1332,7 @@ void BranchingScheme::insertion_1_item(
             if (df <= 0)  // y1_prev is the bottom trim.
                 if (bin_type.bottom_trim_type == TrimType::Soft)
                     min_waste = std::max(Length(0), min_waste - bin_type.bottom_trim);
-            insertion.y2 += min_waste;
+            insertion.y2 += instance.parameters().cut_thickness + min_waste;
             insertion.z2 = 1;
         } else {
             return;
@@ -1726,7 +1761,8 @@ void BranchingScheme::update(
                 const ItemType& item_type = instance.item_type(jrx.item_type_id);
                 Length h_j2 = item_type.height(jrx.rotate);
                 Length l = jrx.x;
-                DefectId defect_id = instance.item_intersects_defect(
+                DefectId defect_id = item_above_defect_intersects_defect(
+                        instance,
                         l,
                         insertion.y2 - h_j2,
                         item_type,
@@ -1739,9 +1775,9 @@ void BranchingScheme::update(
                     }
                     insertion.y2 = (insertion.z2 == 0)?
                         std::max(
-                                defect.top() + h_j2,
+                                defect.top() + cut_below_item_above_defect(instance) + h_j2,
                                 insertion.y2 + cut_thickness + min_waste):
-                        defect.top() + h_j2;
+                        defect.top() + cut_below_item_above_defect(instance) + h_j2;
                     insertion.z2 = 1;
                     found = true;
                 }
@@ -1753,7 +1789,8 @@ void BranchingScheme::update(
             bool rotate_j2 = (item_type.rect.h == w_j);
             Length h_j2 = item_type.height(rotate_j2);
             Length l = x3_prev(parent, insertion.df);
-            DefectId defect_id = instance.item_intersects_defect(
+            DefectId defect_id = item_above_defect_intersects_defect(
+                    instance,
                     l,
                     insertion.y2 - h_j2,
                     item_type,
@@ -1766,9 +1803,9 @@ void BranchingScheme::update(
                 }
                 insertion.y2 = (insertion.z2 == 0)?
                     std::max(
-                            defect.top() + h_j2,
+                            defect.top() + cut_below_item_above_defect(instance) + h_j2,
                             insertion.y2 + cut_thickness + min_waste):
-                    defect.top() + h_j2;
+                    defect.top() + cut_below_item_above_defect(instance) + h_j2;
                 insertion.z2 = 1;
                 found = true;
             }
@@ -1822,7 +1859,8 @@ void BranchingScheme::update(
                     const ItemType& item_type = instance.item_type(jrx.item_type_id);
                     Length l = jrx.x;
                     Length h_j2 = item_type.height(jrx.rotate);
-                    DefectId defect_id = instance.item_intersects_defect(
+                    DefectId defect_id = item_above_defect_intersects_defect(
+                            instance,
                             l,
                             insertion.y2 - h_j2,
                             item_type,
@@ -1840,7 +1878,8 @@ void BranchingScheme::update(
                 bool rotate_j2 = (item_type.rect.h == w_j);
                 Length h_j2 = item_type.height(rotate_j2);
                 Length l = x3_prev(parent, insertion.df);
-                DefectId defect_id = instance.item_intersects_defect(
+                DefectId defect_id = item_above_defect_intersects_defect(
+                        instance,
                         l,
                         insertion.y2 - h_j2,
                         item_type,
