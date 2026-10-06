@@ -1,0 +1,21 @@
+{
+    "objective": "bin-packing-cutting-cost",
+    "waste_cost": 3,
+    "minimum_waste_length": 24,
+    "bin_types": [
+        {
+            "width": 600,
+            "height": 600,
+            "copies": 4,
+            "left_trim": 20,
+            "left_trim_type": "soft"
+        }
+    ],
+    "item_types": [
+        {
+            "width": 88,
+            "height": 144,
+            "copies": 1
+        }
+    ]
+}
