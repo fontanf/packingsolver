@@ -1563,10 +1563,10 @@ void BranchingScheme::update(
     //std::cout << "- update y2_curr  " << insertion << std::endl;
     if (insertion.df == 2) {
         if (insertion.z2 == 0) {
-            if (insertion.y2 + min_waste <= parent.y2_curr) {
+            if (insertion.y2 + cut_thickness + min_waste <= parent.y2_curr) {
                 insertion.y2 = parent.y2_curr;
                 insertion.z2 = parent.z2;
-            } else if (insertion.y2 < parent.y2_curr) { // y_curr() - min_waste < insertion.y4 < y_curr()
+            } else if (insertion.y2 < parent.y2_curr) { // y_curr() - cut_thickness - min_waste < insertion.y4 < y_curr()
                 if (parent.z2 == 2) {
                     return;
                 } else if (parent.z2 == 0) {
@@ -1580,7 +1580,7 @@ void BranchingScheme::update(
                 if (parent.z2 == 2)
                     insertion.z2 = 2;
             } else if (parent.y2_curr < insertion.y2
-                    && insertion.y2 < parent.y2_curr + min_waste) {
+                    && insertion.y2 < parent.y2_curr + cut_thickness + min_waste) {
                 if (parent.z2 == 2) {
                     return;
                 } else if (parent.z2 == 0) {
@@ -1588,7 +1588,7 @@ void BranchingScheme::update(
                     insertion.z2 = 1;
                 } else { // z2() == 1
                 }
-            } else { // y2_curr() + min_waste <= insertion.y2
+            } else { // y2_curr() + cut_thickness + min_waste <= insertion.y2
                 if (parent.z2 == 2) {
                     return;
                 }
@@ -1598,7 +1598,7 @@ void BranchingScheme::update(
                 insertion.y2 = parent.y2_curr;
                 insertion.z2 = parent.z2;
             } else if (parent.y2_curr < insertion.y2
-                    && insertion.y2 < parent.y2_curr + min_waste) {
+                    && insertion.y2 < parent.y2_curr + cut_thickness + min_waste) {
                 if (parent.z2 == 2) {
                     return;
                 } else if (parent.z2 == 0) {
@@ -1622,7 +1622,7 @@ void BranchingScheme::update(
                     return;
                 } else { // z2() == 1
                 }
-            } else { // y2_curr() + min_waste <= insertion.y2
+            } else { // y2_curr() + cut_thickness + min_waste <= insertion.y2
                 if (parent.z2 == 2) {
                     return;
                 }
