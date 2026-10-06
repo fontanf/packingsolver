@@ -216,28 +216,36 @@ public:
         Counter subplate1curr_number_of_2_cuts = 0;
 
         /**
-         * Cumulated cutting cost of the partial solution, for the
-         * 'BinPackingCuttingCost' objective (bins + confirmed 1/2/3/4-cuts).
+         * Cutting cost of the partial solution, for the
+         * 'BinPackingCuttingCost' objective: the bins, the cuts and the
+         * waste.
          */
         CuttingCost cutting_cost = 0;
 
         /**
-         * Cost of the potential 3-cuts of the current 1-level sub-plate (not
-         * yet confirmed, see 'cutting_cost' above).
+         * Number and total length of the cuts of each depth (1 to 4) of the
+         * closed sub-plates, which don't change anymore. The cuts of the
+         * current sub-plates are computed from the node.
          */
-        CuttingCost subplate1curr_potential_cost_of_3_cuts = 0;
+        std::array<Counter, 5> number_of_cuts = {};
+        std::array<Length, 5> length_of_cuts = {};
 
         /**
-         * Number of 3-cuts in the current 2-level sub-plate, used to scale
-         * their cost when the 2-level sub-plate's height increases.
+         * Number and total length of the potential cuts of each depth (3 and
+         * 4) of the current sub-plates: the 3-cuts at the end of the current
+         * 1-level sub-plate, which become cuts if it is widened, and the
+         * 4-cuts at the top of the current 2-level sub-plate, which become
+         * cuts if it is heightened.
+         */
+        std::array<Counter, 5> number_of_potential_cuts = {};
+        std::array<Length, 5> length_of_potential_cuts = {};
+
+        /**
+         * Number of 3-cuts in the current 2-level sub-plate (with the one of
+         * its last 3-level sub-plate if it isn't at the end of the 1-level
+         * sub-plate).
          */
         Counter subplate2curr_number_of_3_cuts = 0;
-
-        /**
-         * Cost of the potential 4-cuts of the current 2-level sub-plate (not
-         * yet confirmed, see 'cutting_cost' above).
-         */
-        CuttingCost subplate2curr_potential_cost_of_4_cuts = 0;
 
         /**
          * Contains the list of items (id, rotate, left cut position) inserted
@@ -563,6 +571,21 @@ private:
     const Instance& instance(CutOrientation cut_orientation) const { return (cut_orientation == CutOrientation::Vertical)? instance_: instance_flipper_.flipped_instance(); }
 
     const Instance& instance(Depth df) const { return (std::abs(df) % 2 == 0)? instance_flipper_.flipped_instance(): instance_; }
+
+    /**
+     * Cuts of the current sub-plates of a node, for each depth (1 to 3): the
+     * number of cuts of this depth in the current sub-plate of the previous
+     * depth, their length, and whether the current sub-plate of this depth
+     * ends with a cut.
+     */
+    struct OpenCuts
+    {
+        std::array<Counter, 4> number;
+        std::array<Length, 4> length;
+        std::array<bool, 4> last;
+    };
+
+    OpenCuts open_cuts(const Node& node) const;
 
     /**
      * Return true iff s1 and s2 contains identical objects in the same order.

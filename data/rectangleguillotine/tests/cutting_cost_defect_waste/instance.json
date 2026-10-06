@@ -1,0 +1,54 @@
+{
+    "objective": "bin-packing-cutting-cost",
+    "cut_through_defects": true,
+    "waste_cost": 2,
+    "cutting_costs": [
+        {
+            "fixed": 0,
+            "variable": 0
+        },
+        {
+            "fixed": 0,
+            "variable": 3
+        },
+        {
+            "fixed": 0,
+            "variable": 2
+        },
+        {
+            "fixed": 0,
+            "variable": 1
+        }
+    ],
+    "bin_types": [
+        {
+            "width": 1000,
+            "height": 700,
+            "copies": 3,
+            "bottom_trim": 4,
+            "defects": [
+                {
+                    "x": 500,
+                    "y": 300,
+                    "width": 10,
+                    "height": 10
+                }
+            ]
+        }
+    ],
+    "item_types": [
+        {
+            "width": 250,
+            "height": 200,
+            "copies": 2,
+            "oriented": true,
+            "stack_id": 0
+        },
+        {
+            "width": 150,
+            "height": 300,
+            "copies": 3,
+            "stack_id": 1
+        }
+    ]
+}

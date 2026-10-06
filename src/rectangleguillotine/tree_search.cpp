@@ -285,6 +285,65 @@ bool BranchingScheme::better(
 /////////////////////////////////// Children ///////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
+namespace
+{
+
+/**
+ * Coordinates of the right and top borders of a bin, from which no cut is
+ * needed (the hard trims are cut, the soft trims aren't), and length of the
+ * 1-cuts.
+ */
+struct BinBorders
+{
+    Length x_end;
+    Length y_end;
+    Length h_1_cut;
+};
+
+BinBorders bin_borders(const BinType& bin_type)
+{
+    BinBorders borders;
+    borders.x_end = (bin_type.right_trim_type == TrimType::Soft)?
+        bin_type.rect.w:
+        bin_type.rect.w - bin_type.right_trim;
+    borders.y_end = (bin_type.top_trim_type == TrimType::Soft)?
+        bin_type.rect.h:
+        bin_type.rect.h - bin_type.top_trim;
+    borders.h_1_cut = borders.y_end
+        - ((bin_type.bottom_trim_type == TrimType::Soft)? 0: bin_type.bottom_trim);
+    return borders;
+}
+
+}
+
+BranchingScheme::OpenCuts BranchingScheme::open_cuts(const Node& node) const
+{
+    const Instance& instance = this->instance(node.first_stage_orientation);
+    const BinType& bin_type = instance.bin_type(bin_type_ids_[node.number_of_bins - 1]);
+    BinBorders borders = bin_borders(bin_type);
+    OpenCuts open_cuts;
+    open_cuts.number = {
+        0,
+        node.bincurr_number_of_1_cuts,
+        node.subplate1curr_number_of_2_cuts,
+        node.subplate2curr_number_of_3_cuts};
+    // With two stages, the waste of a soft left trim is separated in each
+    // 2-level sub-plate, so the 2-cuts start from the left of the bin.
+    open_cuts.length = {
+        0,
+        borders.h_1_cut,
+        (instance.parameters().number_of_stages == 2 && bin_type.left_trim_type == TrimType::Soft)?
+            node.x1_curr:
+            node.x1_curr - node.x1_prev,
+        node.y2_curr - node.y2_prev};
+    open_cuts.last = {
+        false,
+        node.x1_curr != borders.x_end,
+        node.y2_curr != borders.y_end,
+        node.x3_curr != node.x1_curr};
+    return open_cuts;
+}
+
 Length BranchingScheme::x1_prev(const Node& node, Depth df) const
 {
     switch (df) {
@@ -435,19 +494,9 @@ BranchingScheme::Node BranchingScheme::child_tmp(
     Length w = bin_type.rect.w
         - bin_type.right_trim
         - bin_type.left_trim;
-    // Coordinates of the right and top borders of the bin, from which no cut
-    // is needed: the hard trims are cut, the soft trims aren't.
-    Length x_end = (bin_type.right_trim_type == TrimType::Soft)?
-        bin_type.rect.w:
-        bin_type.rect.w - bin_type.right_trim;
-    Length y_end = (bin_type.top_trim_type == TrimType::Soft)?
-        bin_type.rect.h:
-        bin_type.rect.h - bin_type.top_trim;
-    // Length of the 1-cuts, and of a 2-cut along the bin.
-    Length h_1_cut = y_end
-        - ((bin_type.bottom_trim_type == TrimType::Soft)? 0: bin_type.bottom_trim);
-    Length w_2_cut = x_end
-        - ((bin_type.left_trim_type == TrimType::Soft)? 0: bin_type.left_trim);
+    BinBorders borders = bin_borders(bin_type);
+    Length x_end = borders.x_end;
+    Length y_end = borders.y_end;
 
     // Compute x1_prev and y2_prev.
     switch (insertion.df) {
@@ -552,13 +601,17 @@ BranchingScheme::Node BranchingScheme::child_tmp(
         }
     }
 
+    // The waste of a soft trim is separated with a cut (see 'to_solution'):
+    // with three stages, a 1-cut in each bin for a soft left trim; with two
+    // stages, a 3-cut in each 2-level sub-plate for a soft left trim; a 2-cut
+    // in each 1-level sub-plate for a soft bottom trim.
+
     // Compute bincurr_number_of_1_cuts.
+    bool two_stages = (instance.parameters().number_of_stages == 2);
     if (node.df < 0) {
-        if (node.x1_curr == x_end) {
-            node.bincurr_number_of_1_cuts = 0;
-        } else {
-            node.bincurr_number_of_1_cuts = 1;
-        }
+        node.bincurr_number_of_1_cuts = (!two_stages && bin_type.has_soft_left_trim());
+        if (node.x1_curr != x_end)
+            node.bincurr_number_of_1_cuts++;
     } else if (node.df == 0) {
         if (node.x1_curr == x_end) {
             node.bincurr_number_of_1_cuts = parent.bincurr_number_of_1_cuts;
@@ -579,11 +632,9 @@ BranchingScheme::Node BranchingScheme::child_tmp(
 
     // Compute subplate1curr_number_of_2_cuts.
     if (node.df < 1) {
-        if (node.y2_curr == y_end) {
-            node.subplate1curr_number_of_2_cuts = 0;
-        } else {
-            node.subplate1curr_number_of_2_cuts = 1;
-        }
+        node.subplate1curr_number_of_2_cuts = bin_type.has_soft_bottom_trim();
+        if (node.y2_curr != y_end)
+            node.subplate1curr_number_of_2_cuts++;
     } else if (node.df == 1) {
         if (node.y2_curr == y_end) {
             node.subplate1curr_number_of_2_cuts = parent.subplate1curr_number_of_2_cuts;
@@ -602,149 +653,134 @@ BranchingScheme::Node BranchingScheme::child_tmp(
         }
     }
 
-    // Update cutting_cost (for the 'BinPackingCuttingCost' objective).
-    // Mirrors the bincurr_number_of_1_cuts / subplate1curr_number_of_2_cuts
-    // cascades above, extended down to depths 3 and 4, and combining each
-    // cut's fixed and variable cost into a single running total (rather
-    // than tracking count and length separately) since the per-depth rates
-    // are constant throughout the search.
+    // Compute subplate2curr_number_of_3_cuts: the 3-cut of the previous
+    // 3-level sub-plate, which was at the end of the 1-level sub-plate, and
+    // the 3-cut of the new one if it isn't at the end of the 1-level
+    // sub-plate (both if the 1-level sub-plate is widened beyond the new
+    // 3-level sub-plate).
+    if (node.df == 2) {
+        node.subplate2curr_number_of_3_cuts = parent.subplate2curr_number_of_3_cuts;
+        if (parent.x3_curr == parent.x1_curr)
+            node.subplate2curr_number_of_3_cuts++;
+    } else {
+        node.subplate2curr_number_of_3_cuts = (two_stages && bin_type.has_soft_left_trim());
+    }
+    if (node.x3_curr != node.x1_curr)
+        node.subplate2curr_number_of_3_cuts++;
+
+    // Update cutting_cost (for the 'BinPackingCuttingCost' objective). The
+    // cuts of the closed sub-plates don't change anymore: their numbers and
+    // lengths are kept for each depth. The cuts of the current sub-plates
+    // are computed from the node.
     if (instance.objective() == Objective::BinPackingCuttingCost) {
-        node.cutting_cost = parent.cutting_cost;
+        node.number_of_cuts = parent.number_of_cuts;
+        node.length_of_cuts = parent.length_of_cuts;
+        // Add 'number' cuts of depth 'depth' of total length 'length'.
+        auto add_cuts = [&node](Depth depth, Counter number, Length length)
+        {
+            node.number_of_cuts[depth] += number;
+            node.length_of_cuts[depth] += length;
+        };
 
-        // 4-cut cost. A potential 4-cut (single item not reaching the
-        // 2-level sub-plate's target height) only becomes chargeable once
-        // another 3-level sub-plate is added above it (df == 2 and y2
-        // increases); until then it stays in subplate2curr_potential_cost_of_4_cuts.
-        node.subplate2curr_potential_cost_of_4_cuts = (node.df != 2)?
-            0: parent.subplate2curr_potential_cost_of_4_cuts;
-        if (node.df == 2 && node.y2_curr > parent.y2_curr) {
-            node.cutting_cost += node.subplate2curr_potential_cost_of_4_cuts;
-            node.subplate2curr_potential_cost_of_4_cuts = 0;
-        }
-        if (node.item_type_id_1 != -1 && node.item_type_id_2 == -1) { // 1 item.
-            if (node.y2_curr != node.y2_prev + h_j1) {
-                node.cutting_cost += cutting_costs_[4].fixed + cutting_costs_[4].variable * w_j;
-            } else {
-                node.subplate2curr_potential_cost_of_4_cuts += cutting_costs_[4].fixed + cutting_costs_[4].variable * w_j;
+        // The sub-plates of the parent closed by the node: the cuts of a
+        // closed sub-plate don't change anymore. The sub-plates created by
+        // a parent without item and closed by the node are merged with the
+        // waste in the solution (see 'to_solution'), with their cuts.
+        bool parent_without_item = (parent.item_type_id_1 == -1 && parent.item_type_id_2 == -1);
+        auto merged = [&parent, &node, parent_without_item](Depth depth)
+        {
+            return parent_without_item
+                && depth >= parent.df + 1
+                && depth >= node.df + 2;
+        };
+        if (parent.number_of_bins > 0) {
+            OpenCuts parent_cuts = open_cuts(parent);
+            // 2-level sub-plate: its 3-cuts.
+            if (node.df <= 1 && !merged(2)) {
+                Counter number = parent_cuts.number[3] - (merged(3)? parent_cuts.last[3]: 0);
+                add_cuts(3, number, number * parent_cuts.length[3]);
             }
-        } else if (node.item_type_id_1 == -1 && node.item_type_id_2 != -1) { // 1 item above a defect.
-            node.cutting_cost += cutting_costs_[4].fixed + cutting_costs_[4].variable * w_j;
-        } else if (node.item_type_id_1 != -1 && node.item_type_id_2 != -1) { // 2 items.
-            node.cutting_cost += cutting_costs_[4].fixed + cutting_costs_[4].variable * w_j;
+            // 1-level sub-plate: its 2-cuts.
+            if (node.df <= 0 && !merged(1)) {
+                Counter number = parent_cuts.number[2] - (merged(2)? parent_cuts.last[2]: 0);
+                add_cuts(2, number, number * parent_cuts.length[2]);
+            }
+            // Bin: its 1-cuts.
+            if (node.df < 0) {
+                Counter number = parent_cuts.number[1] - (merged(1)? parent_cuts.last[1]: 0);
+                add_cuts(1, number, number * parent_cuts.length[1]);
+            }
         }
 
-        // 3-cut cost. Same principle as 2-cut below, one level deeper: a
-        // potential 3-cut (when the current 2-cut coincides with the
-        // current 1-cut) only becomes chargeable once the 1-cut's position
-        // actually moves further.
-        if (node.df == 2) {
-            node.cutting_cost += (node.y2_curr - parent.y2_curr) * parent.subplate2curr_number_of_3_cuts * cutting_costs_[3].variable;
-            node.subplate2curr_number_of_3_cuts = parent.subplate2curr_number_of_3_cuts;
-        } else {
-            node.subplate2curr_number_of_3_cuts = 0;
+        // Potential 3-cuts: the 3-cuts at the end of the 1-level sub-plate
+        // become cuts when it is widened.
+        if (node.df >= 1) {
+            node.number_of_potential_cuts[3] = parent.number_of_potential_cuts[3];
+            node.length_of_potential_cuts[3] = parent.length_of_potential_cuts[3];
         }
-        node.subplate1curr_potential_cost_of_3_cuts = parent.subplate1curr_potential_cost_of_3_cuts;
-        if (node.df == 1 && parent.x3_curr == parent.x1_curr) {
-            node.subplate1curr_potential_cost_of_3_cuts
-                += cutting_costs_[3].fixed + cutting_costs_[3].variable * (parent.y2_curr - parent.y2_prev);
-        }
-        if (node.df <= 0) {
-            node.subplate1curr_potential_cost_of_3_cuts = 0;
+        if (node.df == 1 && parent.x3_curr == parent.x1_curr && !merged(3)) {
+            node.number_of_potential_cuts[3]++;
+            node.length_of_potential_cuts[3] += parent.y2_curr - parent.y2_prev;
         }
         if (node.df >= 1 && node.x1_curr > parent.x1_curr) {
-            node.cutting_cost += node.subplate1curr_potential_cost_of_3_cuts;
-            node.subplate1curr_potential_cost_of_3_cuts = 0;
-        }
-        if ((node.df == 2 && parent.x3_curr == parent.x1_curr) || (node.x3_curr != node.x1_curr)) {
-            node.subplate2curr_number_of_3_cuts++;
-            node.cutting_cost
-                += cutting_costs_[3].fixed + cutting_costs_[3].variable * (node.y2_curr - node.y2_prev);
+            add_cuts(3, node.number_of_potential_cuts[3], node.length_of_potential_cuts[3]);
+            node.number_of_potential_cuts[3] = 0;
+            node.length_of_potential_cuts[3] = 0;
         }
 
-        // 2-cut cost. If the current 1-level sub-plate widens, every 2-cut
-        // already placed in it grows accordingly (its length is the
-        // sub-plate's width), hence the scaling by
-        // parent.subplate1curr_number_of_2_cuts.
-        if (node.df >= 1) {
-            node.cutting_cost
-                += (node.x1_curr - parent.x1_curr) * parent.subplate1curr_number_of_2_cuts * cutting_costs_[2].variable;
+        // Potential 4-cuts: the 4-cuts at the top of the 2-level sub-plate
+        // become cuts when it is heightened. The lengths of the 4-cuts don't
+        // change.
+        if (node.df == 2) {
+            node.number_of_potential_cuts[4] = parent.number_of_potential_cuts[4];
+            node.length_of_potential_cuts[4] = parent.length_of_potential_cuts[4];
         }
-        // With two stages, the waste of a soft left trim is separated in
-        // each 2-level sub-plate, so the 2-cuts start from the left of the
-        // bin.
-        Length w_2_cuts = (instance.parameters().number_of_stages == 2
-                && bin_type.left_trim_type == TrimType::Soft)?
-            node.x1_curr:
-            node.x1_curr - node.x1_prev;
-        if (node.df <= 1) { // New 2-level sub-plate.
-            if (node.y2_curr != y_end) {
-                node.cutting_cost += cutting_costs_[2].fixed + cutting_costs_[2].variable * w_2_cuts;
-            }
-        } else { // Same 2-level sub-plate.
-            if (parent.y2_curr != y_end && node.y2_curr == y_end) {
-                node.cutting_cost -= cutting_costs_[2].fixed + cutting_costs_[2].variable * w_2_cuts;
-            }
+        if (node.df == 2 && node.y2_curr > parent.y2_curr) {
+            add_cuts(4, node.number_of_potential_cuts[4], node.length_of_potential_cuts[4]);
+            node.number_of_potential_cuts[4] = 0;
+            node.length_of_potential_cuts[4] = 0;
+        }
+        if (node.item_type_id_1 != -1 && node.item_type_id_2 == -1
+                && node.y2_curr == node.y2_prev + h_j1) {
+            node.number_of_potential_cuts[4]++;
+            node.length_of_potential_cuts[4] += w_j;
+        } else if (node.item_type_id_1 != -1 || node.item_type_id_2 != -1) {
+            add_cuts(4, 1, w_j);
         }
 
-        // 1-cut cost.
-        if (node.df <= 0) { // New 1-level sub-plate.
-            if (node.x1_curr != x_end) {
-                node.cutting_cost += cutting_costs_[1].fixed + cutting_costs_[1].variable * h_1_cut;
-            }
-        } else { // Same 1-level sub-plate.
-            if (parent.x1_curr != x_end && node.x1_curr == x_end) {
-                node.cutting_cost -= cutting_costs_[1].fixed + cutting_costs_[1].variable * h_1_cut;
-            }
-        }
-
-        // Soft trim cuts. The solution separates the waste of a soft left
-        // trim with a 1-cut along the bin (a 3-cut in each 2-level
-        // sub-plate with two stages), and the waste of a soft bottom trim
-        // with a 2-cut in each 1-level sub-plate (a single 2-cut along the
-        // bin with two stages); see 'to_solution'.
-        if (bin_type.left_trim_type == TrimType::Soft
-                && bin_type.left_trim > 0) {
-            if (instance.parameters().number_of_stages >= 3) {
-                if (node.df < 0)
-                    node.cutting_cost += cutting_costs_[1].fixed + cutting_costs_[1].variable * h_1_cut;
-            } else {
-                if (node.df <= 1) { // New 2-level sub-plate.
-                    node.cutting_cost += cutting_costs_[3].fixed + cutting_costs_[3].variable * (node.y2_curr - node.y2_prev);
-                } else { // Same 2-level sub-plate.
-                    node.cutting_cost += cutting_costs_[3].variable * (node.y2_curr - parent.y2_curr);
-                }
-            }
-        }
-        if (bin_type.bottom_trim_type == TrimType::Soft
-                && bin_type.bottom_trim > 0) {
-            if (instance.parameters().number_of_stages >= 3) {
-                if (node.df <= 0) { // New 1-level sub-plate.
-                    node.cutting_cost += cutting_costs_[2].fixed + cutting_costs_[2].variable * (node.x1_curr - node.x1_prev);
-                } else { // Same 1-level sub-plate.
-                    node.cutting_cost += cutting_costs_[2].variable * (node.x1_curr - parent.x1_curr);
-                }
-            } else {
-                if (node.df < 0)
-                    node.cutting_cost += cutting_costs_[2].fixed + cutting_costs_[2].variable * w_2_cut;
-            }
-        }
-
-        // Bin cost (stage 0), charged once per new bin.
-        if (node.df < 0) {
-            node.cutting_cost += cutting_costs_[0].fixed + cutting_costs_[0].variable * bin_type.area();
-        }
+        // Cost of the bins, of the cuts of the closed sub-plates and of the
+        // cuts of the current sub-plates (no 4-cut is in a current
+        // sub-plate).
+        OpenCuts node_cuts = open_cuts(node);
+        node.cutting_cost
+            = cutting_costs_[0].fixed * node.number_of_bins
+            + cutting_costs_[0].variable * (previous_bins_area_[i] + bin_type.area())
+            + cutting_costs_[1].fixed * (node.number_of_cuts[1] + node_cuts.number[1])
+            + cutting_costs_[1].variable * (node.length_of_cuts[1] + node_cuts.number[1] * node_cuts.length[1])
+            + cutting_costs_[2].fixed * (node.number_of_cuts[2] + node_cuts.number[2])
+            + cutting_costs_[2].variable * (node.length_of_cuts[2] + node_cuts.number[2] * node_cuts.length[2])
+            + cutting_costs_[3].fixed * (node.number_of_cuts[3] + node_cuts.number[3])
+            + cutting_costs_[3].variable * (node.length_of_cuts[3] + node_cuts.number[3] * node_cuts.length[3])
+            + cutting_costs_[4].fixed * node.number_of_cuts[4]
+            + cutting_costs_[4].variable * node.length_of_cuts[4];
     }
 
-    // Update current_area_ and waste_
+    // Update current_area_ and waste_. The area doesn't include the trims,
+    // even the soft ones, since no item can be placed there. When all the
+    // items are packed, the last bin is used up to its residual, which starts
+    // after the cut thickness of the last cut.
+    Length x_max = bin_type.rect.w - bin_type.right_trim;
+    Length y_max = bin_type.rect.h - bin_type.top_trim;
     node.current_area = previous_bins_area_[i];
     if (full(node)) {
+        Length cut_thickness = instance.parameters().cut_thickness;
         node.current_area += (instance.parameters().number_of_stages >= 3)?
-            (node.x1_curr - bin_type.left_trim) * h:
-            (node.y2_curr - bin_type.bottom_trim) * w;
+            ((std::min)(node.x1_curr + cut_thickness, x_max) - bin_type.left_trim) * h:
+            ((std::min)(node.y2_curr + cut_thickness, y_max) - bin_type.bottom_trim) * w;
     } else {
         node.current_area += (node.x1_prev - bin_type.left_trim) * h
-            + (node.x1_curr - node.x1_prev) * (node.y2_prev - bin_type.bottom_trim)
-            + (node.x3_curr - node.x1_prev) * (node.y2_curr - node.y2_prev);
+            + ((std::min)(node.x1_curr, x_max) - node.x1_prev) * (node.y2_prev - bin_type.bottom_trim)
+            + ((std::min)(node.x3_curr, x_max) - node.x1_prev) * ((std::min)(node.y2_curr, y_max) - node.y2_prev);
     }
     node.waste = node.current_area - node.item_area;
     if (node.waste < 0) {
@@ -765,7 +801,7 @@ BranchingScheme::Node BranchingScheme::child_tmp(
                 "node.y2_curr: " + std::to_string(node.y2_curr) + "; "
                 "node.x3_curr: " + std::to_string(node.x3_curr) + ".");
     }
-    node.cutting_cost += instance.parameters().waste_cost * (node.waste - parent.waste);
+    node.cutting_cost += instance.parameters().waste_cost * node.waste;
 
     return node;
 }
@@ -1398,9 +1434,14 @@ void BranchingScheme::update(
 
     // Update insertion.x1 and insertion.z1 with respect to one1cut()
     //std::cout << "- update maximum_number_1_cuts  " << insertion << std::endl;
+    // The number of 1-cuts of the bin before the new 1-level sub-plate: in a
+    // new bin, the cut of the waste of a soft left trim with three stages.
+    Counter number_of_1_cuts = (insertion.df == 0)?
+        parent.bincurr_number_of_1_cuts:
+        (instance.parameters().number_of_stages >= 3 && bin_type.has_soft_left_trim());
     if (instance.parameters().maximum_number_1_cuts != -1
-            && insertion.df == 0
-            && parent.bincurr_number_of_1_cuts == instance.parameters().maximum_number_1_cuts
+            && insertion.df <= 0
+            && number_of_1_cuts == instance.parameters().maximum_number_1_cuts
             && insertion.x1 != w) {
         if (insertion.z1 == 0) {
             if (insertion.x1 + cut_thickness + min_waste > w_physical)
@@ -1413,9 +1454,15 @@ void BranchingScheme::update(
 
     // Update insertion.y2 and insertion.z2 with respect to one2cut()
     //std::cout << "- update maximum_number_2_cuts  " << insertion << std::endl;
+    // The number of 2-cuts of the 1-level sub-plate before the new 2-level
+    // sub-plate: in a new 1-level sub-plate, the cut of the waste of a soft
+    // bottom trim.
+    Counter number_of_2_cuts = (insertion.df == 1)?
+        parent.subplate1curr_number_of_2_cuts:
+        bin_type.has_soft_bottom_trim();
     if (maximum_number_2_cuts_ != -1
-            && insertion.df == 1
-            && parent.subplate1curr_number_of_2_cuts == maximum_number_2_cuts_
+            && insertion.df <= 1
+            && number_of_2_cuts == maximum_number_2_cuts_
             && insertion.y2 != h) {
         if (insertion.z2 == 0) {
             if (insertion.y2 + cut_thickness + min_waste > h_physical)
@@ -1985,13 +2032,11 @@ Solution BranchingScheme::to_solution(
 
             const BinType& bin_type = instance(current_node->first_stage_orientation).bin_type(bin_type_id);
             if (instance().parameters().number_of_stages >= 3) {
-                if (bin_type.left_trim_type == TrimType::Soft
-                        && bin_type.left_trim > 0) {
+                if (bin_type.has_soft_left_trim()) {
                     solution_builder.add_node(1, bin_type.left_trim - cut_thickness);
                 }
             } else {
-                if (bin_type.bottom_trim_type == TrimType::Soft
-                        && bin_type.bottom_trim > 0) {
+                if (bin_type.has_soft_bottom_trim()) {
                     solution_builder.add_node(1, bin_type.bottom_trim - cut_thickness);
                 }
             }
@@ -2013,8 +2058,7 @@ Solution BranchingScheme::to_solution(
 
                 BinTypeId bin_type_id = bin_type_ids_[number_of_bins - 1];
                 const BinType& bin_type = instance(current_node->first_stage_orientation).bin_type(bin_type_id);
-                if (bin_type.bottom_trim_type == TrimType::Soft
-                        && bin_type.bottom_trim > 0) {
+                if (bin_type.has_soft_bottom_trim()) {
                     solution_builder.add_node(2, bin_type.bottom_trim - cut_thickness);
                 }
             }
@@ -2037,8 +2081,7 @@ Solution BranchingScheme::to_solution(
             if (instance().parameters().number_of_stages == 2) {
                 BinTypeId bin_type_id = bin_type_ids_[number_of_bins - 1];
                 const BinType& bin_type = instance(current_node->first_stage_orientation).bin_type(bin_type_id);
-                if (bin_type.left_trim_type == TrimType::Soft
-                        && bin_type.left_trim > 0) {
+                if (bin_type.has_soft_left_trim()) {
                     solution_builder.add_node(2, bin_type.left_trim - cut_thickness);
                 }
             }

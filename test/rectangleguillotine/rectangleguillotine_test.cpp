@@ -232,6 +232,55 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path(""),
                 fs::path(""),
                 fs::path("data") / "rectangleguillotine" / "tests" / "soft_trims_cutting_cost_two_stages" / "solution.csv",
+            }, {
+                // The residual of the solution included the trims in its area,
+                // which doesn't include them.
+                fs::path("data") / "rectangleguillotine" / "tests" / "waste_cost_top_trim" / "instance.json",
+                fs::path(""),
+                fs::path(""),
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "waste_cost_top_trim" / "solution.csv",
+            }, {
+                // The tree search charged the cut of a 3-level sub-plate
+                // without item, which the solution merges with the waste.
+                fs::path("data") / "rectangleguillotine" / "tests" / "cutting_cost_defect_waste" / "instance.json",
+                fs::path(""),
+                fs::path(""),
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "cutting_cost_defect_waste" / "solution.csv",
+            }, {
+                // The waste cost of the tree search didn't include the cut
+                // thickness of the last 1-cut.
+                fs::path("data") / "rectangleguillotine" / "tests" / "waste_cost_cut_thickness" / "instance.json",
+                fs::path(""),
+                fs::path(""),
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "waste_cost_cut_thickness" / "solution.csv",
+            }, {
+                // Only one of the two 3-cuts was charged when the 1-level
+                // sub-plate is widened beyond the new 3-level sub-plate
+                // (because of a defect).
+                fs::path("data") / "rectangleguillotine" / "tests" / "cutting_cost_defect_3_cuts" / "instance.json",
+                fs::path(""),
+                fs::path(""),
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "cutting_cost_defect_3_cuts" / "solution.csv",
+            }, {
+                // The cut of the waste of a soft left trim wasn't counted in
+                // the maximum number of 1-cuts.
+                fs::path("data") / "rectangleguillotine" / "tests" / "soft_trim_maximum_number_1_cuts" / "instance.json",
+                fs::path(""),
+                fs::path(""),
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "soft_trim_maximum_number_1_cuts" / "solution.csv",
+            }, {
+                // The cut of the waste of a soft bottom trim wasn't counted in
+                // the maximum number of 2-cuts.
+                fs::path("data") / "rectangleguillotine" / "tests" / "soft_trim_maximum_number_2_cuts" / "instance.json",
+                fs::path(""),
+                fs::path(""),
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "soft_trim_maximum_number_2_cuts" / "solution.csv",
             }}));
 
 TEST(RectangleGuillotine, SolutionItemInSoftTrim)

@@ -1,0 +1,43 @@
+{
+    "objective": "bin-packing-cutting-cost",
+    "cutting_costs": [
+        {
+            "fixed": 0,
+            "variable": 0
+        },
+        {
+            "fixed": 0,
+            "variable": 0
+        },
+        {
+            "fixed": 0,
+            "variable": 0
+        },
+        {
+            "fixed": 0,
+            "variable": 2
+        }
+    ],
+    "bin_types": [
+        {
+            "width": 600,
+            "height": 600,
+            "copies": 4,
+            "defects": [
+                {
+                    "x": 292,
+                    "y": 365,
+                    "width": 32,
+                    "height": 6
+                }
+            ]
+        }
+    ],
+    "item_types": [
+        {
+            "width": 86,
+            "height": 149,
+            "copies": 2
+        }
+    ]
+}

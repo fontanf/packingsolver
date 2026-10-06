@@ -118,9 +118,16 @@ void Solution::update_indicators(
             ++item_type_copies_in_bin[node.item_type_id];
         }
 
-        // Subtract residual area.
-        if (node.item_type_id == -3)
-            area_ -= (node.t - node.b) * (node.r - node.l);
+        // Subtract residual area. The area of the bin doesn't include the
+        // trims, so only the part of the residual inside the trims.
+        if (node.item_type_id == -3) {
+            Length l = (std::max)(node.l, bin_type.left_trim);
+            Length r = (std::min)(node.r, bin_type.rect.w - bin_type.right_trim);
+            Length b = (std::max)(node.b, bin_type.bottom_trim);
+            Length t = (std::min)(node.t, bin_type.rect.h - bin_type.top_trim);
+            if (l < r && b < t)
+                area_ -= (Area)(t - b) * (r - l);
+        }
 
         // Update width_ and height_.
         if (node.d > 0 && node.item_type_id != -3) {

@@ -12,7 +12,7 @@
     "maximum_number_1_cuts": 20,
     "maximum_number_2_cuts": 20,
     "cut_through_defects": true,
-    "waste_cost": 0,
+    "waste_cost": 2,
     "cutting_costs": [
         {
             "fixed": 100,
