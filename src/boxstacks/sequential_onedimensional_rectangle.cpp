@@ -2,6 +2,9 @@
 
 #include "packingsolver/boxstacks/algorithm_formatter.hpp"
 #include "boxstacks/solution_builder.hpp"
+#include "boxstacks/instance_flipper.hpp"
+#include "boxstacks/tree_search.hpp"
+#include "algorithms/thread_pool.hpp"
 
 #include "packingsolver/onedimensional/instance_builder.hpp"
 
@@ -212,7 +215,8 @@ SequentialOneDimensionalRectangleSubproblemOutput sequential_onedimensional_rect
         std::vector<StackabilityGroup> stackability_groups,
         const rectangle::Instance& rectangle_instance,
         const std::vector<std::tuple<StackabilityId, int, StackId>>& rectangle2boxstacks,
-        const rectangle::BranchingScheme::Parameters rectangle_parameters)
+        const rectangle::BranchingScheme::Parameters rectangle_parameters,
+        NodeId rectangle_queue_size)
 {
     auto logger = parameters.get_logger();
     SequentialOneDimensionalRectangleSubproblemOutput output(instance);
@@ -229,8 +233,8 @@ SequentialOneDimensionalRectangleSubproblemOutput sequential_onedimensional_rect
     treesearchsolver::IterativeBeamSearch2Parameters<rectangle::BranchingScheme> ibs_parameters;
     ibs_parameters.verbosity_level = 0;
     ibs_parameters.timer = parameters.timer;
-    ibs_parameters.minimum_size_of_the_queue = parameters.rectangle_queue_size;
-    ibs_parameters.maximum_size_of_the_queue = parameters.rectangle_queue_size;
+    ibs_parameters.minimum_size_of_the_queue = rectangle_queue_size;
+    ibs_parameters.maximum_size_of_the_queue = rectangle_queue_size;
     auto rectangle_begin = std::chrono::steady_clock::now();
     auto rectangle_output = treesearchsolver::iterative_beam_search_2<rectangle::BranchingScheme>(
             rectangle_branching_scheme,
@@ -420,7 +424,8 @@ SequentialOneDimensionalRectangleSubproblemOutput sequential_onedimensional_rect
     // Save the solution if feasible.
     if (solution.compute_weight_constraints_violation() == 0) {
         std::stringstream ss;
-        ss << "iteration " << sor_output.number_of_iterations;
+        ss << "it " << sor_output.number_of_iterations
+            << " q " << rectangle_queue_size;
         sor_algorithm_formatter.update_solution(solution, ss.str());
         parameters.new_solution_callback(sor_output);
     }
@@ -429,19 +434,24 @@ SequentialOneDimensionalRectangleSubproblemOutput sequential_onedimensional_rect
     return output;
 }
 
-const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimensional_rectangle(
+namespace
+{
+
+/**
+ * Sequential onedimensional rectangle algorithm filling the bin along X,
+ * without the tree search step.
+ */
+void sequential_onedimensional_rectangle_sor(
         const Instance& instance,
-        const SequentialOneDimensionalRectangleParameters& parameters)
+        const SequentialOneDimensionalRectangleParameters& parameters,
+        NodeId rectangle_queue_size,
+        SequentialOneDimensionalRectangleOutput& output,
+        AlgorithmFormatter& algorithm_formatter)
 {
     auto logger = parameters.get_logger();
     FFOT_LOG_FOLD_START(
             logger,
             "sequential_onedimensional_rectangle" << std::endl);
-
-    SequentialOneDimensionalRectangleOutput output(instance);
-    AlgorithmFormatter algorithm_formatter(instance, parameters, output);
-    algorithm_formatter.start();
-    algorithm_formatter.print_header();
 
     const BinType& bin_type = instance.bin_type(0);
     Length yi = bin_type.box.y;
@@ -756,8 +766,7 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
             auto onedim_solution = onedim_output.solution_pool.best();
             if (parameters.timer.needs_to_end()) {
                 FFOT_LOG_FOLD_END(logger, "");
-                algorithm_formatter.end();
-                return output;
+                return;
             }
             if (!onedim_solution.full()) {
                 throw std::runtime_error(
@@ -816,7 +825,12 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
 
             // Build rectangle instance.
             rectangle::InstanceBuilder rectangle_instance_builder;
-            rectangle_instance_builder.set_objective(Objective::SequentialOneDimensionalRectangleSubproblem);
+            // For the OpenDimensionX objective, the rectangle subproblem has the
+            // same objective.
+            rectangle_instance_builder.set_objective(
+                    (instance.objective() == Objective::OpenDimensionX)?
+                    Objective::OpenDimensionX:
+                    Objective::SequentialOneDimensionalRectangleSubproblem);
             rectangle_instance_builder.set_unloading_constraint(instance.unloading_constraint());
 
             // Add bin types.
@@ -981,16 +995,16 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
                             stackability_groups,
                             rectangle_instance,
                             rectangle2boxstacks,
-                            rectangle_parameters);
+                            rectangle_parameters,
+                            rectangle_queue_size);
                     if (subproblem_output.solution.full())
                         x_max = (std::min)(x_max, subproblem_output.solution.x_max());
                     failed_middle_axle_weight_constraint_cur |= (subproblem_output.solution.compute_middle_axle_weight_constraints_violation() > 0);
                     failed_rear_axle_weight_constraint_cur |= (subproblem_output.solution.compute_rear_axle_weight_constraints_violation() > 0);
-                    if (output.solution_pool.best().full()) {
+                    if (output.is_proven_optimal()) {
                         FFOT_LOG_FOLD_END(logger, "");
                         FFOT_LOG_FOLD_END(logger, "");
-                        algorithm_formatter.end();
-                        return output;
+                        return;
                     }
                 }
 
@@ -1010,16 +1024,16 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
                             stackability_groups,
                             rectangle_instance,
                             rectangle2boxstacks,
-                            rectangle_parameters);
+                            rectangle_parameters,
+                            rectangle_queue_size);
                     if (subproblem_output.solution.full())
                         x_max = (std::min)(x_max, subproblem_output.solution.x_max());
                     failed_middle_axle_weight_constraint_cur |= (subproblem_output.solution.compute_middle_axle_weight_constraints_violation() > 0);
                     failed_rear_axle_weight_constraint_cur |= (subproblem_output.solution.compute_rear_axle_weight_constraints_violation() > 0);
-                    if (output.solution_pool.best().full()) {
+                    if (output.is_proven_optimal()) {
                         FFOT_LOG_FOLD_END(logger, "");
                         FFOT_LOG_FOLD_END(logger, "");
-                        algorithm_formatter.end();
-                        return output;
+                        return;
                     }
                 }
 
@@ -1040,12 +1054,12 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
                             stackability_groups,
                             rectangle_instance,
                             rectangle2boxstacks,
-                            rectangle_parameters);
-                    if (output.solution_pool.best().full()) {
+                            rectangle_parameters,
+                            rectangle_queue_size);
+                    if (output.is_proven_optimal()) {
                         FFOT_LOG_FOLD_END(logger, "");
                         FFOT_LOG_FOLD_END(logger, "");
-                        algorithm_formatter.end();
-                        return output;
+                        return;
                     }
 
                 } else if (failed_rear_axle_weight_constraint_cur) {
@@ -1065,15 +1079,15 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
                             stackability_groups,
                             rectangle_instance,
                             rectangle2boxstacks,
-                            rectangle_parameters);
-                    if (output.solution_pool.best().full()) {
+                            rectangle_parameters,
+                            rectangle_queue_size);
+                    if (output.is_proven_optimal()) {
                         FFOT_LOG_FOLD_END(logger, "");
                         FFOT_LOG_FOLD_END(logger, "");
-                        algorithm_formatter.end();
-                        return output;
+                        return;
                     }
 
-                } else {
+                } else if (!output.solution_pool.best().full()) {
                     try_to_pack_all_items = false;
                 }
             }
@@ -1102,14 +1116,14 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
                             stackability_groups,
                             rectangle_instance,
                             rectangle2boxstacks,
-                            rectangle_parameters);
+                            rectangle_parameters,
+                            rectangle_queue_size);
                     failed_middle_axle_weight_constraint_cur |= (subproblem_output.solution.compute_middle_axle_weight_constraints_violation() > 0);
                     failed_rear_axle_weight_constraint_cur |= (subproblem_output.solution.compute_rear_axle_weight_constraints_violation() > 0);
-                    if (output.solution_pool.best().full()) {
+                    if (output.is_proven_optimal()) {
                         FFOT_LOG_FOLD_END(logger, "");
                         FFOT_LOG_FOLD_END(logger, "");
-                        algorithm_formatter.end();
-                        return output;
+                        return;
                     }
                 }
 
@@ -1129,12 +1143,12 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
                             stackability_groups,
                             rectangle_instance,
                             rectangle2boxstacks,
-                            rectangle_parameters);
-                    if (output.solution_pool.best().full()) {
+                            rectangle_parameters,
+                            rectangle_queue_size);
+                    if (output.is_proven_optimal()) {
                         FFOT_LOG_FOLD_END(logger, "");
                         FFOT_LOG_FOLD_END(logger, "");
-                        algorithm_formatter.end();
-                        return output;
+                        return;
                     }
                     failed_middle_axle_weight_constraint_cur |= (subproblem_output.solution.compute_middle_axle_weight_constraints_violation() > 0);
                     failed_rear_axle_weight_constraint_cur |= (subproblem_output.solution.compute_rear_axle_weight_constraints_violation() > 0);
@@ -1146,8 +1160,7 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
                         && output.number_of_stack_splits == 0) {
                     FFOT_LOG_FOLD_END(logger, "");
                     FFOT_LOG_FOLD_END(logger, "");
-                    algorithm_formatter.end();
-                    return output;
+                    return;
                 }
 
                 if (failed_middle_axle_weight_constraint_cur) {
@@ -1167,12 +1180,12 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
                             stackability_groups,
                             rectangle_instance,
                             rectangle2boxstacks,
-                            rectangle_parameters);
-                    if (output.solution_pool.best().full()) {
+                            rectangle_parameters,
+                            rectangle_queue_size);
+                    if (output.is_proven_optimal()) {
                         FFOT_LOG_FOLD_END(logger, "");
                         FFOT_LOG_FOLD_END(logger, "");
-                        algorithm_formatter.end();
-                        return output;
+                        return;
                     }
 
                 } else if (failed_rear_axle_weight_constraint) {
@@ -1192,11 +1205,11 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
                             stackability_groups,
                             rectangle_instance,
                             rectangle2boxstacks,
-                            rectangle_parameters);
-                    if (output.solution_pool.best().full()) {
+                            rectangle_parameters,
+                            rectangle_queue_size);
+                    if (output.is_proven_optimal()) {
                         FFOT_LOG_FOLD_END(logger, "");
-                        algorithm_formatter.end();
-                        return output;
+                        return;
                     }
 
                 }
@@ -1312,6 +1325,439 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
     }
 
     FFOT_LOG_FOLD_END(logger, "");
+}
+
+/**
+ * Copy the parameters of the algorithm for a call in a single direction.
+ */
+SequentialOneDimensionalRectangleParameters direction_parameters(
+        const SequentialOneDimensionalRectangleParameters& parameters,
+        AlgorithmFormatter& algorithm_formatter)
+{
+    SequentialOneDimensionalRectangleParameters direction_parameters;
+    direction_parameters.verbosity_level = 0;
+    direction_parameters.logger = parameters.get_logger();
+    direction_parameters.timer = parameters.timer;
+    direction_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+    direction_parameters.sequential = parameters.sequential;
+    direction_parameters.directions = {Direction::X};
+    direction_parameters.optimization_mode = parameters.optimization_mode;
+    direction_parameters.onedimensional_parameters = parameters.onedimensional_parameters;
+    direction_parameters.anytime_rectangle_initial_queue_size = parameters.anytime_rectangle_initial_queue_size;
+    direction_parameters.anytime_tree_search_initial_queue_size = parameters.anytime_tree_search_initial_queue_size;
+    direction_parameters.not_anytime_rectangle_queue_size = parameters.not_anytime_rectangle_queue_size;
+    direction_parameters.not_anytime_tree_search_queue_size = parameters.not_anytime_tree_search_queue_size;
+    direction_parameters.tree_search_guides = parameters.tree_search_guides;
+    direction_parameters.move_intra_shift = parameters.move_intra_shift;
+    direction_parameters.move_intra_swap = parameters.move_intra_swap;
+    direction_parameters.move_add = parameters.move_add;
+    direction_parameters.move_inter_swap = parameters.move_inter_swap;
+    return direction_parameters;
+}
+
+/**
+ * Add the statistics of 'direction_output' to 'output'.
+ */
+void add_statistics(
+        SequentialOneDimensionalRectangleOutput& output,
+        const SequentialOneDimensionalRectangleOutput& direction_output)
+{
+    output.number_of_iterations += direction_output.number_of_iterations;
+    output.number_of_stack_splits += direction_output.number_of_stack_splits;
+    output.maximum_number_of_items = (std::max)(
+            output.maximum_number_of_items,
+            direction_output.maximum_number_of_items);
+    output.failed = output.failed || direction_output.failed;
+    output.number_of_onedimensional_calls += direction_output.number_of_onedimensional_calls;
+    output.onedimensional_time += direction_output.onedimensional_time;
+    output.number_of_rectangle_calls += direction_output.number_of_rectangle_calls;
+    output.rectangle_time += direction_output.rectangle_time;
+    output.rectangle_subproblem_explored_exhaustively
+        = output.rectangle_subproblem_explored_exhaustively
+        || direction_output.rectangle_subproblem_explored_exhaustively;
+    output.number_of_passes += direction_output.number_of_passes;
+    output.first_pass_failed = output.first_pass_failed || direction_output.first_pass_failed;
+    output.first_pass_full = output.first_pass_full || direction_output.first_pass_full;
+    output.number_of_tree_search_calls += direction_output.number_of_tree_search_calls;
+    output.number_of_tree_search_perfect += direction_output.number_of_tree_search_perfect;
+    output.number_of_tree_search_better += direction_output.number_of_tree_search_better;
+    output.tree_search_time += direction_output.tree_search_time;
+}
+
+/**
+ * Sequential onedimensional rectangle algorithm filling the bin along X.
+ *
+ * Each pass runs the sequential onedimensional rectangle steps, followed by
+ * the tree search step. In 'Anytime' mode, successive passes are performed
+ * with growing queue sizes, so that a time limit or a manual stop still
+ * leaves the tree search a chance to run, instead of the growth of the
+ * rectangle queue size consuming the whole budget by itself before the tree
+ * search is ever considered.
+ *
+ * The solutions are reported to 'local_output' if it is not 'nullptr', to
+ * 'algorithm_formatter' otherwise. The returned output contains the
+ * statistics of the run.
+ */
+SequentialOneDimensionalRectangleOutput sequential_onedimensional_rectangle_x(
+        const Instance& instance,
+        const SequentialOneDimensionalRectangleParameters& parameters,
+        AlgorithmFormatter& algorithm_formatter,
+        packingsolver::Output<Instance, Solution>* local_output)
+{
+    if (algorithm_formatter.end_boolean())
+        return SequentialOneDimensionalRectangleOutput(instance);
+
+    // The passes work on their own output, so that their decisions don't
+    // depend on solutions found in parallel in the other direction.
+    SequentialOneDimensionalRectangleParameters x_parameters
+        = direction_parameters(parameters, algorithm_formatter);
+    x_parameters.new_solution_callback = [&algorithm_formatter, local_output](
+            const boxstacks::Output& sor_output)
+        {
+            std::string label = "X " + sor_output.solution_pool.best_label();
+            if (local_output != nullptr) {
+                local_output->solution_pool.add(sor_output.solution_pool.best(), label);
+            } else {
+                algorithm_formatter.update_solution(sor_output.solution_pool.best(), label);
+            }
+            algorithm_formatter.update_bounds(sor_output);
+        };
+    SequentialOneDimensionalRectangleOutput x_output(instance);
+    AlgorithmFormatter x_algorithm_formatter(instance, x_parameters, x_output);
+    x_algorithm_formatter.start();
+    x_algorithm_formatter.print_header();
+
+    // Trivial bounds, so that a solution packing all items is detected as
+    // optimal when it is.
+    switch (instance.objective()) {
+    case Objective::Knapsack: {
+        Profit profit = 0;
+        for (ItemTypeId item_type_id = 0;
+                item_type_id < instance.number_of_item_types();
+                ++item_type_id) {
+            const ItemType& item_type = instance.item_type(item_type_id);
+            if (item_type.profit > 0)
+                profit += item_type.profit * item_type.copies;
+        }
+        x_algorithm_formatter.update_knapsack_bound(profit);
+        break;
+    } case Objective::BinPacking: {
+        if (instance.number_of_items() > 0)
+            x_algorithm_formatter.update_bin_packing_bound(1);
+        break;
+    } case Objective::VariableSizedBinPacking: {
+        if (instance.number_of_items() > 0) {
+            Profit cost = std::numeric_limits<Profit>::infinity();
+            for (BinTypeId bin_type_id = 0;
+                    bin_type_id < instance.number_of_bin_types();
+                    ++bin_type_id) {
+                const BinType& bin_type = instance.bin_type(bin_type_id);
+                if (bin_type.copies > 0)
+                    cost = (std::min)(cost, bin_type.cost);
+            }
+            if (cost < std::numeric_limits<Profit>::infinity())
+                x_algorithm_formatter.update_variable_sized_bin_packing_bound(cost);
+        }
+        break;
+    } default: {
+        break;
+    }
+    }
+
+    bool failed = false;
+    for (Counter growth_factor = 1;;) {
+        NodeId rectangle_queue_size
+            = x_parameters.anytime_rectangle_initial_queue_size
+            * growth_factor;
+        NodeId tree_search_queue_size
+            = x_parameters.anytime_tree_search_initial_queue_size
+            * growth_factor;
+        if (x_parameters.optimization_mode != OptimizationMode::Anytime) {
+            rectangle_queue_size = x_parameters.not_anytime_rectangle_queue_size;
+            tree_search_queue_size = x_parameters.not_anytime_tree_search_queue_size;
+        }
+
+        x_output.failed = false;
+        x_output.rectangle_subproblem_explored_exhaustively = false;
+        sequential_onedimensional_rectangle_sor(
+                instance,
+                x_parameters,
+                rectangle_queue_size,
+                x_output,
+                x_algorithm_formatter);
+        bool pass_failed = x_output.failed;
+        failed = failed || pass_failed;
+        x_output.number_of_passes++;
+
+        // The boxstacks tree search is significantly more expensive than the
+        // steps above. Run it only if it looks promising enough:
+        // - The solution above violated the axle weight constraints (no
+        //   reason to expect the tree search would do better otherwise).
+        // - The weight of every unpacked item is greater than the remaining
+        //   capacity (no way to pack more regardless of geometry).
+        // A full pack already sets 'end_boolean()' on its own (every
+        // 'update_solution()' call checks 'is_proven_optimal()'), so no
+        // separate check for it is needed here.
+        bool run_tree_search = false;
+        if (!x_algorithm_formatter.end_boolean()
+                && !x_parameters.timer.needs_to_end()) {
+            run_tree_search = pass_failed;
+            bool no_lighter_item = true;
+            for (ItemTypeId item_type_id = 0;
+                    item_type_id < instance.number_of_item_types();
+                    ++item_type_id) {
+                const ItemType& item_type = instance.item_type(item_type_id);
+                if (x_output.solution_pool.best().item_copies(item_type_id) == item_type.copies)
+                    continue;
+                if (x_output.solution_pool.best().item_weight() + item_type.weight <= instance.bin_weight())
+                    no_lighter_item = false;
+            }
+            if (no_lighter_item)
+                run_tree_search = false;
+        }
+
+        if (run_tree_search) {
+            auto tree_search_begin = std::chrono::steady_clock::now();
+            Profit sor_profit = x_output.solution_pool.best().profit();
+
+            TreeSearchParameters tree_search_parameters;
+            tree_search_parameters.verbosity_level = 0;
+            tree_search_parameters.timer = x_parameters.timer;
+            tree_search_parameters.timer.add_end_boolean(&x_algorithm_formatter.end_boolean());
+            tree_search_parameters.optimization_mode
+                = (x_parameters.optimization_mode == OptimizationMode::NotAnytimeSequential)?
+                OptimizationMode::NotAnytimeSequential:
+                OptimizationMode::NotAnytime;
+            tree_search_parameters.not_anytime_tree_search_queue_size = tree_search_queue_size;
+            tree_search_parameters.guides = x_parameters.tree_search_guides;
+            // The bin is filled along X here; filling it along Y is done by
+            // running this function on the flipped instance.
+            tree_search_parameters.directions = {Direction::X};
+            tree_search_parameters.maximum_number_of_selected_items = x_output.maximum_number_of_items;
+            tree_search_parameters.new_solution_callback = [&x_algorithm_formatter, tree_search_queue_size](
+                    const boxstacks::Output& tree_search_output)
+                {
+                    std::stringstream ss;
+                    ss << "TS " << tree_search_output.solution_pool.best_label()
+                        << " q " << tree_search_queue_size;
+                    x_algorithm_formatter.update_solution(
+                            tree_search_output.solution_pool.best(),
+                            ss.str());
+                    // Forward any bound the tree search proved: once it
+                    // matches the best profit/cost found, this sets
+                    // 'end_boolean()' the same way a full pack already does.
+                    x_algorithm_formatter.update_bounds(tree_search_output);
+                };
+            tree_search(instance, tree_search_parameters);
+
+            auto tree_search_end = std::chrono::steady_clock::now();
+            x_output.tree_search_time += std::chrono::duration_cast<
+                std::chrono::duration<double>>(tree_search_end - tree_search_begin).count();
+            x_output.number_of_tree_search_calls++;
+            if (x_output.solution_pool.best().full()) {
+                x_output.number_of_tree_search_perfect++;
+            } else if (x_output.solution_pool.best().profit() > sor_profit) {
+                x_output.number_of_tree_search_better++;
+            }
+        }
+
+        if (growth_factor == 1) {
+            x_output.first_pass_failed = pass_failed;
+            x_output.first_pass_full = x_output.solution_pool.best().full();
+        }
+
+        // Check end.
+        if (x_algorithm_formatter.end_boolean())
+            break;
+        if (x_parameters.timer.needs_to_end())
+            break;
+        if (x_parameters.optimization_mode != OptimizationMode::Anytime)
+            break;
+        // A larger rectangle queue size is guaranteed not to change the
+        // result of the rectangle subproblem (see
+        // 'rectangle_subproblem_explored_exhaustively''s own doc comment).
+        // That alone isn't enough to stop, though: the tree search (a
+        // distinct search space) may still benefit from growing further, so
+        // only stop here when it isn't even being tried - otherwise growing
+        // further would be pointless on both fronts, and on a small/easy
+        // instance could otherwise keep doubling long after every pass above
+        // returns in microseconds, until 'growth_factor' overflows.
+        if (!run_tree_search
+                && x_output.rectangle_subproblem_explored_exhaustively)
+            break;
+
+        growth_factor = std::max(
+                growth_factor + 1,
+                (Counter)(growth_factor * 2));
+    }
+    x_output.failed = failed;
+
+    x_algorithm_formatter.end();
+    return x_output;
+}
+
+/**
+ * Sequential onedimensional rectangle algorithm filling the bin along Y.
+ *
+ * The algorithm is run along X on the flipped instance, and its solutions
+ * are unflipped.
+ *
+ * The solutions are reported to 'local_output' if it is not 'nullptr', to
+ * 'algorithm_formatter' otherwise. The returned output contains the
+ * statistics of the run.
+ */
+SequentialOneDimensionalRectangleOutput sequential_onedimensional_rectangle_y(
+        const Instance& instance,
+        const SequentialOneDimensionalRectangleParameters& parameters,
+        AlgorithmFormatter& algorithm_formatter,
+        packingsolver::Output<Instance, Solution>* local_output)
+{
+    SequentialOneDimensionalRectangleOutput output(instance);
+    if (algorithm_formatter.end_boolean())
+        return output;
+
+    // Build flipped instance.
+    InstanceFlipper instance_flipper(instance);
+    const Instance& flipped_instance = instance_flipper.flipped_instance();
+
+    SequentialOneDimensionalRectangleParameters flipped_parameters
+        = direction_parameters(parameters, algorithm_formatter);
+    flipped_parameters.new_solution_callback = [
+        &algorithm_formatter, local_output, &instance_flipper](
+                const boxstacks::Output& flipped_output)
+        {
+            std::string label = flipped_output.solution_pool.best_label();
+            if (!label.empty() && label[0] == 'X')
+                label[0] = 'Y';
+            Solution solution = instance_flipper.unflip_solution(
+                    flipped_output.solution_pool.best());
+            if (local_output != nullptr) {
+                local_output->solution_pool.add(solution, label);
+            } else {
+                algorithm_formatter.update_solution(solution, label);
+            }
+            algorithm_formatter.update_bounds(flipped_output);
+        };
+    SequentialOneDimensionalRectangleOutput flipped_output = sequential_onedimensional_rectangle(
+            flipped_instance,
+            flipped_parameters);
+    // 'flipped_output' refers to 'flipped_instance', which is destroyed at
+    // the end of this function, so only its statistics are returned.
+    add_statistics(output, flipped_output);
+    return output;
+}
+
+}
+
+const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimensional_rectangle(
+        const Instance& instance,
+        const SequentialOneDimensionalRectangleParameters& parameters)
+{
+    SequentialOneDimensionalRectangleOutput output(instance);
+    AlgorithmFormatter algorithm_formatter(instance, parameters, output);
+    algorithm_formatter.start();
+    algorithm_formatter.print_header();
+
+    // Directions in which the bin is filled. Same rules as in
+    // 'tree_search()': the axle weight constraints of a semi-trailer truck
+    // are only defined along X.
+    std::vector<Direction> directions = parameters.directions;
+    if (directions.empty()) {
+        if (instance.objective() == Objective::OpenDimensionX) {
+            directions = {Direction::X};
+        } else if (instance.objective() == Objective::OpenDimensionY) {
+            directions = {Direction::Y};
+        } else if (instance.unloading_constraint() == rectangle::UnloadingConstraint::IncreasingX
+                || instance.unloading_constraint() == rectangle::UnloadingConstraint::OnlyXMovements) {
+            directions = {Direction::X};
+        } else if (instance.unloading_constraint() == rectangle::UnloadingConstraint::IncreasingY
+                || instance.unloading_constraint() == rectangle::UnloadingConstraint::OnlyYMovements) {
+            directions = {Direction::Y};
+        } else if (instance.bin_type(0).semi_trailer_truck_data.is) {
+            directions = {Direction::X};
+        } else {
+            directions = {Direction::X, Direction::Y};
+        }
+    }
+
+    if (directions == std::vector<Direction>{Direction::X}) {
+        add_statistics(output, sequential_onedimensional_rectangle_x(
+                    instance,
+                    parameters,
+                    algorithm_formatter,
+                    nullptr));
+    } else if (directions == std::vector<Direction>{Direction::Y}) {
+        add_statistics(output, sequential_onedimensional_rectangle_y(
+                    instance,
+                    parameters,
+                    algorithm_formatter,
+                    nullptr));
+    } else {
+        // 'sequential_onedimensional_rectangle_x' and
+        // 'sequential_onedimensional_rectangle_y' run in parallel; in
+        // 'NotAnytimeDeterministic' mode, each writes its solutions to its
+        // own local output instead of the shared 'algorithm_formatter', so
+        // that they can be replayed into it in a fixed, deterministic order
+        // (X then Y) once both have terminated, instead of the
+        // (non-deterministic) order in which they actually finish. Their
+        // statistics are merged once both have terminated.
+        bool deterministic = (parameters.optimization_mode == OptimizationMode::NotAnytimeDeterministic);
+        packingsolver::Output<Instance, Solution> local_output_x(instance);
+        packingsolver::Output<Instance, Solution> local_output_y(instance);
+        std::unique_ptr<SequentialOneDimensionalRectangleOutput> output_x;
+        std::unique_ptr<SequentialOneDimensionalRectangleOutput> output_y;
+
+        std::vector<std::function<void()>> tasks;
+        std::exception_ptr exception_ptr_x;
+        std::exception_ptr exception_ptr_y;
+        tasks.push_back([&exception_ptr_x, &instance, &parameters, &algorithm_formatter, &local_output_x, &output_x, deterministic]() {
+            try {
+                output_x = std::make_unique<SequentialOneDimensionalRectangleOutput>(
+                        sequential_onedimensional_rectangle_x(
+                            instance,
+                            parameters,
+                            algorithm_formatter,
+                            deterministic ? &local_output_x : nullptr));
+            } catch (...) {
+                exception_ptr_x = std::current_exception();
+            }
+        });
+        tasks.push_back([&exception_ptr_y, &instance, &parameters, &algorithm_formatter, &local_output_y, &output_y, deterministic]() {
+            try {
+                output_y = std::make_unique<SequentialOneDimensionalRectangleOutput>(
+                        sequential_onedimensional_rectangle_y(
+                            instance,
+                            parameters,
+                            algorithm_formatter,
+                            deterministic ? &local_output_y : nullptr));
+            } catch (...) {
+                exception_ptr_y = std::current_exception();
+            }
+        });
+        run(tasks, parameters.optimization_mode != OptimizationMode::NotAnytimeSequential);
+        if (exception_ptr_x)
+            std::rethrow_exception(exception_ptr_x);
+        if (exception_ptr_y)
+            std::rethrow_exception(exception_ptr_y);
+
+        add_statistics(output, *output_x);
+        add_statistics(output, *output_y);
+        // Growing the queue size further is only pointless if it is in both
+        // directions.
+        output.rectangle_subproblem_explored_exhaustively
+            = output_x->rectangle_subproblem_explored_exhaustively
+            && output_y->rectangle_subproblem_explored_exhaustively;
+
+        if (deterministic) {
+            algorithm_formatter.update_solution(
+                    local_output_x.solution_pool.best(),
+                    local_output_x.solution_pool.best_label());
+            algorithm_formatter.update_solution(
+                    local_output_y.solution_pool.best(),
+                    local_output_y.solution_pool.best_label());
+        }
+    }
+
     algorithm_formatter.end();
     return output;
 }

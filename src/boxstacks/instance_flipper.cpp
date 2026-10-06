@@ -39,6 +39,9 @@ Instance InstanceFlipper::flip(const Instance& instance)
         flipped_instance_builder.set_bin_type_copies(
                 flipped_bin_type_id,
                 bin_type.copies);
+        flipped_instance_builder.set_bin_type_copies_min(
+                flipped_bin_type_id,
+                bin_type.copies_min);
         flipped_instance_builder.set_bin_type_maximum_weight(
                 flipped_bin_type_id,
                 bin_type.maximum_weight);
@@ -71,6 +74,9 @@ Instance InstanceFlipper::flip(const Instance& instance)
         flipped_instance_builder.set_item_type_copies(
                 flipped_item_type_id,
                 item_type.copies);
+        flipped_instance_builder.set_item_type_copies_min(
+                flipped_item_type_id,
+                item_type.copies_min);
         for (Rotation rotation: item_type.rotations)
             flipped_instance_builder.add_item_type_rotation(flipped_item_type_id, rotation);
         flipped_instance_builder.set_item_type_group(

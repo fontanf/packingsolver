@@ -711,6 +711,14 @@ struct TreeSearchParameters: packingsolver::Parameters<Instance, Solution, Outpu
 {
     std::vector<GuideId> guides;
 
+    /**
+     * Directions in which the bins are filled.
+     *
+     * An empty vector means "decide automatically" - see 'tree_search''s own
+     * body for the automatic logic.
+     */
+    std::vector<Direction> directions;
+
     OptimizationMode optimization_mode = OptimizationMode::Anytime;
 
     NodeId not_anytime_tree_search_queue_size = 1;

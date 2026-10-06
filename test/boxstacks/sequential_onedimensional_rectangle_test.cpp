@@ -37,6 +37,7 @@ TEST_P(BoxStacksSequentialOneDimensionalRectangleTest, BoxStacksSequentialOneDim
     // 'fixed_items_solutions' one element past the end and throw
     // 'std::bad_array_new_length'/'std::bad_alloc'.
     SequentialOneDimensionalRectangleParameters sodr_parameters;
+    sodr_parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytimeSequential;
     SequentialOneDimensionalRectangleOutput output = sequential_onedimensional_rectangle(instance, sodr_parameters);
 
     SolutionBuilder solution_builder(instance);
@@ -56,16 +57,15 @@ INSTANTIATE_TEST_SUITE_P(
         BoxStacksSequentialOneDimensionalRectangleTest,
         testing::ValuesIn(std::vector<BoxStacksSequentialOneDimensionalRectangleTestParams>{
             {
-                // The repair returns an empty solution for both instances:
-                // called directly (unlike through 'optimize()'), the
-                // algorithm has no later tree search pass to refine the
-                // result, so this only pins down that it returns at all
-                // instead of throwing.
+                // The repair returns an empty solution for this instance, and
+                // the tree search doesn't find any better solution.
                 fs::path("data") / "boxstacks" / "tests" / "semi_trailer_truck_middle_axle_bin_packing" / "items.csv",
                 fs::path("data") / "boxstacks" / "tests" / "semi_trailer_truck_middle_axle_bin_packing" / "bins.csv",
                 fs::path("data") / "boxstacks" / "tests" / "semi_trailer_truck_middle_axle_bin_packing" / "parameters.csv",
                 fs::path("data") / "boxstacks" / "tests" / "semi_trailer_truck_middle_axle_bin_packing" / "solution.csv",
             }, {
+                // The repair returns an empty solution for this instance, but
+                // the tree search then packs two of the three items.
                 fs::path("data") / "boxstacks" / "tests" / "semi_trailer_truck_middle_axle_knapsack" / "items.csv",
                 fs::path("data") / "boxstacks" / "tests" / "semi_trailer_truck_middle_axle_knapsack" / "bins.csv",
                 fs::path("data") / "boxstacks" / "tests" / "semi_trailer_truck_middle_axle_knapsack" / "parameters.csv",
