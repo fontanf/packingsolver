@@ -323,6 +323,15 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path(""),
                 fs::path(""),
                 fs::path("data") / "rectangleguillotine" / "tests" / "minimum_waste_cut_thickness" / "solution.csv",
+            }, {
+                // An item on top of its 3-level sub-plate (above a defect)
+                // moved into the soft top trim with the top of its 2-level
+                // sub-plate.
+                fs::path("data") / "rectangleguillotine" / "tests" / "soft_trim_item_above_defect" / "instance.json",
+                fs::path(""),
+                fs::path(""),
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "soft_trim_item_above_defect" / "solution.csv",
             }}));
 
 TEST(RectangleGuillotine, SolutionItemInSoftTrim)

@@ -1777,8 +1777,16 @@ void BranchingScheme::update(
             break;
     }
 
+    // The items on top of their 3-level sub-plate (above a defect) of the
+    // current 2-level sub-plate move with its top, so it can't go beyond a
+    // soft top trim.
+    bool items_on_top = (insertion.item_type_id_1 == -1 && insertion.item_type_id_2 != -1)
+        || (insertion.df == 2 && !parent.subplate2curr_items_above_defect.empty());
+
     // Check top soft-trim.
     //std::cout << "- update top soft-trim  " << insertion << std::endl;
+    if (insertion.y2 > h && items_on_top)
+        return;
     if (insertion.y2 > h) {
         if (insertion.y2 == h_physical) {
         } else if (insertion.y2 < h_physical) {
@@ -1804,6 +1812,8 @@ void BranchingScheme::update(
             && min_waste > 0
             && insertion.y2 + cut_thickness + min_waste > h_physical) {
         if (insertion.z2 == 1) {
+            if (h_physical > h && items_on_top)
+                return;
             insertion.y2 = h_physical;
             insertion.z2 = 0;
 
