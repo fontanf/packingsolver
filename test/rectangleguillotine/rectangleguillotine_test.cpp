@@ -332,6 +332,21 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path(""),
                 fs::path(""),
                 fs::path("data") / "rectangleguillotine" / "tests" / "soft_trim_item_above_defect" / "solution.csv",
+            }, {
+                // An item on top of its 3-level sub-plate (above a defect)
+                // didn't leave the cut thickness for the cut below it.
+                fs::path("data") / "rectangleguillotine" / "tests" / "defect_item_above_cut_thickness" / "instance.json",
+                fs::path(""),
+                fs::path(""),
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "defect_item_above_cut_thickness" / "solution.csv",
+            }, {
+                // The cut above an item went through a defect.
+                fs::path("data") / "rectangleguillotine" / "tests" / "defect_cut_above_item" / "instance.json",
+                fs::path(""),
+                fs::path(""),
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "defect_cut_above_item" / "solution.csv",
             }}));
 
 TEST(RectangleGuillotine, SolutionItemInSoftTrim)

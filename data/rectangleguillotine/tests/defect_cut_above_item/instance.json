@@ -1,0 +1,32 @@
+{
+    "objective": "bin-packing-cutting-cost",
+    "cut_thickness": 3,
+    "waste_cost": 3,
+    "bin_types": [
+        {
+            "width": 600,
+            "height": 600,
+            "copies": 4,
+            "defects": [
+                {
+                    "x": 118,
+                    "y": 286,
+                    "width": 8,
+                    "height": 21
+                }
+            ]
+        }
+    ],
+    "item_types": [
+        {
+            "width": 64,
+            "height": 159,
+            "copies": 4
+        },
+        {
+            "width": 172,
+            "height": 150,
+            "copies": 2
+        }
+    ]
+}
