@@ -68,6 +68,13 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "boxstacks" / "tests" / "variable_sized_bin_packing_two_bin_types" / "parameters.csv",
                 fs::path("data") / "boxstacks" / "tests" / "variable_sized_bin_packing_two_bin_types" / "solution.csv",
             }, {
+                // Bin packing with leftovers: the two items should be placed
+                // side by side along X, leaving the leftover along Y.
+                fs::path("data") / "boxstacks" / "tests" / "bin_packing_with_leftovers_leftover_along_y" / "items.csv",
+                fs::path("data") / "boxstacks" / "tests" / "bin_packing_with_leftovers_leftover_along_y" / "bins.csv",
+                fs::path("data") / "boxstacks" / "tests" / "bin_packing_with_leftovers_leftover_along_y" / "parameters.csv",
+                fs::path("data") / "boxstacks" / "tests" / "bin_packing_with_leftovers_leftover_along_y" / "solution.csv",
+            }, {
                 fs::path("data") / "boxstacks" / "tests" / "bin_packing_postal_cartons_eur_pallets" / "items.csv",
                 fs::path("data") / "boxstacks" / "tests" / "bin_packing_postal_cartons_eur_pallets" / "bins.csv",
                 fs::path("data") / "boxstacks" / "tests" / "bin_packing_postal_cartons_eur_pallets" / "parameters.csv",
