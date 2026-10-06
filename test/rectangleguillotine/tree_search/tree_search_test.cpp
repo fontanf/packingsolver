@@ -518,6 +518,12 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "rectangleguillotine" / "tests" / "minimum_waste_cut_thickness" / "instance.json",
                 fs::path(""),
                 fs::path("data") / "rectangleguillotine" / "tests" / "minimum_waste_cut_thickness" / "solution.csv",
+            }, {
+                fs::path(""),
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "soft_trim_item_above_defect" / "instance.json",
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "soft_trim_item_above_defect" / "solution.csv",
             }}));
 
 

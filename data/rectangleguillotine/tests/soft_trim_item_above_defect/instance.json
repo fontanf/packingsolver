@@ -1,0 +1,49 @@
+{
+    "objective": "bin-packing-cutting-cost",
+    "first_stage_orientation": "Any",
+    "waste_cost": 3,
+    "bin_types": [
+        {
+            "width": 600,
+            "height": 600,
+            "copies": 4,
+            "right_trim": 14,
+            "defects": [
+                {
+                    "x": 377,
+                    "y": 331,
+                    "width": 15,
+                    "height": 8
+                }
+            ]
+        }
+    ],
+    "item_types": [
+        {
+            "width": 110,
+            "height": 109,
+            "copies": 2
+        },
+        {
+            "width": 60,
+            "height": 152,
+            "copies": 4
+        },
+        {
+            "width": 77,
+            "height": 157,
+            "copies": 3
+        },
+        {
+            "width": 72,
+            "height": 114,
+            "copies": 3
+        },
+        {
+            "width": 187,
+            "height": 161,
+            "copies": 2
+        }
+    ],
+    "minimum_waste_length": 27
+}
