@@ -17,23 +17,60 @@ using namespace packingsolver::rectangleguillotine;
 namespace
 {
 
-/** Available length along the first-stage axis of 'orientation'. */
-Length first_stage_capacity(
-        const BinType& bin_type,
+/** Coordinate from which the strips start along the first-stage axis of 'orientation'. */
+Length first_stage_start(
+        const Instance& instance,
         CutOrientation orientation)
 {
+    const BinType& bin_type = instance.bin_type(0);
     return (orientation == CutOrientation::Vertical)?
-        bin_type.rect.w - bin_type.left_trim - bin_type.right_trim:
-        bin_type.rect.h - bin_type.bottom_trim - bin_type.top_trim;
+        instance.x_start(bin_type):
+        instance.y_start(bin_type);
 }
 
-/** Find the (only) depth-1 node of a single-strip solution. */
+/** Available length along the first-stage axis of 'orientation'. */
+Length first_stage_capacity(
+        const Instance& instance,
+        CutOrientation orientation)
+{
+    const BinType& bin_type = instance.bin_type(0);
+    return (orientation == CutOrientation::Vertical)?
+        bin_type.rect.w - bin_type.right_trim - first_stage_start(instance, orientation):
+        bin_type.rect.h - bin_type.top_trim - first_stage_start(instance, orientation);
+}
+
+/**
+ * Add a bin to a solution builder, with the 1-cut of the waste of a soft
+ * trim along the first-stage axis (left trim with a vertical first stage,
+ * bottom trim with a horizontal one): its waste isn't cut off with the trim
+ * (see the tree search).
+ */
+void add_bin(
+        const Instance& instance,
+        SolutionBuilder& solution_builder,
+        BinPos copies,
+        CutOrientation orientation)
+{
+    solution_builder.add_bin(0, copies, orientation);
+    const BinType& bin_type = instance.bin_type(0);
+    bool soft_trim = (orientation == CutOrientation::Vertical)?
+        bin_type.has_soft_left_trim():
+        bin_type.has_soft_bottom_trim();
+    if (soft_trim)
+        solution_builder.add_node(1, first_stage_start(instance, orientation) - instance.parameters().cut_thickness);
+}
+
+/**
+ * Find the (only) depth-1 node of a single-strip solution (not the waste of
+ * a soft trim).
+ */
 SolutionNodeId find_first_stage_node_id(const SolutionBin& bin)
 {
     for (SolutionNodeId node_id = 0;
             node_id < (SolutionNodeId)bin.nodes.size();
             ++node_id) {
-        if (bin.nodes[node_id].d == 1)
+        const SolutionNode& node = bin.nodes[node_id];
+        if (node.d == 1 && (node.item_type_id >= 0 || !node.children.empty()))
             return node_id;
     }
     throw std::logic_error(
@@ -139,9 +176,16 @@ std::vector<Strip> split_into_strips(
         if (strip_extent <= 0)
             continue;
 
+        // The strip starts after the left trim (bottom trim with a
+        // horizontal first stage) of its bin, like in the final bins.
         SolutionBuilder strip_builder(instance);
-        strip_builder.add_bin(0, 1, orientation);
-        copy_subtree(phase1_bin, node_id, orientation, -strip_offset, strip_builder);
+        add_bin(instance, strip_builder, 1, orientation);
+        copy_subtree(
+                phase1_bin,
+                node_id,
+                orientation,
+                first_stage_start(instance, orientation) - strip_offset,
+                strip_builder);
         strips.push_back({strip_builder.build(), strip_extent});
     }
     return strips;
@@ -172,7 +216,7 @@ void run_phase2_and_reconstruct(
 
     const BinType& bin_type = instance.bin_type(0);
     Length cut_thickness = instance.parameters().cut_thickness;
-    Length first_stage_length = first_stage_capacity(bin_type, orientation);
+    Length first_stage_length = first_stage_capacity(instance, orientation);
 
     std::vector<Strip> strips = split_into_strips(instance, phase1_solution, orientation);
 
@@ -207,7 +251,7 @@ void run_phase2_and_reconstruct(
             bin_pos < phase2_solution.number_of_different_bins();
             ++bin_pos) {
         const onedimensional::SolutionBin& phase2_bin = phase2_solution.bin(bin_pos);
-        final_solution_builder.add_bin(0, phase2_bin.copies, orientation);
+        add_bin(instance, final_solution_builder, phase2_bin.copies, orientation);
         for (const onedimensional::SolutionItem& phase2_item: phase2_bin.items) {
             const Strip& strip = strips[phase2_item.item_type_id];
             const SolutionBin& strip_bin = strip.solution.bin(0);
@@ -236,7 +280,7 @@ void sequential_strips_onedimensional_oriented(
         packingsolver::Output<Instance, Solution>* local_output)
 {
     const BinType& bin_type = instance.bin_type(0);
-    Length first_stage_length = first_stage_capacity(bin_type, orientation);
+    Length first_stage_length = first_stage_capacity(instance, orientation);
 
     // Phase 1: generate strips by solving the strip packing problem (all
     // items packed, minimize the total length used along the first-stage

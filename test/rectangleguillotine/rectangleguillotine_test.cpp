@@ -347,6 +347,14 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path(""),
                 fs::path(""),
                 fs::path("data") / "rectangleguillotine" / "tests" / "defect_cut_above_item" / "solution.csv",
+            }, {
+                // The column generation and sequential strips algorithms
+                // didn't cut off the waste of the soft left and bottom trims.
+                fs::path("data") / "rectangleguillotine" / "tests" / "bin_packing_with_leftovers_soft_left_trim" / "instance.json",
+                fs::path(""),
+                fs::path(""),
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "bin_packing_with_leftovers_soft_left_trim" / "solution.csv",
             }}));
 
 TEST(RectangleGuillotine, SolutionItemInSoftTrim)

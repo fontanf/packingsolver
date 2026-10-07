@@ -169,6 +169,35 @@ private:
 };
 
 /**
+ * Add a bin to a solution builder, with the 1-cut of the waste of a soft left
+ * trim (its waste isn't cut off with the trim, see the tree search).
+ */
+void add_bin(
+        const Instance& instance,
+        SolutionBuilder& solution_builder)
+{
+    solution_builder.add_bin(0, 1, CutOrientation::Vertical);
+    const BinType& bin_type = instance.bin_type(0);
+    if (bin_type.has_soft_left_trim())
+        solution_builder.add_node(1, instance.x_start(bin_type) - instance.parameters().cut_thickness);
+}
+
+/**
+ * Add a 1-level sub-plate to a solution builder, with the 2-cut of the waste
+ * of a soft bottom trim.
+ */
+void add_1_level_sub_plate(
+        const Instance& instance,
+        SolutionBuilder& solution_builder,
+        Length cut_position)
+{
+    solution_builder.add_node(1, cut_position);
+    const BinType& bin_type = instance.bin_type(0);
+    if (bin_type.has_soft_bottom_trim())
+        solution_builder.add_node(2, instance.y_start(bin_type) - instance.parameters().cut_thickness);
+}
+
+/**
  * Maximum width available for a single first-stage (1-cut) segment: the bin's
  * own remaining width (after 'filled_width' already used by other, fixed,
  * segments), further capped by 'maximum_distance_1_cuts' if set.
@@ -184,7 +213,7 @@ Length first_stage_available_width(
         const BinType& bin_type,
         Length filled_width = 0)
 {
-    Length width = bin_type.rect.w - bin_type.left_trim - bin_type.right_trim - filled_width;
+    Length width = bin_type.rect.w - instance.x_start(bin_type) - bin_type.right_trim - filled_width;
     Length maximum_distance_1_cuts = instance.parameters().maximum_distance_1_cuts;
     if (maximum_distance_1_cuts != -1 && maximum_distance_1_cuts < width)
         width = maximum_distance_1_cuts;
@@ -271,7 +300,7 @@ Column solution_to_column(
         element.coefficient = copies;
         column.elements.push_back(element);
     }
-    Length width = solution.width() - bin_type.left_trim;
+    Length width = solution.width() - instance.x_start(bin_type);
     if (instance.objective() == Objective::OpenDimensionX) {
         column.objective_coefficient = (double)(width + cut_thickness) / multiplier_length;
     } else {
@@ -353,9 +382,9 @@ std::vector<std::shared_ptr<const Column>> generate_all_columns_1r_patterns(
 
         // Retrieve strip.
         SolutionBuilder extra_solution_builder(instance);
-        extra_solution_builder.add_bin(0, 1, CutOrientation::Vertical);
-        extra_solution_builder.add_node(1, bin_type.left_trim + width_1);
-        extra_solution_builder.add_node(2, bin_type.bottom_trim + height_1);
+        add_bin(instance, extra_solution_builder);
+        add_1_level_sub_plate(instance, extra_solution_builder, instance.x_start(bin_type) + width_1);
+        extra_solution_builder.add_node(2, instance.y_start(bin_type) + height_1);
         extra_solution_builder.set_last_node_item(item_type_id_1);
         Solution extra_solution = extra_solution_builder.build();
 
@@ -381,7 +410,7 @@ std::vector<std::shared_ptr<const Column>> generate_all_columns_1r_patterns(
                     && item_type_1.copies == 1) {
                 continue;
             }
-            if (bin_type.bottom_trim
+            if (instance.y_start(bin_type)
                     + height_1
                     + instance.parameters().cut_thickness
                     + height_2
@@ -391,11 +420,11 @@ std::vector<std::shared_ptr<const Column>> generate_all_columns_1r_patterns(
 
             // Retrieve strip.
             SolutionBuilder extra_solution_builder(instance);
-            extra_solution_builder.add_bin(0, 1, CutOrientation::Vertical);
-            extra_solution_builder.add_node(1, bin_type.left_trim + width_1);
-            extra_solution_builder.add_node(2, bin_type.bottom_trim + height_1);
+            add_bin(instance, extra_solution_builder);
+            add_1_level_sub_plate(instance, extra_solution_builder, instance.x_start(bin_type) + width_1);
+            extra_solution_builder.add_node(2, instance.y_start(bin_type) + height_1);
             extra_solution_builder.set_last_node_item(item_type_id_1);
-            extra_solution_builder.add_node(2, bin_type.bottom_trim + height_1 + instance.parameters().cut_thickness + height_2);
+            extra_solution_builder.add_node(2, instance.y_start(bin_type) + height_1 + instance.parameters().cut_thickness + height_2);
             extra_solution_builder.set_last_node_item(item_type_id_2);
             Solution extra_solution = extra_solution_builder.build();
 
@@ -435,7 +464,7 @@ std::vector<std::shared_ptr<const Column>> generate_all_columns_2h_patterns(
         //std::cout << "item_type_id " << item_type_id
         //    << " h " << item_type.rect.h << std::endl;
 
-        ItemPos copies_max = (bin_type.rect.h - bin_type.bottom_trim - bin_type.top_trim + instance.parameters().cut_thickness)
+        ItemPos copies_max = (bin_type.rect.h - instance.y_start(bin_type) - bin_type.top_trim + instance.parameters().cut_thickness)
             / (item_type.rect.h + instance.parameters().cut_thickness);
         copies_max = std::min(copies_max, item_type.copies);
         //std::cout
@@ -453,10 +482,10 @@ std::vector<std::shared_ptr<const Column>> generate_all_columns_2h_patterns(
                 //std::cout << "build strip no rotation..." << std::endl;
                 //std::cout << "copies " << copies << std::endl;
                 SolutionBuilder extra_solution_builder(instance);
-                extra_solution_builder.add_bin(0, 1, CutOrientation::Vertical);
-                //std::cout << "add_node 1 " << bin_type.left_trim + item_type.rect.w << std::endl;
-                extra_solution_builder.add_node(1, bin_type.left_trim + item_type.rect.w);
-                Length cut_position = bin_type.bottom_trim;
+                add_bin(instance, extra_solution_builder);
+                //std::cout << "add_node 1 " << instance.x_start(bin_type) + item_type.rect.w << std::endl;
+                add_1_level_sub_plate(instance, extra_solution_builder, instance.x_start(bin_type) + item_type.rect.w);
+                Length cut_position = instance.y_start(bin_type);
                 for (ItemPos copy = 0; copy < copies; ++copy) {
                     cut_position += item_type.rect.h;
                     //std::cout << "add_node 2 " << cut_position << std::endl;
@@ -475,7 +504,7 @@ std::vector<std::shared_ptr<const Column>> generate_all_columns_2h_patterns(
         if (!item_type.oriented
                 && item_type.rect.h <= available_width
                 && item_type.rect.h >= instance.parameters().minimum_distance_1_cuts) {
-            ItemPos copies_max = (bin_type.rect.h - bin_type.bottom_trim - bin_type.top_trim + instance.parameters().cut_thickness)
+            ItemPos copies_max = (bin_type.rect.h - instance.y_start(bin_type) - bin_type.top_trim + instance.parameters().cut_thickness)
                 / (item_type.rect.w + instance.parameters().cut_thickness);
             copies_max = std::min(copies_max, item_type.copies);
             for (ItemPos copies = 1; copies <= copies_max; ++copies) {
@@ -483,9 +512,9 @@ std::vector<std::shared_ptr<const Column>> generate_all_columns_2h_patterns(
                 // Build strip.
                 //std::cout << "build strip rotation..." << std::endl;
                 SolutionBuilder extra_solution_builder(instance);
-                extra_solution_builder.add_bin(0, 1, CutOrientation::Vertical);
-                extra_solution_builder.add_node(1, bin_type.left_trim + item_type.rect.h);
-                Length cut_position = bin_type.bottom_trim;
+                add_bin(instance, extra_solution_builder);
+                add_1_level_sub_plate(instance, extra_solution_builder, instance.x_start(bin_type) + item_type.rect.h);
+                Length cut_position = instance.y_start(bin_type);
                 for (ItemPos copy = 0; copy < copies; ++copy) {
                     cut_position += item_type.rect.w;
                     extra_solution_builder.add_node(2, cut_position);
@@ -594,7 +623,7 @@ GetModelOutput get_model(
         columngenerationsolver::Row row;
         row.lower_bound = 0;
         row.upper_bound = (double)(bin_type.rect.w
-            - bin_type.left_trim
+            - instance.x_start(bin_type)
             - bin_type.right_trim
             + instance.parameters().cut_thickness)
             / multiplier_length;
@@ -698,7 +727,7 @@ void ColumnGenerationPricingSolver::generate_1e_patterns(
     double multiplier_profit = largest_power_of_two_lesser_or_equal(instance_.largest_item_profit());
     Length cut_thickness = instance_.parameters().cut_thickness;
     Length width = first_stage_available_width(instance_, bin_type, filled_width_);
-    Length height = bin_type.rect.h - bin_type.bottom_trim - bin_type.top_trim;
+    Length height = bin_type.rect.h - instance_.y_start(bin_type) - bin_type.top_trim;
     for (;;) {
         // Any pattern found below this point would be padded back up to
         // 'minimum_distance_1_cuts' anyway, so it's not worth searching.
@@ -768,9 +797,9 @@ void ColumnGenerationPricingSolver::generate_1e_patterns(
 
             // Retrieve solution.
             SolutionBuilder extra_solution_builder(instance_);
-            extra_solution_builder.add_bin(0, 1, CutOrientation::Vertical);
-            extra_solution_builder.add_node(1, bin_type.left_trim + width);
-            Length cut_position = bin_type.bottom_trim;
+            add_bin(instance_, extra_solution_builder);
+            add_1_level_sub_plate(instance_, extra_solution_builder, instance_.x_start(bin_type) + width);
+            Length cut_position = instance_.y_start(bin_type);
             for (ItemTypeId kp_item_type_id = 0;
                     kp_item_type_id < kp_instance.number_of_item_types();
                     ++kp_item_type_id) {
@@ -865,7 +894,7 @@ void ColumnGenerationPricingSolver::generate_1n_patterns(
     double multiplier_profit = largest_power_of_two_lesser_or_equal(instance_.largest_item_profit());
     Length cut_thickness = instance_.parameters().cut_thickness;
     Length width = first_stage_available_width(instance_, bin_type, filled_width_);
-    Length height = bin_type.rect.h - bin_type.bottom_trim - bin_type.top_trim;
+    Length height = bin_type.rect.h - instance_.y_start(bin_type) - bin_type.top_trim;
     for (;;) {
         // Any pattern found below this point would be padded back up to
         // 'minimum_distance_1_cuts' anyway, so it's not worth searching.
@@ -961,9 +990,9 @@ void ColumnGenerationPricingSolver::generate_1n_patterns(
         // Retrieve solution.
         //std::cout << "build extra solution width_max " << width_max << std::endl;
         SolutionBuilder extra_solution_builder(instance_);
-        extra_solution_builder.add_bin(0, 1, CutOrientation::Vertical);
-        extra_solution_builder.add_node(1, bin_type.left_trim + width_max);
-        Length cut_position = bin_type.bottom_trim;
+        add_bin(instance_, extra_solution_builder);
+        add_1_level_sub_plate(instance_, extra_solution_builder, instance_.x_start(bin_type) + width_max);
+        Length cut_position = instance_.y_start(bin_type);
         for (ItemTypeId kp_item_type_id = 0;
                 kp_item_type_id < kp_instance.number_of_item_types();
                 ++kp_item_type_id) {
@@ -980,7 +1009,7 @@ void ColumnGenerationPricingSolver::generate_1n_patterns(
                     - cut_thickness;
                 extra_solution_builder.add_node(2, cut_position);
                 if (width_cur < width_max)
-                    extra_solution_builder.add_node(3, bin_type.left_trim + width_cur);
+                    extra_solution_builder.add_node(3, instance_.x_start(bin_type) + width_cur);
                 extra_solution_builder.set_last_node_item(item_type_id);
                 cut_position += cut_thickness;
             }
@@ -1058,7 +1087,7 @@ void ColumnGenerationPricingSolver::generate_1ro_patterns(
     double multiplier_profit = largest_power_of_two_lesser_or_equal(instance_.largest_item_profit());
     Length cut_thickness = instance_.parameters().cut_thickness;
     Length width = first_stage_available_width(instance_, bin_type, filled_width_);
-    Length height = bin_type.rect.h - bin_type.bottom_trim - bin_type.top_trim;
+    Length height = bin_type.rect.h - instance_.y_start(bin_type) - bin_type.top_trim;
 
     // Sort items by height and then by profit.
     std::vector<std::pair<ItemTypeId, double>> sorted_item_type_ids;
@@ -1230,9 +1259,9 @@ void ColumnGenerationPricingSolver::generate_1ro_patterns(
         // Build extra solution.
         //std::cout << "build extra solution width_max " << width_max << std::endl;
         SolutionBuilder extra_solution_builder(instance_);
-        extra_solution_builder.add_bin(0, 1, CutOrientation::Vertical);
-        extra_solution_builder.add_node(1, bin_type.left_trim + width_max);
-        Length cut_position = bin_type.bottom_trim;
+        add_bin(instance_, extra_solution_builder);
+        add_1_level_sub_plate(instance_, extra_solution_builder, instance_.x_start(bin_type) + width_max);
+        Length cut_position = instance_.y_start(bin_type);
         for (ItemTypeId kp_item_type_id = 0;
                 kp_item_type_id < kp_instance.number_of_item_types();
                 ++kp_item_type_id) {
@@ -1250,7 +1279,7 @@ void ColumnGenerationPricingSolver::generate_1ro_patterns(
                 if (item_type_1.rect.w < width_max) {
                     extra_solution_builder.add_node(
                             3,
-                            bin_type.left_trim
+                            instance_.x_start(bin_type)
                             + item_type_1.rect.w);
                 }
                 extra_solution_builder.set_last_node_item(item_type_id_1);
@@ -1260,7 +1289,7 @@ void ColumnGenerationPricingSolver::generate_1ro_patterns(
                     const ItemType& item_type_2 = instance_.item_type(item_type_id_2);
                     extra_solution_builder.add_node(
                             3,
-                            bin_type.left_trim
+                            instance_.x_start(bin_type)
                             + item_type_1.rect.w
                             + cut_thickness
                             + item_type_2.rect.w);
@@ -1359,7 +1388,7 @@ void ColumnGenerationPricingSolver::generate_2ho_patterns(
     double multiplier_profit = largest_power_of_two_lesser_or_equal(instance_.largest_item_profit());
     Length cut_thickness = instance_.parameters().cut_thickness;
     Length width = first_stage_available_width(instance_, bin_type, filled_width_);
-    Length height = bin_type.rect.h - bin_type.bottom_trim - bin_type.top_trim;
+    Length height = bin_type.rect.h - instance_.y_start(bin_type) - bin_type.top_trim;
     for (;;) {
         // Any pattern found below this point would be padded back up to
         // 'minimum_distance_1_cuts' anyway, so it's not worth searching.
@@ -1472,9 +1501,9 @@ void ColumnGenerationPricingSolver::generate_2ho_patterns(
         // Build extra solution.
         //std::cout << "build extra solution width_max " << width_max << std::endl;
         SolutionBuilder extra_solution_builder(instance_);
-        extra_solution_builder.add_bin(0, 1, CutOrientation::Vertical);
-        extra_solution_builder.add_node(1, bin_type.left_trim + width_max);
-        Length cut_position = bin_type.bottom_trim;
+        add_bin(instance_, extra_solution_builder);
+        add_1_level_sub_plate(instance_, extra_solution_builder, instance_.x_start(bin_type) + width_max);
+        Length cut_position = instance_.y_start(bin_type);
         for (ItemTypeId kp_item_type_id = 0;
                 kp_item_type_id < kp_instance.number_of_item_types();
                 ++kp_item_type_id) {
@@ -1497,15 +1526,15 @@ void ColumnGenerationPricingSolver::generate_2ho_patterns(
                 if (copies == 1) {
                     width_cur += item_type.rect.w;
                     if (width_cur < width_max) {
-                        //std::cout << "add_node depth 3 cut_position " << bin_type.left_trim + width_cur << std::endl;
-                        extra_solution_builder.add_node(3, bin_type.left_trim + width_cur);
+                        //std::cout << "add_node depth 3 cut_position " << instance_.x_start(bin_type) + width_cur << std::endl;
+                        extra_solution_builder.add_node(3, instance_.x_start(bin_type) + width_cur);
                     }
                     extra_solution_builder.set_last_node_item(item_type_id);
                 } else {
                     for (ItemPos copy = 0; copy < copies; ++copy) {
                         width_cur += item_type.rect.w;
-                        //std::cout << "add_node depth 3 cut_position " << bin_type.left_trim + width_cur << std::endl;
-                        extra_solution_builder.add_node(3, bin_type.left_trim + width_cur);
+                        //std::cout << "add_node depth 3 cut_position " << instance_.x_start(bin_type) + width_cur << std::endl;
+                        extra_solution_builder.add_node(3, instance_.x_start(bin_type) + width_cur);
                         extra_solution_builder.set_last_node_item(item_type_id);
                         width_cur += cut_thickness;
                     }
@@ -1602,7 +1631,7 @@ void ColumnGenerationPricingSolver::generate_lower_stage_patterns(
     double multiplier_profit = largest_power_of_two_lesser_or_equal(instance_.largest_item_profit());
     Length cut_thickness = instance_.parameters().cut_thickness;
     Length available_width = first_stage_available_width(instance_, bin_type, filled_width_);
-    Length height = bin_type.rect.h - bin_type.bottom_trim - bin_type.top_trim;
+    Length height = bin_type.rect.h - instance_.y_start(bin_type) - bin_type.top_trim;
 
     // Hoist the width-constraint dual: constant across all iterations.
     //
@@ -1810,8 +1839,8 @@ void ColumnGenerationPricingSolver::generate_lower_stage_patterns(
         //   - Sub even depths (vertical): add with depth+1 (outer odd) using left_trim + r
         // The outer depth-1 node uses actual_used_width, not the full 'width'.
         SolutionBuilder extra_solution_builder(instance_);
-        extra_solution_builder.add_bin(0, 1, CutOrientation::Vertical);
-        extra_solution_builder.add_node(1, bin_type.left_trim + actual_used_width);
+        add_bin(instance_, extra_solution_builder);
+        add_1_level_sub_plate(instance_, extra_solution_builder, instance_.x_start(bin_type) + actual_used_width);
         for (const SolutionNode& sub_node: sub_bin.nodes) {
             if (sub_node.d <= 0)
                 continue;
@@ -1819,7 +1848,7 @@ void ColumnGenerationPricingSolver::generate_lower_stage_patterns(
                 // Horizontal cut in sub (odd depth) → outer even depth; t coordinate.
                 extra_solution_builder.add_node(
                         sub_node.d + 1,
-                        bin_type.bottom_trim + sub_node.t);
+                        instance_.y_start(bin_type) + sub_node.t);
             } else {
                 // Vertical cut in sub (even depth) → outer odd depth; r coordinate.
                 // Cap at actual_used_width: waste nodes that auto-fill to the sub-bin
@@ -1830,7 +1859,7 @@ void ColumnGenerationPricingSolver::generate_lower_stage_patterns(
                     continue;
                 extra_solution_builder.add_node(
                         sub_node.d + 1,
-                        bin_type.left_trim + std::min(sub_node.r, actual_used_width));
+                        instance_.x_start(bin_type) + std::min(sub_node.r, actual_used_width));
             }
             if (sub_node.item_type_id >= 0) {
                 extra_solution_builder.set_last_node_item(sub2orig[sub_node.item_type_id]);
@@ -2170,7 +2199,7 @@ void column_generation_strips_vertical(
         if (cgslds_output.solution.feasible()) {
             //std::cout << "callback..." << std::endl;
             SolutionBuilder solution_builder(instance);
-            solution_builder.add_bin(0, 1, CutOrientation::Vertical);
+            add_bin(instance, solution_builder);
             Length offset = 0;
             for (const auto& pair: cgslds_output.solution.columns()) {
                 //std::cout << "offset " << offset << std::endl;
@@ -2183,6 +2212,10 @@ void column_generation_strips_vertical(
                     for (const SolutionNode& node: bin.nodes) {
                         //std::cout << "node " << node << std::endl;
                         if (node.d <= 0)
+                            continue;
+                        // The waste of the soft left trim, already in the
+                        // bin.
+                        if (node.d == 1 && node.l == 0 && bin_type.has_soft_left_trim())
                             continue;
                         if (node.d == 1) {
                             if (!first)

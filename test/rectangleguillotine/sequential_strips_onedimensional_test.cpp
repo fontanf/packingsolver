@@ -65,5 +65,17 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "rectangleguillotine" / "tests" / "bin_packing_3nvo" / "bins.csv",
                 fs::path("data") / "rectangleguillotine" / "tests" / "bin_packing_3nvo" / "parameters.csv",
                 fs::path("data") / "rectangleguillotine" / "tests" / "bin_packing_3nvo" / "solution.csv",
+            }, {
+                // The strips didn't start after the left trim.
+                fs::path("data") / "rectangleguillotine" / "tests" / "sequential_strips_hard_left_trim" / "items.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "sequential_strips_hard_left_trim" / "bins.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "sequential_strips_hard_left_trim" / "parameters.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "sequential_strips_hard_left_trim" / "solution.csv",
+            }, {
+                // The waste of the soft left trim wasn't cut off.
+                fs::path("data") / "rectangleguillotine" / "tests" / "sequential_strips_soft_left_trim" / "items.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "sequential_strips_soft_left_trim" / "bins.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "sequential_strips_soft_left_trim" / "parameters.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "sequential_strips_soft_left_trim" / "solution.csv",
             }
         }));
