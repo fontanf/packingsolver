@@ -8,6 +8,8 @@ import * as form from "./form.js";
 import * as projects from "./projects.js";
 import * as paste from "./paste.js";
 import * as results from "./results.js";
+import * as viewerSolution from "./viewer/solution.js";
+import {createViewer} from "./viewer/viewer.js";
 import {format} from "./results.js";
 import {
     openDimension,
@@ -208,6 +210,10 @@ const state = {
     totalItems: null,
     // Solution shown ('{output, certificate, objective}').
     last: null,
+    // The visualizer of the solution shown ('viewer/viewer.js'), and its
+    // project.
+    viewer: null,
+    viewerProject: null,
     plotTimer: null,
     formCheckTimer: null,
     // Values of the parameters of the instance ('INSTANCE_PARAMETERS').
@@ -1373,7 +1379,7 @@ function renderResults() {
     for (const line of project.progress)
         addProgressRow(line);
     $("summary").replaceChildren();
-    Plotly.purge($("plot"));
+    clearPlot();
     Plotly.purge($("progress-chart"));
     state.last = null;
     if (project.result === null) {
@@ -1449,6 +1455,15 @@ function schedulePlot() {
     }, 500);
 }
 
+// The drawing of the solution: the visualizer ('viewer/'), or a plotly
+// figure for the problem types which it doesn't draw (box, boxstacks).
+function clearPlot() {
+    Plotly.purge($("plot"));
+    $("plot").replaceChildren();
+    $("plot").classList.remove("viewer");
+    state.viewer = null;
+}
+
 async function plot() {
     try {
         await plotProgress();
@@ -1458,6 +1473,25 @@ async function plot() {
     const result = state.last;
     if (result === null || result.output.Solution.NumberOfItems === 0)
         return;
+    const type = state.current.problemType;
+    if (viewerSolution.PROBLEM_TYPES.includes(type)) {
+        try {
+            const solution = viewerSolution.readSolution(result.certificate, type);
+            // The bin shown is kept when the solution of the project is
+            // updated.
+            const selected = (state.viewer !== null && state.viewerProject === state.current)?
+                state.viewer.selected(): 0;
+            Plotly.purge($("plot"));
+            state.viewer = createViewer($("plot"), solution, {selected});
+            state.viewerProject = state.current;
+        } catch (error) {
+            console.error(error);
+            setStatus("Error while drawing the solution: " + error.message, true);
+        }
+        return;
+    }
+    if ($("plot").classList.contains("viewer"))
+        clearPlot();
     try {
         const visualizer = await import(`./visualize/${state.current.problemType}.js`);
         const figure = visualizer.figure(result.certificate);

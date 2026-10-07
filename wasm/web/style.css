@@ -419,6 +419,10 @@ svg.thumbnail.invalid {
 
 #plot {
     width: 100%;
+}
+
+/* The plotly figures (box, boxstacks). */
+#plot:not(.viewer) {
     min-height: 30rem;
 }
 
@@ -658,4 +662,174 @@ tr.placed-shapes-line.invalid .placed-shapes-label,
 .paste-hint {
     margin: 0.25rem 0 0;
     font-size: 0.85em;
+}
+
+/* The visualizer of the solutions ('viewer/'): an overview of the bins, and
+   a view of one bin below it. */
+.viewer:focus {
+    outline: none;
+}
+
+.viewer-summary {
+    margin: 0 0 0.5rem;
+    color: var(--muted);
+}
+
+/* The bins of the overview: a grid, scrolled if it is high. */
+.viewer-overview {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
+    gap: 0.5rem;
+    max-height: 22rem;
+    overflow-y: auto;
+    padding: 2px;
+    margin-bottom: 1rem;
+}
+
+.viewer-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin: 0;
+    padding: 0.35rem;
+    background: var(--background);
+}
+
+.viewer-cell svg {
+    width: 100%;
+    height: 6rem;
+}
+
+.viewer-cell[aria-pressed="true"] {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent);
+}
+
+.viewer-cell-caption {
+    font-size: 0.85em;
+    color: var(--muted);
+    text-align: center;
+}
+
+/* The number of copies of a bin ("×4"). */
+.viewer-copies {
+    font-weight: 600;
+    color: var(--text);
+}
+
+.viewer-detail-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.viewer-detail-header button {
+    margin: 0;
+    padding: 0.2rem 0.8rem;
+    font-size: 1.1rem;
+}
+
+.viewer-detail-image svg {
+    display: block;
+    width: 100%;
+    max-height: 70vh;
+}
+
+/* The shapes of a bin: lines of 1 pixel whatever the zoom. */
+.viewer-bin path {
+    vector-effect: non-scaling-stroke;
+    stroke-width: 1;
+}
+
+.viewer-bin-outline {
+    fill: var(--background);
+    stroke: var(--text);
+}
+
+.viewer-item {
+    stroke: #1f2328;
+}
+
+.viewer-bin.detail .viewer-item:hover {
+    stroke-width: 2.5;
+}
+
+.viewer-defect {
+    fill: crimson;
+    stroke: crimson;
+}
+
+.viewer-trim {
+    fill: var(--muted);
+    fill-opacity: 0.35;
+    stroke: none;
+}
+
+.viewer-waste {
+    fill: var(--muted);
+    fill-opacity: 0.15;
+    stroke: none;
+}
+
+.viewer-residual {
+    fill: none;
+    stroke: none;
+}
+
+.viewer-cut {
+    fill: none;
+    stroke: var(--text);
+    stroke-opacity: 0.6;
+}
+
+.viewer-item-label {
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    text-anchor: middle;
+    dominant-baseline: central;
+    fill: #1f2328;
+    pointer-events: none;
+}
+
+/* The bins of onedimensional: a row each, at the same scale. */
+.viewer-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.viewer-row {
+    display: grid;
+    grid-template-columns: 6rem minmax(0, 1fr);
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.viewer-row-caption {
+    font-size: 0.85em;
+    color: var(--muted);
+    white-space: nowrap;
+}
+
+.viewer-row-bin {
+    position: relative;
+    height: 1.6rem;
+    border: 1px solid var(--text);
+    background: var(--background);
+}
+
+.viewer-row-item {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    overflow: hidden;
+    border-right: 1px solid #1f2328;
+    font-size: 0.75em;
+    line-height: 1.5rem;
+    color: #1f2328;
+    text-align: center;
+    white-space: nowrap;
 }
