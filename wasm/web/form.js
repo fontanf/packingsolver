@@ -316,9 +316,12 @@ export function cuttingCostRows(values) {
     return rows;
 }
 
-// Add the parameters of the instance to an instance in the JSON format.
-export function addInstanceParameters(instanceObject, problemType, values, objective) {
+// Add the parameters of the instance to an instance in the JSON format; only
+// 'only' if given.
+export function addInstanceParameters(instanceObject, problemType, values, objective, only = null) {
     for (const parameter of INSTANCE_PARAMETERS[problemType] || []) {
+        if (only !== null && parameter !== only)
+            continue;
         if (!parameterShown(parameter, values, objective) || parameterForced(parameter, values) !== undefined)
             continue;
         const value = values[parameter.key];
@@ -513,6 +516,178 @@ export function newItemRow(type) {
     return (type === "irregular")? irregularForm.defaultItemRow(): defaultRow(itemColumns(type));
 }
 
+// A copy of a row of a table of the form, which still refers to the same item
+// rows ('itemRows'): the item types of the resource consumptions and of the
+// fixed items of the irregular bin types.
+export function duplicateRow(row, itemRows) {
+    const cloned = structuredClone({row, itemRows});
+    const originals = new Map(cloned.itemRows.map((itemRow, i) => [itemRow, itemRows[i]]));
+    const restore = (value) => {
+        for (const key of Object.keys(value)) {
+            const child = value[key];
+            if (child === null || typeof child !== "object")
+                continue;
+            if (originals.has(child))
+                value[key] = originals.get(child);
+            else
+                restore(child);
+        }
+    };
+    restore(cloned.row);
+    return cloned.row;
+}
+
+// A number of the form.
+function convertNumber(value, name) {
+    const number = Number(value);
+    if (value === "" || value === null || value === undefined || !Number.isFinite(number))
+        throw new Error(`invalid ${name}: "${value}".`);
+    return number;
+}
+
+// A row of a table of the form, in the JSON format: 'form' is the form of the
+// instance (see 'toInstance').
+function convertRow(columns, row, form) {
+    const result = {};
+    for (const column of columns) {
+        const value = row[column.key];
+        // The fields which are not shown for the objective are ignored.
+        if (!columnShown(column, form.objective, form.instanceParameters))
+            continue;
+        // The semi-trailer truck: an object with its fields, if checked.
+        if (column.key === "semi_trailer_truck") {
+            if (value)
+                result.semi_trailer_truck = result.semi_trailer_truck || {};
+            continue;
+        }
+        if (column.truck) {
+            if (!row.semi_trailer_truck)
+                continue;
+            result.semi_trailer_truck = result.semi_trailer_truck || {};
+            if (value === "" || value === null || value === undefined) {
+                if (column.required)
+                    throw new Error(`semi-trailer truck: missing ${column.label.toLowerCase()}.`);
+                continue;
+            }
+            const number = Number(value);
+            if (!Number.isFinite(number) || number < 0 || (column.required && number <= 0))
+                throw new Error(`semi-trailer truck: invalid ${column.label.toLowerCase()}: "${value}".`);
+            result.semi_trailer_truck[column.key] = number;
+            continue;
+        }
+        if (unlimitedValue(row, column, form.objective)) {
+            result[column.key] = -1;
+        } else if (column.type === "rotations") {
+            if (value.length === 0)
+                throw new Error("select at least one rotation.");
+            result.rotations = value;
+        } else if (column.type === "trims") {
+            for (const side of ["left", "right", "bottom", "top"]) {
+                if (value[side] !== undefined && value[side] !== "")
+                    result[side + "_trim"] = convertNumber(value[side], side + " trim");
+            }
+        } else if (column.type === "resources") {
+            if (value.length > 0) {
+                result.resources = value.map((resource, j) => {
+                    const name = `resource ${j}`;
+                    const converted = {capacity: convertNumber(resource.capacity, `${name} capacity`)};
+                    if (resource.penalize) {
+                        converted.penalize = true;
+                        if (resource.penalty !== "")
+                            converted.penalty = convertNumber(resource.penalty, `${name} penalty`);
+                    }
+                    const consumptions = [];
+                    for (const consumption of resourceConsumptions(resource, form.itemTypes)) {
+                        if (consumption.itemRow === null)
+                            throw new Error(`${name}: invalid item type id of a consumption.`);
+                        const k = form.itemTypes.indexOf(consumption.itemRow);
+                        if (consumptions.some((c) => c.item_type_id === k))
+                            throw new Error(`${name}: several consumptions for item type ${k}.`);
+                        const values = String(consumption.values).split(",")
+                            .map((v) => v.trim()).filter((v) => v !== "")
+                            .map((v) => convertNumber(v, `${name} consumption of item type ${k}`));
+                        if (values.length === 0)
+                            throw new Error(`${name}: missing consumption of item type ${k}.`);
+                        if (values.length === 1)
+                            consumptions.push({item_type_id: k, consumption: values[0]});
+                        else
+                            consumptions.push({item_type_id: k, consumption_schedule: values});
+                    }
+                    if (consumptions.length > 0)
+                        converted.consumptions = consumptions;
+                    return converted;
+                });
+            }
+        } else if (column.type === "defects") {
+            if (value.length > 0) {
+                result.defects = value.map((defect, j) => {
+                    const converted = {};
+                    for (const key of ["x", "y", "width", "height"])
+                        converted[key] = convertNumber(defect[key], `defect ${j} ${key}`);
+                    return converted;
+                });
+            }
+        } else if (column.type === "checkbox") {
+            if (value)
+                result[column.key] = true;
+        } else if (column.type === "select") {
+            // The default value isn't written.
+            if (value !== column.value)
+                result[column.key] = value;
+        } else if (column.type === "ids") {
+            const ids = String(value).split(",").map((s) => s.trim()).filter((s) => s !== "");
+            for (const id of ids) {
+                if (!/^[0-9]+$/.test(id))
+                    throw new Error(`invalid ${column.label.toLowerCase()}: "${id}".`);
+            }
+            if (ids.length > 0)
+                result[column.key] = ids.map(Number);
+        } else if (value !== "" && value !== null && value !== undefined) {
+            const number = Number(value);
+            if (!Number.isFinite(number))
+                throw new Error(`invalid ${column.label.toLowerCase()}: "${value}".`);
+            if (column.integer && !Number.isInteger(number))
+                throw new Error(`invalid ${column.label.toLowerCase()}: "${value}".`);
+            result[column.key] = number;
+        } else if (!column.optional) {
+            throw new Error(`missing ${column.label.toLowerCase()}.`);
+        }
+    }
+    return result;
+}
+
+// The errors of the cells of a row of a table of the form ('kind' "bin" or
+// "item"): the key of each invalid column, and its message. The same checks
+// as 'toInstance', column by column.
+export function rowErrors(problemType, kind, row, form) {
+    const columns = (kind === "bin")? binColumns(problemType): itemColumns(problemType);
+    const errors = {};
+    for (const column of columns) {
+        if (!columnShown(column, form.objective, form.instanceParameters))
+            continue;
+        try {
+            convertRow([column], row, form);
+        } catch (error) {
+            errors[column.key] = error.message;
+        }
+    }
+    return errors;
+}
+
+// The errors of the parameters of the instance: the key of each invalid
+// parameter, and its message.
+export function parameterErrors(problemType, values, objective) {
+    const errors = {};
+    for (const parameter of INSTANCE_PARAMETERS[problemType] || []) {
+        try {
+            addInstanceParameters({}, problemType, values, objective, parameter);
+        } catch (error) {
+            errors[parameter.key] = error.message;
+        }
+    }
+    return errors;
+}
+
 // The instance in the JSON format, from the form of a problem type: 'form'
 // is '{objective, instanceParameters, binTypes, itemTypes}'.
 export function toInstance(problemType, form) {
@@ -524,125 +699,11 @@ export function toInstance(problemType, form) {
     }
     const convert = (kind, columns, rows) => rows.map((row, i) => {
         try {
-            return convertRow(columns, row);
+            return convertRow(columns, row, form);
         } catch (error) {
             throw new Error(`${kind} type ${i}: ${error.message}`);
         }
     });
-    const convertNumber = (value, name) => {
-        const number = Number(value);
-        if (value === "" || value === null || value === undefined || !Number.isFinite(number))
-            throw new Error(`invalid ${name}: "${value}".`);
-        return number;
-    };
-    const convertRow = (columns, row) => {
-        const result = {};
-        for (const column of columns) {
-            const value = row[column.key];
-            // The fields which are not shown for the objective are ignored.
-            if (!columnShown(column, form.objective, form.instanceParameters))
-                continue;
-            // The semi-trailer truck: an object with its fields, if checked.
-            if (column.key === "semi_trailer_truck") {
-                if (value)
-                    result.semi_trailer_truck = result.semi_trailer_truck || {};
-                continue;
-            }
-            if (column.truck) {
-                if (!row.semi_trailer_truck)
-                    continue;
-                result.semi_trailer_truck = result.semi_trailer_truck || {};
-                if (value === "" || value === null || value === undefined) {
-                    if (column.required)
-                        throw new Error(`semi-trailer truck: missing ${column.label.toLowerCase()}.`);
-                    continue;
-                }
-                const number = Number(value);
-                if (!Number.isFinite(number) || number < 0 || (column.required && number <= 0))
-                    throw new Error(`semi-trailer truck: invalid ${column.label.toLowerCase()}: "${value}".`);
-                result.semi_trailer_truck[column.key] = number;
-                continue;
-            }
-            if (unlimitedValue(row, column, form.objective)) {
-                result[column.key] = -1;
-            } else if (column.type === "rotations") {
-                if (value.length === 0)
-                    throw new Error("select at least one rotation.");
-                result.rotations = value;
-            } else if (column.type === "trims") {
-                for (const side of ["left", "right", "bottom", "top"]) {
-                    if (value[side] !== undefined && value[side] !== "")
-                        result[side + "_trim"] = convertNumber(value[side], side + " trim");
-                }
-            } else if (column.type === "resources") {
-                if (value.length > 0) {
-                    result.resources = value.map((resource, j) => {
-                        const name = `resource ${j}`;
-                        const converted = {capacity: convertNumber(resource.capacity, `${name} capacity`)};
-                        if (resource.penalize) {
-                            converted.penalize = true;
-                            if (resource.penalty !== "")
-                                converted.penalty = convertNumber(resource.penalty, `${name} penalty`);
-                        }
-                        const consumptions = [];
-                        for (const consumption of resourceConsumptions(resource, form.itemTypes)) {
-                            if (consumption.itemRow === null)
-                                throw new Error(`${name}: invalid item type id of a consumption.`);
-                            const k = form.itemTypes.indexOf(consumption.itemRow);
-                            if (consumptions.some((c) => c.item_type_id === k))
-                                throw new Error(`${name}: several consumptions for item type ${k}.`);
-                            const values = String(consumption.values).split(",")
-                                .map((v) => v.trim()).filter((v) => v !== "")
-                                .map((v) => convertNumber(v, `${name} consumption of item type ${k}`));
-                            if (values.length === 0)
-                                throw new Error(`${name}: missing consumption of item type ${k}.`);
-                            if (values.length === 1)
-                                consumptions.push({item_type_id: k, consumption: values[0]});
-                            else
-                                consumptions.push({item_type_id: k, consumption_schedule: values});
-                        }
-                        if (consumptions.length > 0)
-                            converted.consumptions = consumptions;
-                        return converted;
-                    });
-                }
-            } else if (column.type === "defects") {
-                if (value.length > 0) {
-                    result.defects = value.map((defect, j) => {
-                        const converted = {};
-                        for (const key of ["x", "y", "width", "height"])
-                            converted[key] = convertNumber(defect[key], `defect ${j} ${key}`);
-                        return converted;
-                    });
-                }
-            } else if (column.type === "checkbox") {
-                if (value)
-                    result[column.key] = true;
-            } else if (column.type === "select") {
-                // The default value isn't written.
-                if (value !== column.value)
-                    result[column.key] = value;
-            } else if (column.type === "ids") {
-                const ids = String(value).split(",").map((s) => s.trim()).filter((s) => s !== "");
-                for (const id of ids) {
-                    if (!/^[0-9]+$/.test(id))
-                        throw new Error(`invalid ${column.label.toLowerCase()}: "${id}".`);
-                }
-                if (ids.length > 0)
-                    result[column.key] = ids.map(Number);
-            } else if (value !== "" && value !== null && value !== undefined) {
-                const number = Number(value);
-                if (!Number.isFinite(number))
-                    throw new Error(`invalid ${column.label.toLowerCase()}: "${value}".`);
-                if (column.integer && !Number.isInteger(number))
-                    throw new Error(`invalid ${column.label.toLowerCase()}: "${value}".`);
-                result[column.key] = number;
-            } else if (!column.optional) {
-                throw new Error(`missing ${column.label.toLowerCase()}.`);
-            }
-        }
-        return result;
-    };
     if (form.binTypes.length === 0)
         throw new Error("add at least one bin type.");
     if (form.itemTypes.length === 0)
