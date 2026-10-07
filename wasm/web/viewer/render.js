@@ -59,32 +59,36 @@ export function renderBin(bin, {detail = false} = {}) {
         path(boxPath(box), "viewer-waste", detail? "Waste": null);
     for (const box of bin.residuals)
         path(boxPath(box), "viewer-residual", detail? "Residual": null);
-    for (const defect of bin.defects)
-        path(defect, "viewer-defect", detail? "Defect": null);
-    for (const item of bin.items) {
-        const element = path(item.path, "viewer-item", detail? item.label: null);
-        element.setAttribute("fill", itemColor(item.itemTypeId));
-    }
     // The cuts of rectangleguillotine: the edges of the nodes of the cutting
-    // tree, thinner for the deeper cuts.
+    // tree, thinner for the deeper cuts; below the defects and the items,
+    // whose edges are drawn over them.
     for (const cut of bin.cuts) {
         const element = path(boxPath(cut.box), "viewer-cut");
         element.setAttribute("stroke-width", String(Math.max(0.5, 2 - 0.5 * cut.depth)));
+    }
+    for (const defect of bin.defects)
+        path(defect, "viewer-defect", detail? "Defect": null);
+    for (const item of bin.items) {
+        for (const itemPath of item.paths) {
+            const element = path(itemPath, "viewer-item", detail? item.label: null);
+            element.setAttribute("fill", itemColor(item.itemTypeId));
+        }
     }
     if (detail) {
         // The ids of the item types, if they fit in the items.
         const maximumFontSize = 0.04 * size;
         const minimumFontSize = 0.012 * size;
         for (const item of bin.items) {
-            const itemWidth = item.box.x1 - item.box.x0;
-            const itemHeight = item.box.y1 - item.box.y0;
+            const box = item.labelBox || item.box;
+            const itemWidth = box.x1 - box.x0;
+            const itemHeight = box.y1 - box.y0;
             const text = String(item.itemTypeId);
             const fontSize = Math.min(maximumFontSize, 0.5 * itemHeight, itemWidth / (0.7 * text.length));
             if (fontSize < minimumFontSize)
                 continue;
             const label = svgElement("text", {
-                x: (item.box.x0 + item.box.x1) / 2,
-                y: top - (item.box.y0 + item.box.y1) / 2,
+                x: (box.x0 + box.x1) / 2,
+                y: top - (box.y0 + box.y1) / 2,
                 "font-size": fontSize,
                 class: "viewer-item-label",
             });

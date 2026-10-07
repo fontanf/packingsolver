@@ -9,14 +9,17 @@
 //       copies,
 //       box: {x0, y0, x1, y1},   // its bounding box
 //       outline,         // a path (see below)
-//       items: [{itemTypeId, path, box, label}],
+//       items: [{itemTypeId, paths, box, labelBox, label}],
 //       defects: [path],
 //       // rectangleguillotine only:
 //       trims: [box], wastes: [box], residuals: [box], cuts: [{depth, box}],
 //   }
-// A path is a list of closed contours, each a list of points [x, y]; the
-// contours after the first one of a shape are its holes (drawn with the
-// even-odd rule).
+// A path is a list of closed contours, each a list of points [x, y]: a shape,
+// then its holes (drawn with the even-odd rule). An item has a path for each
+// of its shapes (several for some irregular items), so that its shapes which
+// overlap aren't drawn as holes.
+// 'labelBox': the bounding box of the largest shape of the item, where the id
+// of its item type is written.
 // For onedimensional, the boxes have a height of 1.
 
 import {parseCsv} from "../visualize/common.js";
@@ -95,7 +98,7 @@ function readRectangle(text) {
         } else if (row.TYPE === "DEFECT") {
             bins[i].defects.push(rectangle(x0, y0, x1, y1));
         } else if (row.TYPE === "ITEM") {
-            const item = {itemTypeId: integer(row.ID), path: rectangle(x0, y0, x1, y1), box: {x0, y0, x1, y1},
+            const item = {itemTypeId: integer(row.ID), paths: [rectangle(x0, y0, x1, y1)], box: {x0, y0, x1, y1},
                 label: `Item type ${row.ID}: ${number(row.LX)} × ${number(row.LY)} at (${x0}, ${y0})`};
             if (row.GROUP_ID !== undefined && row.GROUP_ID !== null && row.GROUP_ID !== "")
                 item.label += `, group ${row.GROUP_ID}`;
@@ -129,7 +132,7 @@ function readRectangleGuillotine(text) {
         } else if (depth === -1) {  // Trims.
             bins[i].trims.push(box);
         } else if (type >= 0) {  // Item.
-            bins[i].items.push({itemTypeId: type, path: rectangle(x0, y0, x1, y1), box,
+            bins[i].items.push({itemTypeId: type, paths: [rectangle(x0, y0, x1, y1)], box,
                 label: `Item type ${type}: ${number(row.WIDTH)} × ${number(row.HEIGHT)} at (${x0}, ${y0})`});
         } else {
             bins[i].cuts.push({depth, box});
@@ -155,7 +158,7 @@ function readOneDimensional(text) {
             bin.outline = rectangle(x0, 0, x1, 1);
             bins[i] = bin;
         } else if (row.TYPE === "ITEM") {
-            bins[i].items.push({itemTypeId: integer(row.ID), path: rectangle(x0, 0, x1, 1),
+            bins[i].items.push({itemTypeId: integer(row.ID), paths: [rectangle(x0, 0, x1, 1)],
                 box: {x0, y0: 0, x1, y1: 1}, label: `Item type ${row.ID}: ${number(row.LX)} at ${x0}`});
         }
     }
@@ -216,15 +219,17 @@ function readIrregular(text) {
         for (const defect of solutionBin.defects || [])
             bin.defects.push(shapePath(defect.shape, defect.holes || []));
         for (const solutionItem of solutionBin.items) {
-            const path = [];
-            for (const itemShape of solutionItem.item_shapes)
-                path.push(...shapePath(itemShape.shape, itemShape.holes || []));
+            const paths = solutionItem.item_shapes.map(
+                (itemShape) => shapePath(itemShape.shape, itemShape.holes || []));
             let label = `Item type ${solutionItem.id} at (${solutionItem.x}, ${solutionItem.y})`;
             if (solutionItem.angle)
                 label += `, rotated ${solutionItem.angle}°`;
             if (solutionItem.mirror)
                 label += ", mirrored";
-            bin.items.push({itemTypeId: solutionItem.id, path, box: boxOfPath(path), label});
+            const boxes = paths.map((p) => boxOfPath([p[0]]));
+            const area = (b) => (b.x1 - b.x0) * (b.y1 - b.y0);
+            const labelBox = boxes.reduce((largest, b) => (area(b) > area(largest))? b: largest);
+            bin.items.push({itemTypeId: solutionItem.id, paths, box: boxOfPath(paths.flat()), labelBox, label});
         }
         return bin;
     });
