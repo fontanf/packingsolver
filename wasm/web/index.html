@@ -159,19 +159,26 @@
 
             <section id="results" hidden>
                 <h2>Solution</h2>
-                <div id="summary"></div>
+                <!-- The key numbers of the solution: a tile each. -->
+                <div id="summary" class="stat-tiles"></div>
                 <div class="buttons">
                     <button type="button" id="download-certificate">Download the certificate (CSV)</button>
                     <button type="button" id="download-output">Download the output (JSON)</button>
                 </div>
                 <div id="plot"></div>
                 <h3>Progress</h3>
-                <table id="progress">
-                    <thead>
-                        <tr><th>Time (s)</th><th>Solution</th><th>Bound</th></tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
+                <!-- The value of the solution and the bound over time; the
+                     table below has the same values. -->
+                <div id="progress-chart"></div>
+                <details id="progress-details">
+                    <summary>Progress table</summary>
+                    <table id="progress">
+                        <thead>
+                            <tr><th>Time (s)</th><th>Solution</th><th>Bound</th></tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </details>
             </section>
         </main>
     </div>

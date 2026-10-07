@@ -6,6 +6,8 @@
 import * as irregularForm from "./irregular_form.js";
 import * as form from "./form.js";
 import * as projects from "./projects.js";
+import * as results from "./results.js";
+import {format} from "./results.js";
 import {
     openDimension,
     BOX_ROTATIONS,
@@ -173,16 +175,6 @@ function renderObjectives(problemType) {
     }
 }
 
-// Bound of each objective in the output.
-const BOUNDS = {
-    "knapsack": "KnapsackBound",
-    "bin-packing": "BinPackingBound",
-    "variable-sized-bin-packing": "VariableSizedBinPackingBound",
-    "open-dimension-x": "OpenDimensionXBound",
-    "open-dimension-y": "OpenDimensionYBound",
-    "open-dimension-z": "OpenDimensionZBound",
-};
-
 const $ = (id) => document.getElementById(id);
 
 // The functions of the form which depend on the page: the objective, the
@@ -209,8 +201,10 @@ const state = {
     itemTypes: [],
     worker: null,
     running: false,
-    // Objective of the instance being solved.
+    // Objective of the instance being solved, and its number of items ('null'
+    // if unlimited).
     objective: null,
+    totalItems: null,
     // Solution shown ('{output, certificate, objective}').
     last: null,
     plotTimer: null,
@@ -1196,6 +1190,7 @@ function solve() {
     project.progress = [];
     state.solvingProject = project;
     state.objective = instanceObject.objective;
+    state.totalItems = results.totalItems(instanceObject);
     state.startTime = performance.now();
     state.timeLimit = (parameters.time_limit !== undefined)? parameters.time_limit: null;
     state.best = null;
@@ -1212,13 +1207,6 @@ function solve() {
         instance: instanceObject,
         parameters,
     });
-}
-
-function format(value) {
-    if (typeof value !== "number")
-        return String(value);
-    // At most 6 significant digits, without trailing zeros.
-    return Number.isInteger(value)? String(value): String(Number(value.toPrecision(6)));
 }
 
 // Short description of a solution, from its JSON output.
@@ -1253,7 +1241,7 @@ function describeSolution(output, objective) {
 }
 
 function describeBound(output, objective) {
-    const key = BOUNDS[objective];
+    const key = results.BOUNDS[objective];
     if (key === undefined || output[key] === undefined || output[key] === null)
         return "";
     return format(output[key]);
@@ -1274,6 +1262,7 @@ function renderResults() {
         addProgressRow(line);
     $("summary").replaceChildren();
     Plotly.purge($("plot"));
+    Plotly.purge($("progress-chart"));
     state.last = null;
     if (project.result === null) {
         $("results").hidden = true;
@@ -1289,12 +1278,53 @@ function showResult(result) {
     $("results").hidden = false;
     $("download-certificate").textContent = (state.current.problemType === "irregular")?
         "Download the certificate (JSON)": "Download the certificate (CSV)";
-    const output = result.output;
-    const bound = describeBound(output, result.objective);
-    $("summary").textContent = describeSolution(output, result.objective)
-        + (bound !== ""? `; bound ${bound}`: "")
-        + `; ${output.Time.toFixed(2)} s`;
+    renderSummary(result);
     schedulePlot();
+}
+
+// The key numbers of a solution, a tile each.
+function renderSummary(result) {
+    const tiles = results.summaryTiles(result).map(({label, value, note}) => {
+        const tile = document.createElement("div");
+        tile.className = "stat-tile";
+        const labelElement = document.createElement("div");
+        labelElement.className = "stat-label";
+        labelElement.textContent = label;
+        const valueElement = document.createElement("div");
+        valueElement.className = "stat-value";
+        valueElement.textContent = value;
+        tile.append(labelElement, valueElement);
+        if (note !== undefined) {
+            const noteElement = document.createElement("div");
+            noteElement.className = "stat-note";
+            noteElement.textContent = note;
+            tile.appendChild(noteElement);
+        }
+        return tile;
+    });
+    $("summary").replaceChildren(...tiles);
+}
+
+// The colors of the page, for the charts: they follow its light or dark
+// mode.
+function chartColors() {
+    const style = getComputedStyle(document.documentElement);
+    const color = (name) => style.getPropertyValue(name).trim();
+    return {accent: color("--accent"), muted: color("--muted"), text: color("--text"), grid: color("--border")};
+}
+
+// The chart of the progress of the optimization of the current project.
+async function plotProgress() {
+    const project = state.current;
+    const figure = (project.result === null)?
+        null: results.progressFigure(project.progress, project.result, chartColors());
+    $("progress-chart").hidden = (figure === null);
+    if (figure === null) {
+        Plotly.purge($("progress-chart"));
+        return;
+    }
+    await Plotly.react($("progress-chart"), figure.data, figure.layout,
+        {responsive: true, displayModeBar: false});
 }
 
 // Plotting a solution can take a while: at most once every 500 ms.
@@ -1308,6 +1338,11 @@ function schedulePlot() {
 }
 
 async function plot() {
+    try {
+        await plotProgress();
+    } catch (error) {
+        console.error(error);
+    }
     const result = state.last;
     if (result === null || result.output.Solution.NumberOfItems === 0)
         return;
@@ -1337,12 +1372,20 @@ function onWorkerMessage(event) {
             time: message.output.Time,
             solution: describeSolution(message.output, state.objective),
             bound: describeBound(message.output, state.objective),
+            // For the chart of the progress.
+            value: results.objectiveValue(message.output, state.objective),
+            boundValue: results.boundValue(message.output, state.objective),
         };
         project.progress.push(line);
-        if (project === state.current)
+        if (project === state.current) {
             addProgressRow(line);
+            // A bound alone changes the chart.
+            if (project.result !== null)
+                schedulePlot();
+        }
         if (message.output.Solution.NumberOfItems > 0) {
-            project.result = {output: message.output, certificate: message.certificate, objective: state.objective};
+            project.result = {output: message.output, certificate: message.certificate,
+                objective: state.objective, totalItems: state.totalItems};
             state.best = line.solution;
             if (project === state.current) {
                 showResult(project.result);
@@ -1356,7 +1399,8 @@ function onWorkerMessage(event) {
         setRunning(false);
         state.solvingProject = null;
         if (project !== null) {
-            project.result = {output: message.output, certificate: message.certificate, objective: state.objective};
+            project.result = {output: message.output, certificate: message.certificate,
+                objective: state.objective, totalItems: state.totalItems};
             saveProject(project);
             if (project === state.current) {
                 showResult(project.result);
@@ -1497,6 +1541,12 @@ async function init() {
             section.addEventListener(event, () => scheduleSave());
     }
     window.addEventListener("pagehide", flushSaves);
+    // The charts take the colors of the page when they are drawn: drawn again
+    // when it switches between light and dark.
+    window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+        if (state.current !== null && state.current.result !== null)
+            schedulePlot();
+    });
     document.addEventListener("visibilitychange", () => {
         if (document.visibilityState === "hidden")
             flushSaves();
