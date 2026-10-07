@@ -1,0 +1,59 @@
+=================================
+          PackingSolver          
+=================================
+
+Problem type
+------------
+Rectangle
+
+Instance
+--------
+Objective:             BinPackingWithLeftovers
+Number of item types:  3
+Number of items:       3
+Number of bin types:   1
+Number of bins:        2
+Number of groups:      3
+Number of defects:     0
+Unloading constraint:  None
+Total item area:       222500
+Total item width:      750
+Total item height:     750
+Smallest item width:   150
+Smallest item height:  150
+Total item profit:     222500
+Largest item profit:   160000
+Total item weight:     0
+Largest item copies:   1
+Total bin area:        560000
+Total bin weight:      inf
+Largest bin cost:      280000
+
+        Time      # bins    Leftover                         Comment
+        ----      ------    --------                         -------
+       0.000           2      240000                  TS g 1 d Y q 1
+       0.000           1       40000                  TS g 0 d X q 2
+
+Final statistics
+----------------
+Time (s):  5.00148
+
+Solution
+--------
+Number of items:  3 / 3 (100%)
+Item area:        222500 / 222500 (100%)
+Item weight:      0 / 0 (-nan%)
+Item profit:      222500 / 222500 (100%)
+Number of bins:   1 / 2 (50%)
+Bin area:         280000 / 560000 (50%)
+Bin weight:       inf / inf (-nan%)
+Bin cost:         280000
+Waste:            17500
+Waste (%):        7.29167
+Full waste:       57500
+Full waste (%):   20.5357
+Area load:        0.397321
+Weight load:      0
+X max:            600
+Y max:            400
+Leftover value:   40000

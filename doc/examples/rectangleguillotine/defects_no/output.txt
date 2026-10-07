@@ -1,0 +1,73 @@
+=================================
+          PackingSolver          
+=================================
+
+Problem type
+------------
+RectangleGuillotine
+
+Instance
+--------
+Objective:                             BinPacking
+Number of item types:                  1
+Number of items:                       2
+Number of bin types:                   1
+Number of bins:                        3
+Number of stacks:                      1
+Number of defects:                     0
+Number of stages:                      3
+Cut type:                              NonExact
+First stage orientation:               Vertical
+Minimum distance between 1-cuts:       0
+Maximum distance between 1-cuts:       -1
+Minimum distance between 2-cuts:       0
+Maximum distance between 2-cuts:       -1
+Minimum waste length:                  0
+Maximum number of consecutive 1-cuts:  -1
+Maximum number of consecutive 2-cuts:  -1
+Cut through defects:                   0
+Cut thickness:                         0
+Total item area:                       120
+Total item profit:                     120
+Largest item profit:                   60
+Largest item copies:                   2
+Total bin area:                        360
+Largest bin cost:                      120
+
+        Time    Bins  Full waste (%)                         Comment
+        ----    ----  --------------                         -------
+       0.000       1            0.00           TS g 1 d Vertical q 1
+
+Final statistics
+----------------
+Time (s):  0.00411838
+
+Solution
+--------
+Number of items:           2 / 2 (100%)
+Item area:                 120 / 120 (100%)
+Item profit:               120 / 120 (100%)
+Number of bins:            1 / 3 (33.3333%)
+Number of different bins:  1
+Bin area:                  120 / 360 (33.3333%)
+Bin cost:                  120
+Cutting cost:              0
+Waste:                     0 (0%)
+Full waste:                0 (0%)
+Width:                     10
+Height:                    12
+Second leftover value:     0
+Number of stages:          2
+Feasible:                  1
+    Number of stages:      1
+    Min. waste length:     1
+    Min. dist. 1-cuts:     1
+    Max. dist. 1-cuts:     1
+    Min. dist. 2-cuts:     1
+    Max. dist. 2-cuts:     1
+    Max. no. 1-cuts:       1
+    Max. no. 2-cuts:       1
+    Stacks:                1
+    Defects:               1
+    Cut through defects:   1
+    Item copies:           1

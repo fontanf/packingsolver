@@ -1,0 +1,56 @@
+=================================
+          PackingSolver          
+=================================
+
+Problem type
+------------
+Irregular
+
+Instance
+--------
+Objective:                    BinPacking
+Number of item types:         2
+Number of items:              3
+Number of fixed items:        0
+Number of bin types:          1
+Number of bins:               2
+Number of defects:            0
+Number of rectangular items:  1
+Number of circular items:     0
+Item-item minimum spacing:    0
+Open dim. XY aspect ratio:    -1
+Total item area:              4644
+Smallest item area:           1444
+Largest item area:            1600
+Total item profit:            4644
+Largest item profit:          1600
+Largest item copies:          2
+Total bin area:               9600
+Largest bin cost:             4800
+
+        Time    Bins  Full waste (%)                         Comment
+        ----    ----  --------------                         -------
+       0.002       2           51.62                  TS g 0 d 0 q 1
+
+Final statistics
+----------------
+Time (s):  0.0157571
+
+Solution
+--------
+Number of items:  3 / 3 (100%)
+Item area:        4644 / 4644 (100%)
+Item profit:      4644 / 4644 (100%)
+Number of bins:   2 / 2 (100%)
+Bin area:         9600 / 9600 (100%)
+Bin cost:         9600
+Full waste:       4956
+Full waste (%):   51.625
+X min:            0
+Y min:            0
+X max:            40
+Y max:            60
+Density X:        0.645
+Density Y:        0.48375
+ODXY area:        2400
+Leftover value:   2400
