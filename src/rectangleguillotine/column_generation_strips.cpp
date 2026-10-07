@@ -2198,6 +2198,22 @@ void column_generation_strips_vertical(
             = static_cast<const columngenerationsolver::LimitedDiscrepancySearchOutput&>(cgs_output);
         if (cgslds_output.solution.feasible()) {
             //std::cout << "callback..." << std::endl;
+            // With the open dimension objective, the model has no row for the
+            // width of the bin, so the strips may not fit in it: such
+            // solutions are skipped.
+            Length cut_thickness = instance.parameters().cut_thickness;
+            Length x = instance.x_start(bin_type) - cut_thickness;
+            for (const auto& pair: cgslds_output.solution.columns()) {
+                const SolutionBin& bin = std::static_pointer_cast<Solution>(pair.first->extra)->bin(0);
+                for (const SolutionNode& node: bin.nodes) {
+                    if (node.d == 1 && !(node.l == 0 && bin_type.has_soft_left_trim())) {
+                        x += std::round(pair.second) * (cut_thickness + node.r - node.l);
+                        break;
+                    }
+                }
+            }
+            if (x > bin_type.rect.w - bin_type.right_trim)
+                return;
             SolutionBuilder solution_builder(instance);
             add_bin(instance, solution_builder);
             Length offset = 0;

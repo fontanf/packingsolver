@@ -355,6 +355,14 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path(""),
                 fs::path(""),
                 fs::path("data") / "rectangleguillotine" / "tests" / "bin_packing_with_leftovers_soft_left_trim" / "solution.csv",
+            }, {
+                // With the open dimension objective, the strips of the column
+                // generation could be wider than the bin.
+                fs::path("data") / "rectangleguillotine" / "tests" / "open_dimension_x_column_generation_strips_width" / "instance.json",
+                fs::path(""),
+                fs::path(""),
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "open_dimension_x_column_generation_strips_width" / "solution.csv",
             }}));
 
 TEST(RectangleGuillotine, SolutionItemInSoftTrim)
