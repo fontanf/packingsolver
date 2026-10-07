@@ -19,8 +19,11 @@ target_link_options(PackingSolver_wasm PRIVATE
     # The workers of the threads are started when the module is loaded:
     # 'solve' blocks the calling thread, which then can't start new ones. If
     # the algorithms need more threads than the pool has, the thread creation
-    # fails ('solve' returns an error) instead of blocking forever.
-    -sPTHREAD_POOL_SIZE=16
+    # fails instead of blocking forever, and the optimization fails. In anytime
+    # mode, the algorithms use up to 12 threads for the examples of the web
+    # page, but 19 for the irregular instance
+    # 'data/irregular/user2025/irr-hand1.json'.
+    -sPTHREAD_POOL_SIZE=32
     -sPTHREAD_POOL_SIZE_STRICT=2
     # The default allocator (dlmalloc) has a single lock: with several
     # threads, the algorithms were up to 7 times slower than natively.
