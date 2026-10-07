@@ -24,9 +24,15 @@ enum class LeftoverMode
 {
     /** Leftover value is bin_area - x_max * y_max (default). */
     Area,
-    /** Leftover value is bin_width - x_max; forces Direction::X. */
+    /**
+     * Leftover value is (bin_width - x_max) * bin_height; forces
+     * Direction::X.
+     */
     X,
-    /** Leftover value is bin_height - y_max; forces Direction::Y. */
+    /**
+     * Leftover value is bin_width * (bin_height - y_max); forces
+     * Direction::Y.
+     */
     Y,
 };
 

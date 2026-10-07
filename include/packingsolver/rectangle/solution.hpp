@@ -186,10 +186,16 @@ public:
     /** Get the maximum y of the solution. */
     inline Length y_max() const { return y_max_; }
 
-    /** Get the area of the solution. */
+    /**
+     * Get the value of the leftover: the area of the last bin which is not
+     * used (see 'LeftoverMode').
+     */
     inline Profit leftover_value() const { return leftover_value_; }
 
-    /** Get the area of the solution. */
+    /**
+     * Get the area used by the solution: the area of the bins minus the
+     * leftover.
+     */
     inline Area area() const { return area_; }
 
     /** Get the area load. */
@@ -281,10 +287,10 @@ private:
     /** Number of items. */
     ItemPos number_of_items_ = 0;
 
-    /** Total area of the solution. */
+    /** Area used by the solution: the area of the bins minus the leftover. */
     Area area_ = 0;
 
-    /** Value of the leftover. */
+    /** Value of the leftover: an area (see 'LeftoverMode'). */
     Profit leftover_value_ = 0.0;
 
     /** Total area of the bins of the solution. */

@@ -552,7 +552,9 @@ BranchingScheme::Node BranchingScheme::child_tmp(
         node.leftover_value = bin_type.area() - node.xe_max * node.ye_max;
         break;
     } case LeftoverMode::X: case LeftoverMode::Y: {
-        node.leftover_value = bin_type.rect.x - node.xe_max;
+        // The leftover along the direction of the bin (Y on the flipped
+        // instance), as an area.
+        node.leftover_value = (bin_type.rect.x - node.xe_max) * bin_type.rect.y;
         break;
     }
     }

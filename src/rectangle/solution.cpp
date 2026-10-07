@@ -102,19 +102,23 @@ void Solution::update_indicators(
                 this->x_max_ = xe;
             if (this->y_max_ < ye)
                 this->y_max_ = ye;
-            this->area_ = this->bin_area_ - bin_type.area() + (this->x_max_ * this->y_max_);
+            // The area used in the last bin, the rest of the bin being the
+            // leftover.
+            Area last_bin_area = 0;
             switch (instance().parameters().leftover_mode) {
             case LeftoverMode::Area: {
-                this->leftover_value_ = this->bin_area_ - this->area_;
+                last_bin_area = this->x_max_ * this->y_max_;
                 break;
             } case LeftoverMode::X: {
-                this->leftover_value_ = bin_type.rect.x - this->x_max_;
+                last_bin_area = this->x_max_ * bin_type.rect.y;
                 break;
             } case LeftoverMode::Y: {
-                this->leftover_value_ = bin_type.rect.y - this->y_max_;
+                last_bin_area = bin_type.rect.x * this->y_max_;
                 break;
             }
             }
+            this->area_ = this->bin_area_ - bin_type.area() + last_bin_area;
+            this->leftover_value_ = this->bin_area_ - this->area_;
         }
     }
 
