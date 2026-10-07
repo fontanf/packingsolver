@@ -833,3 +833,53 @@ tr.placed-shapes-line.invalid .placed-shapes-label,
     text-align: center;
     white-space: nowrap;
 }
+
+/* The title of a page, and the links to the project on its right (below it
+   on narrow windows). */
+.page-title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.page-title h1 {
+    margin: 0;
+}
+
+.project-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+/* A link shown as a rounded button, with an icon. */
+.link-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.3rem 0.85rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--text);
+    font-size: 0.9em;
+    text-decoration: none;
+}
+
+.link-button svg {
+    flex-shrink: 0;
+    fill: currentColor;
+}
+
+.link-button:hover,
+.link-button:focus-visible {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+a {
+    color: var(--accent);
+}
