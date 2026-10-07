@@ -649,3 +649,13 @@ tr.placed-shapes-line.invalid .placed-shapes-label,
 .row-buttons button.invalid {
     border-color: var(--error);
 }
+
+/* What was pasted in a table. */
+#paste-status:empty {
+    display: none;
+}
+
+.paste-hint {
+    margin: 0.25rem 0 0;
+    font-size: 0.85em;
+}

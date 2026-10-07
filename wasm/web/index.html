@@ -134,6 +134,8 @@
                         <h3>Bin types</h3>
                         <div class="table-scroll"><table id="bin-types" class="types"></table></div>
                         <button type="button" id="add-bin-type">Add a bin type</button>
+                        <p class="note paste-hint">Tip: paste rows copied from a spreadsheet or a CSV file
+                            (Ctrl+V in a cell of the table; with a header row, the columns are found by their names).</p>
                     </div>
                     <div class="form-group">
                         <h3>Item types</h3>
@@ -144,7 +146,11 @@
                             <input type="file" id="file-items-file" accept=".dxf,.svg" hidden>
                             <span id="file-items-status" class="note" role="status"></span>
                         </span>
+                        <p class="note paste-hint">Tip: paste rows copied from a spreadsheet or a CSV file
+                            (Ctrl+V in a cell of the table; with a header row, the columns are found by their names).</p>
                     </div>
+                    <!-- What was pasted in a table. -->
+                    <p id="paste-status" class="note" role="status"></p>
                     <p id="form-error" class="note error-text" role="status"></p>
                 </fieldset>
             </section>
