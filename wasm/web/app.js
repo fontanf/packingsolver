@@ -1,9 +1,11 @@
-// PackingSolver web page: builds an instance (form or JSON), solves it in a
-// Web Worker ('packingsolver_worker.js') and shows the solutions as they are
-// found.
+// PackingSolver web page: the projects of each problem type ('projects.js'),
+// stored in the browser. The instance of a project is built in a form (or
+// opened from a JSON file), solved in a Web Worker ('packingsolver_worker.js'),
+// and its solutions are shown as they are found.
 
 import * as irregularForm from "./irregular_form.js";
 import * as form from "./form.js";
+import * as projects from "./projects.js";
 import {
     openDimension,
     BOX_ROTATIONS,
@@ -11,13 +13,9 @@ import {
     itemColumns,
     UNLIMITED_STAGES,
     INSTANCE_PARAMETERS,
-    defaultInstanceParameters,
     parameterForced,
     cuttingCostRows,
     OBJECTIVES,
-    defaultObjective,
-    EXAMPLES,
-    defaultRow,
     defaultResource,
     newItemRow,
 } from "./form.js";
@@ -210,9 +208,9 @@ const state = {
     itemTypes: [],
     worker: null,
     running: false,
-    problemType: null,
+    // Objective of the instance being solved.
     objective: null,
-    // Last update from the worker ('{output, certificate}').
+    // Solution shown ('{output, certificate, objective}').
     last: null,
     plotTimer: null,
     formCheckTimer: null,
@@ -227,6 +225,15 @@ const state = {
     statusTimer: null,
     // Whether the results were scrolled into view during the optimization.
     resultsRevealed: false,
+    // The projects of all the problem types ('projects.js'), the project
+    // opened, and the project being solved ('null' if none).
+    projects: [],
+    current: null,
+    solvingProject: null,
+    // Where the projects are stored ('projects.openStore').
+    store: null,
+    // Projects waiting to be saved: id -> '{project, timer}'.
+    saveTimers: new Map(),
 };
 
 /////////////////////////////////////////////////////////////////////////////
@@ -697,41 +704,228 @@ function updateGallery() {
 
 
 
-function resetForm() {
-    $("form-ignored").hidden = true;
-    const type = problemType();
-    renderObjectives(type);
-    $("objective").value = defaultObjective(type);
-    state.instanceParameters = defaultInstanceParameters(type);
-    renderInstanceParameters();
-    state.binTypes = [newBinRow(type)];
-    state.itemTypes = [newItemRow(type)];
-    renderForm();
-}
+/////////////////////////////////////////////////////////////////////////////
+// Projects
+/////////////////////////////////////////////////////////////////////////////
 
-function loadExample() {
-    $("form-ignored").hidden = true;
-    const type = problemType();
-    if (type === "irregular") {
-        const example = irregularForm.EXAMPLE;
-        $("objective").value = example.objective;
-        state.binTypes = example.binTypes.map((t) => ({...irregularForm.defaultBinRow(), ...t}));
-        state.itemTypes = example.itemTypes.map((t) => ({...irregularForm.defaultItemRow(), ...t}));
-        renderForm();
-        return;
+const PROBLEM_TYPES = ["rectangleguillotine", "rectangle", "box", "boxstacks", "onedimensional", "irregular"];
+
+// The last problem type and the last project of each problem type, to open
+// them again when the page is reloaded or the problem type changed.
+function remember(key, value) {
+    try {
+        localStorage.setItem("packingsolver." + key, value);
+    } catch (error) {
+        // Not remembered.
     }
-    const example = EXAMPLES[type];
-    $("objective").value = example.objective;
-    const fill = (columns, types) => types.map((t) => ({...defaultRow(columns), ...t}));
-    state.binTypes = fill(binColumns(type), example.bin_types);
-    state.itemTypes = fill(itemColumns(type), example.item_types);
-    renderForm();
 }
 
+function remembered(key) {
+    try {
+        return localStorage.getItem("packingsolver." + key);
+    } catch (error) {
+        return null;
+    }
+}
 
-// Load an instance in the JSON format in the form, with the fields which the
-// solver doesn't read listed.
+// The form and the parameters of the current project, from the page. The
+// form of an example isn't modified.
+function syncCurrent() {
+    const project = state.current;
+    if (project === null)
+        return;
+    if (!project.example) {
+        project.form = {
+            objective: $("objective").value,
+            instanceParameters: state.instanceParameters,
+            binTypes: state.binTypes,
+            itemTypes: state.itemTypes,
+        };
+    }
+    project.parameters = {
+        optimizationMode: $("optimization-mode").value,
+        timeLimit: $("time-limit").value,
+    };
+}
+
+// Save a project at most every 500 ms.
+function scheduleSave(project = state.current) {
+    if (project === null || state.saveTimers.has(project.id))
+        return;
+    state.saveTimers.set(project.id, {
+        project,
+        timer: setTimeout(() => saveProject(project), 500),
+    });
+}
+
+async function saveProject(project) {
+    const pending = state.saveTimers.get(project.id);
+    if (pending !== undefined) {
+        clearTimeout(pending.timer);
+        state.saveTimers.delete(project.id);
+    }
+    if (project === state.current)
+        syncCurrent();
+    // Removed in the meantime.
+    if (!state.projects.includes(project))
+        return;
+    try {
+        await state.store.save(project);
+    } catch (error) {
+        console.error(error);
+        $("storage-note").textContent = "The projects couldn't be saved in this browser: " + error.message;
+        $("storage-note").classList.add("error-text");
+    }
+}
+
+// Save the projects waiting to be saved, when the page is left.
+function flushSaves() {
+    for (const {project} of [...state.saveTimers.values()])
+        saveProject(project);
+}
+
+function projectNames(problemType, except = null) {
+    return state.projects
+        .filter((p) => p.problemType === problemType && p !== except)
+        .map((p) => p.name);
+}
+
+function addProject(project) {
+    state.projects.push(project);
+    saveProject(project);
+    openProject(project);
+}
+
+function openProject(project) {
+    if (state.current !== null && state.current !== project)
+        saveProject(state.current);
+    state.current = project;
+    remember("problemType", project.problemType);
+    remember("project." + project.problemType, project.id);
+    $("problem-type").value = project.problemType;
+    updateGallery();
+    renderObjectives(project.problemType);
+    $("objective").value = project.form.objective;
+    state.instanceParameters = project.form.instanceParameters;
+    state.binTypes = project.form.binTypes;
+    state.itemTypes = project.form.itemTypes;
+    $("optimization-mode").value = project.parameters.optimizationMode;
+    $("time-limit").value = project.parameters.timeLimit;
+    for (const id of ["form-error", "file-items-status", "download-instance-error", "load-json-error"])
+        $(id).textContent = "";
+    $("form-ignored").hidden = true;
+    // The examples can't be modified.
+    $("form-fields").disabled = project.example;
+    renderProjectList();
+    renderProjectHeader();
+    renderInstanceParameters();
+    renderForm();
+    renderResults();
+}
+
+// Open the last project opened of a problem type, its example otherwise.
+function openProblemType(problemType) {
+    const id = remembered("project." + problemType);
+    const ofType = projects.projectsOfType(state.projects, problemType);
+    openProject(ofType.find((p) => p.id === id) || ofType[0]);
+}
+
+function renderProjectList() {
+    const list = $("project-list");
+    list.replaceChildren();
+    for (const project of projects.projectsOfType(state.projects, problemType())) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.setAttribute("aria-current", String(project === state.current));
+        const name = document.createElement("span");
+        name.textContent = project.name;
+        button.appendChild(name);
+        const tag = (project === state.solvingProject)? "Solving": (project.example? "Example": "");
+        if (tag !== "") {
+            const span = document.createElement("span");
+            span.className = "project-tag" + ((project === state.solvingProject)? " solving": "");
+            span.textContent = tag;
+            button.appendChild(span);
+        }
+        button.addEventListener("click", () => openProject(project));
+        const item = document.createElement("li");
+        item.appendChild(button);
+        list.appendChild(item);
+    }
+}
+
+function renderProjectHeader() {
+    const project = state.current;
+    $("project-name").textContent = project.name;
+    $("project-name").hidden = false;
+    $("project-name-input").hidden = true;
+    $("rename-project").disabled = project.example;
+    $("delete-project").disabled = project.example || project === state.solvingProject;
+    $("delete-project").title = (project === state.solvingProject)? "Stop the optimization to delete the project": "";
+    $("example-note").hidden = !project.example;
+}
+
+// Rename the current project, in an input in place of its name.
+function startRename() {
+    const input = $("project-name-input");
+    input.value = state.current.name;
+    $("project-name").hidden = true;
+    input.hidden = false;
+    input.focus();
+    input.select();
+}
+
+function endRename(commit) {
+    const input = $("project-name-input");
+    if (input.hidden)
+        return;
+    const project = state.current;
+    const name = input.value.trim();
+    if (commit && name !== "" && name !== project.name) {
+        project.name = projects.uniqueName(name, projectNames(project.problemType, project));
+        saveProject(project);
+        renderProjectList();
+    }
+    renderProjectHeader();
+}
+
+function duplicateProject() {
+    syncCurrent();
+    const project = state.current;
+    addProject(projects.duplicateProject(project,
+        projects.uniqueName(project.name + " (copy)", projectNames(project.problemType))));
+}
+
+async function deleteProject() {
+    const project = state.current;
+    if (project.example || project === state.solvingProject)
+        return;
+    if (!confirm(`Delete the project "${project.name}"?`))
+        return;
+    const pending = state.saveTimers.get(project.id);
+    if (pending !== undefined) {
+        clearTimeout(pending.timer);
+        state.saveTimers.delete(project.id);
+    }
+    state.projects.splice(state.projects.indexOf(project), 1);
+    state.current = null;
+    openProject(projects.projectsOfType(state.projects, project.problemType)[0]);
+    try {
+        await state.store.remove(project.id);
+    } catch (error) {
+        console.error(error);
+    }
+}
+
+function newProject() {
+    const type = problemType();
+    addProject(projects.newProject(type, projects.uniqueName("New project", projectNames(type))));
+}
+
+// A new project from an instance in the JSON format, named after the file,
+// with the fields which the solver doesn't read listed.
 async function loadJsonFile(file) {
+    const type = problemType();
     let opened;
     try {
         let json;
@@ -740,19 +934,13 @@ async function loadJsonFile(file) {
         } catch (error) {
             throw new Error("invalid JSON: " + error.message);
         }
-        opened = form.fromInstance(problemType(), json);
+        opened = projects.projectFromInstance(type,
+            projects.uniqueName(projects.nameFromFileName(file.name), projectNames(type)), json);
     } catch (error) {
         $("load-json-error").textContent = "Error: " + error.message;
         return;
     }
-    $("load-json-error").textContent = "";
-    renderObjectives(problemType());
-    $("objective").value = opened.objective;
-    state.instanceParameters = opened.instanceParameters;
-    state.binTypes = opened.binTypes;
-    state.itemTypes = opened.itemTypes;
-    renderInstanceParameters();
-    renderForm();
+    addProject(opened.project);
     $("form-ignored").textContent = "Ignored fields (not read by the solver): " + opened.ignored.join(", ") + ".";
     $("form-ignored").hidden = (opened.ignored.length === 0);
 }
@@ -778,11 +966,14 @@ function setRunning(running) {
     }
 }
 
-// Status while solving: the elapsed time, out of the time limit, and the best
-// solution found so far.
+// Status while solving: the project solved if it isn't the current one, the
+// elapsed time, out of the time limit, and the best solution found so far.
 function updateSolvingStatus() {
     const seconds = (performance.now() - state.startTime) / 1000;
-    let text = `Solving... ${seconds.toFixed(1)} s`;
+    const project = state.solvingProject;
+    let text = (project !== null && project !== state.current)?
+        `Solving "${project.name}"...`: "Solving...";
+    text += ` ${seconds.toFixed(1)} s`;
     if (state.timeLimit !== null)
         text += ` / ${format(state.timeLimit)} s`;
     if (state.best !== null)
@@ -807,6 +998,7 @@ function revealResults() {
 }
 
 function solve() {
+    syncCurrent();
     let instanceObject;
     try {
         instanceObject = formInstance();
@@ -819,22 +1011,26 @@ function solve() {
     if (timeLimit !== "")
         parameters.time_limit = Number(timeLimit);
 
-    state.problemType = problemType();
+    // The solution and the progress of the optimization are those of the
+    // project, even if another project is opened in the meantime.
+    const project = state.current;
+    project.result = null;
+    project.progress = [];
+    state.solvingProject = project;
     state.objective = instanceObject.objective;
-    state.last = null;
     state.startTime = performance.now();
     state.timeLimit = (parameters.time_limit !== undefined)? parameters.time_limit: null;
     state.best = null;
     state.resultsRevealed = false;
-    $("progress").tBodies[0].replaceChildren();
-    $("summary").replaceChildren();
-    Plotly.purge($("plot"));
-    $("results").hidden = true;
+    renderResults();
+    renderProjectList();
+    renderProjectHeader();
+    saveProject(project);
 
     setRunning(true);
     state.worker.postMessage({
         type: "solve",
-        problemType: state.problemType,
+        problemType: project.problemType,
         instance: instanceObject,
         parameters,
     });
@@ -848,18 +1044,18 @@ function format(value) {
 }
 
 // Short description of a solution, from its JSON output.
-function describeSolution(output) {
+function describeSolution(output, objective) {
     const solution = output.Solution;
     const parts = [`${solution.NumberOfItems} items`];
     if (solution.NumberOfBins !== undefined)
         parts.push(`${solution.NumberOfBins} bins`);
-    if (state.objective === "knapsack" && solution.ItemProfit !== undefined)
+    if (objective === "knapsack" && solution.ItemProfit !== undefined)
         parts.push(`profit ${format(solution.ItemProfit)}`);
-    if (state.objective === "variable-sized-bin-packing" && solution.BinCost !== undefined)
+    if (objective === "variable-sized-bin-packing" && solution.BinCost !== undefined)
         parts.push(`cost ${format(solution.BinCost)}`);
-    if (state.objective === "bin-packing-with-leftovers" && solution.LeftoverValue !== undefined)
+    if (objective === "bin-packing-with-leftovers" && solution.LeftoverValue !== undefined)
         parts.push(`leftover ${format(solution.LeftoverValue)}`);
-    if (state.objective === "bin-packing-cutting-cost" && solution.CuttingCost !== undefined)
+    if (objective === "bin-packing-cutting-cost" && solution.CuttingCost !== undefined)
         parts.push(`cost ${format(solution.CuttingCost)}`);
     // The used length along the open dimension ('Width' and 'Height' for
     // rectangleguillotine).
@@ -868,40 +1064,58 @@ function describeSolution(output) {
         "open-dimension-y": [solution.YMax, solution.Height],
         "open-dimension-z": [solution.ZMax],
     };
-    if (state.objective in lengths) {
-        const length = lengths[state.objective].find((value) => value !== undefined);
+    if (objective in lengths) {
+        const length = lengths[objective].find((value) => value !== undefined);
         if (length !== undefined)
             parts.push(`length ${format(length)}`);
     }
-    if (state.objective === "open-dimension-xy" && solution.OpenDimensionXYArea !== undefined)
+    if (objective === "open-dimension-xy" && solution.OpenDimensionXYArea !== undefined)
         parts.push(`area ${format(solution.OpenDimensionXYArea)}`);
     return parts.join(", ");
 }
 
-function describeBound(output) {
-    const key = BOUNDS[state.objective];
+function describeBound(output, objective) {
+    const key = BOUNDS[objective];
     if (key === undefined || output[key] === undefined || output[key] === null)
         return "";
     return format(output[key]);
 }
 
-function addProgressRow(output) {
+function addProgressRow(line) {
     const row = $("progress").tBodies[0].insertRow();
-    row.insertCell().textContent = output.Time.toFixed(3);
-    row.insertCell().textContent = describeSolution(output);
-    row.insertCell().textContent = describeBound(output);
+    row.insertCell().textContent = line.time.toFixed(3);
+    row.insertCell().textContent = line.solution;
+    row.insertCell().textContent = line.bound;
 }
 
+// The solution and the progress of the current project.
+function renderResults() {
+    const project = state.current;
+    $("progress").tBodies[0].replaceChildren();
+    for (const line of project.progress)
+        addProgressRow(line);
+    $("summary").replaceChildren();
+    Plotly.purge($("plot"));
+    state.last = null;
+    if (project.result === null) {
+        $("results").hidden = true;
+        return;
+    }
+    showResult(project.result);
+}
+
+// Show a solution of the current project ('{output, certificate,
+// objective}').
 function showResult(result) {
     state.last = result;
     $("results").hidden = false;
+    $("download-certificate").textContent = (state.current.problemType === "irregular")?
+        "Download the certificate (JSON)": "Download the certificate (CSV)";
     const output = result.output;
-    const bound = describeBound(output);
-    state.best = describeSolution(output);
-    $("summary").textContent = state.best
+    const bound = describeBound(output, result.objective);
+    $("summary").textContent = describeSolution(output, result.objective)
         + (bound !== ""? `; bound ${bound}`: "")
         + `; ${output.Time.toFixed(2)} s`;
-    revealResults();
     schedulePlot();
 }
 
@@ -920,8 +1134,11 @@ async function plot() {
     if (result === null || result.output.Solution.NumberOfItems === 0)
         return;
     try {
-        const visualizer = await import(`./visualize/${state.problemType}.js`);
+        const visualizer = await import(`./visualize/${state.current.problemType}.js`);
         const figure = visualizer.figure(result.certificate);
+        // Another project opened in the meantime.
+        if (result !== state.last)
+            return;
         await Plotly.react($("plot"), figure.data, figure.layout, {responsive: true});
     } catch (error) {
         console.error(error);
@@ -931,23 +1148,53 @@ async function plot() {
 
 function onWorkerMessage(event) {
     const message = event.data;
+    const project = state.solvingProject;
     if (message.type === "ready") {
         setRunning(false);
         setStatus("Ready.");
     } else if (message.type === "solution") {
-        addProgressRow(message.output);
+        if (project === null)
+            return;
+        const line = {
+            time: message.output.Time,
+            solution: describeSolution(message.output, state.objective),
+            bound: describeBound(message.output, state.objective),
+        };
+        project.progress.push(line);
+        if (project === state.current)
+            addProgressRow(line);
         if (message.output.Solution.NumberOfItems > 0) {
-            showResult(message);
+            project.result = {output: message.output, certificate: message.certificate, objective: state.objective};
+            state.best = line.solution;
+            if (project === state.current) {
+                showResult(project.result);
+                revealResults();
+            }
             if (state.running)
                 updateSolvingStatus();
         }
+        scheduleSave(project);
     } else if (message.type === "done") {
         setRunning(false);
-        showResult(message);
+        state.solvingProject = null;
+        if (project !== null) {
+            project.result = {output: message.output, certificate: message.certificate, objective: state.objective};
+            saveProject(project);
+            if (project === state.current) {
+                showResult(project.result);
+                revealResults();
+            }
+        }
+        renderProjectList();
+        renderProjectHeader();
         const seconds = (performance.now() - state.startTime) / 1000;
-        setStatus(`Done in ${seconds.toFixed(1)} s.`);
+        setStatus(((project !== null && project !== state.current)? `"${project.name}": done`: "Done")
+            + ` in ${seconds.toFixed(1)} s.`);
     } else if (message.type === "error") {
         setRunning(false);
+        state.solvingProject = null;
+        renderProjectList();
+        renderProjectHeader();
         setStatus("Error: " + message.error, true);
     }
 }
@@ -961,8 +1208,8 @@ function download(name, type, content) {
     URL.revokeObjectURL(url);
 }
 
-// Download the instance of the form, in the JSON format, named after its
-// problem type.
+// Download the instance of the form, in the JSON format, named after the
+// project.
 function downloadInstance() {
     let instanceObject;
     try {
@@ -972,7 +1219,7 @@ function downloadInstance() {
         return;
     }
     $("download-instance-error").textContent = "";
-    download(`instance_${problemType()}.json`, "application/json",
+    download(`${state.current.name}.json`, "application/json",
         JSON.stringify(instanceObject, null, 4) + "\n");
 }
 
@@ -980,7 +1227,7 @@ function downloadInstance() {
 // Initialization
 /////////////////////////////////////////////////////////////////////////////
 
-function init() {
+async function init() {
     // Some fields are only shown for some objectives.
     $("objective").addEventListener("change", () => {
         // A single bin for the open dimension objectives.
@@ -992,20 +1239,14 @@ function init() {
         renderInstanceParameters();
         renderForm();
     });
-    $("problem-type").addEventListener("change", () => {
-        resetForm();
-        updateGallery();
-    });
+    $("problem-type").addEventListener("change", () => openProblemType(problemType()));
     // The examples of solutions select their problem type.
     for (const button of document.querySelectorAll("#gallery button")) {
         button.addEventListener("click", () => {
-            $("problem-type").value = button.dataset.problemType;
-            resetForm();
-            updateGallery();
+            openProblemType(button.dataset.problemType);
             $("problem").scrollIntoView({behavior: "smooth"});
         });
     }
-    updateGallery();
     $("add-bin-type").addEventListener("click", () => {
         state.binTypes.push(newBinRow(problemType()));
         renderForm();
@@ -1014,14 +1255,16 @@ function init() {
         state.itemTypes.push(newItemRow(problemType()));
         renderForm();
     });
-    $("load-example").addEventListener("click", loadExample);
     $("load-file-items").addEventListener("click", () => $("file-items-file").click());
     $("file-items-file").addEventListener("change", async () => {
         const file = $("file-items-file").files[0];
         $("file-items-file").value = "";
-        if (file !== undefined)
+        if (file !== undefined) {
             await loadFileItems(file);
+            scheduleSave();
+        }
     });
+    $("new-project").addEventListener("click", newProject);
     $("load-json").addEventListener("click", () => $("json-file").click());
     $("json-file").addEventListener("change", async () => {
         const file = $("json-file").files[0];
@@ -1029,12 +1272,32 @@ function init() {
         if (file !== undefined)
             await loadJsonFile(file);
     });
+    $("rename-project").addEventListener("click", startRename);
+    $("project-name-input").addEventListener("keydown", (event) => {
+        if (event.key === "Enter")
+            endRename(true);
+        else if (event.key === "Escape")
+            endRename(false);
+    });
+    $("project-name-input").addEventListener("blur", () => endRename(true));
+    $("duplicate-project").addEventListener("click", duplicateProject);
+    $("delete-project").addEventListener("click", deleteProject);
+    // The changes of the form and of the parameters are saved.
+    for (const section of [$("form-fields"), $("parameters")]) {
+        for (const event of ["input", "change", "click"])
+            section.addEventListener(event, () => scheduleSave());
+    }
+    window.addEventListener("pagehide", flushSaves);
+    document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "hidden")
+            flushSaves();
+    });
     $("solve").addEventListener("click", solve);
     $("stop").addEventListener("click", () => state.worker.postMessage({type: "stop"}));
     $("download-certificate").addEventListener("click", () => {
-        const json = state.problemType === "irregular";
+        const json = state.current.problemType === "irregular";
         download(
-            json? "solution.json": "solution.csv",
+            `${state.current.name}_solution.${json? "json": "csv"}`,
             json? "application/json": "text/csv",
             state.last.certificate);
     });
@@ -1047,10 +1310,25 @@ function init() {
         });
     }
     $("download-output").addEventListener("click", () => {
-        download("output.json", "application/json", JSON.stringify(state.last.output, null, 4));
+        download(`${state.current.name}_output.json`, "application/json",
+            JSON.stringify(state.last.output, null, 4));
     });
 
-    resetForm();
+    // The projects: the examples, and those stored in the browser.
+    state.store = await projects.openStore();
+    if (!state.store.persistent) {
+        $("storage-note").textContent =
+            "The projects can't be saved in this browser: they are lost when the page is closed.";
+    }
+    let stored = [];
+    try {
+        stored = await state.store.load();
+    } catch (error) {
+        console.error(error);
+    }
+    state.projects = projects.withExamples(PROBLEM_TYPES, stored);
+    const type = remembered("problemType");
+    openProblemType(PROBLEM_TYPES.includes(type)? type: problemType());
 
     // The threads of the solver need 'SharedArrayBuffer'.
     if (!window.crossOriginIsolated) {
@@ -1062,6 +1340,9 @@ function init() {
     state.worker.onmessage = onWorkerMessage;
     state.worker.onerror = (error) => {
         setRunning(false);
+        state.solvingProject = null;
+        renderProjectList();
+        renderProjectHeader();
         setStatus("Error: " + error.message, true);
     };
 }

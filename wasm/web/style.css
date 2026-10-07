@@ -27,7 +27,7 @@
 
 body {
     margin: 0 auto;
-    max-width: 72rem;
+    max-width: 88rem;
     padding: 1rem;
     font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
     line-height: 1.5;
@@ -102,12 +102,6 @@ button:disabled {
 
 .form-group h3 {
     margin-bottom: 0.5rem;
-}
-
-#instance-download {
-    margin: 1.5rem 0 0;
-    padding-top: 1rem;
-    border-top: 1px solid var(--border);
 }
 
 /* The buttons to solve and stop, and the status: at the bottom of the window
@@ -448,4 +442,132 @@ svg.thumbnail.invalid {
     #gallery {
         grid-template-columns: 1fr;
     }
+}
+
+/* The projects on the left of the page, the form and the results on the
+   right; the projects above them on narrow windows. */
+#layout {
+    display: grid;
+    grid-template-columns: 15rem minmax(0, 1fr);
+    gap: 0 1.5rem;
+    align-items: start;
+}
+
+#sidebar {
+    position: sticky;
+    top: 1rem;
+    margin: 1.5rem 0;
+    padding: 1rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+}
+
+#sidebar > label {
+    display: block;
+    margin: 0 0 0.25rem;
+}
+
+#sidebar select {
+    width: 100%;
+    margin-bottom: 1rem;
+}
+
+#sidebar h2 {
+    margin-bottom: 0.5rem;
+    font-size: 1.1rem;
+}
+
+@media (max-width: 60rem) {
+    #layout {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    #sidebar {
+        position: static;
+        margin-bottom: 0;
+    }
+}
+
+#project-list {
+    margin: 0.5rem 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+#project-list button {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.5rem;
+    width: 100%;
+    margin: 0 0 0.25rem;
+    padding: 0.35rem 0.6rem;
+    border-color: transparent;
+    background: transparent;
+    text-align: left;
+    overflow-wrap: anywhere;
+}
+
+#project-list button:hover {
+    background: var(--surface);
+}
+
+#project-list button[aria-current="true"] {
+    border-color: var(--accent);
+    background: var(--surface);
+}
+
+/* "Example" or "Solving", after the name of a project. */
+.project-tag {
+    flex-shrink: 0;
+    color: var(--muted);
+    font-size: 0.8em;
+}
+
+.project-tag.solving {
+    color: var(--accent);
+}
+
+.sidebar-buttons button {
+    width: 100%;
+    margin: 0 0 0.5rem;
+}
+
+#load-json-error {
+    margin: 0 0 0.5rem;
+}
+
+#load-json-error:empty {
+    display: none;
+}
+
+/* The name of the project and its buttons. */
+#project-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 1rem;
+    margin-bottom: 0.5rem;
+}
+
+#project-header h2 {
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+#project-name-input {
+    font-size: 1.25rem;
+    min-width: 16rem;
+}
+
+#project-header .buttons button {
+    margin: 0 0.5rem 0 0;
+}
+
+/* The form, without the look of a fieldset. */
+fieldset#form-fields {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
 }
