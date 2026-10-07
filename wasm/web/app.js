@@ -219,6 +219,14 @@ const state = {
     // Values of the parameters of the instance ('INSTANCE_PARAMETERS').
     instanceParameters: {},
     startTime: 0,
+    // Time limit of the optimization, in seconds ('null' if none).
+    timeLimit: null,
+    // Description of the best solution of the optimization ('null' if none).
+    best: null,
+    // Timer updating the status while solving.
+    statusTimer: null,
+    // Whether the results were scrolled into view during the optimization.
+    resultsRevealed: false,
 };
 
 /////////////////////////////////////////////////////////////////////////////
@@ -762,6 +770,40 @@ function setRunning(running) {
     state.running = running;
     $("solve").disabled = running || state.worker === null;
     $("stop").disabled = !running;
+    clearInterval(state.statusTimer);
+    state.statusTimer = null;
+    if (running) {
+        updateSolvingStatus();
+        state.statusTimer = setInterval(updateSolvingStatus, 200);
+    }
+}
+
+// Status while solving: the elapsed time, out of the time limit, and the best
+// solution found so far.
+function updateSolvingStatus() {
+    const seconds = (performance.now() - state.startTime) / 1000;
+    let text = `Solving... ${seconds.toFixed(1)} s`;
+    if (state.timeLimit !== null)
+        text += ` / ${format(state.timeLimit)} s`;
+    if (state.best !== null)
+        text += ` · best: ${state.best}`;
+    setStatus(text);
+}
+
+// Scroll to the results when the first solution of the optimization is shown,
+// if they aren't visible. Only once, not to fight the user scrolling back to
+// the form.
+function revealResults() {
+    if (state.resultsRevealed)
+        return;
+    state.resultsRevealed = true;
+    const top = $("results").getBoundingClientRect().top;
+    // The bottom of the window is hidden by the buttons.
+    const visibleBottom = window.innerHeight - $("actions").offsetHeight;
+    if (top >= 0 && top < visibleBottom)
+        return;
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    $("results").scrollIntoView({behavior: reducedMotion? "auto": "smooth", block: "start"});
 }
 
 function solve() {
@@ -781,13 +823,15 @@ function solve() {
     state.objective = instanceObject.objective;
     state.last = null;
     state.startTime = performance.now();
+    state.timeLimit = (parameters.time_limit !== undefined)? parameters.time_limit: null;
+    state.best = null;
+    state.resultsRevealed = false;
     $("progress").tBodies[0].replaceChildren();
     $("summary").replaceChildren();
     Plotly.purge($("plot"));
     $("results").hidden = true;
 
     setRunning(true);
-    setStatus("Solving...");
     state.worker.postMessage({
         type: "solve",
         problemType: state.problemType,
@@ -853,9 +897,11 @@ function showResult(result) {
     $("results").hidden = false;
     const output = result.output;
     const bound = describeBound(output);
-    $("summary").textContent = describeSolution(output)
+    state.best = describeSolution(output);
+    $("summary").textContent = state.best
         + (bound !== ""? `; bound ${bound}`: "")
         + `; ${output.Time.toFixed(2)} s`;
+    revealResults();
     schedulePlot();
 }
 
@@ -890,8 +936,11 @@ function onWorkerMessage(event) {
         setStatus("Ready.");
     } else if (message.type === "solution") {
         addProgressRow(message.output);
-        if (message.output.Solution.NumberOfItems > 0)
+        if (message.output.Solution.NumberOfItems > 0) {
             showResult(message);
+            if (state.running)
+                updateSolvingStatus();
+        }
     } else if (message.type === "done") {
         setRunning(false);
         showResult(message);

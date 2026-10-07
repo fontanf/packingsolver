@@ -110,11 +110,22 @@ button:disabled {
     border-top: 1px solid var(--border);
 }
 
+/* The buttons to solve and stop, and the status: at the bottom of the window
+   while the form is scrolled, so that they stay at hand. */
 #actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 0.5rem;
+    /* Across the padding of the body, so that the content scrolled below it
+       is hidden. */
+    margin: 0 -1rem;
+    padding: 0.75rem 1rem;
+    border-top: 1px solid var(--border);
+    background: var(--background);
 }
 
 #actions button {
@@ -152,6 +163,8 @@ table.types input[type="number"] {
 
 #status {
     margin-left: 0.5rem;
+    /* The elapsed time doesn't move the text after it. */
+    font-variant-numeric: tabular-nums;
 }
 
 #summary {
