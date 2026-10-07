@@ -497,6 +497,18 @@ public:
      */
     bool fits_some_bin(ItemTypeId item_type_id) const;
 
+    /**
+     * Coordinate from which the items are packed after the left trim of a
+     * bin type.
+     *
+     * The waste of a soft trim isn't cut off with the trim, so it must
+     * satisfy the minimum waste length, after the cut thickness of its cut.
+     */
+    inline Length x_start(const BinType& bin_type) const { return trim_start(bin_type.left_trim, bin_type.left_trim_type); }
+
+    /** Coordinate from which the items are packed after the bottom trim of a bin type (see 'x_start'). */
+    inline Length y_start(const BinType& bin_type) const { return trim_start(bin_type.bottom_trim, bin_type.bottom_trim_type); }
+
     /*
      * Intersections
      */
@@ -664,6 +676,19 @@ private:
     bool all_item_types_oriented_ = true;
 
     friend class InstanceBuilder;
+
+    /** Coordinate from which the items are packed after a left or bottom trim (see 'x_start'). */
+    inline Length trim_start(
+            Length trim,
+            TrimType trim_type) const
+    {
+        if (trim_type == TrimType::Soft && trim > 0) {
+            return (std::max)(
+                    trim,
+                    parameters_.cut_thickness + (std::max)(parameters_.minimum_waste_length, Length(1)));
+        }
+        return trim;
+    }
 
 };
 
