@@ -1117,6 +1117,65 @@ async function loadJsonFile(file) {
     $("form-ignored").hidden = (opened.ignored.length === 0);
 }
 
+// A zip file with the projects of the current problem type, except its
+// example: their forms, their instances and their solutions (see
+// 'projects.exportFiles').
+async function exportProjects() {
+    syncCurrent();
+    const type = problemType();
+    const status = $("import-projects-status");
+    status.classList.remove("error-text");
+    const {files, count} = projects.exportFiles(state.projects, type);
+    if (count === 0) {
+        status.textContent = "No projects to export (the example isn't exported).";
+        return;
+    }
+    const zip = new JSZip();
+    for (const [path, content] of Object.entries(files))
+        zip.file(path, content);
+    const content = await zip.generateAsync({type: "blob", compression: "DEFLATE"});
+    const date = new Date().toISOString().slice(0, 10);
+    download(`packingsolver_${type}_projects_${date}.zip`, "application/zip", content);
+    status.textContent = `Exported ${count} project${(count > 1)? "s": ""}.`;
+}
+
+// Add the projects of an exported zip file.
+async function importProjectsFile(file) {
+    const status = $("import-projects-status");
+    let imported;
+    try {
+        let zip;
+        try {
+            zip = await JSZip.loadAsync(file);
+        } catch (error) {
+            throw new Error("not a zip file.");
+        }
+        const files = {};
+        for (const entry of Object.values(zip.files)) {
+            if (!entry.dir)
+                files[entry.name] = await entry.async("string");
+        }
+        imported = projects.importFiles(files, state.projects, PROBLEM_TYPES);
+    } catch (error) {
+        status.classList.add("error-text");
+        status.textContent = "Error: " + error.message;
+        return;
+    }
+    for (const project of imported) {
+        state.projects.push(project);
+        saveProject(project);
+    }
+    renderProjectList();
+    // The number of projects of each problem type, named as in the select.
+    const counts = PROBLEM_TYPES
+        .map((type) => [type, imported.filter((p) => p.problemType === type).length])
+        .filter(([, count]) => count > 0)
+        .map(([type, count]) => `${count} ${$("problem-type").querySelector(`option[value="${type}"]`).textContent}`);
+    status.classList.remove("error-text");
+    status.textContent = `Imported ${imported.length} project${(imported.length !== 1)? "s": ""}`
+        + ((counts.length > 0)? `: ${counts.join(", ")}.`: ".");
+}
+
 /////////////////////////////////////////////////////////////////////////////
 // Solving
 /////////////////////////////////////////////////////////////////////////////
@@ -1524,6 +1583,14 @@ async function init() {
         $("json-file").value = "";
         if (file !== undefined)
             await loadJsonFile(file);
+    });
+    $("export-projects").addEventListener("click", exportProjects);
+    $("import-projects").addEventListener("click", () => $("import-projects-file").click());
+    $("import-projects-file").addEventListener("change", async () => {
+        const file = $("import-projects-file").files[0];
+        $("import-projects-file").value = "";
+        if (file !== undefined)
+            await importProjectsFile(file);
     });
     $("rename-project").addEventListener("click", startRename);
     $("project-name-input").addEventListener("keydown", (event) => {

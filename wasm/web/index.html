@@ -9,6 +9,10 @@
          cross-origin scripts must be loaded in CORS mode. -->
     <script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@4.1.1/plotly.min.js"
             crossorigin="anonymous"></script>
+    <!-- The zip files of the exported projects. -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"
+            integrity="sha512-XMVd28F1oH/O71fzwBnV7HucLxVwtxf26XV8P4wPk26EDxuGZ91N8bsOttmnomcCD3CS5ZMRL50H0GgOHvegtg=="
+            crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script type="module" src="app.js"></script>
 </head>
 <body>
@@ -82,6 +86,16 @@
             <p id="load-json-error" class="note error-text" role="status"></p>
             <ul id="project-list"></ul>
             <p id="storage-note" class="note">The projects are saved in this browser.</p>
+            <!-- A zip file with the projects of the problem type (except the
+                 example), to keep them or to move them to another browser. -->
+            <div class="sidebar-buttons">
+                <button type="button" id="export-projects"
+                        title="Save the projects of this problem type (except the example) in a zip file, with their instances and their solutions">Export the projects</button>
+                <button type="button" id="import-projects"
+                        title="Add the projects of an exported zip file">Import projects</button>
+                <input type="file" id="import-projects-file" accept=".zip,application/zip" hidden>
+            </div>
+            <p id="import-projects-status" class="note" role="status"></p>
         </aside>
 
         <main>

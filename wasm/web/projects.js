@@ -149,6 +149,203 @@ export function withExamples(problemTypes, storedProjects) {
 }
 
 /////////////////////////////////////////////////////////////////////////////
+// Export and import
+/////////////////////////////////////////////////////////////////////////////
+
+// The format of the files of the exported projects.
+export const EXPORT_FORMAT = "packingsolver-projects";
+export const EXPORT_VERSION = 1;
+
+// In a file, a reference of a row of the form to an item row (e.g. the item
+// type of a resource consumption, of a fixed item of an irregular bin type)
+// is '{"$itemRow": <index of the item row>}', since JSON can't hold
+// references.
+const ITEM_ROW_REFERENCE = "$itemRow";
+
+// Replace in 'value' (in place) the children for which 'replace' returns a
+// value.
+function replaceChildren(value, replace) {
+    for (const key of Object.keys(value)) {
+        const child = value[key];
+        if (child === null || typeof child !== "object")
+            continue;
+        const replacement = replace(child);
+        if (replacement !== undefined)
+            value[key] = replacement;
+        else
+            replaceChildren(child, replace);
+    }
+}
+
+// A copy of the form of a project which can be written in JSON.
+function formToJson(projectForm) {
+    const copy = structuredClone(projectForm);
+    const indices = new Map(copy.itemTypes.map((itemRow, i) => [itemRow, i]));
+    const reference = (child) => indices.has(child)? {[ITEM_ROW_REFERENCE]: indices.get(child)}: undefined;
+    for (const itemRow of copy.itemTypes)
+        replaceChildren(itemRow, reference);
+    replaceChildren(copy.binTypes, reference);
+    replaceChildren(copy.instanceParameters, reference);
+    return copy;
+}
+
+// The form of a project from its JSON form ('formToJson'), in place.
+function formFromJson(projectForm) {
+    const itemRows = projectForm.itemTypes;
+    const row = (child) => {
+        if (!Object.prototype.hasOwnProperty.call(child, ITEM_ROW_REFERENCE))
+            return undefined;
+        const itemRow = itemRows[child[ITEM_ROW_REFERENCE]];
+        // A reference to an item row which doesn't exist: no item row, as for
+        // an invalid item type id in the form.
+        return (itemRow !== undefined)? itemRow: null;
+    };
+    for (const itemRow of itemRows)
+        replaceChildren(itemRow, row);
+    replaceChildren(projectForm.binTypes, row);
+    replaceChildren(projectForm.instanceParameters, row);
+    return projectForm;
+}
+
+// The name of the folder of a project in an export: its name, without the
+// characters which file systems don't accept, different from 'usedFolders'
+// (in lower case: some file systems ignore the case).
+export function folderName(name, usedFolders) {
+    let folder = name.replace(/[\\/:*?"<>|\u0000-\u001f]/g, "_").replace(/^[\s.]+|[\s.]+$/g, "");
+    if (folder === "")
+        folder = "Project";
+    const used = new Set([...usedFolders].map((f) => f.toLowerCase()));
+    let candidate = folder;
+    for (let i = 2; used.has(candidate.toLowerCase()); ++i)
+        candidate = `${folder} (${i})`;
+    return candidate;
+}
+
+// The name of the file of the certificate of a solution.
+function certificateFile(problemType) {
+    return (problemType === "irregular")? "solution.json": "solution.csv";
+}
+
+// The files of the export of the projects of a problem type, except its
+// example ('{path: content}' in 'files', and the number of projects): a
+// folder for each project with
+// - 'form.json': its form (with the references between its rows),
+// - 'instance.json': its instance in the JSON format, if its form is valid,
+// - its last solution: the certificate ('solution.csv', or 'solution.json'
+//   for irregular), the output ('output.json') and the progress
+//   ('progress.json'),
+// and 'projects.json': the list of the projects, with their name, their
+// folder and the parameters of the solver.
+export function exportFiles(projects, problemType) {
+    const files = {};
+    const entries = [];
+    for (const p of projectsOfType(projects, problemType).filter((p) => !p.example)) {
+        const folder = folderName(p.name, entries.map((entry) => entry.folder));
+        files[`${folder}/form.json`] = JSON.stringify(formToJson(p.form)) + "\n";
+        try {
+            files[`${folder}/instance.json`] = JSON.stringify(form.toInstance(problemType, p.form), null, 4) + "\n";
+        } catch (error) {
+            // An invalid form: no instance.
+        }
+        if (p.result !== null) {
+            files[`${folder}/${certificateFile(problemType)}`] = p.result.certificate;
+            files[`${folder}/output.json`] = JSON.stringify(p.result.output, null, 4) + "\n";
+        }
+        if (p.progress.length > 0)
+            files[`${folder}/progress.json`] = JSON.stringify(p.progress) + "\n";
+        entries.push({
+            folder,
+            name: p.name,
+            problemType: p.problemType,
+            parameters: p.parameters,
+            created: p.created,
+            // What the solution files don't have.
+            result: (p.result === null)? null: {objective: p.result.objective, totalItems: p.result.totalItems},
+        });
+    }
+    files["projects.json"] = JSON.stringify({
+        format: EXPORT_FORMAT,
+        version: EXPORT_VERSION,
+        exported: new Date().toISOString(),
+        problemType,
+        projects: entries,
+    }, null, 4) + "\n";
+    return {files, count: entries.length};
+}
+
+// The projects of the files of an export ('exportFiles'; '{path: content}'),
+// added to 'projects': new projects (new ids), named as in the export, with
+// " (2)", " (3)"... if the name is already used for their problem type. The
+// files can be in a folder (e.g. extracted and compressed again). Throws an
+// error if the files aren't an export.
+export function importFiles(files, projects, problemTypes) {
+    // 'projects.json', at the root of the export or in a folder.
+    const manifest = Object.keys(files)
+        .filter((path) => path === "projects.json" || path.endsWith("/projects.json"))
+        .sort((path1, path2) => path1.length - path2.length)[0];
+    if (manifest === undefined)
+        throw new Error("not an export of PackingSolver projects (no projects.json).");
+    const root = manifest.slice(0, manifest.length - "projects.json".length);
+    const parse = (path) => {
+        try {
+            return JSON.parse(files[root + path]);
+        } catch (error) {
+            throw new Error(`invalid ${path}: ${error.message}`);
+        }
+    };
+    const json = parse("projects.json");
+    if (typeof json !== "object" || json === null || json.format !== EXPORT_FORMAT)
+        throw new Error("not an export of PackingSolver projects.");
+    if (json.version !== EXPORT_VERSION)
+        throw new Error(`unsupported version of the export: ${json.version}.`);
+    if (!Array.isArray(json.projects))
+        throw new Error("the export has no projects.");
+    const names = projects.map((p) => [p.problemType, p.name]);
+    const now = Date.now();
+    return json.projects.map((entry, i) => {
+        const name = `project ${i} ("${entry && entry.name}")`;
+        if (typeof entry !== "object" || entry === null || typeof entry.folder !== "string")
+            throw new Error(`invalid ${name}.`);
+        if (!problemTypes.includes(entry.problemType))
+            throw new Error(`${name}: unknown problem type "${entry.problemType}".`);
+        const folder = entry.folder + "/";
+        if (files[root + folder + "form.json"] === undefined)
+            throw new Error(`${name}: missing ${folder}form.json.`);
+        const f = parse(folder + "form.json");
+        if (typeof f !== "object" || f === null || typeof f.objective !== "string"
+                || typeof f.instanceParameters !== "object" || f.instanceParameters === null
+                || !Array.isArray(f.binTypes) || !Array.isArray(f.itemTypes)) {
+            throw new Error(`${name}: invalid form.`);
+        }
+        // The last solution, if its files are there.
+        let result = null;
+        const certificate = files[root + folder + certificateFile(entry.problemType)];
+        if (entry.result && certificate !== undefined && files[root + folder + "output.json"] !== undefined) {
+            result = {output: parse(folder + "output.json"), certificate, objective: entry.result.objective};
+            if (entry.result.totalItems !== undefined)
+                result.totalItems = entry.result.totalItems;
+        }
+        const progress = (files[root + folder + "progress.json"] !== undefined)? parse(folder + "progress.json"): [];
+        const projectName = uniqueName(
+            (typeof entry.name === "string" && entry.name.trim() !== "")? entry.name.trim(): "Project",
+            names.filter(([type]) => type === entry.problemType).map(([, n]) => n));
+        names.push([entry.problemType, projectName]);
+        return {
+            id: newId(),
+            problemType: entry.problemType,
+            name: projectName,
+            example: false,
+            form: formFromJson(f),
+            parameters: {...defaultParameters(), ...(entry.parameters || {})},
+            result,
+            progress: Array.isArray(progress)? progress: [],
+            // After the projects which exist, in the order of the export.
+            created: now + i,
+        };
+    });
+}
+
+/////////////////////////////////////////////////////////////////////////////
 // Storage
 /////////////////////////////////////////////////////////////////////////////
 

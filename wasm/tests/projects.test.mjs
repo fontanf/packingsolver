@@ -107,3 +107,88 @@ test("projects: examples and stored projects", () => {
     assert.deepStrictEqual(box[0].form, projects.exampleProject("box").form);
     assert.deepStrictEqual(projects.projectsOfType(all, "rectangle").map((p) => p.name), ["Example"]);
 });
+
+test("projects: export and import", () => {
+    for (const fixture of Object.keys(REFERENCES)) {
+        const original = openFixture(fixture);
+        const problemType = original.problemType;
+        original.name = "Mine";
+        original.result = {output: {Time: 1, Solution: {NumberOfItems: 1}}, certificate: "a,b\n",
+            objective: original.form.objective, totalItems: 4};
+        original.progress = [{time: 1, solution: "1 items", bound: "", value: 1, boundValue: null}];
+        const other = projects.newProject(problemType === "box"? "rectangle": "box", "Other type");
+        const all = [...projects.withExamples(PROBLEM_TYPES, []), original, other];
+        const {files, count} = projects.exportFiles(all, problemType);
+        // The projects of the problem type, except the example.
+        assert.strictEqual(count, 1);
+        const certificate = (problemType === "irregular")? "solution.json": "solution.csv";
+        assert.deepStrictEqual(Object.keys(files).sort(), [
+            "Mine/form.json", "Mine/instance.json", "Mine/output.json", "Mine/progress.json",
+            `Mine/${certificate}`, "projects.json"].sort(), fixture);
+        // The instance, for the solvers.
+        assert.deepStrictEqual(JSON.parse(files["Mine/instance.json"]), instance(original));
+
+        // Imported: the same instance, the references between the rows
+        // restored, the same solution.
+        const [p] = projects.importFiles(files, projects.withExamples(PROBLEM_TYPES, []), PROBLEM_TYPES);
+        assert.strictEqual(p.name, "Mine");
+        assert.strictEqual(p.problemType, problemType);
+        assert.notStrictEqual(p.id, original.id);
+        assert.deepStrictEqual(instance(p), instance(original), fixture);
+        assert.deepStrictEqual(p.result, original.result);
+        assert.deepStrictEqual(p.progress, original.progress);
+        assert.deepStrictEqual(p.parameters, original.parameters);
+
+        // Imported again: a new name.
+        const [again] = projects.importFiles(files, [...all, p], PROBLEM_TYPES);
+        assert.strictEqual(again.name, "Mine (2)");
+    }
+    // The item rows referred to are the item rows of the project.
+    const rectangle = openFixture("rectangle_knapsack.json");
+    const [imported] = projects.importFiles(projects.exportFiles([rectangle], "rectangle").files, [], PROBLEM_TYPES);
+    const consumption = imported.form.binTypes[0].resources[0].consumptions[0];
+    assert.ok(imported.form.itemTypes.includes(consumption.itemRow));
+    const irregular = openFixture("irregular_variable_sized.json");
+    const [importedIrregular] = projects.importFiles(
+        projects.exportFiles([irregular], "irregular").files, [], PROBLEM_TYPES);
+    const fixedItem = importedIrregular.form.binTypes.flatMap((row) => row.fixed_items)[0];
+    assert.ok(importedIrregular.form.itemTypes.includes(fixedItem.itemRow));
+});
+
+test("projects: export details", () => {
+    // Only the example: nothing to export.
+    assert.strictEqual(projects.exportFiles(projects.withExamples(PROBLEM_TYPES, []), "box").count, 0);
+    // An invalid form: no instance; no solution: no solution files.
+    const invalid = projects.newProject("box", "a/b");
+    invalid.form.itemTypes[0].x = "";
+    const same = projects.newProject("box", "A/B");
+    const {files} = projects.exportFiles([invalid, same], "box");
+    assert.deepStrictEqual(Object.keys(files).sort(),
+        ["A_B (2)/form.json", "A_B (2)/instance.json", "a_b/form.json", "projects.json"]);
+    // Extracted and compressed again: in a folder.
+    const inFolder = Object.fromEntries(Object.entries(files).map(([path, content]) => ["export/" + path, content]));
+    const imported = projects.importFiles(inFolder, [], PROBLEM_TYPES);
+    assert.deepStrictEqual(imported.map((p) => p.name), ["a/b", "A/B"]);
+    assert.strictEqual(imported[0].result, null);
+    assert.deepStrictEqual(imported[0].progress, []);
+    // Folder names.
+    assert.strictEqual(projects.folderName("a:b?", []), "a_b_");
+    assert.strictEqual(projects.folderName("Mine", ["mine"]), "Mine (2)");
+    assert.strictEqual(projects.folderName(" . ", []), "Project");
+});
+
+test("projects: import errors", () => {
+    const importFiles = (files) => projects.importFiles(files, [], PROBLEM_TYPES);
+    const manifest = (json) => ({"projects.json": JSON.stringify(json)});
+    const header = {format: projects.EXPORT_FORMAT, version: projects.EXPORT_VERSION};
+    assert.throws(() => importFiles({"instance.json": "{}"}), /no projects\.json/);
+    assert.throws(() => importFiles({"projects.json": "{"}), /invalid projects\.json/);
+    assert.throws(() => importFiles(manifest({objective: "knapsack"})), /not an export of PackingSolver projects/);
+    assert.throws(() => importFiles(manifest({...header, version: 99, projects: []})), /unsupported version/);
+    assert.throws(() => importFiles(manifest({...header, projects: [{folder: "a", problemType: "cylinder"}]})),
+        /unknown problem type/);
+    assert.throws(() => importFiles(manifest({...header, projects: [{folder: "a", problemType: "box"}]})),
+        /missing a\/form\.json/);
+    assert.throws(() => importFiles({...manifest({...header, projects: [{folder: "a", problemType: "box"}]}),
+        "a/form.json": JSON.stringify({objective: "knapsack"})}), /invalid form/);
+});
