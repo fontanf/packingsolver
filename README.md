@@ -37,7 +37,7 @@ PackingSolver supports the following [objectives](https://fontanf.github.io/pack
 
 * **Bin packing**: pack all the items in a minimum number of bins (optionally maximizing the value of the leftovers)
 * **Variable-sized bin packing**: pack all the items in bins of minimum total cost
-* **Open dimension** (rectangles and irregular shapes): pack all the items in a single bin of minimum width or height
+* **Open dimension** (all problem types except one-dimensional): pack all the items in a single bin of minimum length
 * **Knapsack**: pack a subset of the items of maximum total profit
 * **Feasibility**: pack all the items in the given bins
 
@@ -347,7 +347,7 @@ python3 scripts/visualize.py solution_rectangleguillotine.csv
 
 ## Questions
 
-Questions, suggestions and feedback are welcome in the [discussions](https://github.com/fontanf/packingsolver/discussions). Bugs can be reported in the [issues](https://github.com/fontanf/packingsolver/issues).
+Questions and feedback are welcome in the [discussions](https://github.com/fontanf/packingsolver/discussions). Bugs can be reported in the [issues](https://github.com/fontanf/packingsolver/issues).
 
 ## License
 
