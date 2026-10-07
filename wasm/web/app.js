@@ -6,6 +6,7 @@
 import * as irregularForm from "./irregular_form.js";
 import * as form from "./form.js";
 import * as projects from "./projects.js";
+import * as paste from "./paste.js";
 import * as results from "./results.js";
 import {format} from "./results.js";
 import {
@@ -673,6 +674,9 @@ function renderForm() {
     // A single bin for the open dimension objectives.
     $("add-bin-type").disabled = openDimension($("objective").value);
     $("file-items").hidden = !irregular;
+    // Rows are pasted in the tables, except for irregular.
+    for (const hint of document.querySelectorAll(".paste-hint"))
+        hint.hidden = irregular;
     if (irregular) {
         const objective = $("objective").value;
         irregularForm.renderTable($("bin-types"), state.binTypes, false, objective,
@@ -890,7 +894,7 @@ function openProject(project) {
     state.itemTypes = project.form.itemTypes;
     $("optimization-mode").value = project.parameters.optimizationMode;
     $("time-limit").value = project.parameters.timeLimit;
-    for (const id of ["form-error", "file-items-status", "download-instance-error", "load-json-error"])
+    for (const id of ["form-error", "file-items-status", "download-instance-error", "load-json-error", "paste-status"])
         $(id).textContent = "";
     $("form-ignored").hidden = true;
     // The examples can't be modified.
@@ -904,6 +908,55 @@ function openProject(project) {
     if (!state.histories.has(project.id))
         state.histories.set(project.id, {entries: [formSnapshot()], index: 0});
     updateHistoryButtons();
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// Paste
+/////////////////////////////////////////////////////////////////////////////
+
+// Cells pasted in a table ('kind' "bin" or "item"), copied from a spreadsheet
+// or lines of a CSV file (see 'paste.js'). A single value is pasted in its
+// field as usual.
+function onTablePaste(event, kind) {
+    if (problemType() === "irregular" || state.current.example)
+        return;
+    const parsed = paste.parsePastedText(event.clipboardData.getData("text/plain"));
+    if (!paste.severalCells(parsed))
+        return;
+    event.preventDefault();
+    // The cell where the cells are pasted: a field of a row (not of its
+    // details, defects or resources).
+    const cell = event.target.closest("td[data-key]");
+    const tr = (cell === null)? null: cell.closest("tr");
+    const inRow = (tr !== null && tr.className === "" && tr.dataset.row !== undefined);
+    const type = problemType();
+    const rows = (kind === "bin")? state.binTypes: state.itemTypes;
+    const result = paste.pasteRows(type, kind, rows, parsed, {
+        objective: $("objective").value,
+        instanceParameters: state.instanceParameters,
+        newRow: () => (kind === "bin")? newBinRow(type): newItemRow(type),
+        startRow: inRow? Number(tr.dataset.row): null,
+        startColumn: inRow? cell.dataset.key: null,
+    });
+    const status = $("paste-status");
+    if (result === null) {
+        status.textContent = "To paste cells without a header row, click the cell of the table where the first one goes.";
+        return;
+    }
+    const plural = (n, word) => `${n} ${word}${(n !== 1)? "s": ""}`;
+    const parts = [`Pasted ${plural(result.rows, "row")}`
+        + ((result.added > 0)? ` (${plural(result.added, "new row")}${result.replaced? ", replacing the default row": ""})`: "")
+        + "."];
+    if (result.ignoredColumns.length > 0)
+        parts.push(`Ignored columns: ${result.ignoredColumns.join(", ")}.`);
+    if (result.ignoredCells > 0)
+        parts.push(`${plural(result.ignoredCells, "cell")} not pasted (beyond the table, or in a field which can't be pasted).`);
+    if (result.errors.length > 0)
+        parts.push(`Not pasted: ${result.errors.join(" ")}`);
+    status.textContent = parts.join(" ");
+    renderForm();
+    scheduleHistory();
+    scheduleSave();
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -1548,6 +1601,8 @@ async function init() {
         if (event.target.closest("button") !== null)
             scheduleHistory();
     });
+    $("bin-types").addEventListener("paste", (event) => onTablePaste(event, "bin"));
+    $("item-types").addEventListener("paste", (event) => onTablePaste(event, "item"));
     $("undo-button").addEventListener("click", undo);
     $("redo-button").addEventListener("click", redo);
     // Ctrl+Z, Ctrl+Shift+Z and Ctrl+Y (Cmd on macOS), except in a text field,

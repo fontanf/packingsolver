@@ -648,6 +648,9 @@ function convertRow(columns, row, form) {
                 throw new Error(`invalid ${column.label.toLowerCase()}: "${value}".`);
             if (column.integer && !Number.isInteger(number))
                 throw new Error(`invalid ${column.label.toLowerCase()}: "${value}".`);
+            // An unlimited number of copies is given by its checkbox.
+            if ((column.key === "copies" || column.key === "copies_min") && number < 0)
+                throw new Error(`invalid ${column.label.toLowerCase()}: "${value}".`);
             result[column.key] = number;
         } else if (!column.optional) {
             throw new Error(`missing ${column.label.toLowerCase()}.`);
