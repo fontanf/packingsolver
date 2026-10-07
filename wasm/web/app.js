@@ -154,6 +154,7 @@ function renderInstanceParameters() {
         }
         if (input !== undefined)
             input.id = label.htmlFor;
+        (cell || input).dataset.key = parameter.key;
         container.append(label, cell || input);
     }
 }
@@ -234,6 +235,11 @@ const state = {
     store: null,
     // Projects waiting to be saved: id -> '{project, timer}'.
     saveTimers: new Map(),
+    // The history of the form of each project, for undo and redo: id ->
+    // '{entries, index}' (see 'recordHistory').
+    histories: new Map(),
+    // Timer recording the form in the history, after a modification.
+    historyTimer: null,
 };
 
 /////////////////////////////////////////////////////////////////////////////
@@ -391,9 +397,10 @@ function unlimitedCell(row, column) {
 }
 
 // Line, below a row of a table, with the fields of its details.
-function addDetailsLine(body, numberOfColumns, row, detailsColumns) {
+function addDetailsLine(body, numberOfColumns, row, rowIndex, detailsColumns) {
     const tr = body.insertRow();
     tr.className = "details-line";
+    tr.dataset.row = String(rowIndex);
     const cell = tr.insertCell();
     cell.colSpan = numberOfColumns;
     const fields = document.createElement("div");
@@ -403,6 +410,7 @@ function addDetailsLine(body, numberOfColumns, row, detailsColumns) {
             continue;
         const label = document.createElement("label");
         label.className = "inline";
+        label.dataset.key = column.key;
         label.append(column.label, fieldInput(row, column));
         fields.appendChild(label);
     }
@@ -441,20 +449,24 @@ function renderTable(table, columns, rows) {
     const body = table.createTBody();
     rows.forEach((row, rowIndex) => {
         const tr = body.insertRow();
+        // The row and the column of each field, for its errors.
+        tr.dataset.row = String(rowIndex);
         const id = tr.insertCell();
         id.className = "row-id";
         id.textContent = String(rowIndex);
         for (const column of columns) {
+            const cell = tr.insertCell();
+            cell.dataset.key = column.key;
             if (column.type === "rotations") {
-                tr.insertCell().appendChild(rotationsCell(row, column));
+                cell.appendChild(rotationsCell(row, column));
                 continue;
             }
             if (column.type === "trims") {
-                tr.insertCell().appendChild(trimsCell(row, column));
+                cell.appendChild(trimsCell(row, column));
                 continue;
             }
             if (unlimitedAllowed(column)) {
-                tr.insertCell().appendChild(unlimitedCell(row, column));
+                cell.appendChild(unlimitedCell(row, column));
                 continue;
             }
             // A single copy of the bin for the open dimension objectives.
@@ -462,10 +474,10 @@ function renderTable(table, columns, rows) {
                 const input = fieldInput(row, column);
                 input.disabled = true;
                 input.title = "A single bin for the open dimension objectives";
-                tr.insertCell().appendChild(input);
+                cell.appendChild(input);
                 continue;
             }
-            tr.insertCell().appendChild(fieldInput(row, column));
+            cell.appendChild(fieldInput(row, column));
         }
         const buttons = tr.insertCell();
         buttons.className = "row-buttons";
@@ -495,6 +507,8 @@ function renderTable(table, columns, rows) {
         if (detailsColumns.length > 0) {
             const more = document.createElement("button");
             more.type = "button";
+            // Marked if a field of the details is invalid.
+            more.dataset.details = detailsColumns.map((column) => column.key).join(" ");
             const open = openDetails.has(row);
             more.textContent = open? "Less": "More";
             more.setAttribute("aria-expanded", String(open));
@@ -514,27 +528,52 @@ function renderTable(table, columns, rows) {
             });
             buttons.appendChild(more);
         }
+        const actions = rowActions(rows);
+        const duplicate = document.createElement("button");
+        duplicate.type = "button";
+        duplicate.textContent = "Duplicate";
+        duplicate.addEventListener("click", () => actions.duplicate(rowIndex));
+        buttons.appendChild(duplicate);
         const remove = document.createElement("button");
         remove.type = "button";
         remove.textContent = "Remove";
-        remove.addEventListener("click", () => {
-            rows.splice(rowIndex, 1);
-            renderForm();
-        });
+        remove.addEventListener("click", () => actions.remove(rowIndex));
         buttons.appendChild(remove);
         if (openDetails.has(row) && detailsColumns.length > 0)
-            addDetailsLine(body, columns.length + 2, row, detailsColumns);
-        if (defectsColumn !== undefined && row[defectsColumn.key].length > 0)
-            addDefectsLine(body, columns.length + 2, defectsCell(row, defectsColumn));
-        if (resourcesColumn !== undefined && row[resourcesColumn.key].length > 0)
-            addDefectsLine(body, columns.length + 2, resourcesCell(row, resourcesColumn), "Resources");
+            addDetailsLine(body, columns.length + 2, row, rowIndex, detailsColumns);
+        if (defectsColumn !== undefined && row[defectsColumn.key].length > 0) {
+            addDefectsLine(body, columns.length + 2, defectsCell(row, defectsColumn), "Defects",
+                rowIndex, defectsColumn.key);
+        }
+        if (resourcesColumn !== undefined && row[resourcesColumn.key].length > 0) {
+            addDefectsLine(body, columns.length + 2, resourcesCell(row, resourcesColumn), "Resources",
+                rowIndex, resourcesColumn.key);
+        }
     });
 }
 
-// Line, below a row of a table, with the defects of the row.
-function addDefectsLine(body, numberOfColumns, defects, text = "Defects") {
+// The actions of the buttons of the rows of a table: duplicate a row (below
+// it), remove a row.
+function rowActions(rows) {
+    return {
+        duplicate: (rowIndex) => {
+            rows.splice(rowIndex + 1, 0, form.duplicateRow(rows[rowIndex], state.itemTypes));
+            renderForm();
+        },
+        remove: (rowIndex) => {
+            rows.splice(rowIndex, 1);
+            renderForm();
+        },
+    };
+}
+
+// Line, below a row of a table, with the defects of the row (or its
+// resources: column 'key').
+function addDefectsLine(body, numberOfColumns, defects, text, rowIndex, key) {
     const tr = body.insertRow();
     tr.className = "placed-shapes-line";
+    tr.dataset.row = String(rowIndex);
+    tr.dataset.key = key;
     const cell = tr.insertCell();
     cell.colSpan = numberOfColumns;
     const label = document.createElement("span");
@@ -639,36 +678,82 @@ function renderForm() {
     const irregular = (type === "irregular");
     // A single bin for the open dimension objectives.
     $("add-bin-type").disabled = openDimension($("objective").value);
-    $("form-error").hidden = !irregular;
     $("file-items").hidden = !irregular;
     if (irregular) {
         const objective = $("objective").value;
-        irregularForm.renderTable(
-            $("bin-types"), state.binTypes, false, objective, scheduleFormCheck, renderForm, state.itemTypes);
-        irregularForm.renderTable(
-            $("item-types"), state.itemTypes, true, objective, scheduleFormCheck, renderForm);
-        scheduleFormCheck();
-        return;
+        irregularForm.renderTable($("bin-types"), state.binTypes, false, objective,
+            scheduleFormCheck, renderForm, state.itemTypes, rowActions(state.binTypes));
+        irregularForm.renderTable($("item-types"), state.itemTypes, true, objective,
+            scheduleFormCheck, renderForm, [], rowActions(state.itemTypes));
+    } else {
+        renderTable($("bin-types"), binColumns(type), state.binTypes);
+        renderTable($("item-types"), itemColumns(type), state.itemTypes);
     }
-    renderTable($("bin-types"), binColumns(type), state.binTypes);
-    renderTable($("item-types"), itemColumns(type), state.itemTypes);
+    scheduleFormCheck();
 }
 
-// Errors of the irregular form, shown as the values are typed (the shape
-// of each row is drawn in its thumbnail).
+// Errors of the form, shown as the values are typed: the first one below the
+// form, and the invalid fields highlighted, with their error as tooltip (for
+// the irregular form, the shape of each row is drawn in its thumbnail
+// instead).
 function scheduleFormCheck() {
     clearTimeout(state.formCheckTimer);
     state.formCheckTimer = setTimeout(checkForm, 300);
 }
 
 function checkForm() {
-    if (problemType() !== "irregular")
-        return;
     try {
         formInstance();
         $("form-error").textContent = "";
     } catch (error) {
-        $("form-error").textContent = error.message;
+        $("form-error").textContent = "Error: " + error.message;
+    }
+    const type = problemType();
+    const objective = $("objective").value;
+    const parameterErrors = form.parameterErrors(type, state.instanceParameters, objective);
+    for (const element of $("instance-parameters").querySelectorAll("[data-key]"))
+        markInvalid(element, parameterErrors[element.dataset.key]);
+    if (type === "irregular")
+        return;
+    const formObject = {objective, instanceParameters: state.instanceParameters,
+        binTypes: state.binTypes, itemTypes: state.itemTypes};
+    for (const [table, kind, rows] of [[$("bin-types"), "bin", state.binTypes], [$("item-types"), "item", state.itemTypes]]) {
+        const errors = rows.map((row) => form.rowErrors(type, kind, row, formObject));
+        for (const element of table.querySelectorAll("[data-key]")) {
+            const rowIndex = Number(element.closest("tr").dataset.row);
+            markInvalid(element, (errors[rowIndex] || {})[element.dataset.key]);
+        }
+        // The "More" button of a row with an invalid field in its details.
+        for (const button of table.querySelectorAll("button[data-details]")) {
+            const rowErrors = errors[Number(button.closest("tr").dataset.row)] || {};
+            const message = button.dataset.details.split(" ").map((key) => rowErrors[key])
+                .find((m) => m !== undefined);
+            button.classList.toggle("invalid", message !== undefined);
+            button.setAttribute("aria-invalid", String(message !== undefined));
+        }
+    }
+}
+
+// Highlight a field of the form if it is invalid ('message' undefined
+// otherwise), with its error as tooltip. For the line of the defects or of
+// the resources of a row, its label.
+function markInvalid(element, message) {
+    const invalid = (message !== undefined);
+    element.classList.toggle("invalid", invalid);
+    if (element.matches("tr")) {
+        const label = element.querySelector(".placed-shapes-label");
+        if (label !== null)
+            label.title = invalid? message: "";
+        return;
+    }
+    const inputs = element.matches("input, select")?
+        [element]: [...element.querySelectorAll("input:not([type=checkbox]), select")];
+    for (const input of inputs) {
+        input.setAttribute("aria-invalid", String(invalid));
+        // The error in place of the tooltip of the field, if any.
+        if (input.dataset.title === undefined)
+            input.dataset.title = input.title;
+        input.title = invalid? message: input.dataset.title;
     }
 }
 
@@ -821,6 +906,98 @@ function openProject(project) {
     renderInstanceParameters();
     renderForm();
     renderResults();
+    // After rendering, which completes the rows.
+    if (!state.histories.has(project.id))
+        state.histories.set(project.id, {entries: [formSnapshot()], index: 0});
+    updateHistoryButtons();
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// Undo and redo
+/////////////////////////////////////////////////////////////////////////////
+
+// The history of the form of a project: copies of the form ('entries'), the
+// one shown being 'entries[index]'. It is kept in memory only.
+const MAXIMUM_HISTORY_LENGTH = 100;
+
+// A copy of the form of the page, with the references between its rows
+// (e.g. the item type of a resource consumption), and its content as a string
+// to compare it.
+function formSnapshot() {
+    const snapshot = structuredClone({
+        objective: $("objective").value,
+        instanceParameters: state.instanceParameters,
+        binTypes: state.binTypes,
+        itemTypes: state.itemTypes,
+    });
+    return {form: snapshot, key: JSON.stringify(snapshot)};
+}
+
+// Record the form in the history of the current project, after a
+// modification: at once for a click or a change, after 'delay' ms for the
+// characters typed, so that a value typed is a single step.
+function scheduleHistory(delay = 0) {
+    clearTimeout(state.historyTimer);
+    state.historyTimer = setTimeout(recordHistory, delay);
+}
+
+function recordHistory() {
+    clearTimeout(state.historyTimer);
+    state.historyTimer = null;
+    const project = state.current;
+    const history = (project === null)? undefined: state.histories.get(project.id);
+    if (history === undefined || project.example)
+        return;
+    const snapshot = formSnapshot();
+    if (snapshot.key === history.entries[history.index].key)
+        return;
+    // The entries which could be redone are replaced.
+    history.entries.splice(history.index + 1);
+    history.entries.push(snapshot);
+    if (history.entries.length > MAXIMUM_HISTORY_LENGTH)
+        history.entries.shift();
+    history.index = history.entries.length - 1;
+    updateHistoryButtons();
+}
+
+function undo() {
+    moveInHistory(-1);
+}
+
+function redo() {
+    moveInHistory(1);
+}
+
+function moveInHistory(step) {
+    const project = state.current;
+    if (project === null || project.example)
+        return;
+    // The modification being typed first.
+    if (state.historyTimer !== null)
+        recordHistory();
+    const history = state.histories.get(project.id);
+    const index = history.index + step;
+    if (index < 0 || index >= history.entries.length)
+        return;
+    history.index = index;
+    const restored = structuredClone(history.entries[index].form);
+    $("objective").value = restored.objective;
+    state.instanceParameters = restored.instanceParameters;
+    state.binTypes = restored.binTypes;
+    state.itemTypes = restored.itemTypes;
+    renderInstanceParameters();
+    renderForm();
+    scheduleSave();
+    updateHistoryButtons();
+}
+
+function updateHistoryButtons() {
+    const project = state.current;
+    const history = state.histories.get(project.id);
+    for (const id of ["undo-button", "redo-button"])
+        $(id).hidden = project.example;
+    $("undo-button").disabled = (history === undefined || history.index === 0);
+    $("redo-button").disabled = (history === undefined || history.index === history.entries.length - 1);
 }
 
 // Open the last project opened of a problem type, its example otherwise.
@@ -908,6 +1085,7 @@ async function deleteProject() {
         state.saveTimers.delete(project.id);
     }
     state.projects.splice(state.projects.indexOf(project), 1);
+    state.histories.delete(project.id);
     state.current = null;
     openProject(projects.projectsOfType(state.projects, project.problemType)[0]);
     try {
@@ -1255,6 +1433,36 @@ async function init() {
         state.itemTypes.push(newItemRow(problemType()));
         renderForm();
     });
+    // The fields are checked as they are typed.
+    for (const event of ["input", "change"])
+        $("form-fields").addEventListener(event, scheduleFormCheck);
+    // The modifications of the form are recorded in its history: the
+    // characters typed once a value is typed, the clicks (e.g. on the
+    // buttons adding or removing a row) and the changes at once.
+    $("form-fields").addEventListener("input", () => scheduleHistory(500));
+    $("form-fields").addEventListener("change", () => scheduleHistory());
+    $("form-fields").addEventListener("click", (event) => {
+        if (event.target.closest("button") !== null)
+            scheduleHistory();
+    });
+    $("undo-button").addEventListener("click", undo);
+    $("redo-button").addEventListener("click", redo);
+    // Ctrl+Z, Ctrl+Shift+Z and Ctrl+Y (Cmd on macOS), except in a text field,
+    // where they undo and redo the characters typed.
+    document.addEventListener("keydown", (event) => {
+        if (!(event.ctrlKey || event.metaKey) || event.altKey)
+            return;
+        const key = event.key.toLowerCase();
+        if (key !== "z" && key !== "y")
+            return;
+        if (event.target.closest("input:not([type=checkbox]):not([type=radio]), textarea, select, [contenteditable]") !== null)
+            return;
+        event.preventDefault();
+        if (key === "y" || event.shiftKey)
+            redo();
+        else
+            undo();
+    });
     $("load-file-items").addEventListener("click", () => $("file-items-file").click());
     $("file-items-file").addEventListener("change", async () => {
         const file = $("file-items-file").files[0];
@@ -1262,6 +1470,7 @@ async function init() {
         if (file !== undefined) {
             await loadFileItems(file);
             scheduleSave();
+            scheduleHistory();
         }
     });
     $("new-project").addEventListener("click", newProject);

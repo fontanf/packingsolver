@@ -1097,7 +1097,10 @@ function rotationRangesCell(row, onChange, onStructureChange) {
 // Render a bin ('isItem' false) or item type table, for an objective.
 // 'onTableChange' is called when a value changes, 'onStructureChange' when
 // the table must be rendered again (shape changed, row removed).
-export function renderTable(table, rows, isItem, objective, onTableChange, onStructureChange, itemRows = []) {
+// 'rowActions', if given, '{duplicate(rowIndex), remove(rowIndex)}': the
+// actions of the buttons of the rows ("Duplicate", "Remove").
+export function renderTable(table, rows, isItem, objective, onTableChange, onStructureChange, itemRows = [],
+        rowActions = null) {
     table.replaceChildren();
     const header = table.createTHead().insertRow();
     const withValue = valueUsed(objective, isItem);
@@ -1172,6 +1175,10 @@ export function renderTable(table, rows, isItem, objective, onTableChange, onStr
         remove.type = "button";
         remove.textContent = "Remove";
         remove.addEventListener("click", () => {
+            if (rowActions !== null) {
+                rowActions.remove(rowIndex);
+                return;
+            }
             rows.splice(rowIndex, 1);
             onStructureChange();
         });
@@ -1225,6 +1232,13 @@ export function renderTable(table, rows, isItem, objective, onTableChange, onStr
         }
         if (more !== null)
             buttons.appendChild(more);
+        if (rowActions !== null) {
+            const duplicate = document.createElement("button");
+            duplicate.type = "button";
+            duplicate.textContent = "Duplicate";
+            duplicate.addEventListener("click", () => rowActions.duplicate(rowIndex));
+            buttons.appendChild(duplicate);
+        }
         buttons.appendChild(remove);
         if (withDetails && openDetails.has(row)) {
             const line = body.insertRow();

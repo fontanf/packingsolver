@@ -97,6 +97,9 @@
                              executables, 'InstanceBuilder.read'. -->
                         <button type="button" id="download-instance"
                                 title="Download the instance in the JSON format of PackingSolver">Download</button>
+                        <!-- The modifications of the form (Ctrl+Z, Ctrl+Shift+Z). -->
+                        <button type="button" id="undo-button" title="Undo the last modification of the form (Ctrl+Z)">Undo</button>
+                        <button type="button" id="redo-button" title="Redo the modification undone (Ctrl+Shift+Z)">Redo</button>
                     </div>
                     <span id="download-instance-error" class="note error-text" role="status"></span>
                 </div>
@@ -128,7 +131,7 @@
                             <span id="file-items-status" class="note" role="status"></span>
                         </span>
                     </div>
-                    <p id="form-error" class="note error-text" role="status" hidden></p>
+                    <p id="form-error" class="note error-text" role="status"></p>
                 </fieldset>
             </section>
 
