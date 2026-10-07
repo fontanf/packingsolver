@@ -225,8 +225,10 @@ const state = {
     best: null,
     // Timer updating the status while solving.
     statusTimer: null,
-    // Whether the results were scrolled into view during the optimization.
+    // Whether the results were scrolled into view during the optimization,
+    // and whether they will be once the solution is drawn.
     resultsRevealed: false,
+    revealPending: false,
     // The projects of all the problem types ('projects.js'), the project
     // opened, and the project being solved ('null' if none).
     projects: [],
@@ -903,6 +905,8 @@ function openProject(project) {
     for (const id of ["form-error", "file-items-status", "download-instance-error", "load-json-error", "paste-status"])
         $(id).textContent = "";
     $("form-ignored").hidden = true;
+    // The results of the optimization aren't scrolled into view anymore.
+    state.revealPending = false;
     // The examples can't be modified.
     $("form-fields").disabled = project.example;
     renderProjectList();
@@ -1271,20 +1275,35 @@ function updateSolvingStatus() {
     setStatus(text);
 }
 
-// Scroll to the results when the first solution of the optimization is shown,
-// if they aren't visible. Only once, not to fight the user scrolling back to
-// the form.
+// When the first solution of the optimization is shown, scroll so that the
+// top of the window is at the beginning of the results. Only once, not to
+// fight the user scrolling elsewhere. Once the solution is drawn (see
+// 'plot'): before, the page may not be high enough to scroll that far.
 function revealResults() {
-    if (state.resultsRevealed)
+    if (!state.resultsRevealed)
+        state.revealPending = true;
+}
+
+// Scroll to the results, if requested by 'revealResults': at once (not
+// smoothly), so that the next solutions can't stop it halfway.
+function revealPendingResults() {
+    if (!state.revealPending)
         return;
+    state.revealPending = false;
     state.resultsRevealed = true;
-    const top = $("results").getBoundingClientRect().top;
-    // The bottom of the window is hidden by the buttons.
-    const visibleBottom = window.innerHeight - $("actions").offsetHeight;
-    if (top >= 0 && top < visibleBottom)
-        return;
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    $("results").scrollIntoView({behavior: reducedMotion? "auto": "smooth", block: "start"});
+    $("results").scrollIntoView({block: "start"});
+}
+
+// Redraw an element without moving the page: its height is kept while it is
+// redrawn (an asynchronous redraw may empty it for a moment, which would
+// shorten the page and scroll it up).
+async function redrawInPlace(element, redraw) {
+    element.style.minHeight = `${element.offsetHeight}px`;
+    try {
+        await redraw();
+    } finally {
+        element.style.minHeight = "";
+    }
 }
 
 function solve() {
@@ -1313,6 +1332,7 @@ function solve() {
     state.timeLimit = (parameters.time_limit !== undefined)? parameters.time_limit: null;
     state.best = null;
     state.resultsRevealed = false;
+    state.revealPending = false;
     renderResults();
     renderProjectList();
     renderProjectHeader();
@@ -1441,8 +1461,8 @@ async function plotProgress() {
         Plotly.purge($("progress-chart"));
         return;
     }
-    await Plotly.react($("progress-chart"), figure.data, figure.layout,
-        {responsive: true, displayModeBar: false});
+    await redrawInPlace($("progress-chart"), () => Plotly.react(
+        $("progress-chart"), figure.data, figure.layout, {responsive: true, displayModeBar: false}));
 }
 
 // Plotting a solution can take a while: at most once every 500 ms.
@@ -1466,6 +1486,14 @@ function clearPlot() {
 
 async function plot() {
     try {
+        await plotSolution();
+    } finally {
+        revealPendingResults();
+    }
+}
+
+async function plotSolution() {
+    try {
         await plotProgress();
     } catch (error) {
         console.error(error);
@@ -1481,9 +1509,13 @@ async function plot() {
             // updated.
             const selected = (state.viewer !== null && state.viewerProject === state.current)?
                 state.viewer.selected(): 0;
+            // Drawn again without moving the page.
+            const scroll = window.scrollY;
             Plotly.purge($("plot"));
             state.viewer = createViewer($("plot"), solution, {selected});
             state.viewerProject = state.current;
+            if (window.scrollY !== scroll)
+                window.scrollTo(0, scroll);
         } catch (error) {
             console.error(error);
             setStatus("Error while drawing the solution: " + error.message, true);
@@ -1498,7 +1530,7 @@ async function plot() {
         // Another project opened in the meantime.
         if (result !== state.last)
             return;
-        await Plotly.react($("plot"), figure.data, figure.layout, {responsive: true});
+        await redrawInPlace($("plot"), () => Plotly.react($("plot"), figure.data, figure.layout, {responsive: true}));
     } catch (error) {
         console.error(error);
         setStatus("Error while drawing the solution: " + error.message, true);
