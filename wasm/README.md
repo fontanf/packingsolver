@@ -16,7 +16,9 @@ This builds `build_wasm/wasm/packingsolver.js` and `packingsolver.wasm`.
 - `src/packingsolver_wasm.cpp`: the JavaScript API of the module: `solve(problemType, instanceJson, parametersJson)`, which blocks, and `Session`, which doesn't. See the comment at the top of the file.
 - `js/packingsolver_worker.js`: a Web Worker running sessions and posting the solutions to the page.
 - `web/`: the web page.
-  - `visualize/`: JavaScript ports of the plotly visualizers of `python/packingsolver/visualize/`.
+  - `viewer/`: the visualizer of the solutions (rectangleguillotine, rectangle, onedimensional, irregular): an overview of all the bins, with their numbers of copies, and a view of one bin below it.
+  - `viewer.html`: the solution viewer, a page which shows a certificate of the solvers (see below).
+  - `visualize/`: JavaScript ports of the plotly visualizers of `python/packingsolver/visualize/` (used for box and boxstacks).
 - `tests/`: the tests.
 
 ## Tests
@@ -40,6 +42,16 @@ python3 wasm/web/serve.py
 ```
 
 Then open http://localhost:8000/.
+
+## Solution viewer
+
+`web/viewer.html` shows a certificate written by the solvers (`--certificate`): opened or dropped on the page, or given by its URL (`viewer.html?certificate=<URL>`). The problem type is found from the certificate. To open a certificate from the command line:
+
+```shell
+python3 scripts/visualize.py solution.csv
+```
+
+It serves the page and the certificate on a local server (the browsers don't load the modules of the page from `file://` URLs) and opens the browser.
 
 ## Deployment
 

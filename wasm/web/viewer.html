@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>PackingSolver viewer</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- The figures of box and boxstacks. 'crossorigin': the page may be
+         served with 'Cross-Origin-Embedder-Policy: require-corp'. -->
+    <script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@4.1.1/plotly.min.js"
+            crossorigin="anonymous"></script>
+    <script type="module" src="viewer-page.js"></script>
+</head>
+<body>
+    <!-- The solution viewer: a certificate written by the solvers
+         ('--certificate'), opened, dropped on the page, or given by the URL
+         ('viewer.html?certificate=<URL of the certificate>', see
+         'scripts/visualize.py'). -->
+    <header>
+        <h1>PackingSolver viewer</h1>
+        <p>
+            Open a solution certificate written by the solvers (<code>--certificate</code>): a CSV file,
+            or a JSON file for irregular shapes. The file stays on your machine.
+        </p>
+        <p>
+            <button type="button" id="open-file">Open a certificate</button>
+            <input type="file" id="file" accept=".csv,.json,text/csv,application/json" hidden>
+            <span class="note">or drop it on the page.</span>
+        </p>
+        <p id="error" class="note error-text" role="status"></p>
+    </header>
+
+    <main>
+        <section id="solution" hidden>
+            <h2 id="solution-title"></h2>
+            <div id="viewer"></div>
+            <!-- The plotly figures (box, boxstacks). -->
+            <div id="plot"></div>
+        </section>
+    </main>
+</body>
+</html>
