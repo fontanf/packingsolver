@@ -60,104 +60,117 @@
         Serve it with <code>python3 wasm/web/serve.py</code>.
     </div>
 
-    <main>
-        <section id="problem">
-            <h2>Problem</h2>
-            <div class="fields">
-                <label for="problem-type">Problem type</label>
-                <select id="problem-type">
-                    <option value="rectangleguillotine">Rectangles, guillotine cuts</option>
-                    <option value="rectangle" selected>Rectangles</option>
-                    <option value="box">Boxes</option>
-                    <option value="boxstacks">Box stacks</option>
-                    <option value="onedimensional">One-dimensional</option>
-                    <option value="irregular">Irregular shapes</option>
-                </select>
+    <div id="layout">
+        <!-- The projects of the selected problem type. -->
+        <aside id="sidebar">
+            <label for="problem-type">Problem type</label>
+            <select id="problem-type">
+                <option value="rectangleguillotine">Rectangles, guillotine cuts</option>
+                <option value="rectangle" selected>Rectangles</option>
+                <option value="box">Boxes</option>
+                <option value="boxstacks">Box stacks</option>
+                <option value="onedimensional">One-dimensional</option>
+                <option value="irregular">Irregular shapes</option>
+            </select>
+            <h2>Projects</h2>
+            <div class="sidebar-buttons">
+                <button type="button" id="new-project">New project</button>
+                <button type="button" id="load-json"
+                        title="An instance of the problem type in the JSON format of PackingSolver (InstanceBuilder.read)">Load a JSON file</button>
+                <input type="file" id="json-file" accept=".json,application/json" hidden>
             </div>
+            <p id="load-json-error" class="note error-text" role="status"></p>
+            <ul id="project-list"></ul>
+            <p id="storage-note" class="note">The projects are saved in this browser.</p>
+        </aside>
 
-            <div id="form-fields">
-                <p>
-                    <button type="button" id="load-example">Load an example</button>
-                    <span class="note">Replaces the objective, the bin types and the item types.</span>
+        <main>
+            <section id="problem">
+                <div id="project-header">
+                    <h2 id="project-name"></h2>
+                    <input type="text" id="project-name-input" aria-label="Name of the project" hidden>
+                    <div class="buttons">
+                        <button type="button" id="rename-project">Rename</button>
+                        <button type="button" id="duplicate-project">Duplicate</button>
+                        <button type="button" id="delete-project">Delete</button>
+                        <!-- For the solvers of PackingSolver: '--input' of the
+                             executables, 'InstanceBuilder.read'. -->
+                        <button type="button" id="download-instance"
+                                title="Download the instance in the JSON format of PackingSolver">Download</button>
+                    </div>
+                    <span id="download-instance-error" class="note error-text" role="status"></span>
+                </div>
+                <p id="example-note" class="note" hidden>
+                    This example can't be modified. Duplicate it to modify it.
                 </p>
-                <p>
-                    <button type="button" id="load-json">Load a JSON file</button>
-                    <input type="file" id="json-file" accept=".json,application/json" hidden>
-                    <span class="note">An instance of the problem type in the JSON format of PackingSolver
-                        (<code>InstanceBuilder.read</code>).</span>
-                    <span id="load-json-error" class="note error-text" role="status"></span>
-                </p>
-                <!-- The parameters of the instance are added in the same grid. -->
-                <div class="fields form-group">
-                    <label for="objective">Objective</label>
-                    <select id="objective"></select>
-                    <div id="instance-parameters" hidden></div>
+
+                <!-- Disabled for the examples. -->
+                <fieldset id="form-fields">
+                    <p id="form-ignored" class="note" role="status" hidden></p>
+                    <!-- The parameters of the instance are added in the same grid. -->
+                    <div class="fields form-group">
+                        <label for="objective">Objective</label>
+                        <select id="objective"></select>
+                        <div id="instance-parameters" hidden></div>
+                    </div>
+                    <div class="form-group">
+                        <h3>Bin types</h3>
+                        <div class="table-scroll"><table id="bin-types" class="types"></table></div>
+                        <button type="button" id="add-bin-type">Add a bin type</button>
+                    </div>
+                    <div class="form-group">
+                        <h3>Item types</h3>
+                        <div class="table-scroll"><table id="item-types" class="types"></table></div>
+                        <button type="button" id="add-item-type">Add an item type</button>
+                        <span id="file-items" hidden>
+                            <button type="button" id="load-file-items">Load item types from a file (DXF, SVG)</button>
+                            <input type="file" id="file-items-file" accept=".dxf,.svg" hidden>
+                            <span id="file-items-status" class="note" role="status"></span>
+                        </span>
+                    </div>
+                    <p id="form-error" class="note error-text" role="status" hidden></p>
+                </fieldset>
+            </section>
+
+            <section id="parameters">
+                <h2>Parameters</h2>
+                <div class="fields">
+                    <label for="optimization-mode">Optimization mode</label>
+                    <select id="optimization-mode">
+                        <option value="anytime" selected>Anytime: improve until the time limit or stopped</option>
+                        <option value="not-anytime">Not anytime</option>
+                        <option value="not-anytime-deterministic">Not anytime, deterministic</option>
+                        <option value="not-anytime-sequential">Not anytime, single-threaded</option>
+                    </select>
+                    <label for="time-limit">Time limit (s)</label>
+                    <input type="number" id="time-limit" min="0" step="any" value="30"
+                           placeholder="none">
                 </div>
-                <div class="form-group">
-                    <h3>Bin types</h3>
-                    <div class="table-scroll"><table id="bin-types" class="types"></table></div>
-                    <button type="button" id="add-bin-type">Add a bin type</button>
-                </div>
-                <div class="form-group">
-                    <h3>Item types</h3>
-                    <div class="table-scroll"><table id="item-types" class="types"></table></div>
-                    <button type="button" id="add-item-type">Add an item type</button>
-                    <span id="file-items" hidden>
-                        <button type="button" id="load-file-items">Load item types from a file (DXF, SVG)</button>
-                        <input type="file" id="file-items-file" accept=".dxf,.svg" hidden>
-                        <span id="file-items-status" class="note" role="status"></span>
-                    </span>
-                </div>
-                <p id="form-error" class="note error-text" role="status" hidden></p>
-                <p id="form-ignored" class="note" role="status" hidden></p>
+            </section>
+
+            <div id="actions">
+                <button type="button" id="solve" disabled>Solve</button>
+                <button type="button" id="stop" disabled>Stop</button>
+                <span id="status" role="status">Loading the solver...</span>
             </div>
 
-            <!-- For the solvers of PackingSolver: '--input' of the executables,
-                 'InstanceBuilder.read'. -->
-            <p id="instance-download">
-                <button type="button" id="download-instance">Download the instance (JSON)</button>
-                <span id="download-instance-error" class="note error-text" role="status"></span>
-            </p>
-        </section>
-
-        <section id="parameters">
-            <h2>Parameters</h2>
-            <div class="fields">
-                <label for="optimization-mode">Optimization mode</label>
-                <select id="optimization-mode">
-                    <option value="anytime" selected>Anytime: improve until the time limit or stopped</option>
-                    <option value="not-anytime">Not anytime</option>
-                    <option value="not-anytime-deterministic">Not anytime, deterministic</option>
-                    <option value="not-anytime-sequential">Not anytime, single-threaded</option>
-                </select>
-                <label for="time-limit">Time limit (s)</label>
-                <input type="number" id="time-limit" min="0" step="any" value="30"
-                       placeholder="none">
-            </div>
-        </section>
-
-        <div id="actions">
-            <button type="button" id="solve" disabled>Solve</button>
-            <button type="button" id="stop" disabled>Stop</button>
-            <span id="status" role="status">Loading the solver...</span>
-        </div>
-
-        <section id="results" hidden>
-            <h2>Solution</h2>
-            <div id="summary"></div>
-            <div class="buttons">
-                <button type="button" id="download-certificate">Download the certificate (CSV)</button>
-                <button type="button" id="download-output">Download the output (JSON)</button>
-            </div>
-            <div id="plot"></div>
-            <h3>Progress</h3>
-            <table id="progress">
-                <thead>
-                    <tr><th>Time (s)</th><th>Solution</th><th>Bound</th></tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-        </section>
-    </main>
+            <section id="results" hidden>
+                <h2>Solution</h2>
+                <div id="summary"></div>
+                <div class="buttons">
+                    <button type="button" id="download-certificate">Download the certificate (CSV)</button>
+                    <button type="button" id="download-output">Download the output (JSON)</button>
+                </div>
+                <div id="plot"></div>
+                <h3>Progress</h3>
+                <table id="progress">
+                    <thead>
+                        <tr><th>Time (s)</th><th>Solution</th><th>Bound</th></tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </section>
+        </main>
+    </div>
 </body>
 </html>
