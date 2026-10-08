@@ -1,8 +1,6 @@
 // The solution viewer page ('viewer.html'): a certificate written by the
 // solvers, opened, dropped on the page, or given by the URL
-// ('?certificate=<URL>'), drawn by the visualizer ('viewer/'), or by the
-// plotly visualizers for the problem types which it doesn't draw (box,
-// boxstacks).
+// ('?certificate=<URL>'), drawn by the visualizer ('viewer/').
 
 import {PROBLEM_TYPES, detectProblemType, readSolution} from "./viewer/solution.js";
 import {createViewer} from "./viewer/viewer.js";
@@ -32,19 +30,12 @@ async function show(text, name) {
         return;
     }
     try {
-        Plotly.purge($("plot"));
-        $("plot").hidden = true;
         $("viewer").replaceChildren();
         $("viewer").hidden = true;
-        if (PROBLEM_TYPES.includes(problemType)) {
-            createViewer($("viewer"), readSolution(text, problemType));
-            $("viewer").hidden = false;
-        } else {
-            const visualizer = await import(`./visualize/${problemType}.js`);
-            const figure = visualizer.figure(text);
-            $("plot").hidden = false;
-            await Plotly.react($("plot"), figure.data, figure.layout, {responsive: true});
-        }
+        if (!PROBLEM_TYPES.includes(problemType))
+            throw new Error(`the problem type '${problemType}' isn't drawn by the viewer`);
+        createViewer($("viewer"), readSolution(text, problemType));
+        $("viewer").hidden = false;
     } catch (error) {
         console.error(error);
         showError(`can't read ${name}: ${error.message}`);
