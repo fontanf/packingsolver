@@ -179,13 +179,13 @@ public:
     inline Area bin_length() const { return bin_length_; }
 
     /** Get the waste of the solution. */
-    inline Area waste() const { return length_ - item_length_; }
+    inline Area waste() const { return length_ - item_nested_length_; }
 
     /** Get the fraction of waste of the solution. */
     inline double waste_percentage() const { return (length() == 0)? 0: (double)waste() / length(); }
 
     /** Get the waste of the solution including the residual. */
-    inline Area full_waste() const { return bin_length() - item_length(); }
+    inline Area full_waste() const { return bin_length() - item_nested_length(); }
 
     /** Get the fraction of waste of the solution including the residual. */
     inline double full_waste_percentage() const { return (bin_length() == 0)? 0.0: (double)full_waste() / bin_length(); }

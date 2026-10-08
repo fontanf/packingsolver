@@ -249,7 +249,10 @@ bool Solution::operator<(const Solution& solution) const
     case Objective::BinPacking: {
         return solution.number_of_bins() < number_of_bins();
     } case Objective::BinPackingWithLeftovers: {
-        return solution.waste() < waste();
+        // The length used, minus the length of the items (not their nested
+        // length, which depends on the order of the items): the end of the
+        // last item of the last bin, all the items being packed.
+        return solution.length() - solution.item_length() < length() - item_length();
     } case Objective::Knapsack: {
         return strictly_greater_profit(solution.profit(), profit());
     } case Objective::Feasibility: {

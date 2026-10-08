@@ -85,9 +85,12 @@ test("results: tiles", () => {
     assert.strictEqual(tiles.find((tile) => tile.label === "Density").value, "95%");
     // Onedimensional with nesting lengths: the items occupy less than their
     // length (8 items of length 70, nesting length 10, in a bin of 500).
-    tiles = results.summaryTiles({output: output({NumberOfBins: 1, ItemLength: 560, ItemNestedLength: 490, Waste: -70}),
+    tiles = results.summaryTiles({output: output({NumberOfBins: 1, ItemLength: 560, ItemNestedLength: 490, Waste: 0}),
         objective: "bin-packing", totalItems: 8});
     assert.strictEqual(tiles.find((tile) => tile.label === "Density").value, "100%");
+    tiles = results.summaryTiles({output: output({NumberOfBins: 1, ItemLength: 560, ItemNestedLength: 490, Waste: 10}),
+        objective: "bin-packing", totalItems: 8});
+    assert.strictEqual(tiles.find((tile) => tile.label === "Density").value, "98%");
     // Bin packing with leftovers: the number of bins, then the leftover if
     // the problem type has one (box, boxstacks, rectangle, irregular).
     tiles = results.summaryTiles({output: output({NumberOfBins: 2, ItemVolume: 90, Waste: 10, LeftoverValue: 40}),
