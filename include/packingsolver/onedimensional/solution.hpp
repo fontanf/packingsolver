@@ -168,6 +168,13 @@ public:
     /** Get the total length of the items of the solution. */
     inline Area item_length() const { return item_length_; }
 
+    /**
+     * Get the total length occupied by the items of the solution: their
+     * length minus their nesting length, except for the first item of each
+     * bin.
+     */
+    inline Area item_nested_length() const { return item_nested_length_; }
+
     /** Get the total length of the bins of the solution. */
     inline Area bin_length() const { return bin_length_; }
 
@@ -254,6 +261,9 @@ private:
 
     /** Total length of the items of the solution. */
     Volume item_length_ = 0;
+
+    /** Total length occupied by the items of the solution. */
+    Volume item_nested_length_ = 0;
 
     /** Profit of the solution. */
     Profit item_profit_ = 0;

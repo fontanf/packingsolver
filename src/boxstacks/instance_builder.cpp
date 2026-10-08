@@ -665,6 +665,9 @@ void InstanceBuilder::read_parameters(
                     value,
                     name);
             set_unloading_constraint(unloading_constraint);
+        } if (name == "leftover-mode" || name == "leftover_mode") {
+            LeftoverMode leftover_mode = read_enum<LeftoverMode>(value, name);
+            set_leftover_mode(leftover_mode);
         } if (name == "no-check-weight-constraints") {
             GroupId group_id = (GroupId)std::stol(value);
             set_group_weight_constraints(group_id, false);
@@ -991,6 +994,13 @@ void InstanceBuilder::read(
         set_objective(objective);
     }
 
+    if (j.contains("leftover_mode")) {
+        std::string leftover_mode_string = j["leftover_mode"];
+        LeftoverMode leftover_mode = read_enum<LeftoverMode>(
+                leftover_mode_string,
+                "leftover_mode");
+        set_leftover_mode(leftover_mode);
+    }
     if (j.contains("unloading_constraint")) {
         std::string unloading_constraint_string = j["unloading_constraint"];
         std::stringstream ss(unloading_constraint_string);

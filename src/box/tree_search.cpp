@@ -397,6 +397,35 @@ BranchingScheme::Node BranchingScheme::child_tmp(
     }
     node.waste = node.current_volume - node.item_volume;
 
+    // Update the extent of the items of the last bin, and the leftover.
+    if (insertion.new_bin > 0) {
+        node.last_bin_xe_max = xe;
+        node.last_bin_ye_max = ye;
+        node.last_bin_ze_max = ze;
+    } else {
+        node.last_bin_xe_max = std::max(parent.last_bin_xe_max, xe);
+        node.last_bin_ye_max = std::max(parent.last_bin_ye_max, ye);
+        node.last_bin_ze_max = std::max(parent.last_bin_ze_max, ze);
+    }
+    if (this->instance().objective() == Objective::BinPackingWithLeftovers) {
+        // In the frame of the original instance.
+        Length x_max = node.last_bin_xe_max;
+        Length y_max = node.last_bin_ye_max;
+        Length z_max = node.last_bin_ze_max;
+        if (o == Direction::Y) {
+            std::swap(x_max, y_max);
+        } else if (o == Direction::Z) {
+            std::swap(x_max, z_max);
+        }
+        const BinType& bin_type_orig = this->instance().bin_type(bin_type_id);
+        node.leftover_value = bin_type_orig.volume() - leftover_mode_used_volume(
+                this->instance().parameters().leftover_mode,
+                bin_type_orig.box,
+                x_max,
+                y_max,
+                z_max);
+    }
+
     node.id = node_id_++;
 
     //std::cout << "node.number_of_items " << node.number_of_items << std::endl;
@@ -719,7 +748,9 @@ bool BranchingScheme::better(
             return false;
         if (!leaf(node_2))
             return true;
-        return node_2->waste > node_1->waste;
+        if (node_2->number_of_bins != node_1->number_of_bins)
+            return node_2->number_of_bins > node_1->number_of_bins;
+        return node_2->leftover_value < node_1->leftover_value;
     } case Objective::OpenDimensionX: case Objective::OpenDimensionY: case Objective::OpenDimensionZ: {
         // The nodes are in the instance flipped along the open dimension:
         // 'xe_max' is the length used along it.
@@ -765,7 +796,11 @@ bool BranchingScheme::bound(
     } case Objective::BinPackingWithLeftovers: {
         if (!leaf(node_2))
             return false;
-        return node_1->waste >= node_2->waste;
+        // The number of bins of a node can only increase, and the leftover
+        // of its last bin can only decrease.
+        if (node_1->number_of_bins != node_2->number_of_bins)
+            return node_1->number_of_bins > node_2->number_of_bins;
+        return node_1->leftover_value <= node_2->leftover_value;
     } case Objective::Knapsack: {
         if (leaf(node_2))
             return true;
@@ -1065,6 +1100,16 @@ const packingsolver::box::TreeSearchOutput packingsolver::box::tree_search(
     } else if (instance.objective() == Objective::OpenDimensionY) {
         directions = {Direction::Y};
     } else if (instance.objective() == Objective::OpenDimensionZ) {
+        directions = {Direction::Z};
+    } else if (instance.objective() == Objective::BinPackingWithLeftovers
+            && instance.parameters().leftover_mode == LeftoverMode::X) {
+        // The leftover is measured along X: fill the bins along X.
+        directions = {Direction::X};
+    } else if (instance.objective() == Objective::BinPackingWithLeftovers
+            && instance.parameters().leftover_mode == LeftoverMode::Y) {
+        directions = {Direction::Y};
+    } else if (instance.objective() == Objective::BinPackingWithLeftovers
+            && instance.parameters().leftover_mode == LeftoverMode::Z) {
         directions = {Direction::Z};
     } else if (instance.number_of_bin_types() == 1) {
         directions = {Direction::X, Direction::Y, Direction::Z};

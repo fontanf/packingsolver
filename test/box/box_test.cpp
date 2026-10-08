@@ -106,3 +106,51 @@ TEST(Box, UnlimitedItemCopies)
     const Instance instance = instance_builder.build();
     EXPECT_EQ(instance.item_type(item_type_id).copies, 47);
 }
+
+TEST(Box, LeftoverModes)
+{
+    // A 100 x 50 x 40 bin whose items end at x 60, y 20, z 10: the volume
+    // used in each leftover mode is the box from the origin to the items
+    // along the dimensions of the mode, and the whole bin along the others.
+    struct Case { LeftoverMode leftover_mode; packingsolver::Volume used; };
+    for (Case c: std::vector<Case>{
+            {LeftoverMode::X, 60 * 50 * 40},
+            {LeftoverMode::Y, 100 * 20 * 40},
+            {LeftoverMode::Z, 100 * 50 * 10},
+            {LeftoverMode::XY, 60 * 20 * 40},
+            {LeftoverMode::XZ, 60 * 50 * 10},
+            {LeftoverMode::YZ, 100 * 20 * 10},
+            {LeftoverMode::XYZ, 60 * 20 * 10}}) {
+        InstanceBuilder instance_builder;
+        instance_builder.set_objective(packingsolver::Objective::BinPackingWithLeftovers);
+        instance_builder.set_leftover_mode(c.leftover_mode);
+        instance_builder.add_bin_type(100, 50, 40);
+        packingsolver::ItemTypeId item_type_id = instance_builder.add_item_type(30, 20, 10);
+        instance_builder.set_item_type_copies(item_type_id, 2);
+        const Instance instance = instance_builder.build();
+        SolutionBuilder solution_builder(instance);
+        solution_builder.add_bin(0, 1);
+        solution_builder.add_item(0, item_type_id, {0, 0, 0}, Rotation::XYZ);
+        solution_builder.add_item(0, item_type_id, {30, 0, 0}, Rotation::XYZ);
+        const Solution solution = solution_builder.build();
+        EXPECT_TRUE(solution.feasible());
+        EXPECT_EQ(solution.leftover_value(), 100 * 50 * 40 - c.used) << c.leftover_mode;
+        EXPECT_EQ(solution.waste(), c.used - 2 * 30 * 20 * 10) << c.leftover_mode;
+    }
+}
+
+TEST(Box, LeftoverModeJson)
+{
+    // The leftover mode is read from the JSON format, and written to it.
+    std::stringstream ss(R"({"objective": "bin-packing-with-leftovers", "leftover_mode": "XZ",
+        "bin_types": [{"x": 10, "y": 10, "z": 10}], "item_types": [{"x": 5, "y": 5, "z": 5}]})");
+    InstanceBuilder instance_builder;
+    instance_builder.read(ss);
+    const Instance instance = instance_builder.build();
+    EXPECT_EQ(instance.parameters().leftover_mode, LeftoverMode::XZ);
+    // The default.
+    InstanceBuilder default_builder;
+    default_builder.add_bin_type(10, 10, 10);
+    default_builder.add_item_type(5, 5, 5);
+    EXPECT_EQ(default_builder.build().parameters().leftover_mode, LeftoverMode::XYZ);
+}

@@ -482,3 +482,24 @@ TEST(OneDimensional, UnlimitedItemCopiesInvalid)
         EXPECT_THROW(instance_builder.build(), std::invalid_argument);
     }
 }
+
+TEST(OneDimensional, ItemNestedLength)
+{
+    // 3 items of length 70 with a nesting length of 10, in a bin of length
+    // 500: they end at 70 + 60 + 60 = 190, which is the length they occupy.
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(packingsolver::Objective::BinPacking);
+    instance_builder.add_bin_type(500);
+    packingsolver::ItemTypeId item_type_id = instance_builder.add_item_type(70);
+    instance_builder.set_item_type_nesting_length(item_type_id, 10);
+    instance_builder.set_item_type_copies(item_type_id, 3);
+    const Instance instance = instance_builder.build();
+    SolutionBuilder solution_builder(instance);
+    solution_builder.add_bin(0, 1);
+    for (int i = 0; i < 3; ++i)
+        solution_builder.add_item(0, item_type_id);
+    const Solution solution = solution_builder.build();
+    EXPECT_EQ(solution.item_length(), 210);
+    EXPECT_EQ(solution.item_nested_length(), 190);
+    EXPECT_EQ(solution.length(), 190);
+}

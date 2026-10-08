@@ -68,6 +68,11 @@ void bind_boxstacks(nb::module_& m)
         .value("XZY", Rotation::XZY)
         .value("ZXY", Rotation::ZXY);
 
+    nb::enum_<LeftoverMode>(m, "LeftoverMode")
+        .value("X", LeftoverMode::X)
+        .value("Y", LeftoverMode::Y)
+        .value("XY", LeftoverMode::XY);
+
     /*
      * Instance
      */
@@ -208,6 +213,7 @@ void bind_boxstacks(nb::module_& m)
         .def("set_group_weight_constraints", &InstanceBuilder::set_group_weight_constraints,
                 nb::arg("group_id"), nb::arg("check_weight_constraints"))
         .def("set_unloading_constraint", &InstanceBuilder::set_unloading_constraint, nb::arg("unloading_constraint"))
+        .def("set_leftover_mode", &InstanceBuilder::set_leftover_mode, nb::arg("leftover_mode"))
         // Bin types.
         .def("add_bin_type",
                 [](InstanceBuilder& instance_builder,
@@ -429,6 +435,7 @@ void bind_boxstacks(nb::module_& m)
         .def("item_fraction", &Solution::item_fraction)
         .def("volume_fraction", &Solution::volume_fraction)
         .def("weight_fraction", &Solution::weight_fraction)
+        .def("leftover_value", &Solution::leftover_value)
         .def("waste", &Solution::waste)
         .def("waste_percentage", &Solution::waste_percentage)
         .def("full_waste", &Solution::full_waste)

@@ -92,7 +92,8 @@ export function formatPercent(ratio) {
 // along the open dimension: 'DensityX' / 'DensityY' (only the irregular
 // solutions have them). Otherwise, the space used is the items plus 'Waste'
 // (the space used minus the items), or for irregular, which has no 'Waste',
-// 'BinArea' minus 'LeftoverValue'.
+// 'BinArea' minus 'LeftoverValue'. With nesting lengths (onedimensional), the
+// items occupy less than their length: 'ItemNestedLength'.
 function density(solution, objective) {
     const openDimensionDensity = {"open-dimension-x": solution.DensityX, "open-dimension-y": solution.DensityY}[objective];
     if (finite(openDimensionDensity) !== null)
@@ -106,7 +107,8 @@ function density(solution, objective) {
         used = items + solution.Waste;
     else if (finite(solution.BinArea) !== null && finite(solution.LeftoverValue) !== null)
         used = solution.BinArea - solution.LeftoverValue;
-    return (used !== null && used > 0)? items / used: null;
+    const occupied = (finite(solution.ItemNestedLength) !== null)? solution.ItemNestedLength: items;
+    return (used !== null && used > 0)? occupied / used: null;
 }
 
 // The tiles of the key numbers of a solution ('{output, objective,
@@ -124,6 +126,11 @@ export function summaryTiles(result) {
     });
     const value = objectiveValue(output, result.objective);
     const bound = boundValue(output, result.objective);
+    // Bin packing with leftovers: the number of bins first, then the leftover
+    // (only for the problem types which have one).
+    if (result.objective === "bin-packing-with-leftovers"
+            && finite(solution.NumberOfBins) !== null && solution.NumberOfItems > 0)
+        tiles.push({label: "Bins", value: formatValue(solution.NumberOfBins)});
     if (value !== null)
         tiles.push({label: OBJECTIVE_VALUES[result.objective].label, value: formatValue(value)});
     if (bound !== null)

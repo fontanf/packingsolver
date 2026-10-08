@@ -75,6 +75,7 @@ int main(int argc, char *argv[])
             ("no-item-rotation", "")
 
             ("objective,f", po::value<Objective>(), "Objective")
+            ("leftover-mode,", po::value<boxstacks::LeftoverMode>(), "Leftover mode (bin-packing-with-leftovers): X, Y, XY")
 
             ("unloading-constraint,", po::value<rectangle::UnloadingConstraint>(), "")
 
@@ -190,6 +191,8 @@ int main(int argc, char *argv[])
 
         if (vm.count("objective"))
             instance_builder.set_objective(vm["objective"].as<Objective>());
+        if (vm.count("leftover-mode"))
+            instance_builder.set_leftover_mode(vm["leftover-mode"].as<boxstacks::LeftoverMode>());
         if (vm.count("unloading-constraint"))
             instance_builder.set_unloading_constraint(vm["unloading-constraint"].as<rectangle::UnloadingConstraint>());
 

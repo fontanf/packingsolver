@@ -86,6 +86,63 @@ std::ostream& box::operator<<(
     return os;
 }
 
+std::istream& box::operator>>(
+        std::istream& in,
+        LeftoverMode& leftover_mode)
+{
+    std::string token;
+    in >> token;
+    if (token == "x" || token == "X") {
+        leftover_mode = LeftoverMode::X;
+    } else if (token == "y" || token == "Y") {
+        leftover_mode = LeftoverMode::Y;
+    } else if (token == "z" || token == "Z") {
+        leftover_mode = LeftoverMode::Z;
+    } else if (token == "xy" || token == "XY") {
+        leftover_mode = LeftoverMode::XY;
+    } else if (token == "xz" || token == "XZ") {
+        leftover_mode = LeftoverMode::XZ;
+    } else if (token == "yz" || token == "YZ") {
+        leftover_mode = LeftoverMode::YZ;
+    } else if (token == "xyz" || token == "XYZ") {
+        leftover_mode = LeftoverMode::XYZ;
+    } else {
+        in.setstate(std::ios_base::failbit);
+    }
+    return in;
+}
+
+std::ostream& box::operator<<(
+        std::ostream& os,
+        LeftoverMode leftover_mode)
+{
+    switch (leftover_mode) {
+    case LeftoverMode::X: {
+        os << "X";
+        break;
+    } case LeftoverMode::Y: {
+        os << "Y";
+        break;
+    } case LeftoverMode::Z: {
+        os << "Z";
+        break;
+    } case LeftoverMode::XY: {
+        os << "XY";
+        break;
+    } case LeftoverMode::XZ: {
+        os << "XZ";
+        break;
+    } case LeftoverMode::YZ: {
+        os << "YZ";
+        break;
+    } case LeftoverMode::XYZ: {
+        os << "XYZ";
+        break;
+    }
+    }
+    return os;
+}
+
 std::ostream& box::operator<<(
         std::ostream& os,
         Point xyz)
@@ -164,6 +221,13 @@ std::ostream& Instance::format(
     if (verbosity_level >= 1) {
         os
             << "Objective:             " << this->objective() << std::endl
+            ;
+        if (this->objective() == Objective::BinPackingWithLeftovers) {
+            os
+                << "Leftover mode:         " << this->parameters().leftover_mode << std::endl
+                ;
+        }
+        os
             << "Number of item types:  " << this->number_of_item_types() << std::endl
             << "Number of items:       " << this->number_of_items() << std::endl
             << "Number of bin types:   " << this->number_of_bin_types() << std::endl
@@ -307,6 +371,11 @@ void Instance::write_json(
         std::stringstream ss;
         ss << objective();
         j["objective"] = ss.str();
+    }
+    {
+        std::stringstream ss;
+        ss << parameters().leftover_mode;
+        j["leftover_mode"] = ss.str();
     }
 
     j["bin_types"] = nlohmann::json::array();

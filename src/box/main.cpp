@@ -76,6 +76,7 @@ int main(int argc, char *argv[])
             ("no-item-rotation", "")
 
             ("objective,f", po::value<Objective>(), "Objective")
+            ("leftover-mode,", po::value<box::LeftoverMode>(), "Leftover mode (bin-packing-with-leftovers): X, Y, Z, XY, XZ, YZ, XYZ")
 
             ("output,o", po::value<std::string>(), "Output path")
             ("certificate,c", po::value<std::string>(), "Certificate path")
@@ -188,6 +189,8 @@ int main(int argc, char *argv[])
 
         if (vm.count("objective"))
             instance_builder.set_objective(vm["objective"].as<Objective>());
+        if (vm.count("leftover-mode"))
+            instance_builder.set_leftover_mode(vm["leftover-mode"].as<box::LeftoverMode>());
 
         Instance instance = instance_builder.build();
 

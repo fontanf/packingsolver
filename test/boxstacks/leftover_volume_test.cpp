@@ -80,3 +80,59 @@ TEST(BoxStacks, LeftoverVolumeOnlyLastPhysicalBin)
         EXPECT_EQ(solution.full_waste(), 1600000);
     }
 }
+
+TEST(BoxStacks, LeftoverModes)
+{
+    // A 100 x 50 x 40 bin whose stacks end at x 60 and y 20: the volume used
+    // is the box from the origin to the stacks along the dimensions of the
+    // mode, the whole bin along the others, and the whole height.
+    struct Case { LeftoverMode leftover_mode; Volume used; };
+    for (Case c: std::vector<Case>{
+            {LeftoverMode::X, 60 * 50 * 40},
+            {LeftoverMode::Y, 100 * 20 * 40},
+            {LeftoverMode::XY, 60 * 20 * 40}}) {
+        InstanceBuilder ib;
+        ib.set_objective(Objective::BinPackingWithLeftovers);
+        ib.set_leftover_mode(c.leftover_mode);
+        ib.add_bin_type(100, 50, 40);
+        auto item = ib.add_item_type(30, 20, 10);
+        ib.set_item_type_copies(item, 2);
+        const Instance instance = ib.build();
+        SolutionBuilder sb(instance);
+        sb.add_bin(0, 1);
+        sb.add_stack(0, 0, 30, 0, 20);
+        sb.add_item(0, 0, item, Rotation::XYZ);
+        sb.add_stack(0, 30, 60, 0, 20);
+        sb.add_item(0, 1, item, Rotation::XYZ);
+        const Solution solution = sb.build();
+        EXPECT_TRUE(solution.feasible());
+        EXPECT_EQ(solution.leftover_value(), 100 * 50 * 40 - c.used) << c.leftover_mode;
+    }
+}
+
+TEST(BoxStacks, LeftoverModeRanksSolutions)
+{
+    // With the mode 'Y', a solution whose stacks are in a row along X has a
+    // larger leftover than one whose stacks are along Y.
+    InstanceBuilder ib;
+    ib.set_objective(Objective::BinPackingWithLeftovers);
+    ib.set_leftover_mode(LeftoverMode::Y);
+    ib.add_bin_type(100, 100, 100);
+    auto item = ib.add_item_type(10, 10, 10);
+    ib.set_item_type_copies(item, 2);
+    const Instance instance = ib.build();
+    auto build = [&](Length x, Length y) {
+        SolutionBuilder sb(instance);
+        sb.add_bin(0, 1);
+        sb.add_stack(0, 0, 10, 0, 10);
+        sb.add_item(0, 0, item, Rotation::XYZ);
+        sb.add_stack(0, x, x + 10, y, y + 10);
+        sb.add_item(0, 1, item, Rotation::XYZ);
+        return sb.build();
+    };
+    const Solution along_x = build(10, 0);
+    const Solution along_y = build(0, 10);
+    EXPECT_EQ(along_x.leftover_value(), 100 * 90 * 100);
+    EXPECT_EQ(along_y.leftover_value(), 100 * 80 * 100);
+    EXPECT_TRUE(along_y < along_x);  // operator< means the right solution is better.
+}

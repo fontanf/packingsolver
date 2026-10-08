@@ -49,6 +49,30 @@ std::string to_string(Rotation rotation);
 
 Rotation rotation_from_string(const std::string& str);
 
+/**
+ * How the leftover of the last bin of a solution is measured, for the
+ * 'BinPackingWithLeftovers' objective: the volume of the bin minus the volume
+ * used, the volume used being the box from the origin of the bin to the
+ * stacks along the dimensions of the mode, and the whole bin along the other
+ * dimensions (the whole height of the bin in all the modes). For example,
+ * with 'X', the volume used is 'x_max * bin.y * bin.z', and with 'XY',
+ * 'x_max * y_max * bin.z'.
+ */
+enum class LeftoverMode
+{
+    X,
+    Y,
+    XY,
+};
+
+std::istream& operator>>(
+        std::istream& in,
+        LeftoverMode& leftover_mode);
+
+std::ostream& operator<<(
+        std::ostream& os,
+        LeftoverMode leftover_mode);
+
 struct Point
 {
     /** x-coordinate. */
@@ -329,6 +353,9 @@ struct Parameters
 {
     /** Unloading constraint. */
     rectangle::UnloadingConstraint unloading_constraint = rectangle::UnloadingConstraint::None;
+
+    /** Leftover mode (see 'LeftoverMode'). */
+    LeftoverMode leftover_mode = LeftoverMode::XY;
 
     /**
      * 'true' iff weight constraints must be satisfied for all items belonging

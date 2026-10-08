@@ -146,8 +146,11 @@ function canonicalOther(problemType, json, objective) {
     }
     if (problemType === "rectangle" || problemType === "boxstacks")
         p.unloading_constraint = normalize(json.unloading_constraint || "none");
-    if (problemType === "rectangle" && objective === "bin-packing-with-leftovers")
-        p.leftover_mode = normalize(json.leftover_mode || "area");
+    if (objective === "bin-packing-with-leftovers") {
+        const defaultLeftoverMode = {rectangle: "area", box: "xyz", boxstacks: "xy"}[problemType];
+        if (defaultLeftoverMode !== undefined)
+            p.leftover_mode = normalize(json.leftover_mode || defaultLeftoverMode);
+    }
     if (problemType === "boxstacks")
         p.no_check_weight_constraints = (json.no_check_weight_constraints || []).slice().sort((a, b) => a - b);
     const unloading = (p.unloading_constraint !== undefined && p.unloading_constraint !== "none");

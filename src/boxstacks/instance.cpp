@@ -97,6 +97,43 @@ bool Instance::fits_some_bin(
     return false;
 }
 
+std::istream& boxstacks::operator>>(
+        std::istream& in,
+        LeftoverMode& leftover_mode)
+{
+    std::string token;
+    in >> token;
+    if (token == "x" || token == "X") {
+        leftover_mode = LeftoverMode::X;
+    } else if (token == "y" || token == "Y") {
+        leftover_mode = LeftoverMode::Y;
+    } else if (token == "xy" || token == "XY") {
+        leftover_mode = LeftoverMode::XY;
+    } else {
+        in.setstate(std::ios_base::failbit);
+    }
+    return in;
+}
+
+std::ostream& boxstacks::operator<<(
+        std::ostream& os,
+        LeftoverMode leftover_mode)
+{
+    switch (leftover_mode) {
+    case LeftoverMode::X: {
+        os << "X";
+        break;
+    } case LeftoverMode::Y: {
+        os << "Y";
+        break;
+    } case LeftoverMode::XY: {
+        os << "XY";
+        break;
+    }
+    }
+    return os;
+}
+
 std::ostream& Instance::format(
         std::ostream& os,
         int verbosity_level) const
@@ -104,6 +141,13 @@ std::ostream& Instance::format(
     if (verbosity_level >= 1) {
         os
             << "Objective:             " << objective() << std::endl
+            ;
+        if (objective() == Objective::BinPackingWithLeftovers) {
+            os
+                << "Leftover mode:         " << parameters_.leftover_mode << std::endl
+                ;
+        }
+        os
             << "Number of item types:  " << number_of_item_types() << std::endl
             << "Number of items:       " << number_of_items() << std::endl
             << "Number of bin types:   " << number_of_bin_types() << std::endl
@@ -318,6 +362,11 @@ void Instance::write_json(
         ss << parameters_.unloading_constraint;
         j["unloading_constraint"] = ss.str();
     }
+    {
+        std::stringstream ss;
+        ss << parameters_.leftover_mode;
+        j["leftover_mode"] = ss.str();
+    }
     j["no_check_weight_constraints"] = nlohmann::json::array();
     for (GroupId group_id = 0;
             group_id < (GroupId)parameters_.check_weight_constraints.size();
@@ -527,6 +576,7 @@ void Instance::write_parameters(
         << "NAME,VALUE" << std::endl
         << "objective," << objective() << std::endl
         << "unloading-constraint," << parameters_.unloading_constraint << std::endl
+        << "leftover-mode," << parameters_.leftover_mode << std::endl
         ;
     for (GroupId group_id = 0;
             group_id < number_of_groups();
