@@ -80,60 +80,30 @@ PackingSolver solves multiple problem types:
 Getting started
 ---------------
 
-Let's see how to solve a simple rectangle packing problem.
+Let's see how to solve a simple rectangle packing problem. There are two item types: the first one has a width of 300, a height of 200 and 10 copies; the second one has a width of 250, a height of 150 and 10 copies. The items are packed in bins of width 1000 and height 500, using as few bins as possible, and then maximizing the leftover of the last bin (see :ref:`objectives`).
 
-In a first CSV file, we provide the width, height and number of copies of the items to pack.
-Here we consider two items:
+PackingSolver can be used:
 
-* The first one has a width of 300, a height of 200 and 10 copies.
-* The second one has a width of 250, a height of 150 and 10 copies.
+* in the browser, with the `online solver <https://packingsolver.pages.dev/>`_: no installation is needed, and the computation runs on your machine;
+* from the command line, with an instance in the JSON format: the solvers are built with CMake (``cmake -S . -B build -DCMAKE_BUILD_TYPE=Release``, ``cmake --build build --parallel``, ``cmake --install build --prefix install``);
+* from Python, with the ``packingsolver`` package (``pip install packingsolver``, Python ≥ 3.12);
+* from C++, with the library (CMake targets ``PackingSolver::<problem type>``).
 
-.. code-block:: none
-   :caption: items.csv
+The tabs below show the instance and how to solve it with each of them; the other pages of this documentation use the same tabs:
 
-   WIDTH,HEIGHT,COPIES
-   300,200,10
-   250,150,10
+.. example-tabs:: rectangle/basic
+   :solve:
 
-In a second CSV file, we provide the width, height and number of copies of the bins in which the items must be packed.
-Here we consider a single container of width 1000 and of height 500 available in 10 copies.
+The terminal output of the command-line solver looks like:
 
-.. code-block:: none
-   :caption: bins.csv
-
-   WIDTH,HEIGHT,COPIES
-   1000,500,10
-
-Finally, in a third CSV file, we provide the other optimizaton parameters. Here we just set the :code:`objective` parameter to :code:`bin-packing`, which means that we look to pack all the items using as few bins as possible. The :ref:`objectives<objectives>` page gives more details about the possible objectives.
-
-.. code-block:: none
-   :caption: parameters.csv
-
-   NAME,VALUE
-   objective,bin-packing
-
-Now, we use the following command to launch the optimization:
-
-.. code-block:: shell
-
-    packingsolver_rectangle \
-            --items items.csv \
-            --bins bins.csv \
-            --parameters parameters.csv \
-            --certificate solution_rectangle.csv
-
-The terminal output looks like:
-
-.. literalinclude:: examples/rectangle/output.txt
+.. literalinclude:: examples/rectangle/basic/output.txt
 
 From the terminal output, we see that the solver managed to pack all the items using two bins.
-The loading plans are written in the :code:`solution_rectangle.csv` file. A script is available to visualize them:
+The loading plans are written in the :code:`solution.csv` file. To visualize them, open the file in the `solution viewer <https://packingsolver.pages.dev/viewer.html>`_, or run:
 
 .. code-block:: shell
 
-    python3 scripts/visualize_rectangle.py solution_rectangle.csv
-
-The script opens a page in a browser where the loading plans are displayed:
+    python3 scripts/visualize.py solution.csv
 
 .. image:: img/rectangle_example_solution.png
    :width: 256pt

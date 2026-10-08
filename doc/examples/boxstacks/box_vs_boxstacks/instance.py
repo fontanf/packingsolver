@@ -1,0 +1,15 @@
+import packingsolver.boxstacks as psbs
+
+instance_builder = psbs.InstanceBuilder()
+instance_builder.set_objective(psbs.Objective.Knapsack)
+instance_builder.add_bin_type(7500, 2400, 3000)
+instance_builder.add_item_type(1300, 1200, 1500, stackability_id=0, copies=4)
+instance_builder.add_item_type(1300, 1200, 550, stackability_id=0, copies=8)
+instance_builder.add_item_type(1200, 1200, 1300, stackability_id=1, copies=4)
+instance_builder.add_item_type(1200, 1200, 450, stackability_id=1, copies=12)
+instance_builder.add_item_type(1250, 1200, 1600, stackability_id=2, copies=4)
+instance_builder.add_item_type(1250, 1200, 1100, stackability_id=2, copies=4)
+instance_builder.add_item_type(600, 500, 400, stackability_id=3, copies=4)
+instance_builder.add_item_type(500, 400, 350, stackability_id=4, copies=4)
+instance_builder.add_item_type(700, 600, 300, stackability_id=5, copies=4)
+instance = instance_builder.build()

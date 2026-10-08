@@ -1,0 +1,9 @@
+{
+    "objective": "bin-packing",
+    "bin_types": [
+        {"length": 500, "copies": 10}
+    ],
+    "item_types": [
+        {"length": 70, "copies": 8, "nesting_length": 10}
+    ]
+}

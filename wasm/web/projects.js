@@ -67,6 +67,48 @@ export function exampleProject(problemType) {
     };
 }
 
+// An example of the documentation ('{name, title, instance}', see
+// 'scripts/web_examples.py'), the 'index'-th of its problem type. The
+// documentation links to it ('?example=<problem type>/<name>').
+export function docExampleProject(problemType, example, index) {
+    const opened = form.fromInstance(problemType, example.instance);
+    return {
+        ...project(problemType, example.title, {
+            objective: opened.objective,
+            instanceParameters: opened.instanceParameters,
+            binTypes: opened.binTypes,
+            itemTypes: opened.itemTypes,
+        }),
+        id: `example-${problemType}-${example.name}`,
+        example: true,
+        exampleName: example.name,
+        created: index,
+    };
+}
+
+// The examples of a problem type: those of the documentation
+// ('docExamples[problemType]'), its example otherwise.
+export function examplesOfType(problemType, docExamples = {}) {
+    // An example which the form can't open is left out.
+    const examples = (docExamples[problemType] || []).flatMap((example, index) => {
+        try {
+            return [docExampleProject(problemType, example, index)];
+        } catch (error) {
+            console.error(`example ${problemType}/${example.name}: ${error.message}`);
+            return [];
+        }
+    });
+    return (examples.length > 0)? examples: [exampleProject(problemType)];
+}
+
+// The example of the documentation '<problem type>/<name>' ('reference'),
+// undefined if there is none.
+export function findExample(projects, reference) {
+    const [problemType, name] = String(reference).split("/");
+    return projects.find((p) => p.example && p.problemType === problemType
+        && p.exampleName !== undefined && p.exampleName === name);
+}
+
 // A new project: a bin type and an item type with the default values.
 export function newProject(problemType, name) {
     const objective = form.defaultObjective(problemType);
@@ -121,7 +163,7 @@ export function uniqueName(name, usedNames) {
     }
 }
 
-// The projects of a problem type: the example, then the others in the order
+// The projects of a problem type: the examples, then the others in the order
 // in which they were created.
 export function projectsOfType(projects, problemType) {
     return projects
@@ -129,21 +171,22 @@ export function projectsOfType(projects, problemType) {
         .sort((p1, p2) => (p2.example - p1.example) || (p1.created - p2.created));
 }
 
-// The examples, with the parameters and the solution stored for them. The
-// form of an example always comes from the code, so that it follows the
-// changes of the examples.
-export function withExamples(problemTypes, storedProjects) {
+// The examples ('examplesOfType'), with the parameters and the solution
+// stored for them. The form of an example always comes from the code or from
+// the documentation, so that it follows the changes of the examples.
+export function withExamples(problemTypes, storedProjects, docExamples = {}) {
     const stored = new Map(storedProjects.map((p) => [p.id, p]));
     const projects = storedProjects.filter((p) => !p.example);
     for (const problemType of problemTypes) {
-        const example = exampleProject(problemType);
-        const record = stored.get(example.id);
-        if (record !== undefined) {
-            example.parameters = record.parameters;
-            example.result = record.result;
-            example.progress = record.progress;
+        for (const example of examplesOfType(problemType, docExamples)) {
+            const record = stored.get(example.id);
+            if (record !== undefined) {
+                example.parameters = record.parameters;
+                example.result = record.result;
+                example.progress = record.progress;
+            }
+            projects.push(example);
         }
-        projects.push(example);
     }
     return projects;
 }

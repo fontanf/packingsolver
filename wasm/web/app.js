@@ -1064,27 +1064,44 @@ function openProblemType(problemType) {
     openProject(ofType.find((p) => p.id === id) || ofType[0]);
 }
 
+// The examples of the problem type, then its other projects.
 function renderProjectList() {
-    const list = $("project-list");
+    const ofType = projects.projectsOfType(state.projects, problemType());
+    const examples = ofType.filter((project) => project.example);
+    const others = ofType.filter((project) => !project.example);
+    renderProjectButtons($("example-list"), examples);
+    renderProjectButtons($("project-list"), others);
+    $("examples-count").textContent = `(${examples.length})`;
+    $("no-projects").hidden = (others.length > 0);
+}
+
+function renderProjectButtons(list, listed) {
     list.replaceChildren();
-    for (const project of projects.projectsOfType(state.projects, problemType())) {
+    for (const project of listed) {
         const button = document.createElement("button");
         button.type = "button";
         button.setAttribute("aria-current", String(project === state.current));
         const name = document.createElement("span");
         name.textContent = project.name;
         button.appendChild(name);
-        const tag = (project === state.solvingProject)? "Solving": (project.example? "Example": "");
-        if (tag !== "") {
+        if (project === state.solvingProject) {
             const span = document.createElement("span");
-            span.className = "project-tag" + ((project === state.solvingProject)? " solving": "");
-            span.textContent = tag;
+            span.className = "project-tag solving";
+            span.textContent = "Solving";
             button.appendChild(span);
         }
         button.addEventListener("click", () => openProject(project));
         const item = document.createElement("li");
         item.appendChild(button);
         list.appendChild(item);
+        // The current project is shown in a list which scrolls (the
+        // examples), without scrolling the page.
+        if (project === state.current) {
+            if (item.offsetTop < list.scrollTop)
+                list.scrollTop = item.offsetTop;
+            else if (item.offsetTop + item.offsetHeight > list.scrollTop + list.clientHeight)
+                list.scrollTop = item.offsetTop + item.offsetHeight - list.clientHeight;
+        }
     }
 }
 
@@ -1178,6 +1195,20 @@ async function loadJsonFile(file) {
     addProject(opened.project);
     $("form-ignored").textContent = "Ignored fields (not read by the solver): " + opened.ignored.join(", ") + ".";
     $("form-ignored").hidden = (opened.ignored.length === 0);
+}
+
+// The examples of the documentation (see 'scripts/web_examples.py'), none if
+// they can't be loaded.
+async function loadDocExamples() {
+    try {
+        const response = await fetch("examples.json");
+        if (!response.ok)
+            throw new Error(`${response.status} ${response.statusText}`);
+        return await response.json();
+    } catch (error) {
+        console.error("examples.json: " + error.message);
+        return {};
+    }
 }
 
 // A zip file with the projects of the current problem type, except its
@@ -1698,6 +1729,9 @@ async function init() {
         }
     });
     $("new-project").addEventListener("click", newProject);
+    // The examples are folded or shown as they were last.
+    $("examples").open = (remembered("examplesOpen") !== "false");
+    $("examples").addEventListener("toggle", () => remember("examplesOpen", String($("examples").open)));
     $("load-json").addEventListener("click", () => $("json-file").click());
     $("json-file").addEventListener("change", async () => {
         const file = $("json-file").files[0];
@@ -1773,9 +1807,21 @@ async function init() {
     } catch (error) {
         console.error(error);
     }
-    state.projects = projects.withExamples(PROBLEM_TYPES, stored);
-    const type = remembered("problemType");
-    openProblemType(PROBLEM_TYPES.includes(type)? type: problemType());
+    state.projects = projects.withExamples(PROBLEM_TYPES, stored, await loadDocExamples());
+    // The example given by the URL ('?example=<problem type>/<name>', the
+    // links of the documentation), the last project opened otherwise.
+    const reference = new URLSearchParams(window.location.search).get("example");
+    const linked = (reference === null)? undefined: projects.findExample(state.projects, reference);
+    if (linked !== undefined) {
+        $("examples").open = true;
+        openProject(linked);
+        $("problem").scrollIntoView();
+    } else {
+        const type = remembered("problemType");
+        openProblemType(PROBLEM_TYPES.includes(type)? type: problemType());
+        if (reference !== null)
+            $("example-link-error").textContent = `Error: there is no example "${reference}".`;
+    }
 
     // The threads of the solver need 'SharedArrayBuffer'.
     if (!window.crossOriginIsolated) {

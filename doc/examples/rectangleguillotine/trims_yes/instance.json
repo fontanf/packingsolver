@@ -1,0 +1,19 @@
+{
+    "objective": "bin-packing",
+    "bin_types": [
+        {
+            "width": 10,
+            "height": 10,
+            "left_trim": 1,
+            "right_trim": 1,
+            "bottom_trim": 1,
+            "top_trim": 1,
+            "copies": 3
+        }
+    ],
+    "item_types": [
+        {"width": 4, "height": 8, "oriented": true},
+        {"width": 3, "height": 8, "oriented": true},
+        {"width": 3, "height": 8, "oriented": true}
+    ]
+}

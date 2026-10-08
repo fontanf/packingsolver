@@ -1,0 +1,10 @@
+{
+    "objective": "bin-packing",
+    "bin_types": [
+        {"width": 10, "height": 12, "defects": [{"x": 4, "y": 4, "width": 2, "height": 2}]},
+        {"width": 10, "height": 12, "copies": 2}
+    ],
+    "item_types": [
+        {"width": 10, "height": 6, "oriented": true, "copies": 2}
+    ]
+}

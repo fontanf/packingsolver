@@ -1,0 +1,14 @@
+{
+    "objective": "bin-packing",
+    "number_of_stages": 2,
+    "first_stage_orientation": "vertical",
+    "bin_types": [
+        {"width": 10, "height": 10, "copies": 3}
+    ],
+    "item_types": [
+        {"width": 4, "height": 3, "oriented": true},
+        {"width": 4, "height": 7, "oriented": true},
+        {"width": 6, "height": 5, "oriented": true},
+        {"width": 6, "height": 4, "oriented": true}
+    ]
+}

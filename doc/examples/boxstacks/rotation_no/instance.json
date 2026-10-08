@@ -1,0 +1,9 @@
+{
+    "objective": "bin-packing",
+    "bin_types": [
+        {"x": 7500, "y": 2400, "z": 3000, "copies": 2}
+    ],
+    "item_types": [
+        {"x": 2400, "y": 1250, "z": 1000, "copies": 18}
+    ]
+}

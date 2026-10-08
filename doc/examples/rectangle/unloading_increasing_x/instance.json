@@ -1,0 +1,12 @@
+{
+    "objective": "open-dimension-x",
+    "unloading_constraint": "increasing-x",
+    "bin_types": [
+        {"x": 800, "y": 400}
+    ],
+    "item_types": [
+        {"x": 500, "y": 200},
+        {"x": 200, "y": 200, "group_id": 1},
+        {"x": 150, "y": 150, "group_id": 1}
+    ]
+}

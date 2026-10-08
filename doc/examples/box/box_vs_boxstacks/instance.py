@@ -1,0 +1,15 @@
+import packingsolver.box as psb
+
+instance_builder = psb.InstanceBuilder()
+instance_builder.set_objective(psb.Objective.Knapsack)
+instance_builder.add_bin_type(7500, 2400, 3000)
+instance_builder.add_item_type(1300, 1200, 1500, copies=4)
+instance_builder.add_item_type(1300, 1200, 550, copies=8)
+instance_builder.add_item_type(1200, 1200, 1300, copies=4)
+instance_builder.add_item_type(1200, 1200, 450, copies=12)
+instance_builder.add_item_type(1250, 1200, 1600, copies=4)
+instance_builder.add_item_type(1250, 1200, 1100, copies=4)
+instance_builder.add_item_type(600, 500, 400, copies=4)
+instance_builder.add_item_type(500, 400, 350, copies=4)
+instance_builder.add_item_type(700, 600, 300, copies=4)
+instance = instance_builder.build()

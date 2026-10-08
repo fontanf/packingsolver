@@ -1,8 +1,9 @@
 """Development server of the PackingSolver web page.
 
 Serves 'wasm/web/', the Web Worker ('wasm/js/packingsolver_worker.js'), the
-WebAssembly module ('<build directory>/wasm/packingsolver.js' and '.wasm')
-and the examples of solutions ('img/<problem type>.png'), with the headers
+WebAssembly module ('<build directory>/wasm/packingsolver.js' and '.wasm'),
+the examples of solutions ('img/<problem type>.png') and the examples of the
+documentation ('examples.json', see 'scripts/web_examples.py'), with the headers
 that enable 'SharedArrayBuffer' (required by the threads of the module):
 
     Cross-Origin-Opener-Policy: same-origin
@@ -16,7 +17,10 @@ Usage:
 import argparse
 import functools
 import http.server
+import importlib.util
+import json
 import os
+import tempfile
 
 WEB_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.join(WEB_DIR, "..", "..")
@@ -69,6 +73,16 @@ def main():
             "onedimensional", "irregular"]:
         Handler.extra_files["img/" + problem_type + ".png"] = os.path.join(
                 ROOT_DIR, "img", problem_type + ".png")
+    # The examples of the documentation, as written when the site is
+    # deployed (restart the server to follow their changes).
+    spec = importlib.util.spec_from_file_location(
+            "web_examples", os.path.join(ROOT_DIR, "scripts", "web_examples.py"))
+    web_examples = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(web_examples)
+    examples_file = os.path.join(tempfile.mkdtemp(), "examples.json")
+    with open(examples_file, "w") as f:
+        f.write(json.dumps(web_examples.web_examples()))
+    Handler.extra_files["examples.json"] = examples_file
     for path in Handler.extra_files.values():
         if not os.path.exists(path):
             print("warning: missing " + os.path.normpath(path))

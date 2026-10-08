@@ -1,0 +1,12 @@
+{
+    "objective": "bin-packing-with-leftovers",
+    "unloading_constraint": "only-x-movements",
+    "bin_types": [
+        {"x": 700, "y": 400, "copies": 2}
+    ],
+    "item_types": [
+        {"x": 200, "y": 200},
+        {"x": 400, "y": 400, "group_id": 1},
+        {"x": 150, "y": 150, "group_id": 2}
+    ]
+}

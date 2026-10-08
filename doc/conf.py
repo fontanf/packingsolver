@@ -17,10 +17,16 @@ html_title = project
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-extensions = ['myst_parser', 'sphinx.ext.mathjax']
+import os
+import sys
+
+# The local extensions ('_ext').
+sys.path.insert(0, os.path.abspath('_ext'))
+
+extensions = ['myst_parser', 'sphinx.ext.mathjax', 'sphinx_design', 'example_tabs']
 
 templates_path = ['_templates']
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', 'TODO.md']
+exclude_patterns = ['_build', '_ext', 'Thumbs.db', '.DS_Store', 'TODO.md']
 html_static_path = ['_static']
 html_css_files = ['custom.css']
 

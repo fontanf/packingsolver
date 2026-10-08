@@ -22,71 +22,39 @@ In anytime mode, PackingSolver may still stop before any stopping criterion is m
 
     Anytime mode: let the solver find the best possible solution within X seconds.
 
+The optimization mode is a parameter of the solver:
+
+.. tab-set::
+   :sync-group: interface
+
+   .. tab-item:: Online solver
+      :sync: web
+
+      In the **Parameters** section, choose the **Optimization mode**, and the **Time limit**.
+
+   .. tab-item:: JSON
+      :sync: json
+
+      With the command-line solver: ``--optimization-mode anytime --time-limit 15``.
+
+   .. tab-item:: Python
+      :sync: python
+
+      ``parameters.optimization_mode = psr.OptimizationMode.Anytime``, with ``parameters = psr.OptimizeParameters()``.
+
+   .. tab-item:: C++
+      :sync: cpp
+
+      ``parameters.optimization_mode = OptimizationMode::Anytime;``, with ``OptimizeParameters parameters;``.
+
 **Example**
 
-.. code-block:: none
-   :caption: items.csv
-
-   WIDTH,HEIGHT,COPIES
-   100,50,1
-   103,53,1
-   106,56,1
-   109,59,1
-   112,62,1
-   115,65,1
-   118,68,1
-   121,71,1
-   124,74,1
-   127,77,1
-   130,80,1
-   133,83,1
-   136,86,1
-   139,89,1
-   142,92,1
-   145,95,1
-   148,98,1
-   151,101,1
-   154,104,1
-   157,107,1
-   160,110,1
-   163,113,1
-   166,116,1
-   169,119,1
-   172,122,1
-   175,125,1
-   178,128,1
-   181,131,1
-   184,134,1
-   187,137,1
-   190,140,1
-   193,143,1
-   196,146,1
-   199,149,1
-   202,152,1
-   205,155,1
-   208,158,1
-   211,161,1
-   214,164,1
-   217,167,1
-
-.. code-block:: none
-   :caption: bins.csv
-
-   WIDTH,HEIGHT,COPIES
-   1000,500,20
-
-.. code-block:: none
-   :caption: parameters.csv
-
-   NAME,VALUE
-   objective,bin-packing-with-leftovers
+.. example-tabs:: rectangle/modes_40_items
 
 .. code-block:: shell
 
     packingsolver_rectangle \
-            --items items.csv \
-            --bins bins.csv \
-            --parameters parameters.csv \
+            --input instance.json \
             --certificate solution_rectangle.csv \
             --optimization-mode anytime \
             --time-limit 15
@@ -184,9 +152,7 @@ Same input as above. The solver terminates after 35 seconds.
 .. code-block:: shell
 
     packingsolver_rectangle \
-            --items items.csv \
-            --bins bins.csv \
-            --parameters parameters.csv \
+            --input instance.json \
             --certificate solution_rectangle.csv \
             --optimization-mode not-anytime
 
@@ -253,49 +219,12 @@ Same input as above. The solver terminates after 35 seconds.
 
 Now if we remove half of the items, the solver terminates after 22 seconds.
 
-.. code-block:: none
-   :caption: items.csv
-
-   WIDTH,HEIGHT,COPIES
-   100,50,1
-   106,56,1
-   112,62,1
-   118,68,1
-   124,74,1
-   130,80,1
-   136,86,1
-   142,92,1
-   148,98,1
-   154,104,1
-   160,110,1
-   166,116,1
-   172,122,1
-   178,128,1
-   184,134,1
-   190,140,1
-   196,146,1
-   202,152,1
-   208,158,1
-   214,164,1
-
-.. code-block:: none
-   :caption: bins.csv
-
-   WIDTH,HEIGHT,COPIES
-   1000,500,20
-
-.. code-block:: none
-   :caption: parameters.csv
-
-   NAME,VALUE
-   objective,bin-packing-with-leftovers
+.. example-tabs:: rectangle/modes_20_items
 
 .. code-block:: shell
 
     packingsolver_rectangle \
-            --items items.csv \
-            --bins bins.csv \
-            --parameters parameters.csv \
+            --input instance.json \
             --certificate solution_rectangle.csv \
             --optimization-mode not-anytime
 

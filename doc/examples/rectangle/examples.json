@@ -1,0 +1,20 @@
+[
+    {"name": "basic", "title": "Basic example"},
+    {"name": "rotation_no", "title": "Item rotations: oriented items"},
+    {"name": "rotation_yes", "title": "Item rotations: items which can be rotated"},
+    {"name": "defects_no", "title": "Defects: without defects"},
+    {"name": "defects_yes", "title": "Defects: with a defect"},
+    {"name": "maximum_weight_no", "title": "Maximum weight: without maximum weight"},
+    {"name": "maximum_weight_yes", "title": "Maximum weight: with maximum weight"},
+    {"name": "unloading_no", "title": "Unloading constraints: none"},
+    {"name": "unloading_yes", "title": "Unloading constraints: only X movements"},
+    {"name": "unloading_x_movements", "title": "Unloading constraints: only X movements, open dimension X"},
+    {"name": "unloading_increasing_x", "title": "Unloading constraints: increasing X, open dimension X"},
+    {"name": "guillotine_vs_non_guillotine", "title": "Guillotine vs non-guillotine: non-guillotine patterns"},
+    {"name": "objective_bin_packing_with_leftovers", "title": "Objectives: bin packing with leftovers"},
+    {"name": "objective_variable_sized_bin_packing", "title": "Objectives: variable-sized bin packing"},
+    {"name": "objective_open_dimension_x", "title": "Objectives: open dimension X"},
+    {"name": "objective_knapsack", "title": "Objectives: knapsack"},
+    {"name": "modes_40_items", "title": "Optimization modes: 40 items"},
+    {"name": "modes_20_items", "title": "Optimization modes: 20 items"}
+]

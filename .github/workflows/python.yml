@@ -18,6 +18,7 @@ on:
     paths:
       - "python/**"
       - "pyproject.toml"
+      - "doc/examples/**"
       - "CMakeLists.txt"
       - ".github/workflows/python.yml"
   workflow_dispatch:

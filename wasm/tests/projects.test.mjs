@@ -11,6 +11,7 @@ import {fileURLToPath} from "node:url";
 
 import * as form from "../web/form.js";
 import * as projects from "../web/projects.js";
+import {canonicalInstance} from "./canonical_instance.mjs";
 
 const DIRECTORY = path.dirname(fileURLToPath(import.meta.url));
 const FIXTURES = path.join(DIRECTORY, "fixtures", "instances");
@@ -40,6 +41,84 @@ test("projects: the examples are valid instances", () => {
         assert.strictEqual(example.example, true);
         assert.strictEqual(instance(example).objective, example.form.objective, problemType);
     }
+});
+
+// The examples of the documentation, as written for the web page by
+// 'scripts/web_examples.py'.
+const DOC_EXAMPLES = path.join(DIRECTORY, "..", "..", "doc", "examples");
+function docExamples() {
+    const examples = {};
+    for (const problemType of PROBLEM_TYPES) {
+        const listPath = path.join(DOC_EXAMPLES, problemType, "examples.json");
+        if (!fs.existsSync(listPath))
+            continue;
+        examples[problemType] = JSON.parse(fs.readFileSync(listPath, "utf8")).map((example) => ({
+            ...example,
+            instance: JSON.parse(fs.readFileSync(
+                path.join(DOC_EXAMPLES, problemType, example.name, "instance.json"), "utf8")),
+        }));
+    }
+    return examples;
+}
+
+test("projects: the examples of the documentation", () => {
+    const examples = docExamples();
+    assert.ok(examples.rectangle.length > 1);
+    for (const [problemType, listed] of Object.entries(examples)) {
+        for (const example of listed) {
+            const name = `${problemType}/${example.name}`;
+            // The form reads all their fields, and gives them back.
+            const opened = form.fromInstance(problemType, example.instance);
+            assert.deepStrictEqual(opened.ignored, [], name);
+            assert.deepStrictEqual(
+                canonicalInstance(problemType, form.toInstance(problemType, opened)),
+                canonicalInstance(problemType, example.instance), name);
+        }
+    }
+    // They replace the example of their problem type, in their order, and
+    // keep the parameters and the solution stored for them.
+    const stored = {...projects.docExampleProject("rectangle", examples.rectangle[1], 1),
+        parameters: {optimizationMode: "anytime", timeLimit: "5"}};
+    const all = projects.withExamples(PROBLEM_TYPES, [stored], examples);
+    const rectangle = projects.projectsOfType(all, "rectangle");
+    assert.deepStrictEqual(rectangle.map((p) => p.name), examples.rectangle.map((e) => e.title));
+    assert.ok(rectangle.every((p) => p.example));
+    assert.strictEqual(rectangle[1].parameters.timeLimit, "5");
+    // Without examples of the documentation, the example of the problem
+    // type.
+    assert.deepStrictEqual(projects.examplesOfType("box", {}).map((p) => p.id), ["example-box"]);
+    // The links of the documentation.
+    const linked = projects.findExample(all, "rectangle/" + examples.rectangle[2].name);
+    assert.strictEqual(linked, rectangle[2]);
+    assert.strictEqual(projects.findExample(all, "rectangle/missing"), undefined);
+    // An example of another problem type.
+    assert.ok(examples.rectangle.some((e) => e.name === "defects_yes"));
+    assert.strictEqual(projects.findExample(all, "box/defects_yes"), undefined);
+    // An example which the form can't open is left out.
+    const invalid = {rectangle: [{name: "invalid", title: "Invalid", instance: {objective: "maximize"}}]};
+    assert.deepStrictEqual(projects.examplesOfType("rectangle", invalid).map((p) => p.id), ["example-rectangle"]);
+});
+
+test("projects: the links of the documentation to the examples", () => {
+    const examples = docExamples();
+    const docDirectory = path.join(DOC_EXAMPLES, "..");
+    let links = 0;
+    for (const name of fs.readdirSync(docDirectory).filter((n) => n.endsWith(".rst"))) {
+        const text = fs.readFileSync(path.join(docDirectory, name), "utf8");
+        // The links, and the examples of the 'example-tabs' directive
+        // ('doc/_ext/example_tabs.py').
+        const references = [
+            ...[...text.matchAll(/\?example=([a-z]+\/[a-z0-9_]+)/g)].map((match) => match[1]),
+            ...[...text.matchAll(/^\.\. example-tabs:: (.*)$/gm)].flatMap((match) => match[1].trim().split(/\s+/)),
+        ];
+        for (const reference of references) {
+            const [problemType, exampleName] = reference.split("/");
+            assert.ok((examples[problemType] || []).some((e) => e.name === exampleName),
+                `${name}: no example ${reference}`);
+            ++links;
+        }
+    }
+    assert.ok(links > 0);
 });
 
 test("projects: the new projects are valid instances", () => {
