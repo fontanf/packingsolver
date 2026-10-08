@@ -144,3 +144,11 @@ test("viewer: irregular", () => {
         {type: "LineSegment", xs: 0, ys: 0, xe: 1, ye: 0}]);
     assert.ok(quarter.every(([x, y]) => x >= -1e-9 && y >= -1e-9));
 });
+
+test("viewer: all the bins at the same scale", async () => {
+    // The frame of the bins: the largest width and the largest height.
+    const {binsFrame} = await import("../web/viewer/render.js");
+    const solution = viewerSolution.readSolution(
+        "TYPE,ID,COPIES,BIN,X,Y,LX,LY\nBIN,0,1,0,0,0,1000,500\nBIN,1,1,1,0,0,700,400\nBIN,2,1,2,0,0,600,800\n");
+    assert.deepStrictEqual(binsFrame(solution.bins), {width: 1000, height: 800});
+});
