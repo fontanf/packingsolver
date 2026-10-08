@@ -162,6 +162,26 @@ function renderInstanceParameters() {
         (cell || input).dataset.key = parameter.key;
         container.append(label, cell || input);
     }
+    lockForm();
+}
+
+// The examples can't be modified: the fields and the buttons of their form are
+// disabled, except the "More" buttons ('details-toggle'), which show the
+// details of the rows. The controls disabled this way ('data-locked') are
+// enabled again for the other projects.
+function lockForm() {
+    const locked = (state.current !== null && state.current.example);
+    for (const element of $("form-fields").querySelectorAll("input, select, textarea, button")) {
+        if (element.classList.contains("details-toggle"))
+            continue;
+        if (locked && !element.disabled) {
+            element.disabled = true;
+            element.dataset.locked = "";
+        } else if (!locked && element.dataset.locked !== undefined) {
+            element.disabled = false;
+            delete element.dataset.locked;
+        }
+    }
 }
 
 // Fill the objectives of a problem type.
@@ -510,6 +530,8 @@ function renderTable(table, columns, rows) {
         if (detailsColumns.length > 0) {
             const more = document.createElement("button");
             more.type = "button";
+            // Enabled for the examples too (see 'lockForm').
+            more.className = "details-toggle";
             // Marked if a field of the details is invalid.
             more.dataset.details = detailsColumns.map((column) => column.key).join(" ");
             const open = openDetails.has(row);
@@ -680,6 +702,7 @@ function renderForm() {
     const type = problemType();
     const irregular = (type === "irregular");
     // A single bin for the open dimension objectives.
+    delete $("add-bin-type").dataset.locked;
     $("add-bin-type").disabled = openDimension($("objective").value);
     $("file-items").hidden = !irregular;
     // Rows are pasted in the tables, except for irregular.
@@ -695,6 +718,7 @@ function renderForm() {
         renderTable($("bin-types"), binColumns(type), state.binTypes);
         renderTable($("item-types"), itemColumns(type), state.itemTypes);
     }
+    lockForm();
     scheduleFormCheck();
 }
 
@@ -907,8 +931,6 @@ function openProject(project) {
     $("form-ignored").hidden = true;
     // The results of the optimization aren't scrolled into view anymore.
     state.revealPending = false;
-    // The examples can't be modified.
-    $("form-fields").disabled = project.example;
     renderProjectList();
     renderProjectHeader();
     renderInstanceParameters();
