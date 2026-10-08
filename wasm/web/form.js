@@ -218,7 +218,20 @@ export const UNLOADING_CONSTRAINTS = [
 
 // The parameters which depend on the objective come first, right below it.
 export const INSTANCE_PARAMETERS = {
+    box: [
+        // The dimensions along which the leftover of the last bin is
+        // measured (see 'box::LeftoverMode').
+        {key: "leftover_mode", label: "Leftover", type: "select", value: "xyz",
+            options: [["xyz", "Along X, Y and Z"], ["xy", "Along X and Y"], ["xz", "Along X and Z"],
+                ["yz", "Along Y and Z"], ["x", "Along X"], ["y", "Along Y"], ["z", "Along Z"]],
+            objectives: ["bin-packing-with-leftovers"]},
+    ],
     boxstacks: [
+        // The dimensions along which the leftover of the last bin is
+        // measured (see 'boxstacks::LeftoverMode').
+        {key: "leftover_mode", label: "Leftover", type: "select", value: "xy",
+            options: [["xy", "Along X and Y"], ["x", "Along X"], ["y", "Along Y"]],
+            objectives: ["bin-packing-with-leftovers"]},
         {key: "unloading_constraint", label: "Unloading constraint", type: "select", value: "none",
             options: UNLOADING_CONSTRAINTS, structural: true},
         // The weight constraints are not checked for the items of these
@@ -759,7 +772,7 @@ const SELECT_SPELLINGS = {
     first_stage_orientation: {horizontal: "horizontal", vertical: "vertical", any: "any"},
     unloading_constraint: {none: "none", onlyxmovements: "only-x-movements", onlyymovements: "only-y-movements",
         increasingx: "increasing-x", increasingy: "increasing-y"},
-    leftover_mode: {area: "area", x: "x", y: "y",
+    leftover_mode: {area: "area", x: "x", y: "y", z: "z", xy: "xy", xz: "xz", yz: "yz", xyz: "xyz",
         bottomleft: "bottom-left", bl: "bottom-left", bottomright: "bottom-right", br: "bottom-right",
         topleft: "top-left", tl: "top-left", topright: "top-right", tr: "top-right",
         left: "left", l: "left", right: "right", r: "right", bottom: "bottom", b: "bottom", top: "top", t: "top"},

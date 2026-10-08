@@ -86,7 +86,15 @@ void Solution::update_indicators(
                 y_max_ = ye;
             if (z_max_ < ze)
                 z_max_ = ze;
-            volume_ = bin_volume_ - bin_type.volume() + (x_max_ * y_max_ * z_max_);
+            // The volume used in the last bin, the rest of the bin being the
+            // leftover (see 'LeftoverMode').
+            Volume last_bin_volume = leftover_mode_used_volume(
+                    instance().parameters().leftover_mode,
+                    bin_type.box,
+                    x_max_,
+                    y_max_,
+                    z_max_);
+            volume_ = bin_volume_ - bin_type.volume() + last_bin_volume;
             leftover_value_ = bin_volume_ - volume_;
         }
     }
@@ -267,6 +275,7 @@ nlohmann::json Solution::to_json() const
         {"BinArea", bin_area()},
         {"BinWeight", bin_weight()},
         {"BinCost", cost()},
+        {"LeftoverValue", leftover_value()},
         {"Waste", waste()},
         {"WastePercentage", waste_percentage()},
         {"FullWaste", full_waste()},

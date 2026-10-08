@@ -61,6 +61,9 @@ public:
      */
     void set_weight_tolerance(Weight weight_tolerance) { instance_.parameters_.weight_tolerance = weight_tolerance; }
 
+    /** Set the leftover mode (see 'LeftoverMode'). */
+    void set_leftover_mode(LeftoverMode leftover_mode) { instance_.parameters_.leftover_mode = leftover_mode; }
+
     /** Set the feasibility callback. */
     void set_feasibility_callback(const FeasibilityCallback& feasibility_callback) { instance_.feasibility_callback_ = feasibility_callback; }
 

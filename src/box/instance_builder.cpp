@@ -558,6 +558,9 @@ void InstanceBuilder::read_parameters(
         if (name == "objective") {
             Objective objective = read_enum<Objective>(value, name);
             set_objective(objective);
+        } else if (name == "leftover_mode") {
+            LeftoverMode leftover_mode = read_enum<LeftoverMode>(value, name);
+            set_leftover_mode(leftover_mode);
         }
     }
 }
@@ -764,6 +767,13 @@ void InstanceBuilder::read(
                     + objective_string + "\".");
         }
         set_objective(objective);
+    }
+    if (j.contains("leftover_mode")) {
+        std::string leftover_mode_string = j["leftover_mode"];
+        LeftoverMode leftover_mode = read_enum<LeftoverMode>(
+                leftover_mode_string,
+                "leftover_mode");
+        set_leftover_mode(leftover_mode);
     }
 
     // Read bin types.

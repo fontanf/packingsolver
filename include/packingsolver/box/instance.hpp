@@ -40,6 +40,33 @@ enum class Rotation
 /** Total number of 3D item rotations. */
 constexpr int NUMBER_OF_ROTATIONS = 6;
 
+/**
+ * How the leftover of the last bin of a solution is measured, for the
+ * 'BinPackingWithLeftovers' objective: the volume of the bin minus the volume
+ * used, the volume used being the box from the origin of the bin to the
+ * items along the dimensions of the mode, and the whole bin along the other
+ * dimensions. For example, with 'X', the volume used is
+ * 'x_max * bin.y * bin.z', and with 'XYZ', 'x_max * y_max * z_max'.
+ */
+enum class LeftoverMode
+{
+    X,
+    Y,
+    Z,
+    XY,
+    XZ,
+    YZ,
+    XYZ,
+};
+
+std::istream& operator>>(
+        std::istream& in,
+        LeftoverMode& leftover_mode);
+
+std::ostream& operator<<(
+        std::ostream& os,
+        LeftoverMode leftover_mode);
+
 std::istream& operator>>(
         std::istream& in,
         Direction& o);
@@ -111,6 +138,35 @@ struct Box
     }
 
 };
+
+/**
+ * Get the volume used in a bin of dimensions 'bin' whose items end at
+ * 'x_max', 'y_max', 'z_max', for a leftover mode (see 'LeftoverMode'): the
+ * leftover is the volume of the bin minus this volume.
+ */
+inline Volume leftover_mode_used_volume(
+        LeftoverMode leftover_mode,
+        const Box& bin,
+        Length x_max,
+        Length y_max,
+        Length z_max)
+{
+    bool along_x = (leftover_mode == LeftoverMode::X
+            || leftover_mode == LeftoverMode::XY
+            || leftover_mode == LeftoverMode::XZ
+            || leftover_mode == LeftoverMode::XYZ);
+    bool along_y = (leftover_mode == LeftoverMode::Y
+            || leftover_mode == LeftoverMode::XY
+            || leftover_mode == LeftoverMode::YZ
+            || leftover_mode == LeftoverMode::XYZ);
+    bool along_z = (leftover_mode == LeftoverMode::Z
+            || leftover_mode == LeftoverMode::XZ
+            || leftover_mode == LeftoverMode::YZ
+            || leftover_mode == LeftoverMode::XYZ);
+    return (Volume)(along_x? x_max: bin.x)
+        * (along_y? y_max: bin.y)
+        * (along_z? z_max: bin.z);
+}
 
 inline bool operator==(const Box& box_1, const Box& box_2) { return box_1.x == box_2.x && box_1.y == box_2.y && box_1.z == box_2.z; }
 inline bool operator!=(const Box& box_1, const Box& box_2) { return !(box_1 == box_2); }
@@ -267,6 +323,9 @@ struct Parameters
      * directly.
      */
     Weight weight_tolerance = 0.0;
+
+    /** Leftover mode (see 'LeftoverMode'). */
+    LeftoverMode leftover_mode = LeftoverMode::XYZ;
 };
 
 ////////////////////////////////////////////////////////////////////////////////

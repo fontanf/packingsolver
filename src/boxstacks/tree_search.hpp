@@ -221,6 +221,20 @@ public:
         /** Maximum xe of all items in the last bin. */
         Length xe_max = 0;
 
+        /**
+         * Maximum xe and ye of the items of the last bin, in the frame of the
+         * direction of the last bin.
+         */
+        Length last_bin_xe_max = 0;
+        Length last_bin_ye_max = 0;
+
+        /**
+         * Value of the leftover of the last bin, for the
+         * 'BinPackingWithLeftovers' objective (see 'LeftoverMode'). It can
+         * only decrease when items are added to the last bin.
+         */
+        Volume leftover_value = 0;
+
         /** Maximum xs of all items in the last bin. */
         Length xs_max = 0;
 

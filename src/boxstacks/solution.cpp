@@ -48,10 +48,14 @@ void Solution::update_indicators(
                 x_max_ = stack.x_end;
             if (y_max_ < stack.y_end)
                 y_max_ = stack.y_end;
-            Length xi = bin_type.box.x;
-            Length yi = bin_type.box.y;
-            Length zi = bin_type.box.z;
-            volume_ = bin_volume_ - zi * std::max((xi - x_max_) * yi, (yi - y_max_) * xi);
+            // The volume used in the last bin, the rest of the bin being the
+            // leftover (see 'LeftoverMode').
+            const LeftoverMode leftover_mode = instance().parameters().leftover_mode;
+            Volume last_bin_volume
+                = (Volume)((leftover_mode == LeftoverMode::Y)? bin_type.box.x: x_max_)
+                * ((leftover_mode == LeftoverMode::X)? bin_type.box.y: y_max_)
+                * bin_type.box.z;
+            volume_ = bin_volume_ - bin_type.volume() + last_bin_volume;
         }
 
         number_of_stacks_ += bin.copies;
@@ -298,7 +302,9 @@ bool Solution::operator<(const Solution& solution) const
     case Objective::BinPacking: {
         return solution.number_of_bins() < number_of_bins();
     } case Objective::BinPackingWithLeftovers: {
-        return solution.waste() < waste();
+        if (solution.number_of_bins() != number_of_bins())
+            return solution.number_of_bins() < number_of_bins();
+        return solution.leftover_value() > leftover_value();
     } case Objective::OpenDimensionX: {
         return solution.x_max() < x_max();
     } case Objective::OpenDimensionY: {
@@ -481,6 +487,7 @@ nlohmann::json Solution::to_json() const
         {"BinArea", bin_area()},
         {"BinWeight", bin_weight()},
         {"BinCost", cost()},
+        {"LeftoverValue", leftover_value()},
         {"Waste", waste()},
         {"WastePercentage", waste_percentage()},
         {"FullWaste", full_waste()},

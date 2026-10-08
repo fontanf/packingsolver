@@ -760,6 +760,29 @@ BranchingScheme::Node BranchingScheme::child_tmp(
     }
     node.waste = node.current_volume - node.item_volume;
 
+    // Update the extent of the items of the last bin, and the leftover.
+    if (insertion.new_bin > 0) {
+        node.last_bin_xe_max = xe;
+        node.last_bin_ye_max = ye;
+    } else {
+        node.last_bin_xe_max = std::max(parent.last_bin_xe_max, xe);
+        node.last_bin_ye_max = std::max(parent.last_bin_ye_max, ye);
+    }
+    if (this->instance().objective() == Objective::BinPackingWithLeftovers) {
+        // In the frame of the original instance.
+        Length x_max = node.last_bin_xe_max;
+        Length y_max = node.last_bin_ye_max;
+        if (o == Direction::Y)
+            std::swap(x_max, y_max);
+        const BinType& bin_type_orig = this->instance().bin_type(bin_type_id);
+        LeftoverMode leftover_mode = this->instance().parameters().leftover_mode;
+        Volume last_bin_volume
+            = (Volume)((leftover_mode == LeftoverMode::Y)? bin_type_orig.box.x: x_max)
+            * ((leftover_mode == LeftoverMode::X)? bin_type_orig.box.y: y_max)
+            * bin_type_orig.box.z;
+        node.leftover_value = bin_type_orig.volume() - last_bin_volume;
+    }
+
     if (instance.unloading_constraint() == rectangle::UnloadingConstraint::IncreasingX) {
         if (node.groups[item_type.group_id].x_min > insertion.x)
             node.groups[item_type.group_id].x_min = insertion.x;
@@ -1466,7 +1489,9 @@ bool BranchingScheme::better(
             return false;
         if (!leaf(node_2))
             return true;
-        return node_2->waste > node_1->waste;
+        if (node_2->number_of_bins != node_1->number_of_bins)
+            return node_2->number_of_bins > node_1->number_of_bins;
+        return node_2->leftover_value < node_1->leftover_value;
     } case Objective::OpenDimensionX: {
         if (!leaf(node_1))
             return false;
@@ -1516,7 +1541,11 @@ bool BranchingScheme::bound(
     } case Objective::BinPackingWithLeftovers: {
         if (!leaf(node_2))
             return false;
-        return node_1->waste >= node_2->waste;
+        // The number of bins of a node can only increase, and the leftover
+        // of its last bin can only decrease.
+        if (node_1->number_of_bins != node_2->number_of_bins)
+            return node_1->number_of_bins > node_2->number_of_bins;
+        return node_1->leftover_value <= node_2->leftover_value;
     } case Objective::Knapsack: {
         if (leaf(node_2))
             return true;
@@ -1751,6 +1780,13 @@ const packingsolver::boxstacks::TreeSearchOutput packingsolver::boxstacks::tree_
     } else if (instance.objective() == Objective::OpenDimensionX) {
         directions = {Direction::X};
     } else if (instance.objective() == Objective::OpenDimensionY) {
+        directions = {Direction::Y};
+    } else if (instance.objective() == Objective::BinPackingWithLeftovers
+            && instance.parameters().leftover_mode == LeftoverMode::X) {
+        // The leftover is measured along X: fill the bins along X.
+        directions = {Direction::X};
+    } else if (instance.objective() == Objective::BinPackingWithLeftovers
+            && instance.parameters().leftover_mode == LeftoverMode::Y) {
         directions = {Direction::Y};
     } else if (instance.unloading_constraint() == rectangle::UnloadingConstraint::IncreasingX
             || instance.unloading_constraint() == rectangle::UnloadingConstraint::OnlyXMovements) {

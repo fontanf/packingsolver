@@ -271,6 +271,12 @@ public:
     /** Get the waste of the solution. */
     inline Area waste() const { return volume_ - item_volume_; }
 
+    /**
+     * Get the value of the leftover of the last bin of the solution: a volume
+     * (see 'LeftoverMode').
+     */
+    inline Volume leftover_value() const { return bin_volume_ - volume_; }
+
     /** Get the fraction of waste of the solution. */
     inline double waste_percentage() const { return (volume() == 0)? 0: (double)waste() / volume(); }
 

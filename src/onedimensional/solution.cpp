@@ -39,6 +39,9 @@ void Solution::update_indicators(
     for (SolutionItem& item: bin.items) {
         const ItemType& item_type = instance().item_type(item.item_type_id);
 
+        // The length occupied by the item: from the end of the previous
+        // item to its end.
+        Length previous_end = bin.end;
         item.start = bin.end;
         if (number_of_items_in_bin > 0)
             item.start -= item_type.nesting_length;
@@ -119,6 +122,7 @@ void Solution::update_indicators(
             item_copies_feasible_ = false;
         }
         item_length_ += bin.copies * item_type.length;
+        item_nested_length_ += bin.copies * (bin.end - previous_end);
         item_profit_ += bin.copies * item_type.profit;
     }
 
@@ -310,6 +314,7 @@ nlohmann::json Solution::to_json() const
     return nlohmann::json {
         {"NumberOfItems", number_of_items()},
         {"ItemLength", item_length()},
+        {"ItemNestedLength", item_nested_length()},
         {"ItemProfit", profit()},
         {"NumberOfBins", number_of_bins()},
         {"BinLength", bin_length()},
