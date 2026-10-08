@@ -1191,6 +1191,8 @@ export function renderTable(table, rows, isItem, objective, onTableChange, onStr
         if (withDetails) {
             more = document.createElement("button");
             more.type = "button";
+            // Enabled for the examples too (see 'lockForm' in 'app.js').
+            more.className = "details-toggle";
             const open = openDetails.has(row);
             more.textContent = open? "Less": "More";
             more.setAttribute("aria-expanded", String(open));
