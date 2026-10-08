@@ -28,8 +28,9 @@ test("viewer: problem types of the certificates", () => {
     assert.strictEqual(viewerSolution.detectProblemType("WIDTH,HEIGHT\n1,2"), null);
     assert.strictEqual(viewerSolution.detectProblemType('{"bin_types": []}'), null);
     assert.strictEqual(viewerSolution.detectProblemType("{"), null);
-    // Box and boxstacks: plotly figures.
-    assert.throws(() => viewerSolution.readSolution(certificates.box), /aren't drawn by this viewer/);
+    // All the problem types are drawn by the viewer.
+    for (const [problemType, text] of Object.entries(certificates))
+        assert.strictEqual(viewerSolution.readSolution(text).problemType, problemType);
     assert.throws(() => viewerSolution.readSolution("a,b\n1,2"), /not a certificate/);
 });
 
@@ -151,4 +152,48 @@ test("viewer: all the bins at the same scale", async () => {
     const solution = viewerSolution.readSolution(
         "TYPE,ID,COPIES,BIN,X,Y,LX,LY\nBIN,0,1,0,0,0,1000,500\nBIN,1,1,1,0,0,700,400\nBIN,2,1,2,0,0,600,800\n");
     assert.deepStrictEqual(binsFrame(solution.bins), {width: 1000, height: 800});
+});
+
+test("viewer: box and boxstacks", async () => {
+    const {binsFrame3, paintOrder, rotateBox} = await import("../web/viewer/render3d.js");
+    // box: bins and items in three dimensions, with their copies.
+    const text = read("wasm", "tests", "fixtures", "visualize", "box", "defects.csv");
+    const rows = parseCsv(text);
+    const box = viewerSolution.readSolution(text);
+    assert.strictEqual(box.dimensions, 3);
+    assert.strictEqual(box.bins.length, rows.filter((r) => r.TYPE === "BIN").length);
+    const bin = box.bins[0];
+    const binRow = rows.find((r) => r.TYPE === "BIN" && r.BIN === "0");
+    assert.deepStrictEqual(bin.box3, {x0: 0, y0: 0, z0: 0,
+        x1: Number(binRow.LX), y1: Number(binRow.LY), z1: Number(binRow.LZ)});
+    assert.strictEqual(bin.items.length, rows.filter((r) => r.TYPE === "ITEM" && r.BIN === "0").length);
+    assert.strictEqual(bin.defects3.length, rows.filter((r) => r.TYPE === "DEFECT" && r.BIN === "0").length);
+    assert.match(bin.items[0].label, /^Item type \d+: \d+ × \d+ × \d+ at \(/);
+    // boxstacks: the items with their stacks.
+    const boxstacks = viewerSolution.readSolution(
+        read("wasm", "tests", "fixtures", "visualize", "boxstacks", "copies.csv"));
+    assert.strictEqual(boxstacks.problemType, "boxstacks");
+    assert.strictEqual(boxstacks.dimensions, 3);
+    assert.ok(boxstacks.bins.every((b) => b.items.every((item) => item.box3.z1 > item.box3.z0)));
+    assert.match(boxstacks.bins[0].items[0].label, /stack \d+/);
+    // The frame of the bins: their largest dimensions.
+    const sized = viewerSolution.readSolution("TYPE,ID,COPIES,BIN,X,Y,Z,LX,LY,LZ,ROTATION\n"
+        + "BIN,0,1,0,0,0,0,100,50,40,\nBIN,1,1,1,0,0,0,60,80,20,\n");
+    assert.deepStrictEqual(binsFrame3(sized.bins), {x: 100, y: 80, z: 40});
+    // Seen from the next corner: a quarter turn.
+    assert.deepStrictEqual(rotateBox({x0: 0, x1: 20, y0: 0, y1: 10, z0: 0, z1: 5}, {x: 100, y: 50}, 1),
+        {x0: 0, x1: 10, y0: 80, y1: 100, z0: 0, z1: 5});
+    assert.deepStrictEqual(rotateBox({x0: 0, x1: 20, y0: 0, y1: 10, z0: 0, z1: 5}, {x: 100, y: 50}, 2),
+        {x0: 80, x1: 100, y0: 40, y1: 50, z0: 0, z1: 5});
+    // The order of drawing: the boxes behind first (farther along x or y, or
+    // below).
+    const near = {x0: 0, y0: 0, z0: 0, x1: 1, y1: 1, z1: 1};
+    const farX = {x0: 1, y0: 0, z0: 0, x1: 2, y1: 1, z1: 1};
+    const farY = {x0: 0, y0: 1, z0: 0, x1: 1, y1: 2, z1: 1};
+    const above = {x0: 0, y0: 0, z0: 1, x1: 1, y1: 1, z1: 2};
+    const order = paintOrder([above, near, farX, farY]);
+    const position = (i) => order.indexOf(i);
+    assert.ok(position(2) < position(1) && position(3) < position(1));
+    assert.ok(position(1) < position(0));
+    assert.deepStrictEqual([...order].sort(), [0, 1, 2, 3]);
 });

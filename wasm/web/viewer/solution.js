@@ -21,6 +21,12 @@
 // 'labelBox': the bounding box of the largest shape of the item, where the id
 // of its item type is written.
 // For onedimensional, the boxes have a height of 1.
+//
+// box and boxstacks: 'dimensions' is 3, and the bins, their items and their
+// defects are boxes '{x0, y0, z0, x1, y1, z1}':
+//   {index, binTypeId, copies, box3, items: [{itemTypeId, box3, label}],
+//    defects3: [box3]}
+// (the defects of boxstacks are on the floor of the bin: 'z0' = 'z1' = 0).
 
 import {parseCsv} from "../visualize/common.js";
 
@@ -52,9 +58,8 @@ export function detectProblemType(text) {
     return (found === undefined)? null: found[0];
 }
 
-// The problem types drawn by the visualizer (the other ones keep their
-// plotly figures).
-export const PROBLEM_TYPES = ["rectangleguillotine", "rectangle", "onedimensional", "irregular"];
+// The problem types drawn by the visualizer.
+export const PROBLEM_TYPES = ["rectangleguillotine", "rectangle", "box", "boxstacks", "onedimensional", "irregular"];
 
 function rectangle(x0, y0, x1, y1) {
     return [[[x0, y0], [x1, y0], [x1, y1], [x0, y1]]];
@@ -165,6 +170,37 @@ function readOneDimensional(text) {
     return bins;
 }
 
+// The bins of a certificate of the box or boxstacks problem type: boxes.
+function readBoxes(text) {
+    const bins = [];
+    for (const row of parseCsv(text)) {
+        const i = integer(row.BIN);
+        const x0 = number(row.X);
+        const y0 = number(row.Y);
+        const z0 = number(row.Z);
+        const box3 = {x0, y0, z0, x1: x0 + number(row.LX), y1: y0 + number(row.LY), z1: z0 + number(row.LZ)};
+        if (row.TYPE === "BIN") {
+            const bin = newBin(i, integer(row.ID), integer(row.COPIES || "1"));
+            bin.box3 = box3;
+            bin.defects3 = [];
+            bins[i] = bin;
+        } else if (row.TYPE === "DEFECT") {
+            bins[i].defects3.push(box3);
+        } else if (row.TYPE === "ITEM") {
+            let label = `Item type ${row.ID}: ${number(row.LX)} × ${number(row.LY)} × ${number(row.LZ)}`
+                + ` at (${x0}, ${y0}, ${z0})`;
+            if (row.ROTATION)
+                label += `, rotation ${row.ROTATION}`;
+            if (row.STACK !== undefined && row.STACK !== "")
+                label += `, stack ${row.STACK}`;
+            if (row.GROUP_ID !== undefined && row.GROUP_ID !== "")
+                label += `, group ${row.GROUP_ID}`;
+            bins[i].items.push({itemTypeId: integer(row.ID), box3, label});
+        }
+    }
+    return bins;
+}
+
 const ANTICLOCKWISE = ["Anticlockwise", "anticlockwise", "A", "a"];
 const CLOCKWISE = ["Clockwise", "clockwise", "C", "c"];
 const FULL = ["Full", "full", "F", "f"];
@@ -245,13 +281,16 @@ export function readSolution(text, problemType = null) {
     const readers = {
         rectangleguillotine: readRectangleGuillotine,
         rectangle: readRectangle,
+        box: readBoxes,
+        boxstacks: readBoxes,
         onedimensional: readOneDimensional,
         irregular: readIrregular,
     };
     if (readers[problemType] === undefined)
         throw new Error(`the solutions of the problem type '${problemType}' aren't drawn by this viewer.`);
     const bins = readers[problemType](text).filter((bin) => bin !== undefined);
-    return {problemType, bins};
+    const dimensions = (problemType === "box" || problemType === "boxstacks")? 3: 2;
+    return {problemType, dimensions, bins};
 }
 
 // The number of bins of a solution, with their copies.

@@ -1531,7 +1531,6 @@ function schedulePlot() {
 // The drawing of the solution: the visualizer ('viewer/'), or a plotly
 // figure for the problem types which it doesn't draw (box, boxstacks).
 function clearPlot() {
-    Plotly.purge($("plot"));
     $("plot").replaceChildren();
     $("plot").classList.remove("viewer");
     state.viewer = null;
@@ -1555,35 +1554,17 @@ async function plotSolution() {
     if (result === null || result.output.Solution.NumberOfItems === 0)
         return;
     const type = state.current.problemType;
-    if (viewerSolution.PROBLEM_TYPES.includes(type)) {
-        try {
-            const solution = viewerSolution.readSolution(result.certificate, type);
-            // The bin shown is kept when the solution of the project is
-            // updated.
-            const selected = (state.viewer !== null && state.viewerProject === state.current)?
-                state.viewer.selected(): 0;
-            // Drawn again without moving the page.
-            const scroll = window.scrollY;
-            Plotly.purge($("plot"));
-            state.viewer = createViewer($("plot"), solution, {selected});
-            state.viewerProject = state.current;
-            if (window.scrollY !== scroll)
-                window.scrollTo(0, scroll);
-        } catch (error) {
-            console.error(error);
-            setStatus("Error while drawing the solution: " + error.message, true);
-        }
-        return;
-    }
-    if ($("plot").classList.contains("viewer"))
-        clearPlot();
     try {
-        const visualizer = await import(`./visualize/${state.current.problemType}.js`);
-        const figure = visualizer.figure(result.certificate);
-        // Another project opened in the meantime.
-        if (result !== state.last)
-            return;
-        await redrawInPlace($("plot"), () => Plotly.react($("plot"), figure.data, figure.layout, {responsive: true}));
+        const solution = viewerSolution.readSolution(result.certificate, type);
+        // The bin shown is kept when the solution of the project is updated.
+        const selected = (state.viewer !== null && state.viewerProject === state.current)?
+            state.viewer.selected(): 0;
+        // Drawn again without moving the page.
+        const scroll = window.scrollY;
+        state.viewer = createViewer($("plot"), solution, {selected});
+        state.viewerProject = state.current;
+        if (window.scrollY !== scroll)
+            window.scrollTo(0, scroll);
     } catch (error) {
         console.error(error);
         setStatus("Error while drawing the solution: " + error.message, true);

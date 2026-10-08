@@ -421,11 +421,6 @@ svg.thumbnail.invalid {
     width: 100%;
 }
 
-/* The plotly figures (box, boxstacks). */
-#plot:not(.viewer) {
-    min-height: 30rem;
-}
-
 #progress {
     font-variant-numeric: tabular-nums;
 }
@@ -789,6 +784,38 @@ tr.placed-shapes-line.invalid .placed-shapes-label,
     stroke: crimson;
 }
 
+/* The isometric views of box and boxstacks ('render3d.js'). */
+.viewer-bin-3d polygon,
+.viewer-bin-3d line {
+    vector-effect: non-scaling-stroke;
+    stroke-width: 1;
+    stroke-linejoin: round;
+}
+
+.viewer-bin-3d .viewer-item polygon {
+    stroke: #1f2328;
+}
+
+.viewer-bin-floor,
+.viewer-bin-wall {
+    fill: var(--surface);
+    stroke: var(--muted);
+}
+
+.viewer-bin-edge {
+    stroke: var(--text);
+}
+
+.viewer-defect-face {
+    fill: crimson;
+    fill-opacity: 0.6;
+    stroke: crimson;
+}
+
+.viewer-bin-3d.detail .viewer-item:hover polygon {
+    filter: brightness(1.15);
+}
+
 .viewer-trim {
     fill: var(--muted);
     fill-opacity: 0.35;
@@ -817,6 +844,8 @@ tr.placed-shapes-line.invalid .placed-shapes-label,
     text-anchor: middle;
     dominant-baseline: central;
     fill: #1f2328;
+    /* Not the stroke of its item (in the isometric views). */
+    stroke: none;
     pointer-events: none;
 }
 
