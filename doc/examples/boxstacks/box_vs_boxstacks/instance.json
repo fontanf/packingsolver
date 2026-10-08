@@ -1,0 +1,17 @@
+{
+    "objective": "knapsack",
+    "bin_types": [
+        {"x": 7500, "y": 2400, "z": 3000}
+    ],
+    "item_types": [
+        {"x": 1300, "y": 1200, "z": 1500, "stackability_id": 0, "copies": 4},
+        {"x": 1300, "y": 1200, "z": 550, "stackability_id": 0, "copies": 8},
+        {"x": 1200, "y": 1200, "z": 1300, "stackability_id": 1, "copies": 4},
+        {"x": 1200, "y": 1200, "z": 450, "stackability_id": 1, "copies": 12},
+        {"x": 1250, "y": 1200, "z": 1600, "stackability_id": 2, "copies": 4},
+        {"x": 1250, "y": 1200, "z": 1100, "stackability_id": 2, "copies": 4},
+        {"x": 600, "y": 500, "z": 400, "stackability_id": 3, "copies": 4},
+        {"x": 500, "y": 400, "z": 350, "stackability_id": 4, "copies": 4},
+        {"x": 700, "y": 600, "z": 300, "stackability_id": 5, "copies": 4}
+    ]
+}

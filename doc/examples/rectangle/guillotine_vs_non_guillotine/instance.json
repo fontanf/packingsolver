@@ -1,0 +1,12 @@
+{
+    "objective": "bin-packing",
+    "bin_types": [
+        {"x": 12, "y": 9, "copies": 2}
+    ],
+    "item_types": [
+        {"x": 8, "y": 3, "oriented": true},
+        {"x": 4, "y": 5, "oriented": true},
+        {"x": 5, "y": 4, "oriented": true},
+        {"x": 7, "y": 6, "oriented": true}
+    ]
+}

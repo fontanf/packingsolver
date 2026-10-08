@@ -1,0 +1,18 @@
+[
+    {"name": "basic", "title": "Basic example"},
+    {"name": "box_vs_boxstacks", "title": "Box vs box stacks: box stacks"},
+    {"name": "rotation_no", "title": "Item rotations: oriented items"},
+    {"name": "rotation_yes", "title": "Item rotations: items which can be rotated"},
+    {"name": "nesting_height_no", "title": "Nesting height: without nesting height"},
+    {"name": "nesting_height_yes", "title": "Nesting height: with nesting height"},
+    {"name": "maximum_stackability_no", "title": "Maximum stackability: no limit"},
+    {"name": "maximum_stackability_yes", "title": "Maximum stackability: with a limit"},
+    {"name": "maximum_weight_above_no", "title": "Maximum weight above: no limit"},
+    {"name": "maximum_weight_above_yes", "title": "Maximum weight above: with a limit"},
+    {"name": "maximum_stack_density_no", "title": "Maximum stack density: no limit"},
+    {"name": "maximum_stack_density_yes", "title": "Maximum stack density: with a limit"},
+    {"name": "unloading_no", "title": "Unloading constraints: none"},
+    {"name": "unloading_yes", "title": "Unloading constraints: only X movements"},
+    {"name": "axle_weight_no", "title": "Axle weights: without axle constraints"},
+    {"name": "axle_weight_yes", "title": "Axle weights: with axle constraints"}
+]

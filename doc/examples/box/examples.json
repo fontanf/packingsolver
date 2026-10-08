@@ -1,0 +1,8 @@
+[
+    {"name": "basic", "title": "Basic example"},
+    {"name": "box_vs_boxstacks", "title": "Box vs box stacks: boxes"},
+    {"name": "rotation_no", "title": "Item rotations: oriented items"},
+    {"name": "rotation_yes", "title": "Item rotations: items which can be rotated"},
+    {"name": "maximum_weight_no", "title": "Maximum weight: without maximum weight"},
+    {"name": "maximum_weight_yes", "title": "Maximum weight: with maximum weight"}
+]

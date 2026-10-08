@@ -1,0 +1,11 @@
+{
+    "objective": "open-dimension-x",
+    "bin_types": [
+        {"x": 2000, "y": 500}
+    ],
+    "item_types": [
+        {"x": 250, "y": 150, "copies": 10},
+        {"x": 200, "y": 100, "copies": 12},
+        {"x": 175, "y": 75, "copies": 12}
+    ]
+}

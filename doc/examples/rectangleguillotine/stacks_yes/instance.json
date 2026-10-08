@@ -1,0 +1,12 @@
+{
+    "objective": "bin-packing",
+    "bin_types": [
+        {"width": 10, "height": 10, "copies": 4}
+    ],
+    "item_types": [
+        {"width": 5, "height": 6, "oriented": true, "stack_id": 0},
+        {"width": 5, "height": 7, "oriented": true, "stack_id": 0},
+        {"width": 5, "height": 3, "oriented": true, "stack_id": 1},
+        {"width": 5, "height": 4, "oriented": true, "stack_id": 1}
+    ]
+}

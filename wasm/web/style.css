@@ -532,13 +532,13 @@ svg.thumbnail.invalid {
     }
 }
 
-#project-list {
+.project-list {
     margin: 0.5rem 0 0;
     padding: 0;
     list-style: none;
 }
 
-#project-list button {
+.project-list button {
     display: flex;
     justify-content: space-between;
     align-items: baseline;
@@ -552,16 +552,16 @@ svg.thumbnail.invalid {
     overflow-wrap: anywhere;
 }
 
-#project-list button:hover {
+.project-list button:hover {
     background: var(--surface);
 }
 
-#project-list button[aria-current="true"] {
+.project-list button[aria-current="true"] {
     border-color: var(--accent);
     background: var(--surface);
 }
 
-/* "Example" or "Solving", after the name of a project. */
+/* "Solving", after the name of a project. */
 .project-tag {
     flex-shrink: 0;
     color: var(--muted);
@@ -570,6 +570,34 @@ svg.thumbnail.invalid {
 
 .project-tag.solving {
     color: var(--accent);
+}
+
+/* The examples, which can be folded, above the projects. */
+#examples {
+    margin: 0 0 0.5rem;
+}
+
+/* The sidebar stays in view (sticky): the examples scroll in a box. */
+#example-list {
+    position: relative;
+    max-height: 40vh;
+    overflow-y: auto;
+    border-block: 1px solid var(--border);
+    padding-top: 0.25rem;
+}
+
+#examples summary {
+    cursor: pointer;
+    font-size: 1.1rem;
+    font-weight: bold;
+}
+
+#example-link-error:empty {
+    display: none;
+}
+
+#no-projects {
+    margin: 0.25rem 0 0.75rem;
 }
 
 .sidebar-buttons button {

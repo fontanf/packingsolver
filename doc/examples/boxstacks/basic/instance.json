@@ -1,0 +1,11 @@
+{
+    "objective": "knapsack",
+    "bin_types": [
+        {"x": 7500, "y": 2400, "z": 3000}
+    ],
+    "item_types": [
+        {"x": 2500, "y": 800, "z": 750, "stackability_id": 0, "copies": 10},
+        {"x": 2500, "y": 800, "z": 1000, "stackability_id": 1, "copies": 10},
+        {"x": 2500, "y": 800, "z": 1250, "stackability_id": 2, "copies": 10}
+    ]
+}

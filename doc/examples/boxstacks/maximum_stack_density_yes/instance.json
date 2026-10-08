@@ -1,0 +1,10 @@
+{
+    "objective": "bin-packing",
+    "bin_types": [
+        {"x": 7500, "y": 2400, "z": 3000, "maximum_stack_density": 0.6, "copies": 4}
+    ],
+    "item_types": [
+        {"x": 2500, "y": 1200, "z": 1000, "weight": 700000, "copies": 9},
+        {"x": 2500, "y": 1200, "z": 1000, "weight": 900000, "copies": 9}
+    ]
+}

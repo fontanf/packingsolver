@@ -1,0 +1,12 @@
+{
+    "objective": "bin-packing-with-leftovers",
+    "unloading_constraint": "only-x-movements",
+    "bin_types": [
+        {"x": 7500, "y": 2400, "z": 3000, "copies": 2}
+    ],
+    "item_types": [
+        {"x": 3000, "y": 1400, "z": 1000, "stackability_id": 0},
+        {"x": 3000, "y": 2400, "z": 1000, "group_id": 1, "stackability_id": 1},
+        {"x": 2500, "y": 1000, "z": 1000, "group_id": 2, "stackability_id": 2}
+    ]
+}

@@ -46,166 +46,151 @@ Features:
   * Item-defect minimum spacing
 
 Basic usage
---------------
+-----------
 
-The :code:`irregular` solver takes as input a single JSON file and outputs:
+An instance is described in the JSON format below. The `online solver <https://packingsolver.pages.dev/>`_ downloads its instances in this format (**Download**) and loads them (**Load a JSON file**), the command-line solver reads them (``--input``), and the Python package and the C++ library read them with ``InstanceBuilder.read``. Instances can also be built directly with the ``InstanceBuilder`` of the Python package and of the C++ library.
 
-* a solution JSON file; option: ``--certificate solution.json``
+This example has 8 item types: the 7 one-sided tetrominoes (I, O, T, S, Z, L and J, each made of 4 unit squares), with 2 copies of each, plus a cross-shaped piece (5 unit squares) with 3 copies (17 items in total). The objective is ``bin-packing`` in 180 × 160 bins. The solver packs all 17 items into a single bin, wasting less than 1.4% of its area — the pieces interlock almost exactly, like a jigsaw puzzle.
 
-The **input file** is a JSON file containing:
+.. example-tabs:: irregular/basic
+   :solve:
 
-* The objective (``objective`` field); possible values:
-
-  * ``knapsack``: maximize the profit of packed items in a single bin
-  * ``bin-packing``: pack all items using as few bins as possible
-  * ``bin-packing-with-leftovers``: bin packing, then maximize the leftover value in the last bin
-  * ``open-dimension-x``: minimize the X dimension of a single bin
-  * ``open-dimension-y``: minimize the Y dimension of a single bin
-  * ``open-dimension-xy``: minimize the area of a single bin (aspect ratio can be constrained)
-  * ``variable-sized-bin-packing``: pack all items minimizing total bin cost; bins may be used in any order
-  * ``feasibility``: determine whether a packing exists
-
-* Optional global parameters (``parameters`` field)
-* A list of bin types (``bin_types`` field)
-* A list of item types (``item_types`` field)
-
-Each entry in ``bin_types`` describes one bin type. Common fields:
-
-* ``copies``: number of available copies of this bin type (default: ``1``)
-* ``copies_min``: minimum number of copies of this bin type that must be used (default: ``0``)
-* ``cost``: cost of one bin of this type, used for variable-sized bin packing (default: bin area)
-
-Shape specification (one of the following), for both bin types and item types:
-
-* ``type: "rectangle"``: axis-aligned rectangle
-
-  * ``width`` (**mandatory**)
-  * ``height`` (**mandatory**)
-
-* ``type: "circle"``: circle
-
-  * ``radius`` (**mandatory**)
-
-* ``type: "polygon"``: arbitrary polygon
-
-  * ``vertices`` (**mandatory**): list of ``{"x": ..., "y": ...}`` objects in counter-clockwise order
-
-Each entry in ``item_types`` describes one item type. Common fields:
-
-* ``copies``: number of copies of this item type (default: ``1``)
-* ``profit``: profit of one item, used for knapsack (default: item area)
-
-The **output file** is a JSON file with a single ``bins`` array. Each entry corresponds to one used bin and contains:
-
-* ``id``: bin type index
-* ``copies``: number of copies of this bin represented by this entry
-* ``items``: list of placed items, each with:
-
-  * ``id``: item type index
-  * ``x``, ``y``: position of the item's origin
-  * ``angle``: rotation angle in degrees
-  * ``mirror``: whether the item is mirrored
-
-This example has 8 item types: the 7 one-sided tetrominoes (I, O, T, S, Z, L and J, each made of 4 unit squares), with 2 copies of each, plus a cross-shaped piece (5 unit squares) with 3 copies (17 items in total).
-
-The objective is ``bin-packing`` in a 180×160 bin. The solver packs all 17 items into a single bin, wasting less than 1.4% of its area — the pieces interlock almost exactly, like a jigsaw puzzle.
-
-.. literalinclude:: examples/irregular/instance.json
-   :caption: instance.json
-   :language: json
-
-Solve:
-
-.. code-block:: shell
-
-    packingsolver_irregular \
-            --input instance.json \
-            --certificate solution.json
-
-.. literalinclude:: examples/irregular/output.txt
-
-The solution is written to ``solution.json``.
-
-A script is available to visualize the solution:
-
-.. code-block:: shell
-
-    python3 scripts/visualize_irregular.py solution.json
+The solution:
 
 .. image:: img/irregular_example_solution.png
    :width: 512pt
    :align: center
 
-Irregular bins
------------------
+Instance format
+^^^^^^^^^^^^^^^
 
-Bin types are not restricted to rectangles or circles: the ``type: "polygon"`` shape specification described above (see `Basic usage`_) applies to ``bin_types`` exactly as it does to ``item_types``, so a bin can be any polygon, convex or not.
+An instance is a JSON object with the following fields:
 
-In the example below, the bin is the irregular 15-vertex polygon container from the smallest instance (``jigsaw_cf3_xcd14250_28``, 28 item types) of the jigsaw puzzle challenge of the `CG:SHOP 2024 <https://cgshop.ibr.cs.tu-bs.de/competition/cg-shop-2024/#problem-description>`_ competition (see ``data/irregular/cgshop2024/``). The objective is :code:`knapsack`: select and place a subset of the item types that maximizes total profit inside the single irregular bin.
+.. list-table::
+   :header-rows: 1
+   :widths: 1 3
 
-.. literalinclude:: examples/irregular/irregular_bin/instance.json
-   :caption: instance.json (bin shape only; the 28 item types are omitted here for brevity)
-   :language: json
-   :lines: 1-24
+   * - Field
+     - Description
+   * - ``objective``
+     - **Mandatory**. One of ``knapsack``, ``bin-packing``, ``bin-packing-with-leftovers``, ``open-dimension-x``, ``open-dimension-y``, ``open-dimension-xy``, ``variable-sized-bin-packing``, ``feasibility``; see :ref:`objectives`
+   * - ``parameters``
+     - An object with the optional fields ``item_item_minimum_spacing`` (see :ref:`irregular-item-item-spacing`), ``open_dimension_xy_aspect_ratio`` (the ratio height / width of the bin for the ``open-dimension-xy`` objective), and ``leftover_mode`` (the corner or side from which the leftover is measured, for the ``bin-packing-with-leftovers`` objective: ``bottom-left`` (default), ``bottom-right``, ``top-left``, ``top-right``, ``left``, ``right``, ``bottom``, ``top``)
+   * - ``bin_types``
+     - **Mandatory**. The bin types (array)
+   * - ``item_types``
+     - **Mandatory**. The item types (array)
+
+A **shape** is an object with one of the following ``type``:
+
+* ``"rectangle"``: an axis-aligned rectangle; fields ``width``, ``height``, and the position of its bottom-left corner ``x``, ``y`` (default: ``0``);
+* ``"circle"``: a circle; fields ``radius``, and the position of its center ``x``, ``y`` (default: ``0``);
+* ``"polygon"``: a polygon; field ``vertices``, a list of ``{"x": ..., "y": ...}`` objects in counter-clockwise order;
+* ``"general"``: a shape made of line segments and circular arcs; field ``elements``.
+
+A **bin type** is a shape with the following fields:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 1 3
+
+   * - Field
+     - Description
+   * - ``copies``
+     - The number of copies of the bin type. Default: ``1``; ``-1`` for an unlimited number of copies
+   * - ``copies_min``
+     - The minimum number of copies of the bin type to use, for the variable-sized bin packing objective. Default: ``0``
+   * - ``cost``
+     - The cost of a bin of this type, for the variable-sized bin packing objective. Default: the area of the bin
+   * - ``item_bin_minimum_spacing``
+     - See :ref:`irregular-item-bin-spacing`. Default: ``0``
+   * - ``defects``
+     - See :ref:`irregular-defects`. Default: none
+
+An **item type** is a shape (with optional ``holes``, see :ref:`irregular-holes`), or has a field ``shapes``, a list of such shapes for an item type made of several shapes; with the following fields:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 1 3
+
+   * - Field
+     - Description
+   * - ``copies``
+     - The number of copies of the item type. Default: ``1``; ``-1`` for an unlimited number of copies (knapsack objective only)
+   * - ``copies_min``
+     - The minimum number of copies of the item type to pack, for the knapsack objective. Default: ``0``
+   * - ``profit``
+     - The profit of an item of this type, for the knapsack objective. Default: the area of the item
+   * - ``allowed_rotations``
+     - See :ref:`irregular-rotations`. Default: no rotation
+
+In Python, the shapes are built with ``psi.build_rectangle``, ``psi.build_circle`` and ``psi.build_shape``; the optional fields of the bin types and of the item types are keyword arguments of ``InstanceBuilder.add_bin_type`` and ``InstanceBuilder.add_item_type``. In C++, the shapes are built with ``shape::build_rectangle``, ``shape::build_circle`` and ``shape::build_shape``, and the optional fields are set with the ``InstanceBuilder.set_bin_type_<field>`` and ``InstanceBuilder.set_item_type_<field>`` methods; the examples below show the exceptions.
+
+Certificate format
+^^^^^^^^^^^^^^^^^^
+
+The solution is written (command-line option ``--certificate``, ``Solution.write``) as a JSON file with a ``bins`` array. Each entry is a bin of the solution, with:
+
+* ``id``: its bin type, and ``copies``: the number of identical bins it stands for;
+* ``shape``: its shape;
+* ``items``: its items, each with ``id``, its item type; ``x``, ``y``, the position of its reference point; ``angle``, its rotation angle in degrees; ``mirror``, whether it is mirrored; and ``item_shapes``, its shapes once placed.
+
+To visualize a solution, open it in the `solution viewer <https://packingsolver.pages.dev/viewer.html>`_, or run:
 
 .. code-block:: shell
 
-    packingsolver_irregular \
-            --input instance.json \
-            --certificate solution.json
+    python3 scripts/visualize.py solution.json
 
-.. literalinclude:: examples/irregular/irregular_bin/output.txt
+Irregular bins
+--------------
+
+Bin types are not restricted to rectangles or circles: a bin can be any polygon, convex or not.
+
+In the example below, the bin is the irregular 15-vertex polygon container from the smallest instance (``jigsaw_cf3_xcd14250_28``, 28 item types) of the jigsaw puzzle challenge of the `CG:SHOP 2024 <https://cgshop.ibr.cs.tu-bs.de/competition/cg-shop-2024/#problem-description>`_ competition (see ``data/irregular/cgshop2024/``). The objective is :code:`knapsack`: select and place a subset of the items that maximizes the total profit inside the single irregular bin.
 
 .. image:: img/irregular_irregular_bin.png
    :width: 400pt
    :align: center
 
+.. example-tabs:: irregular/irregular_bin
+
+.. _irregular-rotations:
+
 Discrete item rotations
 -----------------------
 
-The ``allowed_rotations`` field on an item type controls which orientations are allowed.
-It is a list of rotation ranges, each with:
+The ``allowed_rotations`` field of an item type gives its allowed orientations. It is a list of rotation ranges, each with:
 
-* ``start``: start angle in degrees
-* ``end``: end angle in degrees
-* ``mirror``: if ``true``, the item is first mirrored about the Y axis, then rotated (default: ``false``; see `Item mirroring`_ below)
+* ``start``: the start angle in degrees
+* ``end``: the end angle in degrees
+* ``mirror``: if ``true``, the item is first mirrored about the Y axis, then rotated (default: ``false``; see :ref:`irregular-mirroring`)
 
-When ``start == end``, only that exact angle is allowed.
-When ``start < end``, any angle in ``[start, end]`` is allowed (continuous rotation range).
-When ``end == 360``, a full 360° continuous rotation is allowed.
+When ``start == end``, only that exact angle is allowed. When ``start < end``, any angle in ``[start, end]`` is allowed (continuous rotation range). If ``allowed_rotations`` is omitted, the items aren't rotated.
 
-If ``allowed_rotations`` is omitted, the item is fixed at 0° (no rotation) by default.
+.. tab-set::
+   :sync-group: interface
 
-**Examples**
+   .. tab-item:: Online solver
+      :sync: web
 
-Discrete 90° rotations only:
+      In the **Item types** table, choose the **Rotations** of an item type: *None*, *Half turns*, *Quarter turns*, *Any angle*, or *Custom* ranges.
 
-.. code-block:: json
+   .. tab-item:: JSON
+      :sync: json
 
-   "allowed_rotations": [
-     {"start": 0,   "end": 0},
-     {"start": 90,  "end": 90},
-     {"start": 180, "end": 180},
-     {"start": 270, "end": 270}
-   ]
+      In an item type: ``"allowed_rotations": [{"start": 0, "end": 0}, {"start": 90, "end": 90}, {"start": 180, "end": 180}, {"start": 270, "end": 270}]``.
 
-Fixed orientation (no rotation):
+   .. tab-item:: Python
+      :sync: python
 
-.. code-block:: json
+      ``instance_builder.add_item_type(shape, allowed_rotations=[(0, 0, False), (90, 90, False), (180, 180, False), (270, 270, False)])``: ``(start, end, mirror)`` tuples.
 
-   "allowed_rotations": [
-     {"start": 0, "end": 0}
-   ]
+   .. tab-item:: C++
+      :sync: cpp
 
-Full 360° continuous rotation:
+      ``instance_builder.add_item_type_allowed_rotation(item_type_id, 90, 90, false);``, once for each rotation range.
 
-.. code-block:: json
-
-   "allowed_rotations": [
-     {"start": 0, "end": 360}
-   ]
-
-In the example below, 2 copies of an L-shaped item must be packed into 60×60 bins (:code:`bin-packing` objective). Without rotation, the two L-shapes cannot interlock, so 2 bins are needed. Allowing 90° rotations lets them interlock into a single bin.
+In the example below, 2 copies of an L-shaped item must be packed into 60 × 60 bins (:code:`bin-packing` objective). Without rotation, the two L-shapes cannot interlock, so 2 bins are needed. Allowing 90° rotations lets them interlock into a single bin.
 
 .. |irregular_rotation_no| image:: img/irregular_rotation_no.png
    :scale: 50%
@@ -220,63 +205,55 @@ In the example below, 2 copies of an L-shaped item must be packed into 60×60 bi
 
    * - Without rotation
      - With rotation
-   * - .. literalinclude:: examples/irregular/rotation_no/instance.json
-          :caption: instance.json
-          :language: json
-     - .. literalinclude:: examples/irregular/rotation_yes/instance.json
-          :caption: instance.json
-          :language: json
-   * - .. code-block:: shell
-
-            packingsolver_irregular \
-                    --input instance.json \
-                    --certificate solution.json
-     - .. code-block:: shell
-
-            packingsolver_irregular \
-                    --input instance.json \
-                    --certificate solution.json
    * - |irregular_rotation_no|
      - |irregular_rotation_yes|
+
+.. example-tabs:: irregular/rotation_no irregular/rotation_yes
 
 Continuous item rotations
 -------------------------
 
-Setting ``start`` strictly lower than ``end`` in a rotation range allows any angle in between, instead of only a fixed set of discrete angles; ``end: 360`` allows a full continuous rotation. This is especially useful for irregular, non-rectangular shapes, where letting items nest at arbitrary angles (rather than only 0°/90°/180°/270°) can significantly reduce wasted space.
+Setting ``start`` strictly lower than ``end`` in a rotation range allows any angle in between, instead of only a fixed set of discrete angles; ``{"start": 0, "end": 360}`` allows any angle. This is especially useful for irregular, non-rectangular shapes, where letting items nest at arbitrary angles (rather than only 0°/90°/180°/270°) can significantly reduce wasted space.
 
-In the example below, 7 copies of a Christmas-tree-shaped item (from the `Kaggle Santa 2025 <https://www.kaggle.com/code/inversion/santa-2025-getting-started>`_ competition) may be rotated by any angle (``allowed_rotations`` from 0° to 360°) and are packed with the :code:`open-dimension-xy` objective, which finds the smallest bin (here constrained to a square, aspect ratio 1) containing all of them. Free rotation lets the trees nest into each other at odd angles rather than sitting axis-aligned, filling the bin far more tightly.
-
-.. literalinclude:: examples/irregular/rotation_continuous/instance.json
-   :caption: instance.json
-   :language: json
-
-.. code-block:: shell
-
-    packingsolver_irregular \
-            --input instance.json \
-            --certificate solution.json
-
-.. literalinclude:: examples/irregular/rotation_continuous/output.txt
+In the example below, 7 copies of a Christmas-tree-shaped item (from the `Kaggle Santa 2025 <https://www.kaggle.com/code/inversion/santa-2025-getting-started>`_ competition) may be rotated by any angle and are packed with the :code:`open-dimension-xy` objective, which finds the smallest bin (here constrained to a square, aspect ratio 1) containing all of them. Free rotation lets the trees nest into each other at odd angles rather than sitting axis-aligned, filling the bin far more tightly.
 
 .. image:: img/irregular_rotation_continuous.png
    :width: 400pt
    :align: center
 
+.. example-tabs:: irregular/rotation_continuous
+
+.. _irregular-mirroring:
+
 Item mirroring
 --------------
 
-Each rotation range in ``allowed_rotations`` may set ``mirror: true``, in which case the item is first mirrored about its Y axis, then rotated by the given angle range. Mirroring is off (``false``) by default.
+Each rotation range may set ``mirror: true``, in which case the item is first mirrored about its Y axis, then rotated by the given angle range. Mirroring is off by default.
 
-To allow both the original and mirrored orientation of an item at 0°:
+.. tab-set::
+   :sync-group: interface
 
-.. code-block:: json
+   .. tab-item:: Online solver
+      :sync: web
 
-   "allowed_rotations": [
-     {"start": 0,   "end": 0,   "mirror": false},
-     {"start": 0,   "end": 0,   "mirror": true}
-   ]
+      In the **Item types** table, check **Mirror**.
 
-Mirroring matters for shapes that are not symmetric: an L-shaped item is **chiral**, so it cannot be turned into its own mirror image by rotation alone. In the example below, 2 copies of an L-shaped item and a square item must be packed into 80×60 bins (:code:`bin-packing` objective). Without mirroring, the two L-shapes (same orientation) leave two separate notches, too narrow for the square, so 2 bins are needed. Allowing the second L-shape to be mirrored turns it into a matching, opposite-handed piece: together the two L-shapes form a single wide notch that the square fits into exactly, so all three items pack into a single bin.
+   .. tab-item:: JSON
+      :sync: json
+
+      In an item type: ``"allowed_rotations": [{"start": 0, "end": 0}, {"start": 0, "end": 0, "mirror": true}]``.
+
+   .. tab-item:: Python
+      :sync: python
+
+      ``instance_builder.add_item_type(shape, allowed_rotations=[(0, 0, False), (0, 0, True)])``
+
+   .. tab-item:: C++
+      :sync: cpp
+
+      ``instance_builder.add_item_type_allowed_rotation(item_type_id, 0, 0, true);``
+
+Mirroring matters for shapes that are not symmetric: an L-shaped item is **chiral**, so it cannot be turned into its own mirror image by rotation alone. In the example below, 2 copies of an L-shaped item and a square item must be packed into 80 × 60 bins (:code:`bin-packing` objective). Without mirroring, the two L-shapes (same orientation) leave two separate notches, too narrow for the square, so 2 bins are needed. Allowing the L-shapes to be mirrored turns one of them into a matching, opposite-handed piece: together the two L-shapes form a single wide notch that the square fits into exactly, so all three items pack into a single bin.
 
 .. |irregular_mirroring_no| image:: img/irregular_mirroring_no.png
    :scale: 50%
@@ -291,31 +268,42 @@ Mirroring matters for shapes that are not symmetric: an L-shaped item is **chira
 
    * - Without mirroring
      - With mirroring
-   * - .. literalinclude:: examples/irregular/mirroring_no/instance.json
-          :caption: instance.json
-          :language: json
-     - .. literalinclude:: examples/irregular/mirroring_yes/instance.json
-          :caption: instance.json
-          :language: json
-   * - .. code-block:: shell
-
-            packingsolver_irregular \
-                    --input instance.json \
-                    --certificate solution.json
-     - .. code-block:: shell
-
-            packingsolver_irregular \
-                    --input instance.json \
-                    --certificate solution.json
    * - |irregular_mirroring_no|
      - |irregular_mirroring_yes|
 
+.. example-tabs:: irregular/mirroring_no irregular/mirroring_yes
+
+.. _irregular-holes:
+
 Holes
---------
+-----
 
-An item type's polygon shape may have ``holes``: a list of polygonal holes inside the shape. Each hole is a ``{"type": "polygon", "vertices": [...]}`` object. Vertices must be in counter-clockwise order, for both the outer contour and the holes.
+The shape of an item type may have ``holes``: a list of shapes inside it. Vertices must be in counter-clockwise order, for both the outer contour and the holes.
 
-In the example below, there are two item types: a pentagon (a 40×40 square with one corner cut off) and a small triangle, noticeably smaller than the hole so that the hole remains visible around it (:code:`bin-packing` objective, 40×40 bins). Without a hole, the two items cannot share a bin, so 2 bins are needed. Cutting a triangular hole into the pentagon lets the small triangle nest inside it, so both items fit together in a single bin.
+.. tab-set::
+   :sync-group: interface
+
+   .. tab-item:: Online solver
+      :sync: web
+
+      In the **Item types** table, click **Add a hole** below an item type.
+
+   .. tab-item:: JSON
+      :sync: json
+
+      In an item type: ``"holes": [{"type": "polygon", "vertices": [...]}]``.
+
+   .. tab-item:: Python
+      :sync: python
+
+      ``instance_builder.add_item_type(psi.ShapeWithHoles(shape, [hole]))``
+
+   .. tab-item:: C++
+      :sync: cpp
+
+      ``instance_builder.add_item_type({ItemShape{shape::ShapeWithHoles{shape, {hole}}}});``
+
+In the example below, there are two item types: a pentagon (a 40 × 40 square with one corner cut off) and a small triangle, noticeably smaller than the hole so that the hole remains visible around it (:code:`bin-packing` objective, 40 × 40 bins). Without a hole, the two items cannot share a bin, so 2 bins are needed. Cutting a triangular hole into the pentagon lets the small triangle nest inside it, so both items fit together in a single bin.
 
 .. |irregular_holes_no| image:: img/irregular_holes_no.png
    :scale: 50%
@@ -330,35 +318,45 @@ In the example below, there are two item types: a pentagon (a 40×40 square with
 
    * - Without a hole
      - With a hole
-   * - .. literalinclude:: examples/irregular/holes_no/instance.json
-          :caption: instance.json
-          :language: json
-     - .. literalinclude:: examples/irregular/holes_yes/instance.json
-          :caption: instance.json
-          :language: json
-   * - .. code-block:: shell
-
-            packingsolver_irregular \
-                    --input instance.json \
-                    --certificate solution.json
-     - .. code-block:: shell
-
-            packingsolver_irregular \
-                    --input instance.json \
-                    --certificate solution.json
    * - |irregular_holes_no|
      - |irregular_holes_yes|
 
+.. example-tabs:: irregular/holes_no irregular/holes_yes
+
+.. _irregular-defects:
+
 Defects
-----------
+-------
 
-Defects are regions inside a bin where items cannot be placed. They are specified with the ``defects`` field on a bin type: a list of defects, each with:
+Defects are regions of a bin where items cannot be placed. They are given by the ``defects`` field of a bin type: a list of shapes (with optional ``holes``), placed in the bin, each with the optional fields:
 
-* A shape (using the same shape fields as bin/item types: ``type: "rectangle"``, ``type: "circle"``, or ``type: "polygon"``), placed at a position inside the bin
-* ``defect_type``: an optional defect type identifier
-* ``item_defect_minimum_spacing``: minimum distance between this defect and any item (default: ``0``; see `Item-bin and item-defect spacing`_ below)
+* ``defect_type``: a defect type identifier
+* ``item_defect_minimum_spacing``: the minimum distance between the defect and the items (default: ``0``; see :ref:`irregular-item-bin-spacing`)
 
-In the example below, 2 copies of an L-shaped item must be packed into 60×60 bins (:code:`bin-packing` objective). Without any defect, the two L-shapes interlock into a single bin, as in the rotation example above. Adding a small 10×10 defect in the corner where one of the L-shapes needs to sit breaks the interlocking pattern, and 2 bins become necessary.
+.. tab-set::
+   :sync-group: interface
+
+   .. tab-item:: Online solver
+      :sync: web
+
+      In the **Bin types** table, click **Add a defect** below a bin type, and give its shape and its position.
+
+   .. tab-item:: JSON
+      :sync: json
+
+      In a bin type: ``"defects": [{"type": "rectangle", "x": 5, "y": 5, "width": 10, "height": 10}]``.
+
+   .. tab-item:: Python
+      :sync: python
+
+      ``instance_builder.add_defect(bin_type_id, -1, psi.ShapeWithHoles(psi.build_rectangle(5, 15, 5, 15)))``: the bin type, the defect type (``-1`` for none), and the shape.
+
+   .. tab-item:: C++
+      :sync: cpp
+
+      ``instance_builder.add_defect(bin_type_id, -1, shape::ShapeWithHoles{shape::build_rectangle(5, 15, 5, 15)});``
+
+In the example below, 2 copies of an L-shaped item must be packed into 60 × 60 bins (:code:`bin-packing` objective). Without any defect, the two L-shapes interlock into a single bin, as in the rotation example above. Adding a small 10 × 10 defect in the corner where one of the L-shapes needs to sit breaks the interlocking pattern, and 2 bins become necessary.
 
 .. |irregular_defects_no| image:: img/irregular_defects_no.png
    :scale: 50%
@@ -373,42 +371,42 @@ In the example below, 2 copies of an L-shaped item must be packed into 60×60 bi
 
    * - Without a defect
      - With a defect
-   * - .. literalinclude:: examples/irregular/defects_no/instance.json
-          :caption: instance.json
-          :language: json
-     - .. literalinclude:: examples/irregular/defects_yes/instance.json
-          :caption: instance.json
-          :language: json
-   * - .. code-block:: shell
-
-            packingsolver_irregular \
-                    --input instance.json \
-                    --certificate solution.json
-     - .. code-block:: shell
-
-            packingsolver_irregular \
-                    --input instance.json \
-                    --certificate solution.json
    * - |irregular_defects_no|
      - |irregular_defects_yes|
 
+.. example-tabs:: irregular/defects_no irregular/defects_yes
+
+.. _irregular-item-item-spacing:
+
 Item-item spacing
----------------------
+-----------------
 
-A minimum distance can be enforced between any two items, globally, via the ``item_item_minimum_spacing`` field of the optional ``parameters`` object (default: ``0``):
+A minimum distance can be enforced between any two items, with the ``item_item_minimum_spacing`` field of the ``parameters`` object. Default: ``0``.
 
-.. code-block:: none
+.. tab-set::
+   :sync-group: interface
 
-   {
-     "objective": "knapsack",
-     "parameters": {
-       "item_item_minimum_spacing": 2.0
-     },
-     "bin_types": [...],
-     "item_types": [...]
-   }
+   .. tab-item:: Online solver
+      :sync: web
 
-In the example below, 10 copies of an L-shaped item (with all 4 rotations allowed) must be packed into 160×100 bins (:code:`bin-packing-with-leftovers` objective). Without any minimum spacing, the 10 L-shapes interlock exactly, filling a single bin with no waste at all. Enforcing an ``item_item_minimum_spacing`` of 3 breaks that tight interlocking pattern entirely: only 6 items fit per bin, each with a clearly visible gap around it, so a second bin is needed for the remaining 4.
+      Fill the **Minimum spacing between items** below the objective.
+
+   .. tab-item:: JSON
+      :sync: json
+
+      In the instance: ``"parameters": {"item_item_minimum_spacing": 3}``.
+
+   .. tab-item:: Python
+      :sync: python
+
+      ``instance_builder.set_item_item_minimum_spacing(3)``
+
+   .. tab-item:: C++
+      :sync: cpp
+
+      ``instance_builder.set_item_item_minimum_spacing(3);``
+
+In the example below, 10 copies of an L-shaped item (with all 4 rotations allowed) must be packed into 160 × 100 bins (:code:`bin-packing-with-leftovers` objective). Without any minimum spacing, the 10 L-shapes interlock exactly, filling a single bin with no waste at all. A minimum spacing of 3 between items breaks that tight interlocking pattern entirely: only 6 items fit per bin, each with a clearly visible gap around it, so a second bin is needed for the remaining 4.
 
 .. |irregular_item_item_spacing_no| image:: img/irregular_item_item_spacing_no.png
    :scale: 25%
@@ -423,49 +421,45 @@ In the example below, 10 copies of an L-shaped item (with all 4 rotations allowe
 
    * - Without spacing
      - With spacing
-   * - .. literalinclude:: examples/irregular/item_item_spacing_no/instance.json
-          :caption: instance.json
-          :language: json
-     - .. literalinclude:: examples/irregular/item_item_spacing_yes/instance.json
-          :caption: instance.json
-          :language: json
-   * - .. code-block:: shell
-
-            packingsolver_irregular \
-                    --input instance.json \
-                    --certificate solution.json
-     - .. code-block:: shell
-
-            packingsolver_irregular \
-                    --input instance.json \
-                    --certificate solution.json
    * - |irregular_item_item_spacing_no|
      - |irregular_item_item_spacing_yes|
 
+.. example-tabs:: irregular/item_item_spacing_no irregular/item_item_spacing_yes
+
+.. _irregular-item-bin-spacing:
+
 Item-bin and item-defect spacing
--------------------------------------
+--------------------------------
 
-A minimum distance can also be enforced between items and the bin boundary, or between items and defects.
+A minimum distance can also be enforced between the items and the border of a bin, or between the items and a defect:
 
-* ``item_bin_minimum_spacing``: minimum distance between items and the bin boundary, set on a bin type (default: ``0``)
-* ``item_defect_minimum_spacing``: minimum distance between items and a defect, set on that defect (default: ``0``; see `Defects`_ above)
+* ``item_bin_minimum_spacing``: the minimum distance between the items and the border of the bin, set on a bin type (default: ``0``)
+* ``item_defect_minimum_spacing``: the minimum distance between the items and a defect, set on that defect (default: ``0``)
 
-.. code-block:: none
+.. tab-set::
+   :sync-group: interface
 
-   {
-     "objective": "knapsack",
-     "bin_types": [
-       {
-         "type": "rectangle",
-         "width": 1000,
-         "height": 700,
-         "item_bin_minimum_spacing": 5.0
-       }
-     ],
-     "item_types": [...]
-   }
+   .. tab-item:: Online solver
+      :sync: web
 
-In the example below, the same 10 interlocking L-shapes as above are packed into 160×100 bins (:code:`bin-packing-with-leftovers` objective), this time with no spacing between items. Without any minimum spacing, the 10 L-shapes still interlock exactly, filling a single bin with no waste. Enforcing an ``item_bin_minimum_spacing`` of 3 leaves a clearly visible margin around the whole cluster of items — even though they still touch each other — and that margin alone is enough to break the tiling: only 6 items fit per bin, so a second bin is needed for the remaining 4.
+      In the **Bin types** table, fill the **Item spacing** of a bin type, or the **Spacing** of a defect.
+
+   .. tab-item:: JSON
+      :sync: json
+
+      In a bin type: ``"item_bin_minimum_spacing": 3``; in a defect: ``"item_defect_minimum_spacing": 5``.
+
+   .. tab-item:: Python
+      :sync: python
+
+      ``instance_builder.add_bin_type(shape, item_bin_minimum_spacing=3)`` and ``instance_builder.set_item_defect_minimum_spacing(bin_type_id, defect_id, 5)``
+
+   .. tab-item:: C++
+      :sync: cpp
+
+      ``instance_builder.set_item_bin_minimum_spacing(bin_type_id, 3);`` and ``instance_builder.set_item_defect_minimum_spacing(bin_type_id, defect_id, 5);``
+
+In the example below, the same 10 interlocking L-shapes as above are packed into 160 × 100 bins (:code:`bin-packing-with-leftovers` objective), this time with no spacing between items. Without any minimum spacing, the 10 L-shapes still interlock exactly, filling a single bin with no waste. A minimum spacing of 3 between the items and the border of the bin leaves a clearly visible margin around the whole cluster of items — even though they still touch each other — and that margin alone is enough to break the tiling: only 6 items fit per bin, so a second bin is needed for the remaining 4.
 
 .. |irregular_item_bin_spacing_no| image:: img/irregular_item_bin_spacing_no.png
    :scale: 25%
@@ -480,26 +474,12 @@ In the example below, the same 10 interlocking L-shapes as above are packed into
 
    * - Without item-bin spacing
      - With item-bin spacing
-   * - .. literalinclude:: examples/irregular/item_bin_spacing_no/instance.json
-          :caption: instance.json
-          :language: json
-     - .. literalinclude:: examples/irregular/item_bin_spacing_yes/instance.json
-          :caption: instance.json
-          :language: json
-   * - .. code-block:: shell
-
-            packingsolver_irregular \
-                    --input instance.json \
-                    --certificate solution.json
-     - .. code-block:: shell
-
-            packingsolver_irregular \
-                    --input instance.json \
-                    --certificate solution.json
    * - |irregular_item_bin_spacing_no|
      - |irregular_item_bin_spacing_yes|
 
-The same idea applies to defects. In the example below, 23 copies of a right-triangle item (with legs of 40) are packed into 160×120 bins, one of which has a small triangular defect sitting well inside the bin, away from every border (:code:`bin-packing-with-leftovers` objective). Without any minimum spacing, the items pack right up against the defect and all 23 fit into that single bin. Enforcing an ``item_defect_minimum_spacing`` of 5 on that defect leaves a clearly visible gap around it, which is enough to push 3 items out, so a second (defect-free) bin is needed for them.
+.. example-tabs:: irregular/item_bin_spacing_no irregular/item_bin_spacing_yes
+
+The same idea applies to defects. In the example below, 23 copies of a right-triangle item (with legs of 40) are packed into 160 × 120 bins, one of which has a small triangular defect sitting well inside the bin, away from every border (:code:`bin-packing-with-leftovers` objective). Without any minimum spacing, the items pack right up against the defect and all 23 fit into that single bin. A minimum spacing of 5 around the defect leaves a clearly visible gap around it, which is enough to push 3 items out, so a second (defect-free) bin is needed for them.
 
 .. |irregular_item_defect_spacing_no| image:: img/irregular_item_defect_spacing_no.png
    :scale: 25%
@@ -514,21 +494,7 @@ The same idea applies to defects. In the example below, 23 copies of a right-tri
 
    * - Without item-defect spacing
      - With item-defect spacing
-   * - .. literalinclude:: examples/irregular/item_defect_spacing_no/instance.json
-          :caption: instance.json
-          :language: json
-     - .. literalinclude:: examples/irregular/item_defect_spacing_yes/instance.json
-          :caption: instance.json
-          :language: json
-   * - .. code-block:: shell
-
-            packingsolver_irregular \
-                    --input instance.json \
-                    --certificate solution.json
-     - .. code-block:: shell
-
-            packingsolver_irregular \
-                    --input instance.json \
-                    --certificate solution.json
    * - |irregular_item_defect_spacing_no|
      - |irregular_item_defect_spacing_yes|
+
+.. example-tabs:: irregular/item_defect_spacing_no irregular/item_defect_spacing_yes

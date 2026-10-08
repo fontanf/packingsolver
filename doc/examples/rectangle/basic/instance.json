@@ -1,0 +1,10 @@
+{
+    "objective": "bin-packing-with-leftovers",
+    "bin_types": [
+        {"x": 1000, "y": 500, "copies": 10}
+    ],
+    "item_types": [
+        {"x": 300, "y": 200, "copies": 10},
+        {"x": 250, "y": 150, "copies": 10}
+    ]
+}

@@ -1,0 +1,11 @@
+[
+    {"name": "basic", "title": "Basic example"},
+    {"name": "nesting_length_no", "title": "Nesting length: without nesting length"},
+    {"name": "nesting_length_yes", "title": "Nesting length: with nesting length"},
+    {"name": "maximum_stackability_no", "title": "Maximum stackability: no limit"},
+    {"name": "maximum_stackability_yes", "title": "Maximum stackability: with a limit"},
+    {"name": "maximum_weight_no", "title": "Maximum weight: without maximum weight"},
+    {"name": "maximum_weight_yes", "title": "Maximum weight: with maximum weight"},
+    {"name": "maximum_weight_after_no", "title": "Maximum weight after: no limit"},
+    {"name": "maximum_weight_after_yes", "title": "Maximum weight after: with a limit"}
+]

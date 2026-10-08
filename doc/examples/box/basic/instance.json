@@ -1,0 +1,11 @@
+{
+    "objective": "knapsack",
+    "bin_types": [
+        {"x": 216, "y": 173, "z": 110}
+    ],
+    "item_types": [
+        {"x": 108, "y": 76, "z": 30, "copies": 20},
+        {"x": 110, "y": 43, "z": 25, "copies": 20},
+        {"x": 92, "y": 81, "z": 55, "copies": 20}
+    ]
+}

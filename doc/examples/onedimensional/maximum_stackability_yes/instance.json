@@ -1,0 +1,10 @@
+{
+    "objective": "bin-packing",
+    "bin_types": [
+        {"length": 500, "copies": 10}
+    ],
+    "item_types": [
+        {"length": 200, "copies": 3, "maximum_stackability": 3},
+        {"length": 100, "copies": 4, "maximum_stackability": 100}
+    ]
+}

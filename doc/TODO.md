@@ -29,6 +29,15 @@
   `bin-packing-with-leftovers` on the same items/bin, showing the leftover region
   maximized).
 
+- **Document the `resources` of the bin types.**
+  Read from the JSON format (`capacity`, `penalize`, `penalty`, `consumptions`) by the
+  rectangleguillotine, rectangle, box, onedimensional and irregular problem types, and
+  editable in the web UI, but not described in the documentation.
+
+- **Snippets of the irregular examples: circles and general shapes.**
+  `scripts/generate_doc_snippets.py` only writes the Python and C++ versions of the
+  rectangle and polygon shapes, the only ones used by the examples so far.
+
 ## Already resolved this pass (kept here for reference, remove once confirmed stale)
 
 - Removed the "Item type / bin type eligibility" Features bullet and empty section from

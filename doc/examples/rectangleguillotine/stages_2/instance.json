@@ -1,0 +1,23 @@
+{
+    "objective": "bin-packing-with-leftovers",
+    "number_of_stages": 2,
+    "cut_type": "exact",
+    "first_stage_orientation": "vertical",
+    "bin_types": [
+        {"width": 80, "height": 40, "copies": 7}
+    ],
+    "item_types": [
+        {"width": 23, "height": 23, "oriented": true, "copies": 3},
+        {"width": 19, "height": 19, "oriented": true, "copies": 3},
+        {"width": 17, "height": 17, "oriented": true, "copies": 3},
+        {"width": 13, "height": 13, "oriented": true, "copies": 3},
+        {"width": 13, "height": 4, "oriented": true},
+        {"width": 13, "height": 10, "oriented": true},
+        {"width": 12, "height": 20, "oriented": true},
+        {"width": 9, "height": 11, "oriented": true},
+        {"width": 11, "height": 11, "oriented": true},
+        {"width": 13, "height": 11, "oriented": true},
+        {"width": 7, "height": 7, "oriented": true, "copies": 3},
+        {"width": 5, "height": 5, "oriented": true, "copies": 3}
+    ]
+}

@@ -1,0 +1,19 @@
+[
+    {"name": "basic", "title": "Basic example"},
+    {"name": "irregular_bin", "title": "Irregular bins"},
+    {"name": "rotation_no", "title": "Item rotations: without rotations"},
+    {"name": "rotation_yes", "title": "Item rotations: with discrete rotations"},
+    {"name": "rotation_continuous", "title": "Item rotations: continuous rotations"},
+    {"name": "mirroring_no", "title": "Item mirroring: without mirroring"},
+    {"name": "mirroring_yes", "title": "Item mirroring: with mirroring"},
+    {"name": "holes_no", "title": "Holes: without a hole"},
+    {"name": "holes_yes", "title": "Holes: with a hole"},
+    {"name": "defects_no", "title": "Defects: without a defect"},
+    {"name": "defects_yes", "title": "Defects: with a defect"},
+    {"name": "item_item_spacing_no", "title": "Item-item spacing: without spacing"},
+    {"name": "item_item_spacing_yes", "title": "Item-item spacing: with spacing"},
+    {"name": "item_bin_spacing_no", "title": "Item-bin spacing: without spacing"},
+    {"name": "item_bin_spacing_yes", "title": "Item-bin spacing: with spacing"},
+    {"name": "item_defect_spacing_no", "title": "Item-defect spacing: without spacing"},
+    {"name": "item_defect_spacing_yes", "title": "Item-defect spacing: with spacing"}
+]
