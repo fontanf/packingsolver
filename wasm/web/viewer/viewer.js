@@ -1,13 +1,14 @@
 // The visualizer of a solution ('solution.js'), in a container of a page:
 // - for the two-dimensional problem types, an overview of all the bins (a
-//   grid, with the number of copies of each bin), and below it a view of one
+//   grid, with the number of copies of each bin; all the bins at the same
+//   scale, in the overview and in the view of a bin), and below it a view of one
 //   bin, changed with the arrows (buttons, or the left and right keys);
 //   clicking a bin of the overview shows it below, and the bin shown is
 //   highlighted in the overview;
 // - for onedimensional, a row for each bin.
 
 import {numberOfBins} from "./solution.js";
-import {renderBin, renderRows} from "./render.js";
+import {binsFrame, renderBin, renderRows} from "./render.js";
 
 function element(name, className, text = null) {
     const e = document.createElement(name);
@@ -39,6 +40,9 @@ export function createViewer(container, solution, {selected = 0} = {}) {
 
     const bins = solution.bins;
     let current = Math.min(Math.max(selected, 0), bins.length - 1);
+    // All the bins at the same scale: in a frame of the size of the largest
+    // one.
+    const frame = binsFrame(bins);
 
     // The overview: a button for each bin.
     const overview = element("div", "viewer-overview");
@@ -48,7 +52,7 @@ export function createViewer(container, solution, {selected = 0} = {}) {
         const cell = element("button", "viewer-cell");
         cell.type = "button";
         cell.title = `Show bin ${bin.index}`;
-        cell.appendChild(renderBin(bin));
+        cell.appendChild(renderBin(bin, {frame}));
         const caption = element("span", "viewer-cell-caption", `Bin ${bin.index}`);
         if (bin.copies > 1)
             caption.append(" ", element("span", "viewer-copies", `×${bin.copies}`));
@@ -114,7 +118,7 @@ export function createViewer(container, solution, {selected = 0} = {}) {
         title.textContent = text;
         previous.disabled = (index === 0);
         next.disabled = (index === bins.length - 1);
-        image.replaceChildren(renderBin(bin, {detail: true}));
+        image.replaceChildren(renderBin(bin, {detail: true, frame}));
     }
 
     if (bins.length > 0)

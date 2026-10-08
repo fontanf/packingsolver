@@ -27,16 +27,30 @@ function boxPath(box) {
     return [[[box.x0, box.y0], [box.x1, box.y0], [box.x1, box.y1], [box.x0, box.y1]]];
 }
 
+// The size of the frame of the bins of a solution: the largest width and the
+// largest height of its bins, so that all its bins are drawn at the same
+// scale.
+export function binsFrame(bins) {
+    return {
+        width: Math.max(0, ...bins.map((bin) => bin.box.x1 - bin.box.x0)),
+        height: Math.max(0, ...bins.map((bin) => bin.box.y1 - bin.box.y0)),
+    };
+}
+
 // The SVG image of a two-dimensional bin. 'detail': with the ids of the item
 // types on the items (if they fit) and a tooltip on each item; otherwise (the
-// overview), the shapes only.
-export function renderBin(bin, {detail = false} = {}) {
+// overview), the shapes only. 'frame': the size of the image ('binsFrame'),
+// the bin being drawn in its bottom-left corner; the size of the bin by
+// default.
+export function renderBin(bin, {detail = false, frame = null} = {}) {
     const {x0, y0, x1, y1} = bin.box;
-    const width = x1 - x0;
-    const height = y1 - y0;
+    const width = (frame !== null)? Math.max(frame.width, x1 - x0): x1 - x0;
+    const height = (frame !== null)? Math.max(frame.height, y1 - y0): y1 - y0;
     const size = Math.max(width, height);
     const margin = 0.02 * size;
-    const top = y1;
+    // The y axis pointing up, the bottom of the bin at the bottom of the
+    // frame.
+    const top = y0 + height;
     const svg = svgElement("svg", {
         viewBox: `${x0 - margin} ${-margin} ${width + 2 * margin} ${height + 2 * margin}`,
         class: "viewer-bin" + (detail? " detail": ""),
