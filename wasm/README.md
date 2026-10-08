@@ -16,21 +16,14 @@ This builds `build_wasm/wasm/packingsolver.js` and `packingsolver.wasm`.
 - `src/packingsolver_wasm.cpp`: the JavaScript API of the module: `solve(problemType, instanceJson, parametersJson)`, which blocks, and `Session`, which doesn't. See the comment at the top of the file.
 - `js/packingsolver_worker.js`: a Web Worker running sessions and posting the solutions to the page.
 - `web/`: the web page.
-  - `viewer/`: the visualizer of the solutions (rectangleguillotine, rectangle, onedimensional, irregular): an overview of all the bins, with their numbers of copies, and a view of one bin below it.
+  - `viewer/`: the visualizer of the solutions of all the problem types: an overview of all the bins, with their numbers of copies, and a view of one bin below it (isometric views for box and boxstacks).
   - `viewer.html`: the solution viewer, a page which shows a certificate of the solvers (see below).
-  - `visualize/`: JavaScript ports of the plotly visualizers of `python/packingsolver/visualize/` (used for box and boxstacks).
 - `tests/`: the tests.
 
 ## Tests
 
 ```shell
 node --test wasm/tests/*.test.js wasm/tests/*.test.mjs
-```
-
-The visualizers are compared with the figures of the Python ones. These are stored in `tests/fixtures/visualize/`, and generated with plotly installed:
-
-```shell
-python3 wasm/tests/generate_visualize_fixtures.py [type ...]
 ```
 
 ## Web page

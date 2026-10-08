@@ -28,7 +28,7 @@
 //    defects3: [box3]}
 // (the defects of boxstacks are on the floor of the bin: 'z0' = 'z1' = 0).
 
-import {parseCsv} from "../visualize/common.js";
+import {parseCsv} from "./common.js";
 
 // The problem types which have a certificate in the CSV format, recognized
 // by the columns of their header.
