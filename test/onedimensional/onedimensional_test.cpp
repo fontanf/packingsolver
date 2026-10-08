@@ -502,4 +502,8 @@ TEST(OneDimensional, ItemNestedLength)
     EXPECT_EQ(solution.item_length(), 210);
     EXPECT_EQ(solution.item_nested_length(), 190);
     EXPECT_EQ(solution.length(), 190);
+    // The waste: the length used, or of the bin, minus the nested length of
+    // the items.
+    EXPECT_EQ(solution.waste(), 0);
+    EXPECT_EQ(solution.full_waste(), 310);
 }

@@ -102,12 +102,12 @@ function density(solution, objective) {
         .map(finite).find((value) => value !== null);
     if (items === undefined)
         return null;
+    const occupied = (finite(solution.ItemNestedLength) !== null)? solution.ItemNestedLength: items;
     let used = null;
     if (finite(solution.Waste) !== null)
-        used = items + solution.Waste;
+        used = occupied + solution.Waste;
     else if (finite(solution.BinArea) !== null && finite(solution.LeftoverValue) !== null)
         used = solution.BinArea - solution.LeftoverValue;
-    const occupied = (finite(solution.ItemNestedLength) !== null)? solution.ItemNestedLength: items;
     return (used !== null && used > 0)? occupied / used: null;
 }
 
