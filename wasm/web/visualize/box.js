@@ -39,6 +39,7 @@ export function figure(text, options = {}) {
     const itemIds = [];
     let maxBinLx = 0;
     let maxBinLy = 0;
+    let maxBinLz = 0;
 
     for (const row of parseCsv(text)) {
         const i = parseInt(row["BIN"], 10);
@@ -57,6 +58,7 @@ export function figure(text, options = {}) {
         if (type === "BIN") {
             maxBinLx = Math.max(maxBinLx, lx);
             maxBinLy = Math.max(maxBinLy, ly);
+            maxBinLz = Math.max(maxBinLz, lz);
             for (const list of [
                 binsX, binsY, binsZ, binsI, binsJ, binsK,
                 defectsX, defectsY, defectsZ, defectsI, defectsJ, defectsK,
@@ -226,10 +228,17 @@ export function figure(text, options = {}) {
     layout.xaxis = {rangeslider: {visible: false}};
     layout.yaxis = {scaleanchor: "x", scaleratio: 1};
     // 'update_scenes'.
+    const largest = Math.max(maxBinLx, maxBinLy, maxBinLz, 1);
     for (const name of Object.keys(layout)) {
         if (!name.startsWith("scene"))
             continue;
-        layout[name].aspectmode = "data";
+        // All the bins at the same scale: the axes of all the scenes span
+        // the largest dimensions of the bins.
+        layout[name].aspectmode = "manual";
+        layout[name].aspectratio = {x: maxBinLx / largest, y: maxBinLy / largest, z: maxBinLz / largest};
+        layout[name].xaxis = {range: [0, maxBinLx]};
+        layout[name].yaxis = {range: [0, maxBinLy]};
+        layout[name].zaxis = {range: [0, maxBinLz]};
         layout[name].camera = {
             center: {x: 0, y: 0, z: -0.25},
             eye: {x: -1.75 / zoom, y: -1.5 / zoom, z: 0.75 / zoom},
