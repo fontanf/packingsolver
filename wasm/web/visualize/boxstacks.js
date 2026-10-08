@@ -59,6 +59,9 @@ export function figure(text, options = {}) {
     let itemIdsZ = [];
     let itemIds = [];
     const binCopies = [];
+    let maxBinLx = 0;
+    let maxBinLy = 0;
+    let maxBinLz = 0;
 
     for (const row of parseCsv(text)) {
         const i = parseInt(row["BIN"], 10);
@@ -76,6 +79,9 @@ export function figure(text, options = {}) {
 
         if (type === "BIN") {
             binCopies.push(("COPIES" in row)? parseInt(row["COPIES"], 10): 1);
+            maxBinLx = Math.max(maxBinLx, lx);
+            maxBinLy = Math.max(maxBinLy, ly);
+            maxBinLz = Math.max(maxBinLz, lz);
             for (const lists of [
                 binsX, binsY, binsZ, binsI, binsJ, binsK,
                 defectsX, defectsY, defectsZ, defectsI, defectsJ, defectsK,
@@ -281,10 +287,17 @@ export function figure(text, options = {}) {
     // create the default 'xaxis' / 'yaxis'.
     layout.xaxis = {rangeslider: {visible: false}};
     layout.yaxis = {scaleanchor: "x", scaleratio: 1};
+    const largest = Math.max(maxBinLx, maxBinLy, maxBinLz, 1);
     for (const key of Object.keys(layout)) {
         if (!/^scene\d*$/.test(key))
             continue;
-        layout[key].aspectmode = "data";
+        // All the bins at the same scale: the axes of all the scenes span
+        // the largest dimensions of the bins.
+        layout[key].aspectmode = "manual";
+        layout[key].aspectratio = {x: maxBinLx / largest, y: maxBinLy / largest, z: maxBinLz / largest};
+        layout[key].xaxis = {range: [0, maxBinLx]};
+        layout[key].yaxis = {range: [0, maxBinLy]};
+        layout[key].zaxis = {range: [0, maxBinLz]};
         layout[key].camera = {
             center: {x: 0, y: 0, z: -0.25},
             eye: {x: -1.75 / zoom, y: -1.5 / zoom, z: 0.75 / zoom},

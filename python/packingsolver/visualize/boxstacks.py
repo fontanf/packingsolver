@@ -77,6 +77,9 @@ def figure(
     item_ids = []
     bin_copies = []
 
+    max_bin_lx = 0
+    max_bin_ly = 0
+    max_bin_lz = 0
     with _open(certificate) as csvfile:
         csvreader = csv.DictReader(csvfile, delimiter=',')
         for row in csvreader:
@@ -95,6 +98,9 @@ def figure(
 
             if type_ == "BIN":
                 bin_copies.append(int(row["COPIES"]) if "COPIES" in row else 1)
+                max_bin_lx = max(max_bin_lx, lx)
+                max_bin_ly = max(max_bin_ly, ly)
+                max_bin_lz = max(max_bin_lz, lz)
                 bins_x.append([])
                 bins_y.append([])
                 bins_z.append([])
@@ -308,8 +314,18 @@ def figure(
     fig.update_yaxes(
             scaleanchor="x",
             scaleratio=1)
+    # All the bins at the same scale: the axes of all the scenes span the
+    # largest dimensions of the bins.
+    largest = max(max_bin_lx, max_bin_ly, max_bin_lz, 1)
     fig.update_scenes(
-            aspectmode='data',
+            aspectmode='manual',
+            aspectratio=dict(
+                x=max_bin_lx / largest,
+                y=max_bin_ly / largest,
+                z=max_bin_lz / largest),
+            xaxis=dict(range=[0, max_bin_lx]),
+            yaxis=dict(range=[0, max_bin_ly]),
+            zaxis=dict(range=[0, max_bin_lz]),
             camera=dict(
                 center=dict(x=0, y=0, z=-0.25),
                 eye=dict(x=-1.75 / zoom, y=-1.5 / zoom, z=0.75 / zoom)))
