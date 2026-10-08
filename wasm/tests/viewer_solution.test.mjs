@@ -7,7 +7,7 @@ import path from "node:path";
 import test from "node:test";
 import {fileURLToPath} from "node:url";
 
-import {parseCsv} from "../web/visualize/common.js";
+import {parseCsv} from "../web/viewer/common.js";
 import * as viewerSolution from "../web/viewer/solution.js";
 
 const TESTS = path.dirname(fileURLToPath(import.meta.url));
@@ -19,9 +19,9 @@ test("viewer: problem types of the certificates", () => {
         rectangleguillotine: read("data", "rectangleguillotine", "tests", "bin_packing_3nvr", "solution.csv"),
         rectangle: read("data", "rectangle", "tests", "bin_packing_merge_identical_items_with_defects", "solution.csv"),
         onedimensional: read("data", "onedimensional", "tests", "bin_packing_perfect_pair", "solution.csv"),
-        irregular: read("wasm", "tests", "fixtures", "visualize", "irregular", "inputs", "arcs_solution.json"),
-        box: read("wasm", "tests", "fixtures", "visualize", "box", "defects.csv"),
-        boxstacks: read("wasm", "tests", "fixtures", "visualize", "boxstacks", "copies.csv"),
+        irregular: read("wasm", "tests", "fixtures", "viewer", "irregular_arcs_solution.json"),
+        box: read("wasm", "tests", "fixtures", "viewer", "box_defects.csv"),
+        boxstacks: read("wasm", "tests", "fixtures", "viewer", "boxstacks_copies.csv"),
     };
     for (const [problemType, text] of Object.entries(certificates))
         assert.strictEqual(viewerSolution.detectProblemType(text), problemType);
@@ -99,7 +99,7 @@ test("viewer: onedimensional", () => {
 test("viewer: irregular", () => {
     // Arcs: closed contours, the points of the arcs on their circles.
     const arcs = viewerSolution.readSolution(
-        read("wasm", "tests", "fixtures", "visualize", "irregular", "inputs", "arcs_solution.json"));
+        read("wasm", "tests", "fixtures", "viewer", "irregular_arcs_solution.json"));
     assert.strictEqual(arcs.problemType, "irregular");
     for (const bin of arcs.bins) {
         for (const item of bin.items) {
@@ -119,7 +119,7 @@ test("viewer: irregular", () => {
     assert.notDeepStrictEqual(item.labelBox, item.box);
     // Holes: a path for each shape of an item, with a contour for the shape
     // and one for each hole.
-    const json = JSON.parse(read("wasm", "tests", "fixtures", "visualize", "irregular", "inputs", "holes_solution.json"));
+    const json = JSON.parse(read("wasm", "tests", "fixtures", "viewer", "irregular_holes_solution.json"));
     const holes = viewerSolution.readSolution(JSON.stringify(json));
     json.bins.forEach((jsonBin, i) => {
         const bin = holes.bins[i];
@@ -157,7 +157,7 @@ test("viewer: all the bins at the same scale", async () => {
 test("viewer: box and boxstacks", async () => {
     const {binsFrame3, paintOrder, rotateBox} = await import("../web/viewer/render3d.js");
     // box: bins and items in three dimensions, with their copies.
-    const text = read("wasm", "tests", "fixtures", "visualize", "box", "defects.csv");
+    const text = read("wasm", "tests", "fixtures", "viewer", "box_defects.csv");
     const rows = parseCsv(text);
     const box = viewerSolution.readSolution(text);
     assert.strictEqual(box.dimensions, 3);
@@ -171,7 +171,7 @@ test("viewer: box and boxstacks", async () => {
     assert.match(bin.items[0].label, /^Item type \d+: \d+ × \d+ × \d+ at \(/);
     // boxstacks: the items with their stacks.
     const boxstacks = viewerSolution.readSolution(
-        read("wasm", "tests", "fixtures", "visualize", "boxstacks", "copies.csv"));
+        read("wasm", "tests", "fixtures", "viewer", "boxstacks_copies.csv"));
     assert.strictEqual(boxstacks.problemType, "boxstacks");
     assert.strictEqual(boxstacks.dimensions, 3);
     assert.ok(boxstacks.bins.every((b) => b.items.every((item) => item.box3.z1 > item.box3.z0)));

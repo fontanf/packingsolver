@@ -1,11 +1,11 @@
 // Drawing of the bins of the visualizer ('solution.js'): a two-dimensional bin
 // as an SVG image, the bins of onedimensional as rows.
 
-import {PASTEL_COLORS} from "../visualize/common.js";
+import {PASTEL_COLORS} from "./common.js";
 
 const SVG = "http://www.w3.org/2000/svg";
 
-// The color of the items of an item type (as the plotly visualizers).
+// The color of the items of an item type (as the Python visualizers).
 export function itemColor(itemTypeId) {
     return PASTEL_COLORS[itemTypeId % PASTEL_COLORS.length];
 }

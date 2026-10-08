@@ -1528,8 +1528,7 @@ function schedulePlot() {
     }, 500);
 }
 
-// The drawing of the solution: the visualizer ('viewer/'), or a plotly
-// figure for the problem types which it doesn't draw (box, boxstacks).
+// The drawing of the solution: the visualizer ('viewer/').
 function clearPlot() {
     $("plot").replaceChildren();
     $("plot").classList.remove("viewer");
