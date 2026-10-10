@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Objectives &#8212; PackingSolver</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="_static/classic.css?v=14e077c0" />
+    <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=a00afc7f" />
+    
+    <script src="_static/documentation_options.js?v=2709fde1"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/design-tabs.js?v=f930bc37"></script>
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Optimization modes" href="optimization_modes.html" />
+    <link rel="prev" title="PackingSolver’s documentation" href="index.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="optimization_modes.html" title="Optimization modes"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="PackingSolver’s documentation"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">PackingSolver</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Objectives</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="objectives">
+<span id="id1"></span><h1>Objectives<a class="headerlink" href="#objectives" title="Link to this heading">¶</a></h1>
+<p>First, the objectives can be classified in two categories:</p>
+<ul class="simple">
+<li><p><strong>input minimization</strong>: pack/cut all items using as few space as possible</p></li>
+<li><p><strong>output maximization</strong>: pack/cut as many items as possible inside all the provided containers</p></li>
+</ul>
+<p>There is a single output maximization objective called <strong>knapsack</strong>.</p>
+<p>There is also a <strong>feasibility</strong> objective that simply checks whether a valid packing exists.</p>
+<p>For input minimization, there are 3 objective types:</p>
+<ul class="simple">
+<li><p><strong>Open-dimension</strong>: there is a single bin and the objective is to minimize the space used in this bin</p></li>
+<li><p><strong>Bin packing</strong>: there are multiple bins, the objective is to use as few bins as possible; bins must be used in the order they are provided</p></li>
+<li><p><strong>Variable-sized bin packing</strong>: there are multiple bins, the objective is to use as few bins as possible; there is no constraint in the order bins are used</p></li>
+</ul>
+<p>The objective of an instance is set as follows (here, bin packing; the examples below use the <a class="reference internal" href="rectangle.html#rectangle"><span class="std std-ref">rectangle</span></a> problem type):</p>
+<div class="sd-tab-set docutils">
+<input checked="checked" id="sd-tab-item-0" name="sd-tab-set-0" type="radio">
+<label class="sd-tab-label" data-sync-group="interface" data-sync-id="web" for="sd-tab-item-0">
+Online solver</label><div class="sd-tab-content docutils">
+<p>Choose the <strong>Objective</strong> of the project.</p>
+</div>
+<input id="sd-tab-item-1" name="sd-tab-set-0" type="radio">
+<label class="sd-tab-label" data-sync-group="interface" data-sync-id="json" for="sd-tab-item-1">
+JSON</label><div class="sd-tab-content docutils">
+<p>In the instance: <code class="docutils literal notranslate"><span class="pre">&quot;objective&quot;:</span> <span class="pre">&quot;bin-packing&quot;</span></code>.</p>
+</div>
+<input id="sd-tab-item-2" name="sd-tab-set-0" type="radio">
+<label class="sd-tab-label" data-sync-group="interface" data-sync-id="python" for="sd-tab-item-2">
+Python</label><div class="sd-tab-content docutils">
+<p><code class="docutils literal notranslate"><span class="pre">instance_builder.set_objective(psr.Objective.BinPacking)</span></code></p>
+</div>
+<input id="sd-tab-item-3" name="sd-tab-set-0" type="radio">
+<label class="sd-tab-label" data-sync-group="interface" data-sync-id="cpp" for="sd-tab-item-3">
+C++</label><div class="sd-tab-content docutils">
+<p><code class="docutils literal notranslate"><span class="pre">instance_builder.set_objective(Objective::BinPacking);</span></code></p>
+</div>
+</div>
+<section id="bin-packing">
+<h2>Bin packing<a class="headerlink" href="#bin-packing" title="Link to this heading">¶</a></h2>
+<p>In bin packing problems, the objective is to <strong>pack/cut all items</strong> in <strong>as few bins as possible</strong>.
+Bins must be used <strong>in the order they are provided</strong>.</p>
+<p>PackingSolver supports two variants of this type of objective:</p>
+<ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">bin-packing</span></code>: minimize the number of bins</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">bin-packing-with-leftovers</span></code>: minimize the number of bins; and then maximize the value of the leftover of the last bin of the solution</p></li>
+</ul>
+<p><strong>Example</strong></p>
+<p>In this example, there are two bin types. The first bin type has 10 copies. To use bins of the second bin type, the solution should already contain the first 10 copies of the first bin type. The solver only needs to use 2 copies of the first bin type to pack all items. Therefore, only the first bin type is used. Since the objective is bin packing with leftovers, the solver optimizes the leftover of the last bin of the solution.</p>
+<img alt="_images/objective_bin_packing_with_leftovers_solution.png" class="align-center" src="_images/objective_bin_packing_with_leftovers_solution.png" />
+<div class="sd-tab-set docutils">
+<input checked="checked" id="sd-tab-item-4" name="sd-tab-set-1" type="radio">
+<label class="sd-tab-label" data-sync-group="interface" data-sync-id="web" for="sd-tab-item-4">
+Online solver</label><div class="sd-tab-content docutils">
+<p>Open the example in the online solver: <a class="reference external" href="https://packingsolver.pages.dev/?example=rectangle/objective_bin_packing_with_leftovers">Objectives: bin packing with leftovers</a>.</p>
+</div>
+<input id="sd-tab-item-5" name="sd-tab-set-1" type="radio">
+<label class="sd-tab-label" data-sync-group="interface" data-sync-id="json" for="sd-tab-item-5">
+JSON</label><div class="sd-tab-content docutils">
+<div class="literal-block-wrapper docutils container" id="id2">
+<div class="code-block-caption"><span class="caption-text">Objectives: bin packing with leftovers</span><a class="headerlink" href="#id2" title="Link to this code">¶</a></div>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;objective&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;bin-packing-with-leftovers&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;bin_types&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="p">{</span><span class="nt">&quot;x&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1000</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;y&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">500</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;copies&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">10</span><span class="p">},</span>
+<span class="w">        </span><span class="p">{</span><span class="nt">&quot;x&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">700</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;y&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">400</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;copies&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">10</span><span class="p">}</span>
+<span class="w">    </span><span class="p">],</span>
+<span class="w">    </span><span class="nt">&quot;item_types&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="p">{</span><span class="nt">&quot;x&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">250</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;y&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">150</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;copies&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">10</span><span class="p">},</span>
+<span class="w">        </span><span class="p">{</span><span class="nt">&quot;x&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">200</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;y&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;copies&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">12</span><span class="p">},</span>
+<span class="w">        </span><span class="p">{</span><span class="nt">&quot;x&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">175</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;y&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">75</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;copies&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">12</span><span class="p">}</span>
+<span class="w">    </span><span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+</div>
+<input id="sd-tab-item-6" name="sd-tab-set-1" type="radio">
+<label class="sd-tab-label" data-sync-group="interface" data-sync-id="python" for="sd-tab-item-6">
+Python</label><div class="sd-tab-content docutils">
+<div class="literal-block-wrapper docutils container" id="id3">
+<div class="code-block-caption"><span class="caption-text">Objectives: bin packing with leftovers</span><a class="headerlink" href="#id3" title="Link to this code">¶</a></div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">packingsolver.rectangle</span> <span class="k">as</span> <span class="nn">psr</span>
+
+<span class="n">instance_builder</span> <span class="o">=</span> <span class="n">psr</span><span class="o">.</span><span class="n">InstanceBuilder</span><span class="p">()</span>
+<span class="n">instance_builder</span><span class="o">.</span><span class="n">set_objective</span><span class="p">(</span><span class="n">psr</span><span class="o">.</span><span class="n">Objective</span><span class="o">.</span><span class="n">BinPackingWithLeftovers</span><span class="p">)</span>
+<span class="n">instance_builder</span><span class="o">.</span><span class="n">add_bin_type</span><span class="p">(</span><span class="mi">1000</span><span class="p">,</span> <span class="mi">500</span><span class="p">,</span> <span class="n">copies</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="n">instance_builder</span><span class="o">.</span><span class="n">add_bin_type</span><span class="p">(</span><span class="mi">700</span><span class="p">,</span> <span class="mi">400</span><span class="p">,</span> <span class="n">copies</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="n">instance_builder</span><span class="o">.</span><span class="n">add_item_type</span><span class="p">(</span><span class="mi">250</span><span class="p">,</span> <span class="mi">150</span><span class="p">,</span> <span class="n">copies</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="n">instance_builder</span><span class="o">.</span><span class="n">add_item_type</span><span class="p">(</span><span class="mi">200</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="n">copies</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
+<span class="n">instance_builder</span><span class="o">.</span><span class="n">add_item_type</span><span class="p">(</span><span class="mi">175</span><span class="p">,</span> <span class="mi">75</span><span class="p">,</span> <span class="n">copies</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
+<span class="n">instance</span> <span class="o">=</span> <span class="n">instance_builder</span><span class="o">.</span><span class="n">build</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+</div>
+<input id="sd-tab-item-7" name="sd-tab-set-1" type="radio">
+<label class="sd-tab-label" data-sync-group="interface" data-sync-id="cpp" for="sd-tab-item-7">
+C++</label><div class="sd-tab-content docutils">
+<div class="literal-block-wrapper docutils container" id="id4">
+<div class="code-block-caption"><span class="caption-text">Objectives: bin packing with leftovers</span><a class="headerlink" href="#id4" title="Link to this code">¶</a></div>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;packingsolver/rectangle/instance_builder.hpp&quot;</span>
+
+<span class="k">using</span><span class="w"> </span><span class="k">namespace</span><span class="w"> </span><span class="nn">packingsolver</span><span class="p">;</span>
+<span class="k">using</span><span class="w"> </span><span class="k">namespace</span><span class="w"> </span><span class="nn">packingsolver</span><span class="o">::</span><span class="nn">rectangle</span><span class="p">;</span>
+
+<span class="n">InstanceBuilder</span><span class="w"> </span><span class="n">instance_builder</span><span class="p">;</span>
+<span class="n">instance_builder</span><span class="p">.</span><span class="n">set_objective</span><span class="p">(</span><span class="n">Objective</span><span class="o">::</span><span class="n">BinPackingWithLeftovers</span><span class="p">);</span>
+<span class="n">BinTypeId</span><span class="w"> </span><span class="n">bin_type_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">instance_builder</span><span class="p">.</span><span class="n">add_bin_type</span><span class="p">(</span><span class="mi">1000</span><span class="p">,</span><span class="w"> </span><span class="mi">500</span><span class="p">);</span>
+<span class="n">instance_builder</span><span class="p">.</span><span class="n">set_bin_type_copies</span><span class="p">(</span><span class="n">bin_type_id</span><span class="p">,</span><span class="w"> </span><span class="mi">10</span><span class="p">);</span>
+<span class="n">bin_type_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">instance_builder</span><span class="p">.</span><span class="n">add_bin_type</span><span class="p">(</span><span class="mi">700</span><span class="p">,</span><span class="w"> </span><span class="mi">400</span><span class="p">);</span>
+<span class="n">instance_builder</span><span class="p">.</span><span class="n">set_bin_type_copies</span><span class="p">(</span><span class="n">bin_type_id</span><span class="p">,</span><span class="w"> </span><span class="mi">10</span><span class="p">);</span>
+<span class="n">ItemTypeId</span><span class="w"> </span><span class="n">item_type_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">instance_builder</span><span class="p">.</span><span class="n">add_item_type</span><span class="p">(</span><span class="mi">250</span><span class="p">,</span><span class="w"> </span><span class="mi">150</span><span class="p">);</span>
+<span class="n">instance_builder</span><span class="p">.</span><span class="n">set_item_type_copies</span><span class="p">(</span><span class="n">item_type_id</span><span class="p">,</span><span class="w"> </span><span class="mi">10</span><span class="p">);</span>
+<span class="n">item_type_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">instance_builder</span><span class="p">.</span><span class="n">add_item_type</span><span class="p">(</span><span class="mi">200</span><span class="p">,</span><span class="w"> </span><span class="mi">100</span><span class="p">);</span>
+<span class="n">instance_builder</span><span class="p">.</span><span class="n">set_item_type_copies</span><span class="p">(</span><span class="n">item_type_id</span><span class="p">,</span><span class="w"> </span><span class="mi">12</span><span class="p">);</span>
+<span class="n">item_type_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">instance_builder</span><span class="p">.</span><span class="n">add_item_type</span><span class="p">(</span><span class="mi">175</span><span class="p">,</span><span class="w"> </span><span class="mi">75</span><span class="p">);</span>
+<span class="n">instance_builder</span><span class="p">.</span><span class="n">set_item_type_copies</span><span class="p">(</span><span class="n">item_type_id</span><span class="p">,</span><span class="w"> </span><span class="mi">12</span><span class="p">);</span>
+<span class="n">Instance</span><span class="w"> </span><span class="n">instance</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">instance_builder</span><span class="p">.</span><span class="n">build</span><span class="p">();</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<section id="variable-sized-bin-packing">
+<h2>Variable-sized bin packing<a class="headerlink" href="#variable-sized-bin-packing" title="Link to this heading">¶</a></h2>
+<p>In variable-sized bin packing problems, the objective is to <strong>pack/cut all items</strong> in <strong>the cheapest bins as possible</strong>.
+There is <strong>no constraint in the order</strong> bins are used.</p>
+<p>Each bin has an associated cost. If no cost is provided, then the cost of a bin is its space (length, area, volume).</p>
+<p><strong>Example</strong></p>
+<p>The input is the same as the previous one. With the variable-sized bin packing objective, the solver can use the second bin type to minimize the overall waste.</p>
+<img alt="_images/objective_variable_sized_bin_packing_solution.png" class="align-center" src="_images/objective_variable_sized_bin_packing_solution.png" />
+<div class="sd-tab-set docutils">
+<input checked="checked" id="sd-tab-item-8" name="sd-tab-set-2" type="radio">
+<label class="sd-tab-label" data-sync-group="interface" data-sync-id="web" for="sd-tab-item-8">
+Online solver</label><div class="sd-tab-content docutils">
+<p>Open the example in the online solver: <a class="reference external" href="https://packingsolver.pages.dev/?example=rectangle/objective_variable_sized_bin_packing">Objectives: variable-sized bin packing</a>.</p>
+</div>
+<input id="sd-tab-item-9" name="sd-tab-set-2" type="radio">
+<label class="sd-tab-label" data-sync-group="interface" data-sync-id="json" for="sd-tab-item-9">
+JSON</label><div class="sd-tab-content docutils">
+<div class="literal-block-wrapper docutils container" id="id5">
+<div class="code-block-caption"><span class="caption-text">Objectives: variable-sized bin packing</span><a class="headerlink" href="#id5" title="Link to this code">¶</a></div>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;objective&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;variable-sized-bin-packing&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;bin_types&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="p">{</span><span class="nt">&quot;x&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1000</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;y&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">500</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;copies&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">10</span><span class="p">},</span>
+<span class="w">        </span><span class="p">{</span><span class="nt">&quot;x&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">700</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;y&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">400</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;copies&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">10</span><span class="p">}</span>
+<span class="w">    </span><span class="p">],</span>
+<span class="w">    </span><span class="nt">&quot;item_types&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="p">{</span><span class="nt">&quot;x&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">250</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;y&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">150</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;copies&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">10</span><span class="p">},</span>
+<span class="w">        </span><span class="p">{</span><span class="nt">&quot;x&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">200</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;y&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;copies&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">12</span><span class="p">},</span>
+<span class="w">        </span><span class="p">{</span><span class="nt">&quot;x&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">175</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;y&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">75</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;copies&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">12</span><span class="p">}</span>
+<span class="w">    </span><span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+</div>
+<input id="sd-tab-item-10" name="sd-tab-set-2" type="radio">
+<label class="sd-tab-label" data-sync-group="interface" data-sync-id="python" for="sd-tab-item-10">
+Python</label><div class="sd-tab-content docutils">
+<div class="literal-block-wrapper docutils container" id="id6">
+<div class="code-block-caption"><span class="caption-text">Objectives: variable-sized bin packing</span><a class="headerlink" href="#id6" title="Link to this code">¶</a></div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">packingsolver.rectangle</span> <span class="k">as</span> <span class="nn">psr</span>
+
+<span class="n">instance_builder</span> <span class="o">=</span> <span class="n">psr</span><span class="o">.</span><span class="n">InstanceBuilder</span><span class="p">()</span>
+<span class="n">instance_builder</span><span class="o">.</span><span class="n">set_objective</span><span class="p">(</span><span class="n">psr</span><span class="o">.</span><span class="n">Objective</span><span class="o">.</span><span class="n">VariableSizedBinPacking</span><span class="p">)</span>
+<span class="n">instance_builder</span><span class="o">.</span><span class="n">add_bin_type</span><span class="p">(</span><span class="mi">1000</span><span class="p">,</span> <span class="mi">500</span><span class="p">,</span> <span class="n">copies</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="n">instance_builder</span><span class="o">.</span><span class="n">add_bin_type</span><span class="p">(</span><span class="mi">700</span><span class="p">,</span> <span class="mi">400</span><span class="p">,</span> <span class="n">copies</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="n">instance_builder</span><span class="o">.</span><span class="n">add_item_type</span><span class="p">(</span><span class="mi">250</span><span class="p">,</span> <span class="mi">150</span><span class="p">,</span> <span class="n">copies</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="n">instance_builder</span><span class="o">.</span><span class="n">add_item_type</span><span class="p">(</span><span class="mi">200</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="n">copies</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
+<span class="n">instance_builder</span><span class="o">.</span><span class="n">add_item_type</span><span class="p">(</span><span class="mi">175</span><span class="p">,</span> <span class="mi">75</span><span class="p">,</span> <span class="n">copies</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
+<span class="n">instance</span> <span class="o">=</span> <span class="n">instance_builder</span><span class="o">.</span><span class="n">build</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+</div>
+<input id="sd-tab-item-11" name="sd-tab-set-2" type="radio">
+<label class="sd-tab-label" data-sync-group="interface" data-sync-id="cpp" for="sd-tab-item-11">
+C++</label><div class="sd-tab-content docutils">
+<div class="literal-block-wrapper docutils container" id="id7">
+<div class="code-block-caption"><span class="caption-text">Objectives: variable-sized bin packing</span><a class="headerlink" href="#id7" title="Link to this code">¶</a></div>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;packingsolver/rectangle/instance_builder.hpp&quot;</span>
+
+<span class="k">using</span><span class="w"> </span><span class="k">namespace</span><span class="w"> </span><span class="nn">packingsolver</span><span class="p">;</span>
+<span class="k">using</span><span class="w"> </span><span class="k">namespace</span><span class="w"> </span><span class="nn">packingsolver</span><span class="o">::</span><span class="nn">rectangle</span><span class="p">;</span>
+
+<span class="n">InstanceBuilder</span><span class="w"> </span><span class="n">instance_builder</span><span class="p">;</span>
+<span class="n">instance_builder</span><span class="p">.</span><span class="n">set_objective</span><span class="p">(</span><span class="n">Objective</span><span class="o">::</span><span class="n">VariableSizedBinPacking</span><span class="p">);</span>
+<span class="n">BinTypeId</span><span class="w"> </span><span class="n">bin_type_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">instance_builder</span><span class="p">.</span><span class="n">add_bin_type</span><span class="p">(</span><span class="mi">1000</span><span class="p">,</span><span class="w"> </span><span class="mi">500</span><span class="p">);</span>
+<span class="n">instance_builder</span><span class="p">.</span><span class="n">set_bin_type_copies</span><span class="p">(</span><span class="n">bin_type_id</span><span class="p">,</span><span class="w"> </span><span class="mi">10</span><span class="p">);</span>
+<span class="n">bin_type_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">instance_builder</span><span class="p">.</span><span class="n">add_bin_type</span><span class="p">(</span><span class="mi">700</span><span class="p">,</span><span class="w"> </span><span class="mi">400</span><span class="p">);</span>
+<span class="n">instance_builder</span><span class="p">.</span><span class="n">set_bin_type_copies</span><span class="p">(</span><span class="n">bin_type_id</span><span class="p">,</span><span class="w"> </span><span class="mi">10</span><span class="p">);</span>
+<span class="n">ItemTypeId</span><span class="w"> </span><span class="n">item_type_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">instance_builder</span><span class="p">.</span><span class="n">add_item_type</span><span class="p">(</span><span class="mi">250</span><span class="p">,</span><span class="w"> </span><span class="mi">150</span><span class="p">);</span>
+<span class="n">instance_builder</span><span class="p">.</span><span class="n">set_item_type_copies</span><span class="p">(</span><span class="n">item_type_id</span><span class="p">,</span><span class="w"> </span><span class="mi">10</span><span class="p">);</span>
+<span class="n">item_type_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">instance_builder</span><span class="p">.</span><span class="n">add_item_type</span><span class="p">(</span><span class="mi">200</span><span class="p">,</span><span class="w"> </span><span class="mi">100</span><span class="p">);</span>
+<span class="n">instance_builder</span><span class="p">.</span><span class="n">set_item_type_copies</span><span class="p">(</span><span class="n">item_type_id</span><span class="p">,</span><span class="w"> </span><span class="mi">12</span><span class="p">);</span>
+<span class="n">item_type_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">instance_builder</span><span class="p">.</span><span class="n">add_item_type</span><span class="p">(</span><span class="mi">175</span><span class="p">,</span><span class="w"> </span><span class="mi">75</span><span class="p">);</span>
+<span class="n">instance_builder</span><span class="p">.</span><span class="n">set_item_type_copies</span><span class="p">(</span><span class="n">item_type_id</span><span class="p">,</span><span class="w"> </span><span class="mi">12</span><span class="p">);</span>
+<span class="n">Instance</span><span class="w"> </span><span class="n">instance</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">instance_builder</span><span class="p">.</span><span class="n">build</span><span class="p">();</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<section id="open-dimension">
+<h2>Open-dimension<a class="headerlink" href="#open-dimension" title="Link to this heading">¶</a></h2>
+<p>In open-dimension problems, the objective is to <strong>pack/cut all items</strong> in a single bin using <strong>as few space as possible</strong> on the bin. As few space as possible may for example mean:</p>
+<ul class="simple">
+<li><p>minimize the width used</p></li>
+<li><p>minimize the height used</p></li>
+<li><p>minimize the rectangular area used</p></li>
+<li><p>minimize the circular area used</p></li>
+</ul>
+<p>PackingSolver currently supports the objectives:</p>
+<ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">open-dimension-x</span></code>: minimize the width used</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">open-dimension-y</span></code>: minimize the height used</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">open-dimension-z</span></code>: minimize the height used, for the <a class="reference internal" href="box.html#box"><span class="std std-ref">box</span></a> problem type</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">open-dimension-xy</span></code>: minimize the area used, with a given aspect ratio, for the <a class="reference internal" href="irregular.html#irregular"><span class="std std-ref">irregular</span></a> problem type</p></li>
+</ul>
+<p>The open-dimension objectives are available for all the problem types except <a class="reference internal" href="onedimensional.html#onedimensional"><span class="std std-ref">one-dimensional</span></a>.</p>
+<p><strong>Example</strong></p>
+<img alt="_images/objective_open_dimension_x_solution.png" class="align-center" src="_images/objective_open_dimension_x_solution.png" />
+<div class="sd-tab-set docutils">
+<input checked="checked" id="sd-tab-item-12" name="sd-tab-set-3" type="radio">
+<label class="sd-tab-label" data-sync-group="interface" data-sync-id="web" for="sd-tab-item-12">
+Online solver</label><div class="sd-tab-content docutils">
+<p>Open the example in the online solver: <a class="reference external" href="https://packingsolver.pages.dev/?example=rectangle/objective_open_dimension_x">Objectives: open dimension X</a>.</p>
+</div>
+<input id="sd-tab-item-13" name="sd-tab-set-3" type="radio">
+<label class="sd-tab-label" data-sync-group="interface" data-sync-id="json" for="sd-tab-item-13">
+JSON</label><div class="sd-tab-content docutils">
+<div class="literal-block-wrapper docutils container" id="id8">
+<div class="code-block-caption"><span class="caption-text">Objectives: open dimension X</span><a class="headerlink" href="#id8" title="Link to this code">¶</a></div>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;objective&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;open-dimension-x&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;bin_types&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="p">{</span><span class="nt">&quot;x&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2000</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;y&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">500</span><span class="p">}</span>
+<span class="w">    </span><span class="p">],</span>
+<span class="w">    </span><span class="nt">&quot;item_types&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="p">{</span><span class="nt">&quot;x&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">250</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;y&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">150</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;copies&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">10</span><span class="p">},</span>
+<span class="w">        </span><span class="p">{</span><span class="nt">&quot;x&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">200</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;y&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;copies&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">12</span><span class="p">},</span>
+<span class="w">        </span><span class="p">{</span><span class="nt">&quot;x&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">175</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;y&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">75</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;copies&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">12</span><span class="p">}</span>
+<span class="w">    </span><span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+</div>
+<input id="sd-tab-item-14" name="sd-tab-set-3" type="radio">
+<label class="sd-tab-label" data-sync-group="interface" data-sync-id="python" for="sd-tab-item-14">
+Python</label><div class="sd-tab-content docutils">
+<div class="literal-block-wrapper docutils container" id="id9">
+<div class="code-block-caption"><span class="caption-text">Objectives: open dimension X</span><a class="headerlink" href="#id9" title="Link to this code">¶</a></div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">packingsolver.rectangle</span> <span class="k">as</span> <span class="nn">psr</span>
+
+<span class="n">instance_builder</span> <span class="o">=</span> <span class="n">psr</span><span class="o">.</span><span class="n">InstanceBuilder</span><span class="p">()</span>
+<span class="n">instance_builder</span><span class="o">.</span><span class="n">set_objective</span><span class="p">(</span><span class="n">psr</span><span class="o">.</span><span class="n">Objective</span><span class="o">.</span><span class="n">OpenDimensionX</span><span class="p">)</span>
+<span class="n">instance_builder</span><span class="o">.</span><span class="n">add_bin_type</span><span class="p">(</span><span class="mi">2000</span><span class="p">,</span> <span class="mi">500</span><span class="p">)</span>
+<span class="n">instance_builder</span><span class="o">.</span><span class="n">add_item_type</span><span class="p">(</span><span class="mi">250</span><span class="p">,</span> <span class="mi">150</span><span class="p">,</span> <span class="n">copies</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="n">instance_builder</span><span class="o">.</span><span class="n">add_item_type</span><span class="p">(</span><span class="mi">200</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="n">copies</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
+<span class="n">instance_builder</span><span class="o">.</span><span class="n">add_item_type</span><span class="p">(</span><span class="mi">175</span><span class="p">,</span> <span class="mi">75</span><span class="p">,</span> <span class="n">copies</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
+<span class="n">instance</span> <span class="o">=</span> <span class="n">instance_builder</span><span class="o">.</span><span class="n">build</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+</div>
+<input id="sd-tab-item-15" name="sd-tab-set-3" type="radio">
+<label class="sd-tab-label" data-sync-group="interface" data-sync-id="cpp" for="sd-tab-item-15">
+C++</label><div class="sd-tab-content docutils">
+<div class="literal-block-wrapper docutils container" id="id10">
+<div class="code-block-caption"><span class="caption-text">Objectives: open dimension X</span><a class="headerlink" href="#id10" title="Link to this code">¶</a></div>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;packingsolver/rectangle/instance_builder.hpp&quot;</span>
+
+<span class="k">using</span><span class="w"> </span><span class="k">namespace</span><span class="w"> </span><span class="nn">packingsolver</span><span class="p">;</span>
+<span class="k">using</span><span class="w"> </span><span class="k">namespace</span><span class="w"> </span><span class="nn">packingsolver</span><span class="o">::</span><span class="nn">rectangle</span><span class="p">;</span>
+
+<span class="n">InstanceBuilder</span><span class="w"> </span><span class="n">instance_builder</span><span class="p">;</span>
+<span class="n">instance_builder</span><span class="p">.</span><span class="n">set_objective</span><span class="p">(</span><span class="n">Objective</span><span class="o">::</span><span class="n">OpenDimensionX</span><span class="p">);</span>
+<span class="n">instance_builder</span><span class="p">.</span><span class="n">add_bin_type</span><span class="p">(</span><span class="mi">2000</span><span class="p">,</span><span class="w"> </span><span class="mi">500</span><span class="p">);</span>
+<span class="n">ItemTypeId</span><span class="w"> </span><span class="n">item_type_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">instance_builder</span><span class="p">.</span><span class="n">add_item_type</span><span class="p">(</span><span class="mi">250</span><span class="p">,</span><span class="w"> </span><span class="mi">150</span><span class="p">);</span>
+<span class="n">instance_builder</span><span class="p">.</span><span class="n">set_item_type_copies</span><span class="p">(</span><span class="n">item_type_id</span><span class="p">,</span><span class="w"> </span><span class="mi">10</span><span class="p">);</span>
+<span class="n">item_type_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">instance_builder</span><span class="p">.</span><span class="n">add_item_type</span><span class="p">(</span><span class="mi">200</span><span class="p">,</span><span class="w"> </span><span class="mi">100</span><span class="p">);</span>
+<span class="n">instance_builder</span><span class="p">.</span><span class="n">set_item_type_copies</span><span class="p">(</span><span class="n">item_type_id</span><span class="p">,</span><span class="w"> </span><span class="mi">12</span><span class="p">);</span>
+<span class="n">item_type_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">instance_builder</span><span class="p">.</span><span class="n">add_item_type</span><span class="p">(</span><span class="mi">175</span><span class="p">,</span><span class="w"> </span><span class="mi">75</span><span class="p">);</span>
+<span class="n">instance_builder</span><span class="p">.</span><span class="n">set_item_type_copies</span><span class="p">(</span><span class="n">item_type_id</span><span class="p">,</span><span class="w"> </span><span class="mi">12</span><span class="p">);</span>
+<span class="n">Instance</span><span class="w"> </span><span class="n">instance</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">instance_builder</span><span class="p">.</span><span class="n">build</span><span class="p">();</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<section id="knapsack">
+<h2>Knapsack<a class="headerlink" href="#knapsack" title="Link to this heading">¶</a></h2>
+<p>In knapsack problems, the objective is to <strong>maximize the value of the items packed/cut</strong> inside <strong>all the provided containers</strong>.</p>
+<p>Each item has an associated profit. If no profit is provided, then the profit of an item is its space (length, area, volume).</p>
+<p><strong>Example</strong></p>
+<p>The items are the same as in the previous examples. Only 2 copies of the small bin type are available. This is not enough to pack all the items.</p>
+<img alt="_images/objective_knapsack_solution.png" class="align-center" src="_images/objective_knapsack_solution.png" />
+<div class="sd-tab-set docutils">
+<input checked="checked" id="sd-tab-item-16" name="sd-tab-set-4" type="radio">
+<label class="sd-tab-label" data-sync-group="interface" data-sync-id="web" for="sd-tab-item-16">
+Online solver</label><div class="sd-tab-content docutils">
+<p>Open the example in the online solver: <a class="reference external" href="https://packingsolver.pages.dev/?example=rectangle/objective_knapsack">Objectives: knapsack</a>.</p>
+</div>
+<input id="sd-tab-item-17" name="sd-tab-set-4" type="radio">
+<label class="sd-tab-label" data-sync-group="interface" data-sync-id="json" for="sd-tab-item-17">
+JSON</label><div class="sd-tab-content docutils">
+<div class="literal-block-wrapper docutils container" id="id11">
+<div class="code-block-caption"><span class="caption-text">Objectives: knapsack</span><a class="headerlink" href="#id11" title="Link to this code">¶</a></div>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;objective&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;knapsack&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;bin_types&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="p">{</span><span class="nt">&quot;x&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">700</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;y&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">400</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;copies&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="p">}</span>
+<span class="w">    </span><span class="p">],</span>
+<span class="w">    </span><span class="nt">&quot;item_types&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="p">{</span><span class="nt">&quot;x&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">250</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;y&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">150</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;copies&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">10</span><span class="p">},</span>
+<span class="w">        </span><span class="p">{</span><span class="nt">&quot;x&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">200</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;y&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;copies&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">12</span><span class="p">},</span>
+<span class="w">        </span><span class="p">{</span><span class="nt">&quot;x&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">175</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;y&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">75</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;copies&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">12</span><span class="p">}</span>
+<span class="w">    </span><span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+</div>
+<input id="sd-tab-item-18" name="sd-tab-set-4" type="radio">
+<label class="sd-tab-label" data-sync-group="interface" data-sync-id="python" for="sd-tab-item-18">
+Python</label><div class="sd-tab-content docutils">
+<div class="literal-block-wrapper docutils container" id="id12">
+<div class="code-block-caption"><span class="caption-text">Objectives: knapsack</span><a class="headerlink" href="#id12" title="Link to this code">¶</a></div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">packingsolver.rectangle</span> <span class="k">as</span> <span class="nn">psr</span>
+
+<span class="n">instance_builder</span> <span class="o">=</span> <span class="n">psr</span><span class="o">.</span><span class="n">InstanceBuilder</span><span class="p">()</span>
+<span class="n">instance_builder</span><span class="o">.</span><span class="n">set_objective</span><span class="p">(</span><span class="n">psr</span><span class="o">.</span><span class="n">Objective</span><span class="o">.</span><span class="n">Knapsack</span><span class="p">)</span>
+<span class="n">instance_builder</span><span class="o">.</span><span class="n">add_bin_type</span><span class="p">(</span><span class="mi">700</span><span class="p">,</span> <span class="mi">400</span><span class="p">,</span> <span class="n">copies</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">instance_builder</span><span class="o">.</span><span class="n">add_item_type</span><span class="p">(</span><span class="mi">250</span><span class="p">,</span> <span class="mi">150</span><span class="p">,</span> <span class="n">copies</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="n">instance_builder</span><span class="o">.</span><span class="n">add_item_type</span><span class="p">(</span><span class="mi">200</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="n">copies</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
+<span class="n">instance_builder</span><span class="o">.</span><span class="n">add_item_type</span><span class="p">(</span><span class="mi">175</span><span class="p">,</span> <span class="mi">75</span><span class="p">,</span> <span class="n">copies</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
+<span class="n">instance</span> <span class="o">=</span> <span class="n">instance_builder</span><span class="o">.</span><span class="n">build</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+</div>
+<input id="sd-tab-item-19" name="sd-tab-set-4" type="radio">
+<label class="sd-tab-label" data-sync-group="interface" data-sync-id="cpp" for="sd-tab-item-19">
+C++</label><div class="sd-tab-content docutils">
+<div class="literal-block-wrapper docutils container" id="id13">
+<div class="code-block-caption"><span class="caption-text">Objectives: knapsack</span><a class="headerlink" href="#id13" title="Link to this code">¶</a></div>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;packingsolver/rectangle/instance_builder.hpp&quot;</span>
+
+<span class="k">using</span><span class="w"> </span><span class="k">namespace</span><span class="w"> </span><span class="nn">packingsolver</span><span class="p">;</span>
+<span class="k">using</span><span class="w"> </span><span class="k">namespace</span><span class="w"> </span><span class="nn">packingsolver</span><span class="o">::</span><span class="nn">rectangle</span><span class="p">;</span>
+
+<span class="n">InstanceBuilder</span><span class="w"> </span><span class="n">instance_builder</span><span class="p">;</span>
+<span class="n">instance_builder</span><span class="p">.</span><span class="n">set_objective</span><span class="p">(</span><span class="n">Objective</span><span class="o">::</span><span class="n">Knapsack</span><span class="p">);</span>
+<span class="n">BinTypeId</span><span class="w"> </span><span class="n">bin_type_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">instance_builder</span><span class="p">.</span><span class="n">add_bin_type</span><span class="p">(</span><span class="mi">700</span><span class="p">,</span><span class="w"> </span><span class="mi">400</span><span class="p">);</span>
+<span class="n">instance_builder</span><span class="p">.</span><span class="n">set_bin_type_copies</span><span class="p">(</span><span class="n">bin_type_id</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">);</span>
+<span class="n">ItemTypeId</span><span class="w"> </span><span class="n">item_type_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">instance_builder</span><span class="p">.</span><span class="n">add_item_type</span><span class="p">(</span><span class="mi">250</span><span class="p">,</span><span class="w"> </span><span class="mi">150</span><span class="p">);</span>
+<span class="n">instance_builder</span><span class="p">.</span><span class="n">set_item_type_copies</span><span class="p">(</span><span class="n">item_type_id</span><span class="p">,</span><span class="w"> </span><span class="mi">10</span><span class="p">);</span>
+<span class="n">item_type_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">instance_builder</span><span class="p">.</span><span class="n">add_item_type</span><span class="p">(</span><span class="mi">200</span><span class="p">,</span><span class="w"> </span><span class="mi">100</span><span class="p">);</span>
+<span class="n">instance_builder</span><span class="p">.</span><span class="n">set_item_type_copies</span><span class="p">(</span><span class="n">item_type_id</span><span class="p">,</span><span class="w"> </span><span class="mi">12</span><span class="p">);</span>
+<span class="n">item_type_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">instance_builder</span><span class="p">.</span><span class="n">add_item_type</span><span class="p">(</span><span class="mi">175</span><span class="p">,</span><span class="w"> </span><span class="mi">75</span><span class="p">);</span>
+<span class="n">instance_builder</span><span class="p">.</span><span class="n">set_item_type_copies</span><span class="p">(</span><span class="n">item_type_id</span><span class="p">,</span><span class="w"> </span><span class="mi">12</span><span class="p">);</span>
+<span class="n">Instance</span><span class="w"> </span><span class="n">instance</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">instance_builder</span><span class="p">.</span><span class="n">build</span><span class="p">();</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<section id="feasibility">
+<h2>Feasibility<a class="headerlink" href="#feasibility" title="Link to this heading">¶</a></h2>
+<p>In feasibility problems, the objective is simply to <strong>determine whether a valid packing exists</strong> — no optimization is performed.</p>
+<p>The solver returns a solution as soon as it finds one valid placement of all items, or reports that no feasible packing was found.</p>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+<h3><a href="index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="index.html">PackingSolver’s documentation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Objectives</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#bin-packing">Bin packing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#variable-sized-bin-packing">Variable-sized bin packing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#open-dimension">Open-dimension</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#knapsack">Knapsack</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#feasibility">Feasibility</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="optimization_modes.html">Optimization modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="internals/overview.html">Solver internals</a></li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="optimization_modes.html" title="Optimization modes"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="PackingSolver’s documentation"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">PackingSolver</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Objectives</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2019-2024, Florian Fontan.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    </div>
+  </body>
+</html>
