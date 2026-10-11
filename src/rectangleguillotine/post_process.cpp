@@ -136,6 +136,20 @@ static bool build_region(
 
     std::vector<CutGroup> groups = find_groups(items, is_vertical, cut_thickness);
 
+    // If the waste between two consecutive groups is too narrow for a cut of
+    // its own (see below), cut just before the next group instead: the waste
+    // stays at the end of the sub-region of the first group. Otherwise, the
+    // sub-region of the next group would start before its items and never
+    // match them, recursing indefinitely.
+    for (std::size_t group_pos = 0; group_pos + 1 < groups.size(); ++group_pos) {
+        Length next_group_start = is_vertical?
+            groups[group_pos + 1].items.front().l:
+            groups[group_pos + 1].items.front().b;
+        Length gap = next_group_start - cut_thickness - groups[group_pos].cut_position;
+        if (gap > 0 && gap <= cut_thickness)
+            groups[group_pos].cut_position = next_group_start - cut_thickness;
+    }
+
     // prev_pos tracks the start of the current sub-region in the cut direction.
     Length prev_pos = is_vertical? l: b;
 
@@ -156,6 +170,10 @@ static bool build_region(
             builder.add_node(depth, group_start - cut_thickness);
             prev_pos = group_start;
         }
+        // A waste too narrow for a cut before the items of the group: they
+        // can't be in a sub-region of their own.
+        if (group_start > prev_pos)
+            return false;
 
         builder.add_node(depth, group.cut_position);
 

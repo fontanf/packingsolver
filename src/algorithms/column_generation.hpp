@@ -53,8 +53,10 @@
 #include <array>
 #include <set>
 #include <sstream>
+#include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 
 namespace packingsolver
 {
@@ -239,6 +241,44 @@ private:
     /** See 'has_cached_maximum_number_of_bins_'. */
     BinPos cached_maximum_number_of_bins_ = -1;
 
+};
+
+/**
+ * Whether an instance builder has a 'set_knapsack_goal' method (see
+ * 'solve_pricing').
+ */
+template <typename...>
+struct VoidType
+{
+    typedef void type;
+};
+
+template <typename InstanceBuilder, typename = void>
+struct HasSetKnapsackGoal: std::false_type { };
+
+template <typename InstanceBuilder>
+struct HasSetKnapsackGoal<
+    InstanceBuilder,
+    typename VoidType<decltype(std::declval<InstanceBuilder&>().set_knapsack_goal(Profit()))>::type>:
+    std::true_type { };
+
+/**
+ * Set the knapsack goal of an instance builder, if it has a
+ * 'set_knapsack_goal' method.
+ */
+template <typename InstanceBuilder, bool = HasSetKnapsackGoal<InstanceBuilder>::value>
+struct KnapsackGoalSetter
+{
+    static void set(InstanceBuilder&, Profit) { }
+};
+
+template <typename InstanceBuilder>
+struct KnapsackGoalSetter<InstanceBuilder, true>
+{
+    static void set(InstanceBuilder& instance_builder, Profit knapsack_goal)
+    {
+        instance_builder.set_knapsack_goal(knapsack_goal);
+    }
 };
 
 template <typename Instance, typename InstanceBuilder, typename Solution, typename Output>
@@ -632,6 +672,27 @@ PricingOutput ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution,
                         kp_item_type_id,
                         schedule);
             }
+        }
+
+        // The knapsack goal: the profit above which a column has a negative
+        // reduced cost. A primal pricing call only needs such a column, so
+        // the pricing solver can stop as soon as it finds one (with a small
+        // margin, so that the column is not discarded because of rounding
+        // errors). A dual pricing call needs the optimal column.
+        if (pricing_type == PricingType::Primal) {
+            Profit threshold = std::numeric_limits<Profit>::infinity();
+            if (instance_.objective() == Objective::VariableSizedBinPacking
+                    || instance_.objective() == Objective::BinPacking) {
+                threshold = (solve_feasibility? 0: bin_type.cost / multiplier_cost)
+                    - duals[bin_type_id];
+            } else if (instance_.objective() == Objective::Feasibility) {
+                threshold = (solve_feasibility? 0: 1) - duals[bin_type_id];
+            } else if (instance_.objective() == Objective::Knapsack) {
+                threshold = duals[bin_type_id] * multiplier_profit;
+            }
+            KnapsackGoalSetter<InstanceBuilder>::set(
+                    kp_instance_builder,
+                    threshold + 1e-6 * (std::max)(1.0, std::abs(threshold)));
         }
 
         Instance kp_instance = kp_instance_builder.build();

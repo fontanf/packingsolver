@@ -3,6 +3,7 @@
 #include "packingsolver/algorithms/common.hpp"
 
 #include <functional>
+#include <limits>
 
 namespace packingsolver
 {
@@ -390,6 +391,14 @@ public:
     /** Get the objective of the problem. */
     inline Objective objective() const { return objective_; }
 
+    /**
+     * Get the knapsack goal: for the 'Knapsack' objective, a solution whose
+     * profit reaches it is considered optimal, and the search stops (e.g. a
+     * pricing problem of a column generation, which only needs a column of
+     * negative reduced cost). Infinite by default.
+     */
+    inline Profit knapsack_goal() const { return knapsack_goal_; }
+
     /*
      * Getters: parameters
      */
@@ -612,6 +621,9 @@ private:
 
     /** Objective. */
     Objective objective_ = Objective::BinPacking;
+
+    /** Knapsack goal. */
+    Profit knapsack_goal_ = std::numeric_limits<Profit>::infinity();
 
     /** Parameters. */
     Parameters parameters_;
