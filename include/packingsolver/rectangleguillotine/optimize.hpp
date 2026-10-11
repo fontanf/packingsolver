@@ -43,7 +43,9 @@ struct Output: packingsolver::Output<Instance, Solution>
         switch (solution_pool.best().instance().objective()) {
         case Objective::Knapsack:
             return solution_pool.best().feasible()
-                && equal_profit(knapsack_bound, solution_pool.best().profit());
+                && (equal_profit(knapsack_bound, solution_pool.best().profit())
+                        || solution_pool.best().profit()
+                        >= solution_pool.best().instance().knapsack_goal());
         case Objective::BinPacking:
             return solution_pool.best().feasible()
                 && bin_packing_bound == solution_pool.best().number_of_bins();
@@ -210,6 +212,14 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
     Counter many_item_type_copies_factor = 1;
 
     /**
+     * Maximum area of the bin (inside its trims) of a single-bin knapsack
+     * instance with "high" numbers of copies for which the automatic
+     * selection chooses the 'tree_search_hypergraph_infinite_copies'
+     * algorithm.
+     */
+    Area tree_search_hypergraph_infinite_copies_maximum_bin_area = 10000000;
+
+    /**
      * Size of the queue in the tree search algorithm for the pricing knapsack subproblem of
      * the sequential value correction algorithm.
      */
@@ -257,6 +267,13 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
 
     /** Number of iterations of the sequential value correction algorithm. */
     Counter not_anytime_sequential_value_correction_number_of_iterations = 32;
+
+    /**
+     * Maximum size of the array of the 'tree_search_hypergraph_infinite_copies'
+     * algorithm (see 'TreeSearchHypergraphInfiniteCopiesParameters::
+     * maximum_array_size').
+     */
+    Counter not_anytime_tree_search_hypergraph_infinite_copies_maximum_array_size = 1500000;
 
     /**
      * Size of the queue in the bin packing subproblem of the dichotomic search

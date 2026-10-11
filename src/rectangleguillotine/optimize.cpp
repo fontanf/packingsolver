@@ -343,15 +343,21 @@ void optimize_tree_search_hypergraph_infinite_copies(
     TreeSearchHypergraphInfiniteCopiesParameters tsh_ic_parameters;
     tsh_ic_parameters.verbosity_level = 0;
     tsh_ic_parameters.timer = parameters.timer;
+    if (parameters.optimization_mode != OptimizationMode::Anytime) {
+        tsh_ic_parameters.maximum_array_size
+            = parameters.not_anytime_tree_search_hypergraph_infinite_copies_maximum_array_size;
+    }
     tsh_ic_parameters.new_solution_callback = [&algorithm_formatter, local_output](
             const rectangleguillotine::Output& ps_output)
     {
         if (local_output != nullptr) {
             local_output->solution_pool.add(ps_output.solution_pool.best(), "TSHIC");
+            local_output->update_bounds(ps_output);
         } else {
             algorithm_formatter.update_solution(
                     ps_output.solution_pool.best(),
                     "TSHIC");
+            algorithm_formatter.update_bounds(ps_output);
         }
     };
     tree_search_hypergraph_infinite_copies(instance, tsh_ic_parameters);
@@ -636,7 +642,8 @@ void optimize_column_generation(
         const Instance& instance,
         const OptimizeParameters& parameters,
         AlgorithmFormatter& algorithm_formatter,
-        rectangleguillotine::Output* local_output)
+        rectangleguillotine::Output* local_output,
+        BinPos lower_bound)
 {
     ColumnGenerationPricingFunction<Instance, InstanceBuilder, Solution, rectangleguillotine::Output> pricing_function
         = [&algorithm_formatter, &parameters](const Instance& kp_instance, PricingType)
@@ -663,6 +670,22 @@ void optimize_column_generation(
     cg_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
     cg_parameters.optimization_mode = parameters.optimization_mode;
     cg_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
+    // The sequential feasibility scheme solves a column generation for each
+    // number of bins from the lower bound: too slow when the solutions use
+    // many bins. With a single bin type, the bound of the master problem is
+    // valid without it (with several bin types, it is always used).
+    cg_parameters.use_sequential_feasibility = (instance.number_of_items() <= 100);
+    // With many copies per item type, the internal diving and the rounding
+    // heuristic fix the columns a few copies at a time, each step calling the
+    // pricing solver: too slow when the solutions use many bins.
+    ItemPos mean_number_of_items_in_bins
+        = largest_bin_space(instance) / mean_item_space(instance);
+    if (mean_item_type_copies(instance)
+            > parameters.many_item_type_copies_factor
+            * mean_number_of_items_in_bins) {
+        cg_parameters.internal_diving = columngenerationsolver::Activation::Never;
+        cg_parameters.rounding_heuristic = columngenerationsolver::Activation::Never;
+    }
     cg_parameters.new_solution_callback = [&algorithm_formatter, local_output](
             const rectangleguillotine::Output& ps_output)
     {
@@ -674,7 +697,8 @@ void optimize_column_generation(
             algorithm_formatter.update_bounds(ps_output);
         }
     };
-    column_generation<Instance, InstanceBuilder, Solution, AlgorithmFormatter, rectangleguillotine::Output>(instance, pricing_function, cg_parameters);
+    column_generation<Instance, InstanceBuilder, Solution, AlgorithmFormatter, rectangleguillotine::Output>(
+            instance, pricing_function, cg_parameters, lower_bound);
 }
 
 /**
@@ -828,9 +852,10 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
         return output;
     }
 
-    // Select algorithms to run.
     ItemPos mean_number_of_items_in_bins
         = largest_bin_space(instance) / mean_item_space(instance);
+
+    // Select algorithms to run.
     bool use_tree_search = parameters.use_tree_search;
     bool use_tree_search_maximal_spaces = parameters.use_tree_search_maximal_spaces;
     bool use_column_generation_strips = parameters.use_column_generation_strips;
@@ -854,7 +879,36 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
                 && !use_column_generation_strips
                 && !use_tree_search_hypergraph_infinite_copies
                 && !use_tree_search_hypergraph) {
-            if (instance.number_of_stages_unlimited()
+            // Knapsack with "high" numbers of copies (e.g. the subproblems of
+            // the sequential single knapsack and of the column generation
+            // algorithms): the dynamic programming algorithm which ignores
+            // the copies. It gives a bound, and a solution which is often
+            // optimal.
+            Area bin_area = 0;
+            if (instance.number_of_bin_types() == 1) {
+                const BinType& bin_type = instance.bin_type(0);
+                bin_area = (Area)(bin_type.rect.w - bin_type.left_trim - bin_type.right_trim)
+                    * (bin_type.rect.h - bin_type.bottom_trim - bin_type.top_trim);
+            }
+            if (instance.objective() == Objective::Knapsack
+                    && instance.number_of_bins() == 1
+                    && mean_item_type_copies(instance)
+                    > parameters.many_item_type_copies_factor
+                    * mean_number_of_items_in_bins
+                    && bin_area <= parameters.tree_search_hypergraph_infinite_copies_maximum_bin_area
+                    && instance.number_of_stages_unlimited()
+                    && instance.number_of_defects() == 0
+                    && instance.number_of_stacks() == instance.number_of_item_types()
+                    && instance.parameters().minimum_waste_length == 0
+                    && instance.parameters().minimum_distance_1_cuts == 0
+                    && instance.parameters().maximum_distance_1_cuts == -1
+                    && instance.parameters().minimum_distance_2_cuts == 0
+                    && instance.parameters().maximum_distance_2_cuts == -1
+                    && instance.parameters().maximum_number_1_cuts == -1
+                    && instance.parameters().maximum_number_2_cuts == -1
+                    ) {
+                use_tree_search_hypergraph_infinite_copies = true;
+            } else if (instance.number_of_stages_unlimited()
                     //&& mean_number_of_items_in_bins > parameters.many_items_in_bins_threshold_2
                     && instance.number_of_defects() == 0
                     && instance.number_of_stacks() == instance.number_of_item_types()
@@ -920,8 +974,8 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
                     use_sequential_single_knapsack = true;
                 } else {
                     use_sequential_value_correction = true;
-                    use_column_generation = true;
                 }
+                use_column_generation = true;
             } else {
                 use_tree_search = true;
                 use_column_generation = true;
@@ -945,8 +999,8 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
                     use_sequential_single_knapsack = true;
                 } else {
                     use_sequential_value_correction = true;
-                    use_column_generation = true;
                 }
+                use_column_generation = true;
             } else {
                 use_tree_search = true;
                 use_column_generation = true;
@@ -984,10 +1038,10 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
                     use_sequential_single_knapsack = true;
                 } else {
                     use_sequential_value_correction = true;
-                    if (instance.objective() == Objective::BinPacking
-                            && instance.number_of_stacks() == instance.number_of_item_types()) {
-                        use_column_generation = true;
-                    }
+                }
+                if (instance.objective() == Objective::BinPacking
+                        && instance.number_of_stacks() == instance.number_of_item_types()) {
+                    use_column_generation = true;
                 }
             } else {
                 use_tree_search = true;
@@ -1029,8 +1083,8 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
                     use_sequential_single_knapsack = true;
                 } else {
                     use_sequential_value_correction = true;
-                    use_column_generation = true;
                 }
+                use_column_generation = true;
             } else {
                 if (mean_number_of_items_in_bins
                         > parameters.many_items_in_bins_threshold) {
@@ -1232,13 +1286,19 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
         std::unique_ptr<rectangleguillotine::Output> local_output;
         if (deterministic)
             local_output = std::make_unique<rectangleguillotine::Output>(instance);
-        tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter, local_output = local_output.get()]() {
+        // Snapshot the bound established so far (only used by the
+        // sequential feasibility scheme of 'column_generation', for the
+        // 'BinPacking' objective): it seeds its starting number of bins
+        // instead of starting from scratch.
+        BinPos column_generation_lower_bound = output.bin_packing_bound;
+        tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter, local_output = local_output.get(), column_generation_lower_bound]() {
             wrapper<decltype(&optimize_column_generation), optimize_column_generation>(
                     exception_ptr,
                     instance,
                     parameters,
                     algorithm_formatter,
-                    local_output);
+                    local_output,
+                    column_generation_lower_bound);
         });
         local_outputs.push_back(std::move(local_output));
     }

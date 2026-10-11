@@ -383,6 +383,74 @@ elif benchmark == "rectangleguillotine_bin_packing_3nhr":
         show_datafram(styler)
 
 
+elif benchmark == "rectangleguillotine_bin_packing_ur_cui2004":
+
+    datacsv_path = os.path.join(
+            "data",
+            "rectangle",
+            "data_bin_packing_ur_cui2004.csv")
+
+    data_dir = os.path.dirname(os.path.realpath(datacsv_path))
+    with open(datacsv_path, newline='') as csvfile:
+        reader = csv.DictReader(csvfile)
+
+        # Get fieldnames of CSV output file.
+        out_fieldnames = reader.fieldnames
+        for output_directory in output_directories:
+            out_fieldnames.append(output_directory + " / Solution value")
+
+        result_columns = [fieldname for fieldname in reader.fieldnames
+                          if "Solution value" in fieldname]
+
+        out_rows = []
+
+        # Initialize extra rows.
+        extra_rows = [{"Path": "Total"}]
+        for fieldname in [bksv_field] + result_columns:
+            for row in extra_rows:
+                row[fieldname] = 0
+
+        for row in reader:
+            if not row["Path"]:
+                break
+
+            row[bksv_field] = int(row[bksv_field])
+
+            # Fill current row.
+            for output_directory in output_directories:
+                json_output_path = os.path.join(
+                        benchmark_directory,
+                        output_directory,
+                        row["Path"] + "_output.json")
+                json_output_file = open(json_output_path, "r")
+                json_data = json.load(json_output_file)
+                row[output_directory + " / Solution value"] = (
+                        json_data["Output"]["Solution"]["NumberOfBins"])
+
+            # Update "Best known solution value" column of extra rows.
+            extra_rows[-1][bksv_field] += row[bksv_field]
+
+            # Update result columns of extra rows.
+            for result_column in result_columns:
+                number_of_bins = int(row[result_column])
+                row[result_column] = number_of_bins
+                extra_rows[-1][result_column] += number_of_bins
+
+            # Add current row.
+            out_rows.append(row)
+
+        # Add extra rows.
+        for row in extra_rows:
+            out_rows.append(row)
+
+        df = pd.DataFrame.from_records(out_rows, columns=out_fieldnames)
+
+        styler = df.style
+        for result_column in result_columns:
+            styler = styler.apply(_style_lower_better, bksv_series=df[bksv_field], subset=[result_column])
+        show_datafram(styler)
+
+
 elif benchmark == "rectangleguillotine_long2020":
 
     datacsv_path = os.path.join(
