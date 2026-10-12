@@ -2604,7 +2604,20 @@ const packingsolver::rectangleguillotine::TreeSearchOutput packingsolver::rectan
 
     std::vector<BranchingScheme> branching_schemes;
     std::vector<treesearchsolver::IterativeBeamSearch2Parameters<BranchingScheme>> ibs_parameters_list;
-    std::vector<Output> local_outputs;
+    // In 'NotAnytimeDeterministic' mode, each scheme reports to its own
+    // algorithm formatter, writing into its own output, instead of the shared
+    // 'algorithm_formatter', so that the scheme can stop as soon as its own
+    // solution is proven optimal while the order in which solutions reach
+    // the shared one stays deterministic (they are replayed at the end).
+    // These local formatters share silenced parameters (no messages, no JSON
+    // output, no new solution callback). A 'unique_ptr' is used since an
+    // 'AlgorithmFormatter' is neither copyable nor movable.
+    bool deterministic = (parameters.optimization_mode == OptimizationMode::NotAnytimeDeterministic);
+    packingsolver::Parameters<Instance, Solution, Output> local_parameters;
+    local_parameters.verbosity_level = 0;
+    local_parameters.timer = parameters.timer;
+    std::vector<std::unique_ptr<Output>> local_outputs;
+    std::vector<std::unique_ptr<AlgorithmFormatter>> local_algorithm_formatters;
     for (double growth_factor: growth_factors) {
         for (GuideId guide_id: guides) {
             for (CutOrientation first_stage_orientation: first_stage_orientations) {
@@ -2627,23 +2640,28 @@ const packingsolver::rectangleguillotine::TreeSearchOutput packingsolver::rectan
                         + "_guide_" + std::to_string(branching_scheme_parameters.guide_id)
                         + "_d_" + std::to_string((int)branching_scheme_parameters.first_stage_orientation);
                 }
+                if (deterministic) {
+                    local_outputs.push_back(std::make_unique<Output>(instance));
+                    local_algorithm_formatters.push_back(std::make_unique<AlgorithmFormatter>(
+                                instance,
+                                local_parameters,
+                                *local_outputs.back()));
+                    ibs_parameters.timer.add_end_boolean(
+                            &local_algorithm_formatters.back()->end_boolean());
+                }
                 ibs_parameters_list.push_back(ibs_parameters);
-                local_outputs.push_back(Output(instance));
             }
         }
     }
 
-    bool deterministic = (parameters.optimization_mode == OptimizationMode::NotAnytimeDeterministic);
     std::vector<std::function<void()>> tasks;
     std::forward_list<std::exception_ptr> exception_ptr_list;
     for (Counter scheme_idx = 0; scheme_idx < (Counter)branching_schemes.size(); ++scheme_idx) {
-        // Always record into 'local_outputs[scheme_idx]' first (this is
-        // also what the deterministic replay below reads from); in
-        // non-deterministic mode, additionally forward immediately to the
-        // shared 'algorithm_formatter', since there ordering across
-        // schemes doesn't need to be deferred for reproducibility.
+        AlgorithmFormatter* scheme_algorithm_formatter = (deterministic)?
+            local_algorithm_formatters[(size_t)scheme_idx].get():
+            &algorithm_formatter;
         ibs_parameters_list[scheme_idx].new_solution_callback
-            = [&algorithm_formatter, &local_outputs, &branching_schemes, scheme_idx, deterministic](
+            = [scheme_algorithm_formatter, &branching_schemes, scheme_idx](
                     const treesearchsolver::Output<BranchingScheme>& tss_output)
             {
                 const treesearchsolver::IterativeBeamSearch2Output<BranchingScheme>& tssibs_output
@@ -2654,7 +2672,7 @@ const packingsolver::rectangleguillotine::TreeSearchOutput packingsolver::rectan
                 ss << "g " << branching_schemes[scheme_idx].parameters().guide_id
                     << " d " << branching_schemes[scheme_idx].parameters().first_stage_orientation
                     << " q " << tssibs_output.maximum_size_of_the_queue;
-                local_outputs[(size_t)scheme_idx].solution_pool.add(solution, ss.str());
+                scheme_algorithm_formatter->update_solution(solution, ss.str());
 
                 if (tssibs_output.optimal) {
                     // The tree search is only guaranteed exhaustive (and
@@ -2675,6 +2693,7 @@ const packingsolver::rectangleguillotine::TreeSearchOutput packingsolver::rectan
                         && params.maximum_distance_2_cuts == -1
                         && params.maximum_number_2_cuts == -1;
                     if (exhaustive) {
+                        Output bounds_output(solution.instance());
                         // 'Solution::operator<' always ranks a feasible
                         // solution above an infeasible one, regardless of
                         // objective (see its own 'if (!solution.feasible_)
@@ -2688,22 +2707,16 @@ const packingsolver::rectangleguillotine::TreeSearchOutput packingsolver::rectan
                             // included), 'copies_min' defaults to 'copies',
                             // so this already subsumes "not everything got
                             // packed" - no separate 'full()' check needed.
-                            local_outputs[(size_t)scheme_idx].is_proven_infeasible = true;
+                            bounds_output.is_proven_infeasible = true;
                         } else if (solution.instance().objective() == packingsolver::Objective::BinPacking) {
-                            local_outputs[(size_t)scheme_idx].bin_packing_bound
+                            bounds_output.bin_packing_bound
                                 = solution.number_of_bins();
                         } else if (solution.instance().objective() == packingsolver::Objective::Knapsack) {
-                            local_outputs[(size_t)scheme_idx].knapsack_bound
+                            bounds_output.knapsack_bound
                                 = solution.profit();
                         }
+                        scheme_algorithm_formatter->update_bounds(bounds_output);
                     }
-                }
-
-                if (!deterministic) {
-                    algorithm_formatter.update_solution(
-                            local_outputs[(size_t)scheme_idx].solution_pool.best(),
-                            local_outputs[(size_t)scheme_idx].solution_pool.best_label());
-                    algorithm_formatter.update_bounds(local_outputs[(size_t)scheme_idx]);
                 }
             };
         exception_ptr_list.push_front(std::exception_ptr());
@@ -2721,12 +2734,12 @@ const packingsolver::rectangleguillotine::TreeSearchOutput packingsolver::rectan
     for (const std::exception_ptr& exception_ptr: exception_ptr_list)
         if (exception_ptr)
             std::rethrow_exception(exception_ptr);
-    if (parameters.optimization_mode == OptimizationMode::NotAnytimeDeterministic) {
-        for (Counter scheme_idx = 0; scheme_idx < (Counter)branching_schemes.size(); ++scheme_idx) {
+    if (deterministic) {
+        for (const auto& local_output: local_outputs) {
             algorithm_formatter.update_solution(
-                    local_outputs[(size_t)scheme_idx].solution_pool.best(),
-                    local_outputs[(size_t)scheme_idx].solution_pool.best_label());
-            algorithm_formatter.update_bounds(local_outputs[(size_t)scheme_idx]);
+                    local_output->solution_pool.best(),
+                    local_output->solution_pool.best_label());
+            algorithm_formatter.update_bounds(*local_output);
         }
     }
 

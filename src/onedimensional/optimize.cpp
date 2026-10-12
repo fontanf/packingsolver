@@ -306,8 +306,7 @@ void optimize_dynamic_programming(
 void optimize_tree_search(
         const Instance& instance,
         const OptimizeParameters& parameters,
-        AlgorithmFormatter& algorithm_formatter,
-        onedimensional::Output* local_output)
+        AlgorithmFormatter& algorithm_formatter)
 {
     TreeSearchParameters ts_parameters;
     ts_parameters.verbosity_level = 0;
@@ -317,16 +316,11 @@ void optimize_tree_search(
     ts_parameters.optimization_mode = parameters.optimization_mode;
     ts_parameters.not_anytime_tree_search_queue_size = parameters.not_anytime_tree_search_queue_size;
     ts_parameters.json_search_tree_path = parameters.json_search_tree_path;
-    ts_parameters.new_solution_callback = [&algorithm_formatter, local_output](
+    ts_parameters.new_solution_callback = [&algorithm_formatter](
             const onedimensional::Output& ts_output)
     {
-        if (local_output != nullptr) {
-            local_output->solution_pool.add(ts_output.solution_pool.best(), "TS " + ts_output.solution_pool.best_label());
-            local_output->update_bounds(ts_output);
-        } else {
-            algorithm_formatter.update_solution(ts_output.solution_pool.best(), "TS " + ts_output.solution_pool.best_label());
-            algorithm_formatter.update_bounds(ts_output);
-        }
+        algorithm_formatter.update_solution(ts_output.solution_pool.best(), "TS " + ts_output.solution_pool.best_label());
+        algorithm_formatter.update_bounds(ts_output);
     };
     tree_search(instance, ts_parameters);
 }
@@ -334,8 +328,7 @@ void optimize_tree_search(
 void optimize_sequential_single_knapsack(
         const Instance& instance,
         const OptimizeParameters& parameters,
-        AlgorithmFormatter& algorithm_formatter,
-        onedimensional::Output* local_output)
+        AlgorithmFormatter& algorithm_formatter)
 {
     for (Counter queue_size = 1;;) {
 
@@ -368,18 +361,14 @@ void optimize_sequential_single_knapsack(
         // initial_profit_exponent''s own doc comment.
         svc_parameters.initial_profit_exponent = 1.0;
         svc_parameters.new_solution_callback = [
-            &algorithm_formatter, local_output, &queue_size](
+            &algorithm_formatter, &queue_size](
                     const onedimensional::Output& ps_output)
             {
                 const SequentialValueCorrectionOutput<Instance, Solution, onedimensional::Output>& pssvc_output
                     = static_cast<const SequentialValueCorrectionOutput<Instance, Solution, onedimensional::Output>&>(ps_output);
                 std::stringstream ss;
                 ss << "SSK q " << queue_size;
-                if (local_output != nullptr) {
-                    local_output->solution_pool.add(pssvc_output.solution_pool.best(), ss.str());
-                } else {
-                    algorithm_formatter.update_solution(pssvc_output.solution_pool.best(), ss.str());
-                }
+                algorithm_formatter.update_solution(pssvc_output.solution_pool.best(), ss.str());
             };
         sequential_value_correction<Instance, InstanceBuilder, Solution, AlgorithmFormatter, onedimensional::Output>(instance, kp_solve, svc_parameters);
 
@@ -401,8 +390,7 @@ void optimize_sequential_single_knapsack(
 void optimize_sequential_value_correction(
         const Instance& instance,
         const OptimizeParameters& parameters,
-        AlgorithmFormatter& algorithm_formatter,
-        onedimensional::Output* local_output)
+        AlgorithmFormatter& algorithm_formatter)
 {
     SequentialValueCorrectionFunction<Instance, Solution> kp_solve
         = [&algorithm_formatter, &parameters](const Instance& kp_instance)
@@ -428,18 +416,14 @@ void optimize_sequential_value_correction(
     svc_parameters.initial_profit_exponent = 1.1;
     if (parameters.optimization_mode != OptimizationMode::Anytime)
         svc_parameters.maximum_number_of_iterations = parameters.not_anytime_sequential_value_correction_number_of_iterations;
-    svc_parameters.new_solution_callback = [&algorithm_formatter, local_output](
+    svc_parameters.new_solution_callback = [&algorithm_formatter](
             const onedimensional::Output& ps_output)
     {
         const SequentialValueCorrectionOutput<Instance, Solution, onedimensional::Output>& pssvc_output
             = static_cast<const SequentialValueCorrectionOutput<Instance, Solution, onedimensional::Output>&>(ps_output);
         std::stringstream ss;
         ss << "SVC it " << pssvc_output.number_of_iterations;
-        if (local_output != nullptr) {
-            local_output->solution_pool.add(pssvc_output.solution_pool.best(), ss.str());
-        } else {
-            algorithm_formatter.update_solution(pssvc_output.solution_pool.best(), ss.str());
-        }
+        algorithm_formatter.update_solution(pssvc_output.solution_pool.best(), ss.str());
     };
     sequential_value_correction<Instance, InstanceBuilder, Solution, AlgorithmFormatter, onedimensional::Output>(instance, kp_solve, svc_parameters);
 }
@@ -447,8 +431,7 @@ void optimize_sequential_value_correction(
 void optimize_dichotomic_search(
         const Instance& instance,
         const OptimizeParameters& parameters,
-        AlgorithmFormatter& algorithm_formatter,
-        onedimensional::Output* local_output)
+        AlgorithmFormatter& algorithm_formatter)
 {
     double waste_percentage_upper_bound = std::numeric_limits<double>::infinity();
     for (Counter queue_size = 1;;) {
@@ -479,7 +462,7 @@ void optimize_dichotomic_search(
         ds_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
         ds_parameters.initial_waste_percentage_upper_bound = waste_percentage_upper_bound;
         ds_parameters.new_solution_callback = [
-            &algorithm_formatter, local_output, &queue_size](
+            &algorithm_formatter, &queue_size](
                     const onedimensional::Output& ps_output)
             {
                 const DichotomicSearchOutput<Instance, Solution, onedimensional::Output>& psds_output
@@ -487,11 +470,7 @@ void optimize_dichotomic_search(
                 std::stringstream ss;
                 ss << "DS q " << queue_size
                     << " w " << psds_output.waste_percentage;
-                if (local_output != nullptr) {
-                    local_output->solution_pool.add(psds_output.solution_pool.best(), ss.str());
-                } else {
-                    algorithm_formatter.update_solution(psds_output.solution_pool.best(), ss.str());
-                }
+                algorithm_formatter.update_solution(psds_output.solution_pool.best(), ss.str());
             };
         auto ds_output = dichotomic_search<Instance, InstanceBuilder, Solution, AlgorithmFormatter, onedimensional::Output>(instance, bpp_solve, ds_parameters);
 
@@ -515,7 +494,6 @@ void optimize_column_generation(
         const Instance& instance,
         const OptimizeParameters& parameters,
         AlgorithmFormatter& algorithm_formatter,
-        onedimensional::Output* local_output,
         BinPos lower_bound)
 {
     ColumnGenerationPricingFunction<Instance, InstanceBuilder, Solution, onedimensional::Output> pricing_function
@@ -565,16 +543,11 @@ void optimize_column_generation(
     // from-scratch sequential search would be a disproportionate cost for
     // what's meant to be a fast approximate bound.
     cg_parameters.use_sequential_feasibility = false;
-    cg_parameters.new_solution_callback = [&algorithm_formatter, local_output](
+    cg_parameters.new_solution_callback = [&algorithm_formatter](
             const onedimensional::Output& ps_output)
     {
-        if (local_output != nullptr) {
-            local_output->solution_pool.add(ps_output.solution_pool.best(), "CG " + ps_output.solution_pool.best_label());
-            local_output->update_bounds(ps_output);
-        } else {
-            algorithm_formatter.update_solution(ps_output.solution_pool.best(), "CG " + ps_output.solution_pool.best_label());
-            algorithm_formatter.update_bounds(ps_output);
-        }
+        algorithm_formatter.update_solution(ps_output.solution_pool.best(), "CG " + ps_output.solution_pool.best_label());
+        algorithm_formatter.update_bounds(ps_output);
     };
     column_generation<Instance, InstanceBuilder, Solution, AlgorithmFormatter, onedimensional::Output>(
             instance, pricing_function, cg_parameters, lower_bound);
@@ -584,7 +557,6 @@ void optimize_milp_assignment(
         const Instance& instance,
         const OptimizeParameters& parameters,
         AlgorithmFormatter& algorithm_formatter,
-        onedimensional::Output* local_output,
         BinPos lower_bound)
 {
     MilpAssignmentParameters ma_parameters;
@@ -595,16 +567,11 @@ void optimize_milp_assignment(
     ma_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
     if (!parameters.mps_prefix.empty())
         ma_parameters.mps_prefix = parameters.mps_prefix + "_milp_assignment";
-    ma_parameters.new_solution_callback = [&algorithm_formatter, local_output](
+    ma_parameters.new_solution_callback = [&algorithm_formatter](
             const onedimensional::Output& ps_output)
     {
-        if (local_output != nullptr) {
-            local_output->solution_pool.add(ps_output.solution_pool.best(), "MA " + ps_output.solution_pool.best_label());
-            local_output->update_bounds(ps_output);
-        } else {
-            algorithm_formatter.update_solution(ps_output.solution_pool.best(), "MA " + ps_output.solution_pool.best_label());
-            algorithm_formatter.update_bounds(ps_output);
-        }
+        algorithm_formatter.update_solution(ps_output.solution_pool.best(), "MA " + ps_output.solution_pool.best_label());
+        algorithm_formatter.update_bounds(ps_output);
     };
     milp_assignment(instance, ma_parameters, lower_bound);
 }
@@ -926,125 +893,133 @@ packingsolver::onedimensional::Output packingsolver::onedimensional::optimize(
 
     // Run selected algorithms.
     // In 'NotAnytimeDeterministic' mode, algorithms still run in parallel, but
-    // each writes its solutions to its own 'local_output' instead of the
-    // shared 'algorithm_formatter', so that they can be replayed into it in a
-    // fixed, deterministic order once every algorithm has terminated
-    // ('run(tasks, ...)' does not guarantee a deterministic finish order).
-    // 'local_outputs' owns these; a 'unique_ptr' is used so that it growing
-    // does not invalidate the raw pointers captured by the tasks below.
+    // each reports to its own algorithm formatter, writing into its own
+    // output, instead of the shared 'algorithm_formatter', so that their
+    // results can be replayed into it in a fixed, deterministic order once
+    // every algorithm has terminated ('run(tasks, ...)' does not guarantee a
+    // deterministic finish order). Each algorithm can still stop as soon as
+    // its own solution is proven optimal against the bounds already known,
+    // which only depends on its own progress.
+    // These local formatters share 'local_parameters': silenced (no
+    // messages, no JSON output, no new solution callback), and whose timer
+    // also stops on the shared formatter's end boolean (e.g. set by the
+    // memory monitor), since the algorithms only add the end boolean of the
+    // formatter they report to. A 'unique_ptr' is used since an
+    // 'AlgorithmFormatter' is neither copyable nor movable.
     bool deterministic = (parameters.optimization_mode == OptimizationMode::NotAnytimeDeterministic);
-    std::vector<std::unique_ptr<onedimensional::Output>> local_outputs;
+    OptimizeParameters local_parameters = parameters;
+    local_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+    local_parameters.verbosity_level = 0;
+    local_parameters.messages_to_stdout = false;
+    local_parameters.messages_path = "";
+    local_parameters.messages_streams.clear();
+    local_parameters.write_json_output = false;
+    local_parameters.new_solution_callback = [](const Output&) { };
+    std::vector<std::unique_ptr<Output>> local_outputs;
+    std::vector<std::unique_ptr<AlgorithmFormatter>> local_algorithm_formatters;
+    // Return the parameters and the algorithm formatter a new algorithm task
+    // should use.
+    auto task_context = [&instance, &parameters, &algorithm_formatter, &output,
+         deterministic, &local_parameters, &local_outputs, &local_algorithm_formatters]()
+        -> std::pair<const OptimizeParameters*, AlgorithmFormatter*>
+    {
+        if (!deterministic)
+            return {&parameters, &algorithm_formatter};
+        local_outputs.push_back(std::make_unique<Output>(instance));
+        local_outputs.back()->update_bounds(output);
+        local_algorithm_formatters.push_back(std::make_unique<AlgorithmFormatter>(
+                    instance,
+                    local_parameters,
+                    *local_outputs.back()));
+        return {&local_parameters, local_algorithm_formatters.back().get()};
+    };
     std::vector<std::function<void()>> tasks;
     std::forward_list<std::exception_ptr> exception_ptr_list;
     // Tree search.
     if (use_tree_search) {
         exception_ptr_list.push_front(std::exception_ptr());
         std::exception_ptr& exception_ptr = exception_ptr_list.front();
-        std::unique_ptr<onedimensional::Output> local_output;
-        if (deterministic)
-            local_output = std::make_unique<onedimensional::Output>(instance);
-        tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter, local_output = local_output.get()]() {
+        auto context = task_context();
+        tasks.push_back([&exception_ptr, &instance, context]() {
             wrapper<decltype(&optimize_tree_search), optimize_tree_search>(
                     exception_ptr,
                     instance,
-                    parameters,
-                    algorithm_formatter,
-                    local_output);
+                    *context.first,
+                    *context.second);
         });
-        local_outputs.push_back(std::move(local_output));
     }
     // Sequential single knapsack.
     if (use_sequential_single_knapsack) {
         exception_ptr_list.push_front(std::exception_ptr());
         std::exception_ptr& exception_ptr = exception_ptr_list.front();
-        std::unique_ptr<onedimensional::Output> local_output;
-        if (deterministic)
-            local_output = std::make_unique<onedimensional::Output>(instance);
-        tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter, local_output = local_output.get()]() {
+        auto context = task_context();
+        tasks.push_back([&exception_ptr, &instance, context]() {
             wrapper<decltype(&optimize_sequential_single_knapsack), optimize_sequential_single_knapsack>(
                     exception_ptr,
                     instance,
-                    parameters,
-                    algorithm_formatter,
-                    local_output);
+                    *context.first,
+                    *context.second);
         });
-        local_outputs.push_back(std::move(local_output));
     }
     // Sequential value correction.
     if (use_sequential_value_correction) {
         exception_ptr_list.push_front(std::exception_ptr());
         std::exception_ptr& exception_ptr = exception_ptr_list.front();
-        std::unique_ptr<onedimensional::Output> local_output;
-        if (deterministic)
-            local_output = std::make_unique<onedimensional::Output>(instance);
-        tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter, local_output = local_output.get()]() {
+        auto context = task_context();
+        tasks.push_back([&exception_ptr, &instance, context]() {
             wrapper<decltype(&optimize_sequential_value_correction), optimize_sequential_value_correction>(
                     exception_ptr,
                     instance,
-                    parameters,
-                    algorithm_formatter,
-                    local_output);
+                    *context.first,
+                    *context.second);
         });
-        local_outputs.push_back(std::move(local_output));
     }
     // Dichotomic search.
     if (use_dichotomic_search) {
         exception_ptr_list.push_front(std::exception_ptr());
         std::exception_ptr& exception_ptr = exception_ptr_list.front();
-        std::unique_ptr<onedimensional::Output> local_output;
-        if (deterministic)
-            local_output = std::make_unique<onedimensional::Output>(instance);
-        tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter, local_output = local_output.get()]() {
+        auto context = task_context();
+        tasks.push_back([&exception_ptr, &instance, context]() {
             wrapper<decltype(&optimize_dichotomic_search), optimize_dichotomic_search>(
                     exception_ptr,
                     instance,
-                    parameters,
-                    algorithm_formatter,
-                    local_output);
+                    *context.first,
+                    *context.second);
         });
-        local_outputs.push_back(std::move(local_output));
     }
     // Column generation.
     if (use_column_generation) {
         exception_ptr_list.push_front(std::exception_ptr());
         std::exception_ptr& exception_ptr = exception_ptr_list.front();
-        std::unique_ptr<onedimensional::Output> local_output;
-        if (deterministic)
-            local_output = std::make_unique<onedimensional::Output>(instance);
+        auto context = task_context();
         BinPos column_generation_lower_bound = output.bin_packing_bound;
-        tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter, local_output = local_output.get(), column_generation_lower_bound]() {
+        tasks.push_back([&exception_ptr, &instance, context, column_generation_lower_bound]() {
             wrapper<decltype(&optimize_column_generation), optimize_column_generation>(
                     exception_ptr,
                     instance,
-                    parameters,
-                    algorithm_formatter,
-                    local_output,
+                    *context.first,
+                    *context.second,
                     column_generation_lower_bound);
         });
-        local_outputs.push_back(std::move(local_output));
     }
     // MILP assignment.
     if (use_milp_assignment) {
         exception_ptr_list.push_front(std::exception_ptr());
         std::exception_ptr& exception_ptr = exception_ptr_list.front();
-        std::unique_ptr<onedimensional::Output> local_output;
-        if (deterministic)
-            local_output = std::make_unique<onedimensional::Output>(instance);
+        auto context = task_context();
         // Snapshot the bound established so far (currently just
         // 'optimize_trivial_bound', which already ran synchronously above):
         // seeds the sequential feasibility scheme's starting candidate
         // instead of it always restarting from scratch.
         BinPos milp_assignment_lower_bound = output.bin_packing_bound;
-        tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter, local_output = local_output.get(), milp_assignment_lower_bound]() {
+        tasks.push_back([&exception_ptr, &instance, context, milp_assignment_lower_bound]() {
             wrapper<decltype(&optimize_milp_assignment), optimize_milp_assignment>(
                     exception_ptr,
                     instance,
-                    parameters,
-                    algorithm_formatter,
-                    local_output,
+                    *context.first,
+                    *context.second,
                     milp_assignment_lower_bound);
         });
-        local_outputs.push_back(std::move(local_output));
     }
     run(tasks, algorithm_formatter, parameters);
     for (std::exception_ptr exception_ptr: exception_ptr_list)

@@ -1254,7 +1254,20 @@ packingsolver::irregular::tree_search_periodic_packing(
 
     std::vector<BranchingSchemePeriodicPacking> branching_schemes;
     std::vector<treesearchsolver::IterativeBeamSearchParameters<BranchingSchemePeriodicPacking>> ibs_parameters_list;
-    std::vector<packingsolver::Output<Instance, Solution>> local_outputs;
+    // In 'NotAnytimeDeterministic' mode, each scheme reports to its own
+    // algorithm formatter, writing into its own output, instead of the shared
+    // 'algorithm_formatter', so that the scheme can stop as soon as its own
+    // solution is proven optimal while the order in which solutions reach
+    // the shared one stays deterministic (they are replayed at the end).
+    // These local formatters share silenced parameters (no messages, no JSON
+    // output, no new solution callback). A 'unique_ptr' is used since an
+    // 'AlgorithmFormatter' is neither copyable nor movable.
+    bool deterministic = (parameters.optimization_mode == OptimizationMode::NotAnytimeDeterministic);
+    packingsolver::Parameters<Instance, Solution, Output> local_parameters;
+    local_parameters.verbosity_level = 0;
+    local_parameters.timer = parameters.timer;
+    std::vector<std::unique_ptr<Output>> local_outputs;
+    std::vector<std::unique_ptr<AlgorithmFormatter>> local_algorithm_formatters;
     {
         BranchingSchemePeriodicPacking::Parameters branching_scheme_parameters;
         branching_schemes.push_back(BranchingSchemePeriodicPacking(
@@ -1273,40 +1286,36 @@ packingsolver::irregular::tree_search_periodic_packing(
             ibs_parameters.growth_factor = parameters.not_anytime_tree_search_queue_size;
             ibs_parameters.maximum_size_of_the_queue = parameters.not_anytime_tree_search_queue_size;
         }
+        if (deterministic) {
+            local_outputs.push_back(std::make_unique<Output>(instance));
+            local_algorithm_formatters.push_back(std::make_unique<AlgorithmFormatter>(
+                        instance,
+                        local_parameters,
+                        *local_outputs.back()));
+            ibs_parameters.timer.add_end_boolean(
+                    &local_algorithm_formatters.back()->end_boolean());
+        }
         ibs_parameters_list.push_back(ibs_parameters);
-        local_outputs.push_back(packingsolver::Output<Instance, Solution>(instance));
     }
 
     std::vector<std::thread> threads;
     std::forward_list<std::exception_ptr> exception_ptr_list;
     for (Counter scheme_idx = 0; scheme_idx < (Counter)branching_schemes.size(); ++scheme_idx) {
-        if (parameters.optimization_mode != OptimizationMode::NotAnytimeDeterministic) {
-            ibs_parameters_list[scheme_idx].new_solution_callback
-                = [&algorithm_formatter, &branching_schemes, scheme_idx](
-                        const treesearchsolver::Output<BranchingSchemePeriodicPacking>& tss_output)
-                {
-                    const treesearchsolver::IterativeBeamSearchOutput<BranchingSchemePeriodicPacking>& tssibs_output
-                        = static_cast<const treesearchsolver::IterativeBeamSearchOutput<BranchingSchemePeriodicPacking>&>(tss_output);
-                    Solution solution = branching_schemes[scheme_idx].to_solution(
-                            tssibs_output.solution_pool.best());
-                    std::stringstream ss;
-                    ss << "n " << tssibs_output.maximum_size_of_the_queue;
-                    algorithm_formatter.update_solution(solution, ss.str());
-                };
-        } else {
-            ibs_parameters_list[scheme_idx].new_solution_callback
-                = [&local_outputs, &branching_schemes, scheme_idx](
-                        const treesearchsolver::Output<BranchingSchemePeriodicPacking>& tss_output)
-                {
-                    const treesearchsolver::IterativeBeamSearchOutput<BranchingSchemePeriodicPacking>& tssibs_output
-                        = static_cast<const treesearchsolver::IterativeBeamSearchOutput<BranchingSchemePeriodicPacking>&>(tss_output);
-                    Solution solution = branching_schemes[scheme_idx].to_solution(
-                            tssibs_output.solution_pool.best());
-                    std::stringstream ss;
-                    ss << "n " << tssibs_output.maximum_size_of_the_queue;
-                    local_outputs[(size_t)scheme_idx].solution_pool.add(solution, ss.str());
-                };
-        }
+        AlgorithmFormatter* scheme_algorithm_formatter = (deterministic)?
+            local_algorithm_formatters[(size_t)scheme_idx].get():
+            &algorithm_formatter;
+        ibs_parameters_list[scheme_idx].new_solution_callback
+            = [scheme_algorithm_formatter, &branching_schemes, scheme_idx](
+                    const treesearchsolver::Output<BranchingSchemePeriodicPacking>& tss_output)
+            {
+                const treesearchsolver::IterativeBeamSearchOutput<BranchingSchemePeriodicPacking>& tssibs_output
+                    = static_cast<const treesearchsolver::IterativeBeamSearchOutput<BranchingSchemePeriodicPacking>&>(tss_output);
+                Solution solution = branching_schemes[scheme_idx].to_solution(
+                        tssibs_output.solution_pool.best());
+                std::stringstream ss;
+                ss << "n " << tssibs_output.maximum_size_of_the_queue;
+                scheme_algorithm_formatter->update_solution(solution, ss.str());
+            };
         exception_ptr_list.push_front(std::exception_ptr());
         if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential) {
             threads.push_back(std::thread(
@@ -1329,11 +1338,11 @@ packingsolver::irregular::tree_search_periodic_packing(
     for (const std::exception_ptr& exception_ptr: exception_ptr_list)
         if (exception_ptr)
             std::rethrow_exception(exception_ptr);
-    if (parameters.optimization_mode == OptimizationMode::NotAnytimeDeterministic) {
-        for (Counter scheme_idx = 0; scheme_idx < (Counter)branching_schemes.size(); ++scheme_idx) {
+    if (deterministic) {
+        for (const auto& local_output: local_outputs) {
             algorithm_formatter.update_solution(
-                    local_outputs[(size_t)scheme_idx].solution_pool.best(),
-                    local_outputs[(size_t)scheme_idx].solution_pool.best_label());
+                    local_output->solution_pool.best(),
+                    local_output->solution_pool.best_label());
         }
     }
 

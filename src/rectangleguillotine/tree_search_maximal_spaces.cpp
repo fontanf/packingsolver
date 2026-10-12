@@ -897,14 +897,26 @@ const packingsolver::rectangleguillotine::TreeSearchMaximalSpacesOutput packings
         ibs_parameters.maximum_size_of_the_queue = parameters.not_anytime_tree_search_queue_size;
     }
 
-    Output local_output(instance);
-
+    // In 'NotAnytimeDeterministic' mode, the tree search reports to its own
+    // algorithm formatter, writing into its own output, instead of the shared
+    // 'algorithm_formatter', so that it can stop as soon as its own solution
+    // is proven optimal while its solutions only reach the shared one at the
+    // end. Its parameters are silenced (no messages, no JSON output, no new
+    // solution callback).
     bool deterministic = (parameters.optimization_mode == OptimizationMode::NotAnytimeDeterministic);
-    // Always record into 'local_output' first (this is also what the
-    // deterministic replay below reads from); in non-deterministic mode,
-    // additionally forward immediately to the shared 'algorithm_formatter'.
+    packingsolver::Parameters<Instance, Solution, Output> local_parameters;
+    local_parameters.verbosity_level = 0;
+    local_parameters.timer = parameters.timer;
+    Output local_output(instance);
+    AlgorithmFormatter local_algorithm_formatter(instance, local_parameters, local_output);
+    if (deterministic)
+        ibs_parameters.timer.add_end_boolean(&local_algorithm_formatter.end_boolean());
+    AlgorithmFormatter* tree_search_algorithm_formatter = (deterministic)?
+        &local_algorithm_formatter:
+        &algorithm_formatter;
+
     ibs_parameters.new_solution_callback
-        = [&algorithm_formatter, &local_output, &branching_scheme, deterministic](
+        = [tree_search_algorithm_formatter, &branching_scheme](
                 const treesearchsolver::Output<BranchingSchemeMaximalSpaces>& tss_output)
         {
             const treesearchsolver::IterativeBeamSearchOutput<BranchingSchemeMaximalSpaces>& tssibs_output
@@ -913,9 +925,10 @@ const packingsolver::rectangleguillotine::TreeSearchMaximalSpacesOutput packings
                     tssibs_output.solution_pool.best());
             std::stringstream ss;
             ss << "n " << tssibs_output.maximum_size_of_the_queue;
-            local_output.solution_pool.add(solution, ss.str());
+            tree_search_algorithm_formatter->update_solution(solution, ss.str());
 
             if (tssibs_output.optimal) {
+                Output bounds_output(solution.instance());
                 // 'Solution::operator<' always ranks a feasible solution
                 // above an infeasible one, regardless of objective, so
                 // 'solution_pool.best()' can only be infeasible here if no
@@ -927,17 +940,11 @@ const packingsolver::rectangleguillotine::TreeSearchMaximalSpacesOutput packings
                     // included), 'copies_min' defaults to 'copies', so this
                     // already subsumes "not everything got packed" - no
                     // separate 'full()' check needed.
-                    local_output.is_proven_infeasible = true;
+                    bounds_output.is_proven_infeasible = true;
                 } else if (solution.instance().objective() == packingsolver::Objective::Knapsack) {
-                    local_output.knapsack_bound = solution.profit();
+                    bounds_output.knapsack_bound = solution.profit();
                 }
-            }
-
-            if (!deterministic) {
-                algorithm_formatter.update_solution(
-                        local_output.solution_pool.best(),
-                        local_output.solution_pool.best_label());
-                algorithm_formatter.update_bounds(local_output);
+                tree_search_algorithm_formatter->update_bounds(bounds_output);
             }
         };
 
@@ -961,7 +968,7 @@ const packingsolver::rectangleguillotine::TreeSearchMaximalSpacesOutput packings
     }
     if (exception_ptr)
         std::rethrow_exception(exception_ptr);
-    if (parameters.optimization_mode == OptimizationMode::NotAnytimeDeterministic) {
+    if (deterministic) {
         algorithm_formatter.update_solution(local_output.solution_pool.best(), local_output.solution_pool.best_label());
         algorithm_formatter.update_bounds(local_output);
     }
