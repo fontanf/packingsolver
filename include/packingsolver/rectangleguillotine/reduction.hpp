@@ -203,7 +203,8 @@ private:
      * are the sole occupant of their own stack sidesteps this entirely:
      * there is nothing else in the stack whose order could be disturbed,
      * and folding two singleton stacks into one (the survivor keeps its
-     * own original 'stack_id', just with more copies) leaves each
+     * own stack, just with more copies; the stacks are renumbered
+     * consecutively in the reduced instance) leaves each
      * stack's own internal order - trivial, one item type - untouched.
      * Item types sharing a stack with others are simply never merged;
      * nothing more sophisticated is attempted here for now.

@@ -223,6 +223,25 @@ Instance Reduction::reduction_to_instance(
         instance_builder.add_bin_type(*original_instance_, bin_type_id);
     }
 
+    // Renumber the stacks of the remaining item types consecutively. The
+    // stacks of the removed item types are empty, and with their original
+    // ids, the reduced instance would keep them: it would have more stacks
+    // than item types, as if it had stacking constraints, even when every
+    // item type is alone in its own stack.
+    std::vector<StackId> stack_ids(original_instance_->number_of_stacks(), -1);
+    StackId number_of_stacks = 0;
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < (ItemTypeId)reduction_item_types.size();
+            ++item_type_id) {
+        if (reduction_item_types[item_type_id].removed)
+            continue;
+        StackId stack_id = original_instance_->item_type(item_type_id).stack_id;
+        if (stack_ids[stack_id] == -1) {
+            stack_ids[stack_id] = number_of_stacks;
+            number_of_stacks++;
+        }
+    }
+
     reduced_item_origin_runs_.clear();
     for (ItemTypeId item_type_id = 0;
             item_type_id < (ItemTypeId)reduction_item_types.size();
@@ -258,7 +277,7 @@ Instance Reduction::reduction_to_instance(
                 original_item_type.rect.w,
                 original_item_type.rect.h,
                 original_item_type.oriented,
-                original_item_type.stack_id);
+                stack_ids[original_item_type.stack_id]);
         instance_builder.set_item_type_profit(new_item_type_id, original_item_type.profit);
         instance_builder.set_item_type_copies(new_item_type_id, total_copies);
         instance_builder.set_item_type_copies_min(new_item_type_id, total_copies_min);
