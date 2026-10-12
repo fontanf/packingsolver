@@ -3002,7 +3002,20 @@ const packingsolver::irregular::TreeSearchOutput packingsolver::irregular::tree_
 
     std::vector<BranchingScheme::Parameters> branching_scheme_parameters_list;
     std::vector<treesearchsolver::IterativeBeamSearch2Parameters<BranchingScheme>> ibs_parameters_list;
-    std::vector<packingsolver::Output<Instance, Solution>> local_outputs;
+    // In 'NotAnytimeDeterministic' mode, each scheme reports to its own
+    // algorithm formatter, writing into its own output, instead of the shared
+    // 'algorithm_formatter', so that the scheme can stop as soon as its own
+    // solution is proven optimal while the order in which solutions reach
+    // the shared one stays deterministic (they are replayed at the end).
+    // These local formatters share silenced parameters (no messages, no JSON
+    // output, no new solution callback). A 'unique_ptr' is used since an
+    // 'AlgorithmFormatter' is neither copyable nor movable.
+    bool deterministic = (parameters.optimization_mode == OptimizationMode::NotAnytimeDeterministic);
+    packingsolver::Parameters<Instance, Solution, Output> local_parameters;
+    local_parameters.verbosity_level = 0;
+    local_parameters.timer = parameters.timer;
+    std::vector<std::unique_ptr<Output>> local_outputs;
+    std::vector<std::unique_ptr<AlgorithmFormatter>> local_algorithm_formatters;
     for (double growth_factor: growth_factors) {
         for (GuideId guide_id: guides) {
             for (BranchingScheme::Direction direction: directions) {
@@ -3028,13 +3041,20 @@ const packingsolver::irregular::TreeSearchOutput packingsolver::irregular::tree_
                     ibs_parameters.maximum_size_of_the_queue
                         = parameters.not_anytime_tree_search_queue_size;
                 }
+                if (deterministic) {
+                    local_outputs.push_back(std::make_unique<Output>(instance));
+                    local_algorithm_formatters.push_back(std::make_unique<AlgorithmFormatter>(
+                                instance,
+                                local_parameters,
+                                *local_outputs.back()));
+                    ibs_parameters.timer.add_end_boolean(
+                            &local_algorithm_formatters.back()->end_boolean());
+                }
                 ibs_parameters_list.push_back(ibs_parameters);
-                local_outputs.push_back(packingsolver::Output<Instance, Solution>(instance));
             }
         }
     }
 
-    bool deterministic = (parameters.optimization_mode == OptimizationMode::NotAnytimeDeterministic);
     std::vector<std::function<void()>> tasks;
     std::forward_list<std::exception_ptr> exception_ptr_list;
     for (Counter scheme_idx = 0;
@@ -3044,32 +3064,24 @@ const packingsolver::irregular::TreeSearchOutput packingsolver::irregular::tree_
         std::exception_ptr& exception_ptr = exception_ptr_list.front();
         BranchingScheme::Parameters bs_parameters = branching_scheme_parameters_list[scheme_idx];
         treesearchsolver::IterativeBeamSearch2Parameters<BranchingScheme> ibs_parameters = ibs_parameters_list[scheme_idx];
-        // Always record into 'local_outputs[scheme_idx]' first (this is
-        // also what the deterministic replay below reads from); in
-        // non-deterministic mode, additionally forward immediately to the
-        // shared 'algorithm_formatter', since there ordering across
-        // schemes doesn't need to be deferred for reproducibility.
-        tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter,
-                &local_outputs, scheme_idx, deterministic,
-                bs_parameters, ibs_parameters]()
+        AlgorithmFormatter* scheme_algorithm_formatter = (deterministic)?
+            local_algorithm_formatters[(size_t)scheme_idx].get():
+            &algorithm_formatter;
+        tasks.push_back([&exception_ptr, &instance, &parameters,
+                scheme_algorithm_formatter, bs_parameters, ibs_parameters]()
         {
             wrapper<decltype(&tree_search_worker), tree_search_worker>(
                     exception_ptr,
                     instance,
                     parameters,
-                    algorithm_formatter,
+                    *scheme_algorithm_formatter,
                     bs_parameters,
                     ibs_parameters,
-                    [&algorithm_formatter, &local_outputs, scheme_idx, deterministic](
+                    [scheme_algorithm_formatter](
                             const Solution& solution,
                             const std::string& label)
                     {
-                        local_outputs[(size_t)scheme_idx].solution_pool.add(solution, label);
-                        if (!deterministic) {
-                            algorithm_formatter.update_solution(
-                                    local_outputs[(size_t)scheme_idx].solution_pool.best(),
-                                    local_outputs[(size_t)scheme_idx].solution_pool.best_label());
-                        }
+                        scheme_algorithm_formatter->update_solution(solution, label);
                     });
         });
     }
@@ -3077,13 +3089,11 @@ const packingsolver::irregular::TreeSearchOutput packingsolver::irregular::tree_
     for (const std::exception_ptr& exception_ptr: exception_ptr_list)
         if (exception_ptr)
             std::rethrow_exception(exception_ptr);
-    if (parameters.optimization_mode == OptimizationMode::NotAnytimeDeterministic) {
-        for (Counter scheme_idx = 0;
-                scheme_idx < (Counter)branching_scheme_parameters_list.size();
-                ++scheme_idx) {
+    if (deterministic) {
+        for (const auto& local_output: local_outputs) {
             algorithm_formatter.update_solution(
-                    local_outputs[(size_t)scheme_idx].solution_pool.best(),
-                    local_outputs[(size_t)scheme_idx].solution_pool.best_label());
+                    local_output->solution_pool.best(),
+                    local_output->solution_pool.best_label());
         }
     }
 

@@ -1394,15 +1394,13 @@ void add_statistics(
  * rectangle queue size consuming the whole budget by itself before the tree
  * search is ever considered.
  *
- * The solutions are reported to 'local_output' if it is not 'nullptr', to
- * 'algorithm_formatter' otherwise. The returned output contains the
- * statistics of the run.
+ * The solutions and bounds are reported to 'algorithm_formatter'. The
+ * returned output contains the statistics of the run.
  */
 SequentialOneDimensionalRectangleOutput sequential_onedimensional_rectangle_x(
         const Instance& instance,
         const SequentialOneDimensionalRectangleParameters& parameters,
-        AlgorithmFormatter& algorithm_formatter,
-        packingsolver::Output<Instance, Solution>* local_output)
+        AlgorithmFormatter& algorithm_formatter)
 {
     if (algorithm_formatter.end_boolean())
         return SequentialOneDimensionalRectangleOutput(instance);
@@ -1411,15 +1409,11 @@ SequentialOneDimensionalRectangleOutput sequential_onedimensional_rectangle_x(
     // depend on solutions found in parallel in the other direction.
     SequentialOneDimensionalRectangleParameters x_parameters
         = direction_parameters(parameters, algorithm_formatter);
-    x_parameters.new_solution_callback = [&algorithm_formatter, local_output](
+    x_parameters.new_solution_callback = [&algorithm_formatter](
             const boxstacks::Output& sor_output)
         {
             std::string label = "X " + sor_output.solution_pool.best_label();
-            if (local_output != nullptr) {
-                local_output->solution_pool.add(sor_output.solution_pool.best(), label);
-            } else {
-                algorithm_formatter.update_solution(sor_output.solution_pool.best(), label);
-            }
+            algorithm_formatter.update_solution(sor_output.solution_pool.best(), label);
             algorithm_formatter.update_bounds(sor_output);
         };
     SequentialOneDimensionalRectangleOutput x_output(instance);
@@ -1602,15 +1596,13 @@ SequentialOneDimensionalRectangleOutput sequential_onedimensional_rectangle_x(
  * The algorithm is run along X on the flipped instance, and its solutions
  * are unflipped.
  *
- * The solutions are reported to 'local_output' if it is not 'nullptr', to
- * 'algorithm_formatter' otherwise. The returned output contains the
- * statistics of the run.
+ * The solutions and bounds are reported to 'algorithm_formatter'. The
+ * returned output contains the statistics of the run.
  */
 SequentialOneDimensionalRectangleOutput sequential_onedimensional_rectangle_y(
         const Instance& instance,
         const SequentialOneDimensionalRectangleParameters& parameters,
-        AlgorithmFormatter& algorithm_formatter,
-        packingsolver::Output<Instance, Solution>* local_output)
+        AlgorithmFormatter& algorithm_formatter)
 {
     SequentialOneDimensionalRectangleOutput output(instance);
     if (algorithm_formatter.end_boolean())
@@ -1623,7 +1615,7 @@ SequentialOneDimensionalRectangleOutput sequential_onedimensional_rectangle_y(
     SequentialOneDimensionalRectangleParameters flipped_parameters
         = direction_parameters(parameters, algorithm_formatter);
     flipped_parameters.new_solution_callback = [
-        &algorithm_formatter, local_output, &instance_flipper](
+        &algorithm_formatter, &instance_flipper](
                 const boxstacks::Output& flipped_output)
         {
             std::string label = flipped_output.solution_pool.best_label();
@@ -1631,11 +1623,7 @@ SequentialOneDimensionalRectangleOutput sequential_onedimensional_rectangle_y(
                 label[0] = 'Y';
             Solution solution = instance_flipper.unflip_solution(
                     flipped_output.solution_pool.best());
-            if (local_output != nullptr) {
-                local_output->solution_pool.add(solution, label);
-            } else {
-                algorithm_formatter.update_solution(solution, label);
-            }
+            algorithm_formatter.update_solution(solution, label);
             algorithm_formatter.update_bounds(flipped_output);
         };
     SequentialOneDimensionalRectangleOutput flipped_output = sequential_onedimensional_rectangle(
@@ -1684,52 +1672,63 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
         add_statistics(output, sequential_onedimensional_rectangle_x(
                     instance,
                     parameters,
-                    algorithm_formatter,
-                    nullptr));
+                    algorithm_formatter));
     } else if (directions == std::vector<Direction>{Direction::Y}) {
         add_statistics(output, sequential_onedimensional_rectangle_y(
                     instance,
                     parameters,
-                    algorithm_formatter,
-                    nullptr));
+                    algorithm_formatter));
     } else {
         // 'sequential_onedimensional_rectangle_x' and
         // 'sequential_onedimensional_rectangle_y' run in parallel; in
-        // 'NotAnytimeDeterministic' mode, each writes its solutions to its
-        // own local output instead of the shared 'algorithm_formatter', so
-        // that they can be replayed into it in a fixed, deterministic order
-        // (X then Y) once both have terminated, instead of the
-        // (non-deterministic) order in which they actually finish. Their
-        // statistics are merged once both have terminated.
+        // 'NotAnytimeDeterministic' mode, each reports its solutions and
+        // bounds to its own algorithm formatter, writing into its own output,
+        // instead of the shared 'algorithm_formatter', so that they can be
+        // replayed into it in a fixed, deterministic order (X then Y) once
+        // both have terminated, instead of the (non-deterministic) order in
+        // which they actually finish. Each direction can still stop as soon
+        // as its own solution is proven optimal. These local formatters
+        // share silenced parameters (no messages, no JSON output, no new
+        // solution callback). Their statistics are merged once both have
+        // terminated.
         bool deterministic = (parameters.optimization_mode == OptimizationMode::NotAnytimeDeterministic);
-        packingsolver::Output<Instance, Solution> local_output_x(instance);
-        packingsolver::Output<Instance, Solution> local_output_y(instance);
+        packingsolver::Parameters<Instance, Solution, boxstacks::Output> local_parameters;
+        local_parameters.verbosity_level = 0;
+        local_parameters.timer = parameters.timer;
+        boxstacks::Output local_output_x(instance);
+        boxstacks::Output local_output_y(instance);
+        AlgorithmFormatter local_algorithm_formatter_x(instance, local_parameters, local_output_x);
+        AlgorithmFormatter local_algorithm_formatter_y(instance, local_parameters, local_output_y);
+        AlgorithmFormatter* algorithm_formatter_x = (deterministic)?
+            &local_algorithm_formatter_x:
+            &algorithm_formatter;
+        AlgorithmFormatter* algorithm_formatter_y = (deterministic)?
+            &local_algorithm_formatter_y:
+            &algorithm_formatter;
         std::unique_ptr<SequentialOneDimensionalRectangleOutput> output_x;
         std::unique_ptr<SequentialOneDimensionalRectangleOutput> output_y;
 
         std::vector<std::function<void()>> tasks;
         std::exception_ptr exception_ptr_x;
         std::exception_ptr exception_ptr_y;
-        tasks.push_back([&exception_ptr_x, &instance, &parameters, &algorithm_formatter, &local_output_x, &output_x, deterministic]() {
+        tasks.push_back([&exception_ptr_x, &instance, &parameters, algorithm_formatter_x, &output_x]() {
             try {
                 output_x = std::make_unique<SequentialOneDimensionalRectangleOutput>(
                         sequential_onedimensional_rectangle_x(
                             instance,
                             parameters,
-                            algorithm_formatter,
-                            deterministic ? &local_output_x : nullptr));
+                            *algorithm_formatter_x));
             } catch (...) {
                 exception_ptr_x = std::current_exception();
             }
         });
-        tasks.push_back([&exception_ptr_y, &instance, &parameters, &algorithm_formatter, &local_output_y, &output_y, deterministic]() {
+        tasks.push_back([&exception_ptr_y, &instance, &parameters, algorithm_formatter_y, &output_y]() {
             try {
                 output_y = std::make_unique<SequentialOneDimensionalRectangleOutput>(
                         sequential_onedimensional_rectangle_y(
                             instance,
                             parameters,
-                            algorithm_formatter,
-                            deterministic ? &local_output_y : nullptr));
+                            *algorithm_formatter_y));
             } catch (...) {
                 exception_ptr_y = std::current_exception();
             }
@@ -1752,9 +1751,11 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
             algorithm_formatter.update_solution(
                     local_output_x.solution_pool.best(),
                     local_output_x.solution_pool.best_label());
+            algorithm_formatter.update_bounds(local_output_x);
             algorithm_formatter.update_solution(
                     local_output_y.solution_pool.best(),
                     local_output_y.solution_pool.best_label());
+            algorithm_formatter.update_bounds(local_output_y);
         }
     }
 

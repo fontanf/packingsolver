@@ -757,7 +757,20 @@ const packingsolver::rectangle::TreeSearchMaximalSpacesOutput packingsolver::rec
 
     std::vector<BranchingSchemeMaximalSpaces> branching_schemes;
     std::vector<treesearchsolver::IterativeBeamSearchParameters<BranchingSchemeMaximalSpaces>> ibs_parameters_list;
-    std::vector<Output> local_outputs;
+    // In 'NotAnytimeDeterministic' mode, each scheme reports to its own
+    // algorithm formatter, writing into its own output, instead of the shared
+    // 'algorithm_formatter', so that the scheme can stop as soon as its own
+    // solution is proven optimal while the order in which solutions reach
+    // the shared one stays deterministic (they are replayed at the end).
+    // These local formatters share silenced parameters (no messages, no JSON
+    // output, no new solution callback). A 'unique_ptr' is used since an
+    // 'AlgorithmFormatter' is neither copyable nor movable.
+    bool deterministic = (parameters.optimization_mode == OptimizationMode::NotAnytimeDeterministic);
+    packingsolver::Parameters<Instance, Solution, Output> local_parameters;
+    local_parameters.verbosity_level = 0;
+    local_parameters.timer = parameters.timer;
+    std::vector<std::unique_ptr<Output>> local_outputs;
+    std::vector<std::unique_ptr<AlgorithmFormatter>> local_algorithm_formatters;
     {
         BranchingSchemeMaximalSpaces::Parameters branching_scheme_parameters;
         branching_schemes.push_back(BranchingSchemeMaximalSpaces(instance, all_blocks, max_reachable_lengths, branching_scheme_parameters));
@@ -771,76 +784,53 @@ const packingsolver::rectangle::TreeSearchMaximalSpacesOutput packingsolver::rec
             ibs_parameters.growth_factor = parameters.not_anytime_tree_search_queue_size;
             ibs_parameters.maximum_size_of_the_queue = parameters.not_anytime_tree_search_queue_size;
         }
+        if (deterministic) {
+            local_outputs.push_back(std::make_unique<Output>(instance));
+            local_algorithm_formatters.push_back(std::make_unique<AlgorithmFormatter>(
+                        instance,
+                        local_parameters,
+                        *local_outputs.back()));
+            ibs_parameters.timer.add_end_boolean(
+                    &local_algorithm_formatters.back()->end_boolean());
+        }
         ibs_parameters_list.push_back(ibs_parameters);
-        local_outputs.push_back(Output(instance));
     }
 
     std::vector<std::thread> threads;
     std::forward_list<std::exception_ptr> exception_ptr_list;
     for (Counter scheme_idx = 0; scheme_idx < (Counter)branching_schemes.size(); ++scheme_idx) {
-        if (parameters.optimization_mode != OptimizationMode::NotAnytimeDeterministic) {
-            ibs_parameters_list[scheme_idx].new_solution_callback
-                = [&algorithm_formatter, &branching_schemes, scheme_idx](
-                        const treesearchsolver::Output<BranchingSchemeMaximalSpaces>& tss_output)
-                {
-                    const treesearchsolver::IterativeBeamSearchOutput<BranchingSchemeMaximalSpaces>& tssibs_output
-                        = static_cast<const treesearchsolver::IterativeBeamSearchOutput<BranchingSchemeMaximalSpaces>&>(tss_output);
-                    Solution solution = branching_schemes[scheme_idx].to_solution(
-                            tssibs_output.solution_pool.best());
-                    std::stringstream ss;
-                    ss << "n " << tssibs_output.maximum_size_of_the_queue;
-                    algorithm_formatter.update_solution(solution, ss.str());
-                    if (tssibs_output.optimal) {
-                        // 'Solution::operator<' always ranks a feasible
-                        // solution above an infeasible one, regardless of
-                        // objective, so 'solution_pool.best()' can only be
-                        // infeasible here if no feasible solution was found
-                        // anywhere in this now-exhaustive search: a genuine
-                        // infeasibility proof, independent of objective.
-                        if (!solution.feasible()) {
-                            // For every non-Knapsack objective (Feasibility
-                            // included), 'copies_min' defaults to 'copies',
-                            // so this already subsumes "not everything got
-                            // packed" - no separate 'full()' check needed.
-                            algorithm_formatter.update_is_proven_infeasible();
-                        } else if (solution.instance().objective() == packingsolver::Objective::Knapsack) {
-                            algorithm_formatter.update_knapsack_bound(solution.profit());
-                        }
+        AlgorithmFormatter* scheme_algorithm_formatter = (deterministic)?
+            local_algorithm_formatters[(size_t)scheme_idx].get():
+            &algorithm_formatter;
+        ibs_parameters_list[scheme_idx].new_solution_callback
+            = [scheme_algorithm_formatter, &branching_schemes, scheme_idx](
+                    const treesearchsolver::Output<BranchingSchemeMaximalSpaces>& tss_output)
+            {
+                const treesearchsolver::IterativeBeamSearchOutput<BranchingSchemeMaximalSpaces>& tssibs_output
+                    = static_cast<const treesearchsolver::IterativeBeamSearchOutput<BranchingSchemeMaximalSpaces>&>(tss_output);
+                Solution solution = branching_schemes[scheme_idx].to_solution(
+                        tssibs_output.solution_pool.best());
+                std::stringstream ss;
+                ss << "n " << tssibs_output.maximum_size_of_the_queue;
+                scheme_algorithm_formatter->update_solution(solution, ss.str());
+                if (tssibs_output.optimal) {
+                    // 'Solution::operator<' always ranks a feasible
+                    // solution above an infeasible one, regardless of
+                    // objective, so 'solution_pool.best()' can only be
+                    // infeasible here if no feasible solution was found
+                    // anywhere in this now-exhaustive search: a genuine
+                    // infeasibility proof, independent of objective.
+                    if (!solution.feasible()) {
+                        // For every non-Knapsack objective (Feasibility
+                        // included), 'copies_min' defaults to 'copies',
+                        // so this already subsumes "not everything got
+                        // packed" - no separate 'full()' check needed.
+                        scheme_algorithm_formatter->update_is_proven_infeasible();
+                    } else if (solution.instance().objective() == packingsolver::Objective::Knapsack) {
+                        scheme_algorithm_formatter->update_knapsack_bound(solution.profit());
                     }
-                };
-        } else {
-            ibs_parameters_list[scheme_idx].new_solution_callback
-                = [&local_outputs, &branching_schemes, scheme_idx](
-                        const treesearchsolver::Output<BranchingSchemeMaximalSpaces>& tss_output)
-                {
-                    const treesearchsolver::IterativeBeamSearchOutput<BranchingSchemeMaximalSpaces>& tssibs_output
-                        = static_cast<const treesearchsolver::IterativeBeamSearchOutput<BranchingSchemeMaximalSpaces>&>(tss_output);
-                    Solution solution = branching_schemes[scheme_idx].to_solution(
-                            tssibs_output.solution_pool.best());
-                    std::stringstream ss;
-                    ss << "n " << tssibs_output.maximum_size_of_the_queue;
-                    local_outputs[(size_t)scheme_idx].solution_pool.add(solution, ss.str());
-
-                    if (tssibs_output.optimal) {
-                        // 'Solution::operator<' always ranks a feasible
-                        // solution above an infeasible one, regardless of
-                        // objective, so 'solution_pool.best()' can only be
-                        // infeasible here if no feasible solution was found
-                        // anywhere in this now-exhaustive search: a genuine
-                        // infeasibility proof, independent of objective.
-                        if (!solution.feasible()) {
-                            // For every non-Knapsack objective (Feasibility
-                            // included), 'copies_min' defaults to 'copies',
-                            // so this already subsumes "not everything got
-                            // packed" - no separate 'full()' check needed.
-                            local_outputs[(size_t)scheme_idx].is_proven_infeasible = true;
-                        } else if (solution.instance().objective() == packingsolver::Objective::Knapsack) {
-                            local_outputs[(size_t)scheme_idx].knapsack_bound
-                                = solution.profit();
-                        }
-                    }
-                };
-        }
+                }
+            };
         exception_ptr_list.push_front(std::exception_ptr());
         if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential) {
             threads.push_back(std::thread(
@@ -863,12 +853,12 @@ const packingsolver::rectangle::TreeSearchMaximalSpacesOutput packingsolver::rec
     for (const std::exception_ptr& exception_ptr: exception_ptr_list)
         if (exception_ptr)
             std::rethrow_exception(exception_ptr);
-    if (parameters.optimization_mode == OptimizationMode::NotAnytimeDeterministic) {
-        for (Counter scheme_idx = 0; scheme_idx < (Counter)branching_schemes.size(); ++scheme_idx) {
+    if (deterministic) {
+        for (const auto& local_output: local_outputs) {
             algorithm_formatter.update_solution(
-                    local_outputs[(size_t)scheme_idx].solution_pool.best(),
-                    local_outputs[(size_t)scheme_idx].solution_pool.best_label());
-            algorithm_formatter.update_bounds(local_outputs[(size_t)scheme_idx]);
+                    local_output->solution_pool.best(),
+                    local_output->solution_pool.best_label());
+            algorithm_formatter.update_bounds(*local_output);
         }
     }
 

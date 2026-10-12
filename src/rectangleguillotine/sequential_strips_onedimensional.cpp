@@ -208,8 +208,7 @@ void run_phase2_and_reconstruct(
         CutOrientation orientation,
         const Solution& phase1_solution,
         const SequentialStripsOnedimensionalParameters& parameters,
-        AlgorithmFormatter& algorithm_formatter,
-        packingsolver::Output<Instance, Solution>* local_output)
+        AlgorithmFormatter& algorithm_formatter)
 {
     if (!phase1_solution.feasible() || phase1_solution.number_of_bins() == 0)
         return;
@@ -265,19 +264,14 @@ void run_phase2_and_reconstruct(
         }
     }
     Solution final_solution = final_solution_builder.build();
-    if (local_output != nullptr) {
-        local_output->solution_pool.add(final_solution, "SSO");
-    } else {
-        algorithm_formatter.update_solution(final_solution, "SSO");
-    }
+    algorithm_formatter.update_solution(final_solution, "SSO");
 }
 
 void sequential_strips_onedimensional_oriented(
         const Instance& instance,
         CutOrientation orientation,
         const SequentialStripsOnedimensionalParameters& parameters,
-        AlgorithmFormatter& algorithm_formatter,
-        packingsolver::Output<Instance, Solution>* local_output)
+        AlgorithmFormatter& algorithm_formatter)
 {
     const BinType& bin_type = instance.bin_type(0);
     Length first_stage_length = first_stage_capacity(instance, orientation);
@@ -325,7 +319,7 @@ void sequential_strips_onedimensional_oriented(
     cgs_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
     cgs_parameters.optimization_mode = parameters.optimization_mode;
     cgs_parameters.new_solution_callback = [
-        &instance, orientation, &parameters, &algorithm_formatter, local_output](
+        &instance, orientation, &parameters, &algorithm_formatter](
                 const packingsolver::Output<Instance, Solution>& ps_output)
         {
             run_phase2_and_reconstruct(
@@ -333,8 +327,7 @@ void sequential_strips_onedimensional_oriented(
                     orientation,
                     ps_output.solution_pool.best(),
                     parameters,
-                    algorithm_formatter,
-                    local_output);
+                    algorithm_formatter);
         };
     column_generation_strips(phase1_instance, cgs_parameters);
 }
@@ -355,50 +348,66 @@ const SequentialStripsOnedimensionalOutput packingsolver::rectangleguillotine::s
                 instance,
                 CutOrientation::Vertical,
                 parameters,
-                algorithm_formatter,
-                nullptr);
+                algorithm_formatter);
     } else if (instance.parameters().first_stage_orientation == CutOrientation::Horizontal) {
         sequential_strips_onedimensional_oriented(
                 instance,
                 CutOrientation::Horizontal,
                 parameters,
-                algorithm_formatter,
-                nullptr);
+                algorithm_formatter);
     } else {
         // 'sequential_strips_onedimensional_oriented' runs in parallel for
-        // both orientations; in 'NotAnytimeDeterministic' mode, each writes
-        // its solutions to its own local output instead of the shared
-        // 'algorithm_formatter', so that they can be replayed into it in a
-        // fixed, deterministic order (vertical then horizontal) once both
-        // have terminated, instead of the (non-deterministic) order in which
-        // they actually finish.
+        // both orientations; in 'NotAnytimeDeterministic' mode, each reports
+        // to its own algorithm formatter, writing into its own output,
+        // instead of the shared 'algorithm_formatter', so that its solutions
+        // can be replayed into it in a fixed, deterministic order (vertical
+        // then horizontal) once both have terminated, instead of the
+        // (non-deterministic) order in which they actually finish, while
+        // each orientation can still stop as soon as its own solution is
+        // proven optimal. The local formatters share silenced parameters (no
+        // messages, no JSON output, no new solution callback).
         bool deterministic = (parameters.optimization_mode == OptimizationMode::NotAnytimeDeterministic);
-        packingsolver::Output<Instance, Solution> local_output_vertical(instance);
-        packingsolver::Output<Instance, Solution> local_output_horizontal(instance);
+        packingsolver::Parameters<Instance, Solution, Output> local_parameters;
+        local_parameters.verbosity_level = 0;
+        local_parameters.timer = parameters.timer;
+        Output local_output_vertical(instance);
+        Output local_output_horizontal(instance);
+        AlgorithmFormatter local_algorithm_formatter_vertical(
+                instance,
+                local_parameters,
+                local_output_vertical);
+        AlgorithmFormatter local_algorithm_formatter_horizontal(
+                instance,
+                local_parameters,
+                local_output_horizontal);
+        AlgorithmFormatter* algorithm_formatter_vertical = (deterministic)?
+            &local_algorithm_formatter_vertical:
+            &algorithm_formatter;
+        AlgorithmFormatter* algorithm_formatter_horizontal = (deterministic)?
+            &local_algorithm_formatter_horizontal:
+            &algorithm_formatter;
 
         std::vector<std::function<void()>> tasks;
         std::forward_list<std::exception_ptr> exception_ptr_list;
         exception_ptr_list.push_front(std::exception_ptr());
         std::exception_ptr& exception_ptr_1 = exception_ptr_list.front();
-        tasks.push_back([&exception_ptr_1, &instance, &parameters, &algorithm_formatter, &local_output_vertical, deterministic]() {
+        tasks.push_back([&exception_ptr_1, &instance, &parameters, algorithm_formatter_vertical]() {
             wrapper<decltype(&sequential_strips_onedimensional_oriented), sequential_strips_onedimensional_oriented>(
                     exception_ptr_1,
                     instance,
                     CutOrientation::Vertical,
                     parameters,
-                    algorithm_formatter,
-                    deterministic ? &local_output_vertical : nullptr);
+                    *algorithm_formatter_vertical);
         });
         exception_ptr_list.push_front(std::exception_ptr());
         std::exception_ptr& exception_ptr_2 = exception_ptr_list.front();
-        tasks.push_back([&exception_ptr_2, &instance, &parameters, &algorithm_formatter, &local_output_horizontal, deterministic]() {
+        tasks.push_back([&exception_ptr_2, &instance, &parameters, algorithm_formatter_horizontal]() {
             wrapper<decltype(&sequential_strips_onedimensional_oriented), sequential_strips_onedimensional_oriented>(
                     exception_ptr_2,
                     instance,
                     CutOrientation::Horizontal,
                     parameters,
-                    algorithm_formatter,
-                    deterministic ? &local_output_horizontal : nullptr);
+                    *algorithm_formatter_horizontal);
         });
         run(tasks, parameters.optimization_mode != OptimizationMode::NotAnytimeSequential);
         for (const std::exception_ptr& exception_ptr: exception_ptr_list)
