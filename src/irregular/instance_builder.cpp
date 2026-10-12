@@ -838,6 +838,10 @@ Instance InstanceBuilder::build()
             }
 
             item_shape.shape_scaled = instance_.parameters().scale_value * item_shape.shape_orig;
+            // The endpoints of the circular arcs of shapes coming from
+            // DXF files are not always exactly equidistant from their
+            // centers, which can create spurious self-intersections.
+            item_shape.shape_scaled = shape::recompute_centers(item_shape.shape_scaled);
             item_shape.shape_scaled = shape::remove_redundant_vertices(item_shape.shape_scaled).second;
             item_shape.shape_scaled = shape::remove_aligned_vertices(item_shape.shape_scaled).second;
             if (!item_shape.shape_scaled.shape.check()) {
@@ -1026,9 +1030,12 @@ Instance InstanceBuilder::build()
 
         // Compute scaled shapes.
         if (bin_type.shape_scaled.elements.empty()) {
-            bin_type.shape_scaled = instance_.parameters().scale_value * bin_type.shape_orig;
-            for (Defect& defect: bin_type.defects)
-                defect.shape_scaled = instance_.parameters().scale_value * defect.shape_orig;
+            bin_type.shape_scaled = shape::recompute_centers(
+                    instance_.parameters().scale_value * bin_type.shape_orig);
+            for (Defect& defect: bin_type.defects) {
+                defect.shape_scaled = shape::recompute_centers(
+                        instance_.parameters().scale_value * defect.shape_orig);
+            }
         }
         bin_type.area_scaled = bin_type.shape_scaled.compute_area();
         bin_type.aabb_scaled = bin_type.shape_scaled.compute_min_max();

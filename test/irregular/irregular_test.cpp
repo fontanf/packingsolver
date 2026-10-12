@@ -123,6 +123,12 @@ INSTANTIATE_TEST_SUITE_P(
                 // remapping them.
                 fs::path("data") / "irregular" / "tests" / "fixed_items_several_bins.json",
                 fs::path("data") / "irregular" / "tests" / "fixed_items_several_bins_solution.json",
+            }, {
+                // The endpoints of the circular arcs of this item, from a DXF
+                // file, are not exactly equidistant from their centers. The
+                // scaled shape used to be found self-intersecting.
+                fs::path("data") / "irregular" / "tests" / "inconsistent_arc_centers.json",
+                fs::path("data") / "irregular" / "tests" / "inconsistent_arc_centers_solution.json",
             }}));
 
 TEST(Irregular, QualityRules)
