@@ -43,7 +43,10 @@ void expect_instances_equal(const Instance& actual, const Instance& expected)
         EXPECT_EQ(actual_item_type.copies, expected_item_type.copies);
         EXPECT_EQ(actual_item_type.copies_min, expected_item_type.copies_min);
         EXPECT_EQ(actual_item_type.profit, expected_item_type.profit);
+        EXPECT_EQ(actual_item_type.stack_id, expected_item_type.stack_id);
     }
+
+    EXPECT_EQ(actual.number_of_stacks(), expected.number_of_stacks());
 }
 
 }
