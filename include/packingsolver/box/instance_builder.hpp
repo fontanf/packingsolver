@@ -175,6 +175,11 @@ public:
             ItemTypeId item_type_id,
             Rotation rotation);
 
+    /** Set the rotations of an item type, replacing the ones already added. */
+    void set_item_type_rotations(
+            ItemTypeId item_type_id,
+            const std::vector<Rotation>& rotations);
+
     /** Set the weight of an item type. */
     void set_item_type_weight(
             ItemTypeId item_type_id,

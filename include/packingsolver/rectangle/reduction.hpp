@@ -32,6 +32,12 @@ struct ReductionParameters: optimizationtools::Parameters
     bool reduce = true;
 
     /**
+     * Enable/disable removing the redundant rotations of the item types
+     * (gates 'Reduction::remove_redundant_rotations').
+     */
+    bool remove_redundant_rotations = true;
+
+    /**
      * Enable/disable the wide/tall item enlargement sub-operation of
      * companion absorption (gates 'Reduction::reduce_group', called for
      * both 'EnlargementCase::Wide' and 'EnlargementCase::Tall' - see
@@ -420,6 +426,26 @@ struct ReductionParameters: optimizationtools::Parameters
  *   strictly more valuable reductions for the same item type earlier in
  *   the very same round. See 'reduce_full_span_items_applies'.
  *
+ * - Removing redundant rotations (see 'remove_redundant_rotations'): the
+ *   rotation of a non-oriented item type is redundant if its current
+ *   dimensions make a square, or if, rotated, it fits in no bin type while
+ *   it does unrotated: the item type becomes oriented. If instead it only
+ *   fits rotated, it becomes oriented with its width and height swapped,
+ *   and 'unreduce_solution' rotates the placed copies of the original item
+ *   type back. Every solution of the reduced instance thus maps to a
+ *   solution of the original instance, and every solution of the original
+ *   instance can be written with the remaining rotations only. Item types
+ *   with fixed copies are left untouched. When 'reduce_full_span_items'
+ *   applies, the items are checked against the single bin as shrunk so far
+ *   by it. Runs first in each round of the main loop, since the other
+ *   operations of the loop can make more rotations redundant: pinning
+ *   full-span items shrinks the bin, and lifting and companion absorption
+ *   change item dimensions. Every operation reads the current orientation of
+ *   an item type ('ReductionItemType::oriented'), so that orienting an item
+ *   type can enable them (e.g. companion absorption and lifting require
+ *   oriented item types, and 'merge_identical_items' merges item types
+ *   which only differed by a redundant rotation).
+ *
  * For every excluded case, this class no-ops entirely: 'instance()' returns
  * a copy of the original instance, and 'unreduce_solution' is the identity
  * function.
@@ -687,8 +713,23 @@ private:
          */
         ItemTypeId merged_into = -1;
 
-        /** Current (possibly enlarged) dimensions. */
+        /** Current (possibly enlarged or swapped) dimensions. */
         Rectangle rect;
+
+        /**
+         * Whether the item type is currently oriented. Starts at the
+         * original instance's own value, and can only ever become 'true',
+         * via 'remove_redundant_rotations'.
+         */
+        bool oriented = false;
+
+        /**
+         * Whether 'rect' has been swapped compared to the original item
+         * type's own dimensions, by 'remove_redundant_rotations': copies
+         * placed unrotated in the reduced instance are placed rotated in
+         * the original instance, and conversely.
+         */
+        bool swapped = false;
 
         /**
          * Current (possibly reduced) number of copies. Starts at the
@@ -1816,9 +1857,7 @@ private:
      * heights) not exceeding 'capacity' - the inner multiple-choice
      * subset-sum maximization of equation (7), shared by
      * 'compute_shrunk_bin_sizes''s width/height calls, via
-     * 'multiplechoicesubsetsumsolver'. Takes 'original_instance' alongside
-     * 'reduction_item_types' only for each item type's own 'oriented'
-     * flag, which 'ReductionItemType' does not duplicate.
+     * 'multiplechoicesubsetsumsolver'.
      *
      * 'excluded_item_type_id' (default '-1', meaning "none") leaves one
      * copy of that item type's own group out of the candidate pool -
@@ -1838,7 +1877,6 @@ private:
      */
     static Length max_achievable_dimension_sum(
             const std::vector<ReductionItemType>& reduction_item_types,
-            const Instance& original_instance,
             Length capacity,
             bool width_axis,
             ItemTypeId excluded_item_type_id = -1);
@@ -1905,6 +1943,14 @@ private:
             std::vector<ReductionItemType>& reduction_item_types,
             Length bin_w,
             Length bin_h) const;
+
+    /**
+     * Removes the redundant rotations of the item types (see the
+     * class-level doc comment). Returns 'true' iff at least one item type
+     * became oriented.
+     */
+    bool remove_redundant_rotations(
+            std::vector<ReductionItemType>& reduction_item_types) const;
 
     /**
      * Single-axis half of 'lift_item_dimensions' (see there for the
@@ -2046,6 +2092,15 @@ private:
      * bin type ids back to 'original_instance_''s id space.
      */
     std::vector<BinTypeId> reduced_to_original_bin_type_id_;
+
+    /**
+     * Indexed by the original instance's item type ids: whether the
+     * dimensions of the item type have been swapped by
+     * 'remove_redundant_rotations' (see 'ReductionItemType::swapped').
+     * Populated at the end of the constructor, and used by
+     * 'unreduce_solution'.
+     */
+    std::vector<bool> swapped_item_types_;
 
     /**
      * Places 'item_type_id' (original instance's id space) at 'bl_corner'

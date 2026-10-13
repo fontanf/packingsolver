@@ -26,6 +26,80 @@ ItemPos Reduction::effective_copies_min(
     return original_item_type.copies_min;
 }
 
+namespace
+{
+
+/**
+ * The 'x' and 'y' of 'box' rotated with 'rotation', which is 'XYZ' or 'YXZ'
+ * (items are packed upright).
+ */
+std::pair<Length, Length> rotated_footprint(
+        const Box& box,
+        Rotation rotation)
+{
+    if (rotation == Rotation::YXZ)
+        return {box.y, box.x};
+    return {box.x, box.y};
+}
+
+}
+
+bool Reduction::remove_redundant_rotations(
+        std::vector<ReductionItemType>& reduction_item_types) const
+{
+    bool found = false;
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < (ItemTypeId)reduction_item_types.size();
+            ++item_type_id) {
+        ReductionItemType& item = reduction_item_types[item_type_id];
+        if (item.removed)
+            continue;
+        const ItemType& item_type = original_instance_->item_type(item_type_id);
+        if (item_type.copies_fixed > 0)
+            continue;
+
+        // Keep the first rotation of each rotated footprint.
+        std::vector<Rotation> distinct_rotations;
+        for (Rotation rotation: item.rotations) {
+            bool duplicate = false;
+            for (Rotation distinct_rotation: distinct_rotations) {
+                if (rotated_footprint(item_type.box, distinct_rotation)
+                        == rotated_footprint(item_type.box, rotation)) {
+                    duplicate = true;
+                    break;
+                }
+            }
+            if (!duplicate)
+                distinct_rotations.push_back(rotation);
+        }
+
+        // Remove the rotations whose rotated footprint fits in no bin type,
+        // unless none fits.
+        std::vector<Rotation> fitting_rotations;
+        for (Rotation rotation: distinct_rotations) {
+            std::pair<Length, Length> footprint = rotated_footprint(item_type.box, rotation);
+            for (BinTypeId bin_type_id = 0;
+                    bin_type_id < original_instance_->number_of_bin_types();
+                    ++bin_type_id) {
+                const Box& bin_box = original_instance_->bin_type(bin_type_id).box;
+                if (footprint.first <= bin_box.x
+                        && footprint.second <= bin_box.y) {
+                    fitting_rotations.push_back(rotation);
+                    break;
+                }
+            }
+        }
+        if (!fitting_rotations.empty())
+            distinct_rotations = fitting_rotations;
+
+        if (distinct_rotations.size() != item.rotations.size()) {
+            item.rotations = distinct_rotations;
+            found = true;
+        }
+    }
+    return found;
+}
+
 bool Reduction::remove_negative_profit_items(
         std::vector<ReductionItemType>& reduction_item_types) const
 {
@@ -98,7 +172,9 @@ bool Reduction::items_mergeable(
             && item_type_1.profit != item_type_2.profit)
         return false;
 
-    if (!same_rotations(item_type_1.rotations, item_type_2.rotations))
+    if (!same_rotations(
+                reduction_item_types[item_type_id_1].rotations,
+                reduction_item_types[item_type_id_2].rotations))
         return false;
     if (item_type_1.weight != item_type_2.weight)
         return false;
@@ -206,6 +282,7 @@ Instance Reduction::reduction_to_instance(
         ItemTypeId new_item_type_id = instance_builder.add_item_type(*original_instance_, item_type_id);
         instance_builder.set_item_type_copies(new_item_type_id, total_copies);
         instance_builder.set_item_type_copies_min(new_item_type_id, total_copies_min);
+        instance_builder.set_item_type_rotations(new_item_type_id, item.rotations);
         reduced_item_origin_runs_.push_back(std::move(origin_runs));
     }
 
@@ -226,7 +303,11 @@ Reduction::Reduction(
             item_type_id < instance.number_of_item_types();
             ++item_type_id) {
         reduction_item_types[item_type_id].copies = instance.item_type(item_type_id).copies;
+        reduction_item_types[item_type_id].rotations = instance.item_type(item_type_id).rotations;
     }
+
+    if (parameters.remove_redundant_rotations)
+        remove_redundant_rotations(reduction_item_types);
 
     if (parameters.remove_negative_profit_items
             && remove_negative_profit_items_applies(instance)) {

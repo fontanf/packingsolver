@@ -352,5 +352,27 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "rectangleguillotine" / "tests" / "bin_packing_merge_identical_items_alone_in_stack_with_multiple_copies",
                 ReductionParameters(),
                 true,
+            }, {
+                // Bin 100x100. Item type 0 (10x10) is a square: its
+                // rotation is redundant, it becomes oriented. Item type 1
+                // (10x20) fits in the bin in both orientations: it stays
+                // non-oriented.
+                fs::path("data") / "rectangleguillotine" / "tests" / "remove_redundant_rotations_square_item",
+                ReductionParameters(),
+            }, {
+                // Bin 100x40. Item type 30x45 doesn't fit in the bin
+                // ('height' 45 > 40), but fits rotated: it becomes an
+                // oriented 45x30 item type. The leaves of the cut trees of
+                // the solution of the reduced instance accept the original
+                // item type rotated.
+                fs::path("data") / "rectangleguillotine" / "tests" / "remove_redundant_rotations_rotation_fits_no_bin",
+                ReductionParameters(),
+            }, {
+                // Bin 100x40. Item type 0 (30x45) only fits rotated: it
+                // becomes an oriented 45x30 item type. Item type 1 (45x30)
+                // only fits unrotated: it becomes oriented. Both are then
+                // identical and merge.
+                fs::path("data") / "rectangleguillotine" / "tests" / "bin_packing_merge_identical_items_after_removing_redundant_rotations",
+                ReductionParameters(),
             },
         }));

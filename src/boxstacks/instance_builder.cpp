@@ -367,6 +367,21 @@ void InstanceBuilder::add_item_type_rotation(
     instance_.item_types_[item_type_id].rotations.push_back(rotation);
 }
 
+void InstanceBuilder::set_item_type_rotations(
+        ItemTypeId item_type_id,
+        const std::vector<Rotation>& rotations)
+{
+    if (item_type_id < 0 || item_type_id >= (ItemTypeId)instance_.item_types_.size()) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "invalid 'item_type_id'; "
+                "item_type_id: " + std::to_string(item_type_id) + ".");
+    }
+    instance_.item_types_[item_type_id].rotations.clear();
+    for (Rotation rotation: rotations)
+        add_item_type_rotation(item_type_id, rotation);
+}
+
 void InstanceBuilder::set_item_type_group(
         ItemTypeId item_type_id,
         GroupId group_id)

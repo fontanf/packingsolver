@@ -466,6 +466,7 @@ void bind_rectangleguillotine(nb::module_& m)
     nb::class_<ReductionParameters>(m, "ReductionParameters")
         .def(nb::init<>())
         .def_rw("reduce", &ReductionParameters::reduce)
+        .def_rw("remove_redundant_rotations", &ReductionParameters::remove_redundant_rotations)
         .def_rw("remove_negative_profit_items", &ReductionParameters::remove_negative_profit_items)
         .def_rw("merge_identical_items", &ReductionParameters::merge_identical_items);
 
