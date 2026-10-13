@@ -1039,6 +1039,52 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "rectangle" / "tests" / "bin_packing_with_leftovers_y_lift_not_applied_on_y",
                 ReductionParameters(),
                 false,
+            }, {
+                // Bin 100x100. Item type 0 (10x10) is a square: its
+                // rotation is redundant, it becomes oriented. Item type 1
+                // (10x20) fits in the bin in both orientations: it stays
+                // non-oriented.
+                fs::path("data") / "rectangle" / "tests" / "remove_redundant_rotations_square_item",
+                ReductionParameters(),
+            }, {
+                // Bin 100x40. Item type 30x45 doesn't fit in the bin
+                // ('y' 45 > 40), but fits rotated: it becomes an oriented
+                // 45x30 item type, and the copies placed in the solution
+                // of the reduced instance are rotated back in the solution
+                // of the original instance.
+                fs::path("data") / "rectangle" / "tests" / "remove_redundant_rotations_rotation_fits_no_bin",
+                ReductionParameters(),
+            }, {
+                // Bin 100x40. Item type 0 (30x45) only fits rotated: it
+                // becomes an oriented 45x30 item type. Item type 1 (45x30)
+                // only fits unrotated: it becomes oriented. Both are then
+                // identical and merge; unreducing the solution rotates
+                // back the copies of item type 0. The companion
+                // absorption and dimension lifting operations are
+                // disabled: two copies fill a bin, so they would also
+                // place them in dedicated bins.
+                fs::path("data") / "rectangle" / "tests" / "bin_packing_merge_identical_items_after_removing_redundant_rotations",
+                []() {
+                    ReductionParameters p;
+                    p.enlarge_wide_tall_items = false;
+                    p.enlarge_both_items = false;
+                    p.reduce_full_bin_items = false;
+                    p.reduce_perfect_pairs = false;
+                    p.lift_item_dimensions = false;
+                    return p;
+                }(),
+            }, {
+                // Bin 20x10, 1 copy (Feasibility). Item type 1 (3x8,
+                // non-oriented) fits in the bin in both orientations, so
+                // its rotation is not redundant at first. Item type 0
+                // (20x4) spans the bin's width and is pinned by
+                // 'reduce_full_span_items', which shrinks the bin to 20x6:
+                // item type 1 now only fits rotated, so in the next round
+                // of the reduction loop, it becomes an oriented 8x3 item
+                // type. Lifting is disabled so that the reduced instance
+                // keeps the item dimensions.
+                fs::path("data") / "rectangle" / "tests" / "remove_redundant_rotations_after_pinning_full_span_item",
+                []() { ReductionParameters p; p.lift_item_dimensions = false; return p; }(),
             },
         }));
 

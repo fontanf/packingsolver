@@ -33,14 +33,14 @@ const std::vector<double>* find_item_type_schedule(
 }
 
 /**
- * The set of rotations 'item_type' allows, as a fixed-size boolean array
+ * The set of rotations 'rotations' allows, as a fixed-size boolean array
  * indexed by 'Rotation' - lets two item types' allowed-rotation sets be
  * compared regardless of the order 'rotations' happens to list them in.
  */
-std::array<bool, NUMBER_OF_ROTATIONS> rotation_set(const ItemType& item_type)
+std::array<bool, NUMBER_OF_ROTATIONS> rotation_set(const std::vector<Rotation>& rotations)
 {
     std::array<bool, NUMBER_OF_ROTATIONS> set{};
-    for (Rotation rotation: item_type.rotations)
+    for (Rotation rotation: rotations)
         set[(int)rotation] = true;
     return set;
 }
@@ -61,7 +61,11 @@ Reduction::Reduction(
             item_type_id < instance.number_of_item_types();
             ++item_type_id) {
         reduction_item_types[item_type_id].copies = instance.item_type(item_type_id).copies;
+        reduction_item_types[item_type_id].rotations = instance.item_type(item_type_id).rotations;
     }
+
+    if (parameters.remove_redundant_rotations)
+        remove_redundant_rotations(reduction_item_types);
 
     if (parameters.remove_negative_profit_items
             && remove_negative_profit_items_applies(instance)) {
@@ -122,6 +126,63 @@ ItemPos Reduction::effective_copies_min(
     return std::max((ItemPos)0, original_item_type.copies_min - consumed);
 }
 
+bool Reduction::remove_redundant_rotations(
+        std::vector<ReductionItemType>& reduction_item_types) const
+{
+    bool found = false;
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < (ItemTypeId)reduction_item_types.size();
+            ++item_type_id) {
+        ReductionItemType& item = reduction_item_types[item_type_id];
+        if (item.removed)
+            continue;
+        const ItemType& item_type = original_instance_->item_type(item_type_id);
+        if (item_type.copies_fixed > 0)
+            continue;
+
+        // Keep the first rotation of each rotated box.
+        std::vector<Rotation> distinct_rotations;
+        for (Rotation rotation: item.rotations) {
+            Box box = item_type.box.rotate(rotation);
+            bool duplicate = false;
+            for (Rotation distinct_rotation: distinct_rotations) {
+                if (item_type.box.rotate(distinct_rotation) == box) {
+                    duplicate = true;
+                    break;
+                }
+            }
+            if (!duplicate)
+                distinct_rotations.push_back(rotation);
+        }
+
+        // Remove the rotations whose rotated box fits in no bin type, unless
+        // none fits.
+        std::vector<Rotation> fitting_rotations;
+        for (Rotation rotation: distinct_rotations) {
+            Box box = item_type.box.rotate(rotation);
+            for (BinTypeId bin_type_id = 0;
+                    bin_type_id < original_instance_->number_of_bin_types();
+                    ++bin_type_id) {
+                const Box& bin_box = original_instance_->bin_type(bin_type_id).box;
+                if (box.x <= bin_box.x
+                        && box.y <= bin_box.y
+                        && box.z <= bin_box.z) {
+                    fitting_rotations.push_back(rotation);
+                    break;
+                }
+            }
+        }
+        if (!fitting_rotations.empty())
+            distinct_rotations = fitting_rotations;
+
+        if (distinct_rotations.size() != item.rotations.size()) {
+            item.rotations = distinct_rotations;
+            found = true;
+        }
+    }
+    return found;
+}
+
 bool Reduction::remove_negative_profit_items(
         std::vector<ReductionItemType>& reduction_item_types) const
 {
@@ -158,7 +219,8 @@ bool Reduction::items_mergeable(
 
     if (item_type_1.box != item_type_2.box)
         return false;
-    if (rotation_set(item_type_1) != rotation_set(item_type_2))
+    if (rotation_set(reduction_item_types[item_type_id_1].rotations)
+            != rotation_set(reduction_item_types[item_type_id_2].rotations))
         return false;
     if (item_type_1.weight != item_type_2.weight)
         return false;
@@ -291,11 +353,13 @@ Instance Reduction::reduction_to_instance(
         // 'add_item_type(original_instance, id)' copies every field
         // (box, rotations, profit, weight, resource consumptions) from the
         // survivor's own original item type; only 'copies'/'copies_min'
-        // need overriding afterwards to reflect the merge.
+        // need overriding afterwards to reflect the merge, and 'rotations'
+        // to reflect 'remove_redundant_rotations'.
         ItemTypeId new_item_type_id = instance_builder.add_item_type(
                 *original_instance_, item_type_id);
         instance_builder.set_item_type_copies(new_item_type_id, total_copies);
         instance_builder.set_item_type_copies_min(new_item_type_id, total_copies_min);
+        instance_builder.set_item_type_rotations(new_item_type_id, item.rotations);
 
         reduced_item_origin_runs_.push_back(std::move(origin_runs));
     }

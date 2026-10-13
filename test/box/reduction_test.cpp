@@ -272,9 +272,10 @@ INSTANTIATE_TEST_SUITE_P(
                 ReductionParameters(),
             }, {
                 // 'box'-specific (no rectangle analogue): item types 0 and
-                // 1 have identical dimensions (4x4x4) but *different*
+                // 1 have identical dimensions (4x5x4) but *different*
                 // allowed-rotation sets (item 0 oriented; item 1 also
-                // allows the YXZ rotation) - two item types are only truly
+                // allows the YXZ rotation, which is not redundant since
+                // 'x != y') - two item types are only truly
                 // interchangeable if a downstream solve could freely swap
                 // one copy for the other in any placement, which is not
                 // the case here, so they must not merge.
@@ -304,5 +305,27 @@ INSTANTIATE_TEST_SUITE_P(
                 false,
                 false,
                 2,
+            }, {
+                // Item type 4x4x6 allowing the 6 rotations, which give only
+                // 3 different rotated boxes: 'YXZ' is the same box as
+                // 'XYZ', 'XZY' as 'YZX', and 'ZXY' as 'ZYX'. Only the
+                // first rotation of each rotated box is kept.
+                fs::path("data") / "box" / "tests" / "remove_redundant_rotations_identical_rotated_boxes",
+                ReductionParameters(),
+            }, {
+                // Bin 10x5x10. Item type 3x8x2 allowing rotations 'XYZ'
+                // and 'YXZ': rotated with 'XYZ', it doesn't fit in the
+                // bin ('y' 8 > 5), so only 'YXZ' is kept. The solution of
+                // the reduced instance, which only uses 'YXZ', is a
+                // solution of the original instance.
+                fs::path("data") / "box" / "tests" / "remove_redundant_rotations_rotation_fits_no_bin",
+                ReductionParameters(),
+            }, {
+                // Item types 0 and 1 are both 4x4x4; item type 0 is
+                // oriented and item type 1 also allows 'YXZ', which gives
+                // the same box. Once this redundant rotation is removed,
+                // both allow the same rotations and merge.
+                fs::path("data") / "box" / "tests" / "bin_packing_merge_identical_items_after_removing_redundant_rotations",
+                ReductionParameters(),
             },
         }));

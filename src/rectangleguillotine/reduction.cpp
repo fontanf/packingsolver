@@ -42,6 +42,49 @@ ItemPos Reduction::effective_copies_min(
     return std::max((ItemPos)0, original_item_type.copies_min - consumed);
 }
 
+bool Reduction::remove_redundant_rotations(
+        std::vector<ReductionItemType>& reduction_item_types) const
+{
+    bool found = false;
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < (ItemTypeId)reduction_item_types.size();
+            ++item_type_id) {
+        ReductionItemType& item = reduction_item_types[item_type_id];
+        if (item.removed
+                || item.oriented
+                || original_instance_->item_type(item_type_id).copies_fixed > 0) {
+            continue;
+        }
+        if (item.rect.w == item.rect.h) {
+            item.oriented = true;
+            found = true;
+            continue;
+        }
+        bool fits = false;
+        bool fits_rotated = false;
+        for (BinTypeId bin_type_id = 0;
+                bin_type_id < original_instance_->number_of_bin_types();
+                ++bin_type_id) {
+            const BinType& bin_type = original_instance_->bin_type(bin_type_id);
+            Length width = bin_type.rect.w - bin_type.left_trim - bin_type.right_trim;
+            Length height = bin_type.rect.h - bin_type.bottom_trim - bin_type.top_trim;
+            if (item.rect.w <= width && item.rect.h <= height)
+                fits = true;
+            if (item.rect.h <= width && item.rect.w <= height)
+                fits_rotated = true;
+        }
+        if (fits && !fits_rotated) {
+            item.oriented = true;
+            found = true;
+        } else if (!fits && fits_rotated) {
+            item.oriented = true;
+            std::swap(item.rect.w, item.rect.h);
+            found = true;
+        }
+    }
+    return found;
+}
+
 void Reduction::remove_negative_profit_items(
         std::vector<ReductionItemType>& reduction_item_types) const
 {
@@ -121,9 +164,12 @@ bool Reduction::items_mergeable(
     const ItemType& item_type_1 = original_instance_->item_type(item_type_id_1);
     const ItemType& item_type_2 = original_instance_->item_type(item_type_id_2);
 
-    if (item_type_1.rect.w != item_type_2.rect.w || item_type_1.rect.h != item_type_2.rect.h)
+    const ReductionItemType& reduction_item_type_1 = reduction_item_types[item_type_id_1];
+    const ReductionItemType& reduction_item_type_2 = reduction_item_types[item_type_id_2];
+    if (reduction_item_type_1.rect.w != reduction_item_type_2.rect.w
+            || reduction_item_type_1.rect.h != reduction_item_type_2.rect.h)
         return false;
-    if (item_type_1.oriented != item_type_2.oriented)
+    if (reduction_item_type_1.oriented != reduction_item_type_2.oriented)
         return false;
 
     // Profit is only compared for 'Knapsack' - see 'items_mergeable''s own
@@ -274,9 +320,9 @@ Instance Reduction::reduction_to_instance(
 
         const ItemType& original_item_type = original_instance_->item_type(item_type_id);
         ItemTypeId new_item_type_id = instance_builder.add_item_type(
-                original_item_type.rect.w,
-                original_item_type.rect.h,
-                original_item_type.oriented,
+                item.rect.w,
+                item.rect.h,
+                item.oriented,
                 stack_ids[original_item_type.stack_id]);
         instance_builder.set_item_type_profit(new_item_type_id, original_item_type.profit);
         instance_builder.set_item_type_copies(new_item_type_id, total_copies);
@@ -324,9 +370,13 @@ Reduction::Reduction(
             item_type_id < instance.number_of_item_types();
             ++item_type_id) {
         reduction_item_types[item_type_id].copies = instance.item_type(item_type_id).copies;
+        reduction_item_types[item_type_id].rect = instance.item_type(item_type_id).rect;
+        reduction_item_types[item_type_id].oriented = instance.item_type(item_type_id).oriented;
     }
 
     if (parameters.reduce) {
+        if (parameters.remove_redundant_rotations)
+            remove_redundant_rotations(reduction_item_types);
         if (remove_negative_profit_items_applies(instance)
                 && parameters.remove_negative_profit_items) {
             remove_negative_profit_items(reduction_item_types);

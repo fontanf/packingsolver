@@ -174,9 +174,8 @@ bool Reduction::try_reduce_group(
         std::vector<ItemTypeId> check_r_item_type_ids;
         for (ItemTypeId r_item_type_id: candidate_r_ids) {
             const ReductionItemType& item = reduction_item_types[r_item_type_id];
-            const ItemType& original_item_type = original_instance_->item_type(r_item_type_id);
             ItemTypeId check_item_type_id = check_instance_builder.add_item_type(
-                    item.rect.x, item.rect.y, original_item_type.oriented);
+                    item.rect.x, item.rect.y, item.oriented);
             check_instance_builder.set_item_type_copies(check_item_type_id, item.copies);
             check_r_item_type_ids.push_back(check_item_type_id);
         }
@@ -320,7 +319,7 @@ bool Reduction::is_big(
         Length bin_w,
         Length bin_h) const
 {
-    if (!original_instance_->item_type(item_type_id).oriented)
+    if (!item.oriented)
         return false;
     switch (enlargement_case) {
     case EnlargementCase::Wide:
@@ -368,7 +367,7 @@ bool Reduction::could_fit(
     // testing against an exact-fit fixture: a narrow-but-tall item that
     // doesn't fit any available strip must make the check - and so the
     // whole reduction attempt - fail, not be silently ignored).
-    bool oriented = original_instance_->item_type(item_type_id).oriented;
+    bool oriented = item.oriented;
     switch (enlargement_case) {
     case EnlargementCase::Wide: {
         Length strip_w = bin_w - big_item.rect.x;
@@ -401,7 +400,7 @@ bool Reduction::could_fit_both(
     // consumer assumes never happens. So first require the item to fit
     // the bin on its own (in some allowed orientation), then apply the
     // paper's pairwise-sum test on top.
-    bool oriented = original_instance_->item_type(item_type_id).oriented;
+    bool oriented = item.oriented;
     bool fits_bin_oriented = item.rect.x <= bin_w && item.rect.y <= bin_h;
     bool fits_bin_rotated = !oriented && item.rect.y <= bin_w && item.rect.x <= bin_h;
     if (!fits_bin_oriented && !fits_bin_rotated)
@@ -417,7 +416,7 @@ bool Reduction::could_fit_both(
     // big item could actually use, not just its declared form: see this
     // function's own doc comment for why under-checking here would be
     // unsound, not merely less effective.
-    bool big_item_oriented = original_instance_->item_type(big_item_type_id).oriented;
+    bool big_item_oriented = big_item.oriented;
     for (int big_item_rotate = 0; big_item_rotate < (big_item_oriented? 1: 2); ++big_item_rotate) {
         Length big_item_w = (big_item_rotate == 0)? big_item.rect.x: big_item.rect.y;
         Length big_item_h = (big_item_rotate == 0)? big_item.rect.y: big_item.rect.x;
@@ -512,7 +511,7 @@ std::vector<ItemTypeId> Reduction::gather_sorted_both_big_items(
         // itself found (see 'BothGroup'), so there is no shared,
         // per-type state that would need a single orientation to stay
         // consistent across every copy.
-        bool oriented = original_instance_->item_type(item_type_id).oriented;
+        bool oriented = item.oriented;
         bool both_big = (2 * item.rect.x > bin_w && 2 * item.rect.y > bin_h)
             || (!oriented && 2 * item.rect.y > bin_w && 2 * item.rect.x > bin_h);
         if (both_big)
@@ -634,7 +633,7 @@ bool Reduction::try_reduce_both_group(
         bool any_captured = false;
         for (ItemTypeId big_item_type_id: candidate_big_item_ids) {
             ReductionItemType& big_item = reduction_item_types[big_item_type_id];
-            bool oriented = original_instance_->item_type(big_item_type_id).oriented;
+            bool oriented = big_item.oriented;
             bool rotate;
             if (big_item.rect.x <= bin_w && big_item.rect.y <= bin_h) {
                 rotate = false;
@@ -711,7 +710,7 @@ bool Reduction::try_reduce_both_group(
         const ReductionItemType& big_item = reduction_item_types[big_item_type_id];
         ItemTypeId check_big_item_type_id = check_instance_builder.add_item_type(
                 big_item.rect.x, big_item.rect.y,
-                original_instance_->item_type(big_item_type_id).oriented);
+                big_item.oriented);
         check_instance_builder.set_item_type_copies(check_big_item_type_id, big_item.copies);
         check_big_item_type_ids.push_back(check_big_item_type_id);
     }
@@ -719,9 +718,8 @@ bool Reduction::try_reduce_both_group(
     std::vector<ItemTypeId> check_r_item_type_ids;
     for (ItemTypeId r_item_type_id: candidate_r_ids) {
         const ReductionItemType& item = reduction_item_types[r_item_type_id];
-        const ItemType& original_item_type = original_instance_->item_type(r_item_type_id);
         ItemTypeId check_item_type_id = check_instance_builder.add_item_type(
-                item.rect.x, item.rect.y, original_item_type.oriented);
+                item.rect.x, item.rect.y, item.oriented);
         check_instance_builder.set_item_type_copies(check_item_type_id, item.copies);
         check_r_item_type_ids.push_back(check_item_type_id);
     }
@@ -925,7 +923,7 @@ bool Reduction::reduce_full_bin_items(
         // this function's own doc comment), using the item's *current*
         // dimensions (may already be enlarged, companionlessly or with
         // real companions of its own).
-        bool oriented = original_instance_->item_type(item_type_id).oriented;
+        bool oriented = item.oriented;
         bool rotate = false;
         bool matches = false;
         if (item.rect.x == bin_w && item.rect.y == bin_h) {
@@ -994,7 +992,7 @@ bool Reduction::reduce_full_span_items(
                 item_type_id < (ItemTypeId)reduction_item_types.size();
                 ++item_type_id) {
             ReductionItemType& item = reduction_item_types[item_type_id];
-            bool oriented = original_instance_->item_type(item_type_id).oriented;
+            bool oriented = item.oriented;
 
             // Matches against 'item.rect' - this item type's *current*
             // dimensions, possibly already grown by lifting or companion
@@ -1134,7 +1132,7 @@ bool Reduction::reduce_perfect_pairs(
         // so nothing guarantees it couldn't have been placed differently
         // in a true optimal solution - the "slide together" argument
         // below needs that guarantee unconditionally.
-        if (!original_instance_->item_type(item_type_id_1).oriented)
+        if (!item_1.oriented)
             continue;
         const Rectangle& footprint_1 = item_1.rect;
 
@@ -1146,7 +1144,7 @@ bool Reduction::reduce_perfect_pairs(
             ReductionItemType& item_2 = reduction_item_types[item_type_id_2];
             if (item_2.removed)
                 continue;
-            if (!original_instance_->item_type(item_type_id_2).oriented)
+            if (!item_2.oriented)
                 continue;
             ItemPos copies = std::min(item_1.copies, item_2.copies);
             if (bin_type.copies >= 0
@@ -1284,7 +1282,7 @@ bool Reduction::items_mergeable(
     if (original_instance_->objective() == Objective::Knapsack
             && original_item_type_1.profit != original_item_type_2.profit)
         return false;
-    if (original_item_type_1.oriented != original_item_type_2.oriented
+    if (item_1.oriented != item_2.oriented
             || original_item_type_1.weight != original_item_type_2.weight
             || original_item_type_1.group_id != original_item_type_2.group_id
             || original_item_type_1.eligibility_id != original_item_type_2.eligibility_id)
@@ -1927,7 +1925,7 @@ Instance Reduction::reduction_to_instance(
 
         const ItemType& original_item_type = original_instance_->item_type(item_type_id);
         ItemTypeId new_item_type_id = instance_builder.add_item_type(
-                item.rect.x, item.rect.y, original_item_type.oriented);
+                item.rect.x, item.rect.y, item.oriented);
         instance_builder.set_item_type_profit(new_item_type_id, original_item_type.profit);
         instance_builder.set_item_type_copies(new_item_type_id, (ItemPos)copy_origins.size());
         instance_builder.set_item_type_copies_min(new_item_type_id, total_copies_min);
@@ -1965,7 +1963,6 @@ Instance Reduction::reduction_to_instance(
 
 Length Reduction::max_achievable_dimension_sum(
         const std::vector<ReductionItemType>& reduction_item_types,
-        const Instance& original_instance,
         Length capacity,
         bool width_axis,
         ItemTypeId excluded_item_type_id)
@@ -1980,7 +1977,7 @@ Length Reduction::max_achievable_dimension_sum(
         const ReductionItemType& item = reduction_item_types[item_type_id];
         if (item.removed)
             continue;
-        bool oriented = original_instance.item_type(item_type_id).oriented;
+        bool oriented = item.oriented;
         Length value = (width_axis)? item.rect.x: item.rect.y;
         Length rotated_value = (width_axis)? item.rect.y: item.rect.x;
         ItemPos copies = item.copies;
@@ -2035,9 +2032,9 @@ bool Reduction::compute_shrunk_bin_sizes(
     // Equation (7): shrink the bin width/height to the largest achievable
     // combination of item widths/heights.
     shrunk_bin_sizes.bin_width = max_achievable_dimension_sum(
-            reduction_item_types, *original_instance_, bin_type.rect.x, /* width_axis */ true);
+            reduction_item_types, bin_type.rect.x, /* width_axis */ true);
     shrunk_bin_sizes.bin_height = max_achievable_dimension_sum(
-            reduction_item_types, *original_instance_, bin_type.rect.y, /* width_axis */ false);
+            reduction_item_types, bin_type.rect.y, /* width_axis */ false);
 
     return true;
 }
@@ -2269,7 +2266,7 @@ bool Reduction::lift_item_dimensions_axis(
         // item type larger than either of its two true presentations).
         // Same precondition 'is_big' already requires for 'Wide'/'Tall'
         // - see its own doc comment.
-        if (!original_instance_->item_type(item_type_id).oriented)
+        if (!item.oriented)
             continue;
         // Requires exactly 1 remaining copy: growing 'rect.x'/'rect.y'
         // applies uniformly to *every* copy of this item type at once,
@@ -2296,7 +2293,7 @@ bool Reduction::lift_item_dimensions_axis(
         }
 
         Length achievable_other = max_achievable_dimension_sum(
-                reduction_item_types, *original_instance_, capacity, width_axis, item_type_id);
+                reduction_item_types, capacity, width_axis, item_type_id);
         if (achievable_other >= capacity) {
             // No provable gap: the other item types could, in the worst
             // case, combine to reach all the way up to the bin's shrunk
@@ -2341,8 +2338,10 @@ Reduction::Reduction(
             item_type_id < instance.number_of_item_types();
             ++item_type_id) {
         reduction_item_types[item_type_id].rect = instance.item_type(item_type_id).rect;
+        reduction_item_types[item_type_id].oriented = instance.item_type(item_type_id).oriented;
         reduction_item_types[item_type_id].copies = instance.item_type(item_type_id).copies;
     }
+    swapped_item_types_ = std::vector<bool>(instance.number_of_item_types(), false);
 
     // Initialized here, ahead of the 'parameters.reduce' check below, so
     // 'reduction_to_instance' can always safely read it (a no-op override
@@ -2422,6 +2421,10 @@ Reduction::Reduction(
 
         bool found = false;
 
+        // Runs first: see the class-level doc comment.
+        if (parameters.remove_redundant_rotations)
+            found |= remove_redundant_rotations(reduction_item_types);
+
         // Shrunk bin dimensions (equation (7), "shrinking the bins": see
         // 'compute_shrunk_bin_sizes'), recomputed every round from
         // 'reduction_item_types''s then-current, still-remaining item set
@@ -2494,7 +2497,68 @@ Reduction::Reduction(
     if (!parameters.timer.needs_to_end() && parameters.merge_identical_items)
         merge_identical_items(reduction_item_types);
 
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < (ItemTypeId)reduction_item_types.size();
+            ++item_type_id) {
+        swapped_item_types_[item_type_id] = reduction_item_types[item_type_id].swapped;
+    }
+
     instance_ = reduction_to_instance(reduction_item_types, bin_type_removed);
+}
+
+bool Reduction::remove_redundant_rotations(
+        std::vector<ReductionItemType>& reduction_item_types) const
+{
+    // The bins the remaining items are packed in: the single bin, as shrunk
+    // so far by 'reduce_full_span_items', when it applies, the original bin
+    // types otherwise.
+    std::vector<Rectangle> bin_rects;
+    if (reduce_full_span_items_applies(*original_instance_)) {
+        if (true_bin_rect_.x <= 0 || true_bin_rect_.y <= 0)
+            return false;
+        bin_rects.push_back(true_bin_rect_);
+    } else {
+        for (BinTypeId bin_type_id = 0;
+                bin_type_id < original_instance_->number_of_bin_types();
+                ++bin_type_id) {
+            bin_rects.push_back(original_instance_->bin_type(bin_type_id).rect);
+        }
+    }
+
+    bool found = false;
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < (ItemTypeId)reduction_item_types.size();
+            ++item_type_id) {
+        ReductionItemType& item = reduction_item_types[item_type_id];
+        if (item.removed
+                || item.oriented
+                || original_instance_->item_type(item_type_id).copies_fixed > 0) {
+            continue;
+        }
+        if (item.rect.x == item.rect.y) {
+            item.oriented = true;
+            found = true;
+            continue;
+        }
+        bool fits = false;
+        bool fits_rotated = false;
+        for (const Rectangle& bin_rect: bin_rects) {
+            if (item.rect.x <= bin_rect.x && item.rect.y <= bin_rect.y)
+                fits = true;
+            if (item.rect.y <= bin_rect.x && item.rect.x <= bin_rect.y)
+                fits_rotated = true;
+        }
+        if (fits && !fits_rotated) {
+            item.oriented = true;
+            found = true;
+        } else if (!fits && fits_rotated) {
+            item.oriented = true;
+            item.swapped = true;
+            std::swap(item.rect.x, item.rect.y);
+            found = true;
+        }
+    }
+    return found;
 }
 
 void Reduction::place_item_and_companions(
@@ -2505,7 +2569,13 @@ void Reduction::place_item_and_companions(
         bool rotate,
         const std::vector<CompanionItem>& companions) const
 {
-    solution_builder.add_item(bin_pos, item_type_id, bl_corner, rotate);
+    // 'rotate' is relative to the current dimensions of the item type (see
+    // 'ReductionItemType::swapped').
+    solution_builder.add_item(
+            bin_pos,
+            item_type_id,
+            bl_corner,
+            (swapped_item_types_[item_type_id])? !rotate: rotate);
     for (const CompanionItem& companion: companions) {
         Point companion_bl_corner{
             bl_corner.x + companion.offset.x,
@@ -2567,11 +2637,17 @@ Solution Reduction::unreduce_solution(
                 const std::vector<CompanionItem>* companions = &no_companions;
                 if (!item_type.companions_by_copy.empty())
                     companions = &item_type.companions_by_copy[origin.copy_index];
+                // The reduced bin is the part of the bin not used by the
+                // pinned full-span items, starting at 'true_bin_origin_'
+                // ('{0, 0}' if no item was pinned).
+                Point bl_corner{
+                    solution_item.bl_corner.x + true_bin_origin_.x,
+                    solution_item.bl_corner.y + true_bin_origin_.y};
                 place_item_and_companions(
                         solution_builder,
                         new_bin_pos,
                         original_item_type_id,
-                        solution_item.bl_corner,
+                        bl_corner,
                         solution_item.rotate,
                         *companions);
             }

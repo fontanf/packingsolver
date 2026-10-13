@@ -30,6 +30,12 @@ struct ReductionParameters: optimizationtools::Parameters
     bool reduce = true;
 
     /**
+     * Enable/disable removing the redundant rotations of the item types
+     * (gates 'Reduction::remove_redundant_rotations').
+     */
+    bool remove_redundant_rotations = true;
+
+    /**
      * Enable/disable trimming negative-profit item types down to their own
      * 'copies_min' (gates 'Reduction::remove_negative_profit_items'). Still
      * subject to 'Reduction::remove_negative_profit_items_applies'
@@ -45,12 +51,24 @@ struct ReductionParameters: optimizationtools::Parameters
 };
 
 /**
- * A negative-profit item trim (see 'remove_negative_profit_items') plus an
+ * A redundant-rotation removal (see 'remove_redundant_rotations'), a
+ * negative-profit item trim (see 'remove_negative_profit_items') plus an
  * identical-item-type merge (see 'merge_identical_items') - the 'box'
- * analogue of 'rectangle::Reduction', scoped down to just these two
+ * analogue of 'rectangle::Reduction', scoped down to just these three
  * operations (rectangle's own companion absorption, subset-sum dimension
  * lifting, dominated-item removal and dominated-bin-type removal are not
  * implemented here).
+ *
+ * - Removing redundant rotations (see 'remove_redundant_rotations'): a
+ *   rotation of an item type is redundant if another allowed rotation gives
+ *   the same rotated box (e.g. 'YXZ' when 'x == y'), or if the rotated box
+ *   fits in no bin type while another allowed rotation does. The rotations
+ *   kept are a subset of the original ones, so every solution of the
+ *   reduced instance is a solution of the original instance, and every
+ *   solution of the original instance can be written with the remaining
+ *   rotations only. Item types with fixed copies keep all their rotations.
+ *   Runs first, so that 'merge_identical_items' also merges item types
+ *   whose allowed rotations only differed by redundant ones.
  *
  * - Trimming negative-profit item types (see
  *   'remove_negative_profit_items'): only for 'Knapsack' - for every other
@@ -151,6 +169,13 @@ private:
         ItemTypeId merged_into = -1;
 
         /**
+         * Allowed rotations. Starts at the original instance's own
+         * rotations and only ever shrinks, via
+         * 'remove_redundant_rotations'.
+         */
+        std::vector<Rotation> rotations;
+
+        /**
          * Current (possibly reduced) number of copies. Starts at the
          * original instance's own copies and only ever decreases, via
          * 'remove_negative_profit_items' trimming it down to
@@ -171,6 +196,14 @@ private:
     ItemPos effective_copies_min(
             const std::vector<ReductionItemType>& reduction_item_types,
             ItemTypeId item_type_id) const;
+
+    /**
+     * Removes the redundant rotations of the item types (see the
+     * class-level doc comment). Returns 'true' iff at least one rotation
+     * was removed.
+     */
+    bool remove_redundant_rotations(
+            std::vector<ReductionItemType>& reduction_item_types) const;
 
     /**
      * Trims away negative-profit optional copies (see the class-level doc
