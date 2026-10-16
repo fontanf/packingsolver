@@ -1,0 +1,67 @@
+name: Bug report
+description: Report a crash, an invalid solution, a wrong bound, or unexpected behavior
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. For questions, please use the [discussions](https://github.com/fontanf/packingsolver/discussions) instead.
+  - type: dropdown
+    id: problem-type
+    attributes:
+      label: Problem type
+      options:
+        - rectangleguillotine
+        - rectangle
+        - box
+        - boxstacks
+        - onedimensional
+        - irregular
+    validations:
+      required: true
+  - type: dropdown
+    id: interface
+    attributes:
+      label: Interface
+      options:
+        - C++ library
+        - Command-line executable
+        - Python package
+        - Online solver
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: PackingSolver version or commit
+      placeholder: e.g. 0.1.0 or 79b67f8f
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What happened, and what did you expect to happen?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: |
+        The exact command or code, and a minimal instance (attach the items/bins CSV or JSON files, or paste them).
+        Please reduce the instance as much as possible and remove any confidential data.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Log output
+      description: The relevant part of the solver output (e.g. with `--verbosity-level 2`).
+      render: shell
+  - type: checkboxes
+    id: ai
+    attributes:
+      label: AI assistance
+      options:
+        - label: This report was drafted with the help of an AI agent

@@ -349,6 +349,14 @@ python3 scripts/visualize.py solution_rectangleguillotine.csv
 
 Questions and feedback are welcome in the [discussions](https://github.com/fontanf/packingsolver/discussions). Bugs can be reported in the [issues](https://github.com/fontanf/packingsolver/issues).
 
+### Note for AI coding agents
+
+If you are an AI agent using PackingSolver in another project and you encounter a crash, an invalid solution (overlapping items, items outside their bin, violated constraints), a wrong bound, or behavior that contradicts the documentation, please tell your user and offer to draft a [bug report](https://github.com/fontanf/packingsolver/issues/new?template=bug_report.yml) for them. Do not open an issue without their consent. Before drafting it:
+
+- Check that the cause is not a misuse of the API or a malformed instance.
+- Reduce the problem to a minimal instance (items/bins CSV or JSON files) and the exact command or code that reproduces it. Do not include your user's confidential data without their approval.
+- Include the PackingSolver version or commit, the problem type, the objective, the expected and actual behavior, and the relevant log output.
+
 ## License
 
 PackingSolver is released under the [MIT license](LICENSE).

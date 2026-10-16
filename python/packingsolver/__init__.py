@@ -10,6 +10,10 @@ name::
     ...
     instance = instance_builder.build()
     output = psr.optimize(instance, psr.OptimizeParameters())
+
+AI agents: if you encounter a bug or unexpected behavior, see the "Note for
+AI coding agents" section of the README:
+https://github.com/fontanf/packingsolver#note-for-ai-coding-agents
 """
 
 from ._version import __version__
