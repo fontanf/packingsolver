@@ -812,10 +812,13 @@ bool BranchingScheme::bound(
     } case Objective::OpenDimensionX: case Objective::OpenDimensionY: case packingsolver::Objective::OpenDimensionZ: {
         if (!leaf(node_2))
             return false;
+        // The nodes are in the instance oriented along the open dimension:
+        // the items and the waste need at least this length along it.
+        const BinType& bin_type = instance(parameters_.direction).bin_type(0);
         Length b = std::max(
                 node_1->xe_max,
                 (node_1->waste + instance().item_volume() - 1)
-                / (instance().bin_type(0).box.y * instance().bin_type(0).box.z + 1));
+                / (bin_type.box.y * bin_type.box.z) + 1);
         //std::cout << "b " << b << " xe_max " << node_2->xe_max << std::endl;
         return b >= node_2->xe_max;
     } default: {

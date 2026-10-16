@@ -1240,10 +1240,13 @@ bool BranchingScheme::bound(
     } case Objective::OpenDimensionX: case Objective::OpenDimensionY: {
         if (!leaf(node_2))
             return false;
+        // The nodes are in the instance oriented along the open dimension:
+        // the items and the waste need at least this length along it.
+        const BinType& bin_type = instance(parameters_.direction).bin_type(0);
         return std::max(
                 node_1->xe_max,
                 (node_1->waste + instance().item_area() - 1)
-                / (instance().bin_type(0).rect.y + 1))
+                / bin_type.rect.y + 1)
             >= node_2->xe_max;
     } case Objective::SequentialOneDimensionalRectangleSubproblem: {
         return false;

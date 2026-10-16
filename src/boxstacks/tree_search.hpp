@@ -449,6 +449,13 @@ private:
     /** Total volume of the bins preceding each position, in the same order as 'bin_type_ids_'. */
     std::vector<Volume> previous_bins_volume_;
 
+    /**
+     * Total volume of the items, each one with its height reduced by its
+     * nesting height: a lower bound on the volume the items take in a
+     * solution.
+     */
+    Volume minimum_item_volume_ = 0;
+
     std::vector<std::vector<ItemTypeId>> predecessors_;
 
     ItemPos number_of_selected_items_ = 0;

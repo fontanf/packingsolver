@@ -271,6 +271,16 @@ BranchingScheme::BranchingScheme(
         }
     }
 
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance.number_of_item_types();
+            ++item_type_id) {
+        const ItemType& item_type = instance.item_type(item_type_id);
+        minimum_item_volume_ += item_type.copies
+            * item_type.box.x
+            * item_type.box.y
+            * (std::max)((Length)0, item_type.box.z - item_type.nesting_height);
+    }
+
     // Compute dominated items.
     std::vector<StackSet> item_type_stacks = generate_all_stacks(instance);
     if (!item_type_stacks.empty()) {
@@ -1557,10 +1567,15 @@ bool BranchingScheme::bound(
     } case Objective::OpenDimensionX: case Objective::OpenDimensionY: {
         if (!leaf(node_2))
             return false;
-        return (std::max(
-                    node_1->xe_max,
-                    node_1->waste + instance().item_volume() - 1)
-                / (instance().bin_type(0).box.x + 1))
+        // The nodes are in the instance oriented along the open dimension:
+        // the items and the waste need at least this length along it. A
+        // nested item takes less than its own volume, so the items are
+        // counted with 'minimum_item_volume_'.
+        const BinType& bin_type = instance(parameters_.direction).bin_type(0);
+        return std::max(
+                node_1->xe_max,
+                (node_1->waste + minimum_item_volume_ - 1)
+                / (bin_type.box.y * bin_type.box.z) + 1)
             >= node_2->xe_max;
     } default: {
         std::stringstream ss;
