@@ -1,6 +1,7 @@
 #include "packingsolver/rectangle/instance.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <fstream>
 #include <iomanip>
 #include <sstream>
@@ -270,7 +271,13 @@ bool Instance::weight_matters() const
 {
     if (number_of_bin_types() != 1)
         return false;
-    if (bin_type(0).maximum_weight == std::numeric_limits<Weight>::infinity())
+    const BinType& bin_type = this->bin_type(0);
+    // The axle weights of a semi-trailer truck are per-bin aggregates too.
+    bool axle_weights = bin_type.semi_trailer_truck_data.is
+        && (std::isfinite(bin_type.semi_trailer_truck_data.middle_axle_maximum_weight)
+            || std::isfinite(bin_type.semi_trailer_truck_data.rear_axle_maximum_weight));
+    if (bin_type.maximum_weight == std::numeric_limits<Weight>::infinity()
+            && !axle_weights)
         return false;
     for (ItemTypeId item_type_id = 0;
             item_type_id < number_of_item_types();

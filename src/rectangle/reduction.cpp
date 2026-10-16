@@ -2111,12 +2111,15 @@ bool Reduction::lift_item_dimensions_applies(const Instance& instance)
     //
     // Still needs a single bin type - the bin's own true dimension this
     // operation reasons against would otherwise be ambiguous - and no
-    // defects - a defect sitting inside the margin this operation claims
-    // is "provably empty" would be invisible to its purely 1D subset-sum
-    // argument, the same blind spot as companion absorption's own
-    // geometric checks (see 'companion_absorption_applies').
+    // defects or fixed items - a defect or a fixed item sitting inside the
+    // margin this operation claims is "provably empty" would be invisible
+    // to its purely 1D subset-sum argument, the same blind spot as
+    // companion absorption's own geometric checks (see
+    // 'companion_absorption_applies'), and neither can be moved by the
+    // compaction the argument relies on.
     return instance.number_of_bin_types() == 1
-            && instance.number_of_defects() == 0;
+            && instance.number_of_defects() == 0
+            && instance.bin_type(0).fixed_items.empty();
 }
 
 bool Reduction::lift_item_dimensions_applies_axis(
@@ -2130,6 +2133,17 @@ bool Reduction::lift_item_dimensions_applies_axis(
     // this axis directly would have that solve reason - and make
     // placement/objective-value decisions - against an artificially
     // enlarged footprint instead of the item's true one.
+    //
+    // The soundness argument compacts any solution along this axis, which
+    // moves items along it: a constraint depending on the positions along
+    // this axis blocks it. The semi-trailer truck axle weights depend on
+    // the 'x' positions of the items, and on their 'x' centers, which the
+    // reduced instance computes from the enlarged items. Compacting along
+    // 'x' keeps the 'y' coordinates and the order along 'x' of the items
+    // whose 'y' ranges intersect, so it keeps 'OnlyXMovements' and
+    // 'IncreasingY', but not 'OnlyYMovements' and 'IncreasingX' (and
+    // symmetrically along 'y').
+    UnloadingConstraint unloading_constraint = instance.unloading_constraint();
     if (width_axis) {
         if (instance.objective() == Objective::OpenDimensionX)
             return false;
@@ -2137,12 +2151,20 @@ bool Reduction::lift_item_dimensions_applies_axis(
                 && (instance.parameters().leftover_mode == LeftoverMode::X
                         || instance.parameters().leftover_mode == LeftoverMode::Area))
             return false;
+        if (instance.bin_type(0).semi_trailer_truck_data.is)
+            return false;
+        if (unloading_constraint == UnloadingConstraint::OnlyYMovements
+                || unloading_constraint == UnloadingConstraint::IncreasingX)
+            return false;
     } else {
         if (instance.objective() == Objective::OpenDimensionY)
             return false;
         if (instance.objective() == Objective::BinPackingWithLeftovers
                 && (instance.parameters().leftover_mode == LeftoverMode::Y
                         || instance.parameters().leftover_mode == LeftoverMode::Area))
+            return false;
+        if (unloading_constraint == UnloadingConstraint::OnlyXMovements
+                || unloading_constraint == UnloadingConstraint::IncreasingY)
             return false;
     }
     return true;

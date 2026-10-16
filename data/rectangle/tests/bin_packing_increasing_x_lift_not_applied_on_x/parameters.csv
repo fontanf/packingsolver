@@ -1,0 +1,4 @@
+NAME,VALUE
+objective,BinPacking
+unloading_constraint,IncreasingX
+leftover_mode,Area

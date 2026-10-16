@@ -499,11 +499,12 @@ public:
 
     /**
      * Return 'true' iff the instance has a single bin type with a finite
-     * maximum weight and at least one item type with a nonzero weight -
-     * i.e. iff its weight capacity is an actual, non-trivial per-bin
-     * aggregate constraint (see 'Reduction::companion_absorption_applies'
-     * for why this matters there: a per-bin aggregate is invisible to
-     * per-group geometric-only reasoning).
+     * maximum weight (or a semi-trailer truck with a finite axle maximum
+     * weight) and at least one item type with a nonzero weight - i.e. iff
+     * its weight capacity is an actual, non-trivial per-bin aggregate
+     * constraint (see 'Reduction::companion_absorption_applies' for why
+     * this matters there: a per-bin aggregate is invisible to per-group
+     * geometric-only reasoning).
      */
     bool weight_matters() const;
 

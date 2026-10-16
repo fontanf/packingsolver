@@ -374,5 +374,50 @@ INSTANTIATE_TEST_SUITE_P(
                 // identical and merge.
                 fs::path("data") / "rectangleguillotine" / "tests" / "bin_packing_merge_identical_items_after_removing_redundant_rotations",
                 ReductionParameters(),
+            }, {
+                // Bin 10x10, 'NonExact'. Item types 7x10 and 4x10, oriented,
+                // one copy each: they can't share a bin, so the bin is shrunk
+                // along 'x' to 7, and the 4x10 item type is lifted to 7x10.
+                // Both item types are then identical and merge.
+                fs::path("data") / "rectangleguillotine" / "tests" / "bin_packing_lift_item_dimensions",
+                ReductionParameters(),
+            }, {
+                // Bin 10x10, 'NonExact'. Item types 7x6 and 4x5, oriented,
+                // one copy each: the 4x5 item type is lifted to 7 along 'x'
+                // and to 6 along 'y', and merges with the 7x6 one. The
+                // solution of the reduced instance needs its cut tree to be
+                // rewritten along both axes.
+                fs::path("data") / "rectangleguillotine" / "tests" / "bin_packing_lift_item_dimensions_both_axes",
+                ReductionParameters(),
+            }, {
+                // Same items as above, 2 stages, 'Exact', vertical first
+                // stage. Only the axis of the 2-cuts ('y') can be lifted:
+                // the 4x5 item type is lifted to 4x6.
+                fs::path("data") / "rectangleguillotine" / "tests" / "bin_packing_lift_item_dimensions_exact",
+                ReductionParameters(),
+            }, {
+                // Bin 10x10, cut thickness 1. Item types 6x10 and 4x10,
+                // oriented, one copy each: with the cut thickness, they
+                // can't share a bin (6 + 1 + 4 > 10), so the 4x10 item
+                // type is lifted to 6x10, and merges with the other one.
+                fs::path("data") / "rectangleguillotine" / "tests" / "bin_packing_lift_item_dimensions_cut_thickness",
+                ReductionParameters(),
+            }, {
+                // Same as 'bin_packing_lift_item_dimensions', with a
+                // minimum waste length: nothing is lifted.
+                fs::path("data") / "rectangleguillotine" / "tests" / "bin_packing_lift_item_dimensions_skipped_with_minimum_waste",
+                ReductionParameters(),
+            }, {
+                // Same as 'bin_packing_lift_item_dimensions', with a
+                // maximum distance between 1-cuts of 6: the 4x10 item type
+                // would be lifted to 7 against the bin, but a 1-cut plate
+                // containing it is at most 6 wide, and nothing else fits
+                // beside it there, so the bound for the plate keeps it at 4.
+                // The 7x10 item type is wider than the maximum distance, so
+                // it is not lifted either. 'skip_optimize_check': only the
+                // reduced instance is checked.
+                fs::path("data") / "rectangleguillotine" / "tests" / "bin_packing_lift_item_dimensions_maximum_distance_1_cuts",
+                ReductionParameters(),
+                true,
             },
         }));

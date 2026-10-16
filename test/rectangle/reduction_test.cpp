@@ -1040,6 +1040,41 @@ INSTANTIATE_TEST_SUITE_P(
                 ReductionParameters(),
                 false,
             }, {
+                // Same instance, 'BinPacking' with the 'OnlyXMovements'
+                // unloading constraint: the soundness argument of lifting
+                // compacts the solution along the lifted axis, and
+                // compacting along 'y' can change which items block each
+                // other along 'x', so only the y lift is blocked: item 0
+                // is lifted to (9, 3). (Companion absorption is skipped
+                // with an unloading constraint.)
+                fs::path("data") / "rectangle" / "tests" / "bin_packing_only_x_movements_lift_not_applied_on_y",
+                ReductionParameters(),
+                false,
+            }, {
+                // Same instance, 'BinPacking' with the 'IncreasingX'
+                // unloading constraint, which depends on the 'x'
+                // positions of the items: only the x lift is blocked, item
+                // 0 is lifted to (6, 4).
+                fs::path("data") / "rectangle" / "tests" / "bin_packing_increasing_x_lift_not_applied_on_x",
+                ReductionParameters(),
+                false,
+            }, {
+                // Same instance, 'BinPacking' in a semi-trailer truck with
+                // weighted items: the axle weights depend on the 'x'
+                // positions and centers of the items, so only the x lift
+                // is blocked, item 0 is lifted to (6, 4). The axle weights
+                // are a per-bin aggregate, so companion absorption is
+                // skipped too (see 'Instance::weight_matters'), even though
+                // the maximum weight of the truck is infinite.
+                // 'skip_optimize_check': only the reduced instance is
+                // checked.
+                fs::path("data") / "rectangle" / "tests" / "bin_packing_semi_trailer_truck_lift_not_applied_on_x",
+                ReductionParameters(),
+                false,
+                false,
+                false,
+                true,
+            }, {
                 // Bin 100x100. Item type 0 (10x10) is a square: its
                 // rotation is redundant, it becomes oriented. Item type 1
                 // (10x20) fits in the bin in both orientations: it stays
