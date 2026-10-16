@@ -835,6 +835,7 @@ bool BranchingScheme::operator()(
         double guide_2 = waste_rate_2 / node_2->item_area * node_2->number_of_items;
         if (guide_1 != guide_2)
             return guide_1 < guide_2;
+        break;
     } case 4: {
         if ((double)node_1->current_area / node_1->profit
                 != (double)node_2->current_area / node_2->profit)
