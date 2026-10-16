@@ -2,6 +2,7 @@
 
 #include "packingsolver/boxstacks/instance_builder.hpp"
 #include "boxstacks/solution_builder.hpp"
+#include "algorithms/subset_sum_bound.hpp"
 
 #include <algorithm>
 
@@ -63,8 +64,8 @@ bool Reduction::remove_redundant_rotations(
         for (Rotation rotation: item.rotations) {
             bool duplicate = false;
             for (Rotation distinct_rotation: distinct_rotations) {
-                if (rotated_footprint(item_type.box, distinct_rotation)
-                        == rotated_footprint(item_type.box, rotation)) {
+                if (rotated_footprint(item.box, distinct_rotation)
+                        == rotated_footprint(item.box, rotation)) {
                     duplicate = true;
                     break;
                 }
@@ -77,7 +78,7 @@ bool Reduction::remove_redundant_rotations(
         // unless none fits.
         std::vector<Rotation> fitting_rotations;
         for (Rotation rotation: distinct_rotations) {
-            std::pair<Length, Length> footprint = rotated_footprint(item_type.box, rotation);
+            std::pair<Length, Length> footprint = rotated_footprint(item.box, rotation);
             for (BinTypeId bin_type_id = 0;
                     bin_type_id < original_instance_->number_of_bin_types();
                     ++bin_type_id) {
@@ -147,6 +148,184 @@ bool same_rotations(
 
 }
 
+bool Reduction::lift_item_dimensions_applies(const Instance& instance)
+{
+    // A single bin type, so that the bin dimensions are unambiguous, and
+    // no defects or fixed items, which the compaction argument of the
+    // class-level doc comment cannot move.
+    return instance.number_of_bin_types() == 1
+        && instance.bin_type(0).defects.empty()
+        && instance.bin_type(0).fixed_items.empty();
+}
+
+bool Reduction::lift_item_dimensions_applies_axis(
+        const Instance& instance,
+        int axis)
+{
+    // See the class-level doc comment for each exclusion.
+    rectangle::UnloadingConstraint unloading_constraint = instance.unloading_constraint();
+    LeftoverMode leftover_mode = instance.parameters().leftover_mode;
+    if (axis == 0) {
+        if (instance.objective() == Objective::OpenDimensionX)
+            return false;
+        if (instance.objective() == Objective::BinPackingWithLeftovers
+                && (leftover_mode == LeftoverMode::X
+                    || leftover_mode == LeftoverMode::XY)) {
+            return false;
+        }
+        if (instance.bin_type(0).semi_trailer_truck_data.is)
+            return false;
+        if (unloading_constraint == rectangle::UnloadingConstraint::OnlyYMovements
+                || unloading_constraint == rectangle::UnloadingConstraint::IncreasingX) {
+            return false;
+        }
+    } else if (axis == 1) {
+        if (instance.objective() == Objective::OpenDimensionY)
+            return false;
+        if (instance.objective() == Objective::BinPackingWithLeftovers
+                && (leftover_mode == LeftoverMode::Y
+                    || leftover_mode == LeftoverMode::XY)) {
+            return false;
+        }
+        if (unloading_constraint == rectangle::UnloadingConstraint::OnlyXMovements
+                || unloading_constraint == rectangle::UnloadingConstraint::IncreasingY) {
+            return false;
+        }
+    } else {
+        if (instance.objective() == Objective::OpenDimensionZ)
+            return false;
+    }
+    return true;
+}
+
+Length Reduction::max_achievable_dimension_sum(
+        const std::vector<ReductionItemType>& reduction_item_types,
+        Length capacity,
+        int axis,
+        ItemTypeId excluded_item_type_id) const
+{
+    std::vector<SubsetSumBoundItem> items;
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < (ItemTypeId)reduction_item_types.size();
+            ++item_type_id) {
+        const ReductionItemType& item = reduction_item_types[item_type_id];
+        if (item.removed)
+            continue;
+        SubsetSumBoundItem subset_sum_item;
+        subset_sum_item.copies = item.copies;
+        if (item_type_id == excluded_item_type_id)
+            subset_sum_item.copies--;
+        for (Rotation rotation: item.rotations) {
+            std::pair<Length, Length> footprint = rotated_footprint(item.box, rotation);
+            subset_sum_item.lengths.push_back((axis == 0)? footprint.first: footprint.second);
+        }
+        items.push_back(subset_sum_item);
+    }
+    return subset_sum_bound(items, capacity);
+}
+
+Length Reduction::shrunk_bin_length(
+        const std::vector<ReductionItemType>& reduction_item_types,
+        int axis) const
+{
+    const Box& bin_box = original_instance_->bin_type(0).box;
+    return max_achievable_dimension_sum(
+            reduction_item_types,
+            (axis == 0)? bin_box.x: bin_box.y,
+            axis,
+            -1);
+}
+
+bool Reduction::lift_item_dimensions(
+        std::vector<ReductionItemType>& reduction_item_types) const
+{
+    const BinType& bin_type = original_instance_->bin_type(0);
+    bool found = false;
+    for (int axis = 0; axis < 3; ++axis) {
+        if (!lift_item_dimensions_applies_axis(*original_instance_, axis))
+            continue;
+
+        // Lifting an item type never changes the shrunk bin: every
+        // combination of items containing the enlarged item type still
+        // fits in it.
+        Length bin_length = (axis == 2)?
+            bin_type.box.z:
+            shrunk_bin_length(reduction_item_types, axis);
+
+        for (ItemTypeId item_type_id = 0;
+                item_type_id < (ItemTypeId)reduction_item_types.size();
+                ++item_type_id) {
+            ReductionItemType& item = reduction_item_types[item_type_id];
+            if (item.removed || item.rotations.empty())
+                continue;
+            // A single copy: the bound below only holds for one occurrence
+            // of the item type (see
+            // 'rectangle::Reduction::lift_item_dimensions_axis').
+            if (item.copies != 1)
+                continue;
+            const ItemType& item_type = original_instance_->item_type(item_type_id);
+            if (item_type.copies_fixed > 0)
+                continue;
+
+            // Alone in its stack: no other remaining item type shares its
+            // stackability id.
+            bool alone = true;
+            for (ItemTypeId other_item_type_id = 0;
+                    other_item_type_id < (ItemTypeId)reduction_item_types.size();
+                    ++other_item_type_id) {
+                if (other_item_type_id == item_type_id
+                        || reduction_item_types[other_item_type_id].removed) {
+                    continue;
+                }
+                if (original_instance_->item_type(other_item_type_id).stackability_id
+                        == item_type.stackability_id) {
+                    alone = false;
+                    break;
+                }
+            }
+            if (!alone)
+                continue;
+
+            if (axis == 2) {
+                // Nothing else is ever packed in its stack.
+                if (item.box.z < bin_length) {
+                    item.box.z = bin_length;
+                    found = true;
+                }
+                continue;
+            }
+
+            // A single rotation, so that growing 'x' (or 'y') only changes
+            // the extent of the item along this axis.
+            if (item.rotations.size() != 1)
+                continue;
+            // The maximum stack density is checked by the reduced instance
+            // against the enlarged footprint: the item must satisfy it with
+            // its true footprint.
+            if (strictly_greater(
+                        (double)item_type.weight / item_type.box.x / item_type.box.y,
+                        bin_type.maximum_stack_density)) {
+                continue;
+            }
+
+            Rotation rotation = item.rotations.front();
+            // The dimension of the box along the axis for this rotation.
+            bool along_x = ((axis == 0) == (rotation != Rotation::YXZ));
+            Length& item_length = (along_x)? item.box.x: item.box.y;
+            Length capacity = bin_length - item_length;
+            if (capacity <= 0)
+                continue;
+            Length achievable_other = max_achievable_dimension_sum(
+                    reduction_item_types, capacity, axis, item_type_id);
+            if (achievable_other >= capacity)
+                continue;
+            item_length = bin_length - achievable_other;
+            found = true;
+        }
+    }
+    return found;
+}
+
 bool Reduction::items_mergeable(
         const std::vector<ReductionItemType>& reduction_item_types,
         ItemTypeId item_type_id_1,
@@ -155,9 +334,12 @@ bool Reduction::items_mergeable(
     const ItemType& item_type_1 = original_instance_->item_type(item_type_id_1);
     const ItemType& item_type_2 = original_instance_->item_type(item_type_id_2);
 
-    if (item_type_1.box.x != item_type_2.box.x
-            || item_type_1.box.y != item_type_2.box.y
-            || item_type_1.box.z != item_type_2.box.z)
+    // Current boxes: see 'lift_item_dimensions'.
+    const Box& box_1 = reduction_item_types[item_type_id_1].box;
+    const Box& box_2 = reduction_item_types[item_type_id_2].box;
+    if (box_1.x != box_2.x
+            || box_1.y != box_2.y
+            || box_1.z != box_2.z)
         return false;
 
     // Profit is only compared for 'Knapsack': for every other objective
@@ -283,6 +465,7 @@ Instance Reduction::reduction_to_instance(
         instance_builder.set_item_type_copies(new_item_type_id, total_copies);
         instance_builder.set_item_type_copies_min(new_item_type_id, total_copies_min);
         instance_builder.set_item_type_rotations(new_item_type_id, item.rotations);
+        instance_builder.set_item_type_box(new_item_type_id, item.box);
         reduced_item_origin_runs_.push_back(std::move(origin_runs));
     }
 
@@ -304,6 +487,7 @@ Reduction::Reduction(
             ++item_type_id) {
         reduction_item_types[item_type_id].copies = instance.item_type(item_type_id).copies;
         reduction_item_types[item_type_id].rotations = instance.item_type(item_type_id).rotations;
+        reduction_item_types[item_type_id].box = instance.item_type(item_type_id).box;
     }
 
     if (parameters.remove_redundant_rotations)
@@ -312,6 +496,23 @@ Reduction::Reduction(
     if (parameters.remove_negative_profit_items
             && remove_negative_profit_items_applies(instance)) {
         remove_negative_profit_items(reduction_item_types);
+    }
+
+    // Lifting can make more rotations redundant (e.g. a square enlarged
+    // footprint), and removing rotations can enable lifting along 'x' and
+    // 'y' (it requires a single allowed rotation).
+    if (parameters.lift_item_dimensions
+            && lift_item_dimensions_applies(instance)) {
+        for (;;) {
+            if (parameters.timer.needs_to_end())
+                break;
+            if (!lift_item_dimensions(reduction_item_types))
+                break;
+            if (!parameters.remove_redundant_rotations
+                    || !remove_redundant_rotations(reduction_item_types)) {
+                break;
+            }
+        }
     }
 
     if (parameters.merge_identical_items)
@@ -339,6 +540,27 @@ Solution Reduction::unreduce_solution(
     // kept local rather than a member so nothing here needs resetting
     // between (or interferes with) separate 'unreduce_solution' calls.
     std::vector<std::vector<OriginRun>> remaining_runs = reduced_item_origin_runs_;
+
+    // Footprint of a stack with the true dimensions of its items: a stack
+    // containing a lifted item type contains nothing else (see
+    // 'lift_item_dimensions'), and every item type merged into another one
+    // has the same original box (a lifted item type is never merged), so
+    // the original box of any origin of the first item gives it.
+    auto true_footprint = [this](const SolutionStack& solution_stack)
+        -> std::pair<Length, Length>
+    {
+        if (solution_stack.items.empty()) {
+            return {
+                solution_stack.x_end - solution_stack.x_start,
+                solution_stack.y_end - solution_stack.y_start};
+        }
+        const SolutionItem& solution_item = solution_stack.items.front();
+        ItemTypeId original_item_type_id
+            = reduced_item_origin_runs_[solution_item.item_type_id].front().item_type_id;
+        return rotated_footprint(
+                original_instance_->item_type(original_item_type_id).box,
+                solution_item.rotation);
+    };
 
     // How many of the *current* pattern's item slots (across every
     // stack) reference each reduced item type - needed to tell whether a
@@ -402,12 +624,13 @@ Solution Reduction::unreduce_solution(
                 }
                 BinPos new_bin_pos = solution_builder.add_bin(solution_bin.bin_type_id, batch);
                 for (const SolutionStack& solution_stack: solution_bin.stacks) {
+                    std::pair<Length, Length> footprint = true_footprint(solution_stack);
                     StackId new_stack_id = solution_builder.add_stack(
                             new_bin_pos,
                             solution_stack.x_start,
-                            solution_stack.x_end,
+                            solution_stack.x_start + footprint.first,
                             solution_stack.y_start,
-                            solution_stack.y_end);
+                            solution_stack.y_start + footprint.second);
                     for (const SolutionItem& solution_item: solution_stack.items) {
                         ItemTypeId original_item_type_id
                             = remaining_runs[solution_item.item_type_id].back().item_type_id;
@@ -432,12 +655,13 @@ Solution Reduction::unreduce_solution(
                 // proportional to 'remaining_bin_copies').
                 BinPos new_bin_pos = solution_builder.add_bin(solution_bin.bin_type_id, 1);
                 for (const SolutionStack& solution_stack: solution_bin.stacks) {
+                    std::pair<Length, Length> footprint = true_footprint(solution_stack);
                     StackId new_stack_id = solution_builder.add_stack(
                             new_bin_pos,
                             solution_stack.x_start,
-                            solution_stack.x_end,
+                            solution_stack.x_start + footprint.first,
                             solution_stack.y_start,
-                            solution_stack.y_end);
+                            solution_stack.y_start + footprint.second);
                     for (const SolutionItem& solution_item: solution_stack.items) {
                         ItemTypeId original_item_type_id
                             = consume_one_origin(remaining_runs[solution_item.item_type_id]);

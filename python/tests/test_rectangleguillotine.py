@@ -566,6 +566,9 @@ def test_parameters():
     assert not parameters.reduction_parameters.reduce
     parameters.reduction_parameters.merge_identical_items = False
     assert not parameters.reduction_parameters.merge_identical_items
+    assert parameters.reduction_parameters.lift_item_dimensions
+    parameters.reduction_parameters.lift_item_dimensions = False
+    assert not parameters.reduction_parameters.lift_item_dimensions
     parameters.verbosity_level = 0
     output = psg.optimize(bin_packing_instance(5), parameters)
     assert output.solution.number_of_bins() == 2

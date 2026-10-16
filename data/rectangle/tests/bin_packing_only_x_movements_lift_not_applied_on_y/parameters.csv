@@ -1,0 +1,4 @@
+NAME,VALUE
+objective,BinPacking
+unloading_constraint,OnlyXMovements
+leftover_mode,Area

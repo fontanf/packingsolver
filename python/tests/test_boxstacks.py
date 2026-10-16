@@ -284,6 +284,8 @@ KEYWORD_NAMES = {
 
 # C++ per-type methods intentionally not available as keywords.
 NOT_BOUND = {
+    "set_item_type_box":
+        "the dimensions are the positional arguments of add_item_type",
 }
 
 
@@ -683,6 +685,9 @@ def test_parameters():
     parameters.reduction_parameters.reduce = False
     assert not parameters.reduction_parameters.reduce
     assert parameters.reduction_parameters.merge_identical_items
+    assert parameters.reduction_parameters.lift_item_dimensions
+    parameters.reduction_parameters.lift_item_dimensions = False
+    assert not parameters.reduction_parameters.lift_item_dimensions
     parameters.verbosity_level = 0
     output = psbs.optimize(bin_packing_instance(5), parameters)
     assert output.solution.number_of_bins() == 2

@@ -190,6 +190,11 @@ public:
             ItemTypeId item_type_id,
             const std::vector<Rotation>& rotations);
 
+    /** Set the dimensions of an item type. */
+    void set_item_type_box(
+            ItemTypeId item_type_id,
+            const Box& box);
+
     /** Set the group of an item type. */
     void set_item_type_group(
             ItemTypeId item_type_id,

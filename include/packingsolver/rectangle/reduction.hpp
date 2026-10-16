@@ -243,11 +243,12 @@ struct ReductionParameters: optimizationtools::Parameters
  *   so the item's own dimension can be grown to close it - with zero real
  *   companions attached (unlike wide/tall, this never removes or hides
  *   any other item type from the reduced instance). Because nothing is
- *   ever hidden this way, none of companion absorption's weight/resource/
- *   unloading-constraint exclusions apply here, and - like
+ *   ever hidden this way, none of companion absorption's whole-bin
+ *   weight/resource/unloading-constraint exclusions apply here, and - like
  *   'merge_identical_items' - nothing about it depends on every item
  *   necessarily being packed, so it runs for *any* objective, on either
- *   axis independently, with one exception: an objective that directly
+ *   axis independently, with the per-axis exceptions below. First, an
+ *   objective that directly
  *   measures how far items extend along a given axis
  *   ('Objective::OpenDimensionX'/'OpenDimensionY', or
  *   'Objective::BinPackingWithLeftovers' with a 'LeftoverMode' that
@@ -267,12 +268,24 @@ struct ReductionParameters: optimizationtools::Parameters
  *   decisions - against the *enlarged* footprint, potentially settling
  *   for a worse arrangement than the true, smaller footprint would have
  *   allowed, since it believes reach along that axis is already
- *   unavoidable when it is not. See 'lift_item_dimensions_applies_axis()'.
- *   It does still need a single bin type (the bin's own true dimension
- *   must be unambiguous) and no defects (a defect sitting inside the
- *   claimed "provably empty" margin would be invisible to this purely 1D
- *   argument, the same blind spot as companion absorption's own geometric
- *   checks) - see 'lift_item_dimensions_applies()'.
+ *   unavoidable when it is not. The soundness argument compacts any
+ *   solution along the axis (every item pushed towards the origin while
+ *   its other coordinate stays fixed: its position is then the total
+ *   width of a chain of items before it), which moves items along the
+ *   axis, so nothing is lifted along 'x' with a semi-trailer truck (the
+ *   axle weights depend on the 'x' positions and centers of the items),
+ *   and, with an unloading constraint, nothing is lifted along an axis
+ *   whose compaction could break it ('x' for 'OnlyYMovements' and
+ *   'IncreasingX', 'y' for 'OnlyXMovements' and 'IncreasingY': compacting
+ *   along 'x' keeps the 'y' coordinates and the order along 'x' of the
+ *   items whose 'y' ranges intersect). See
+ *   'lift_item_dimensions_applies_axis()'. It does still need a single bin
+ *   type (the bin's own true dimension must be unambiguous) and no defects
+ *   or fixed items (a defect or a fixed item sitting inside the claimed
+ *   "provably empty" margin would be invisible to this purely 1D argument,
+ *   the same blind spot as companion absorption's own geometric checks,
+ *   and cannot be moved by the compaction) - see
+ *   'lift_item_dimensions_applies()'.
  *
  * - Trimming negative-profit item types (see
  *   'remove_negative_profit_items'): only for 'Knapsack' - for every other
@@ -524,13 +537,14 @@ private:
      * regardless of axis - the class-level doc comment's "Lifting item
      * dimensions via subset sum" paragraph: only for instances with a
      * single bin type (the bin's own true dimension must be unambiguous -
-     * like companion absorption's own precondition) and no defects (a
-     * defect sitting inside the claimed "provably empty" margin would be
-     * invisible to this purely 1D argument). Unlike
-     * 'companion_absorption_applies', not restricted by weight, resources,
-     * or unloading constraint - see the class-level doc comment for why
-     * none of those apply here. Objective restrictions are per-axis, not
-     * covered here - see 'lift_item_dimensions_applies_axis()'. Does not
+     * like companion absorption's own precondition) and no defects or
+     * fixed items (a defect or a fixed item sitting inside the claimed
+     * "provably empty" margin would be invisible to this purely 1D
+     * argument). Unlike 'companion_absorption_applies', not restricted by
+     * weight or resources - see the class-level doc comment for why
+     * neither applies here. Objective, semi-trailer truck and unloading
+     * constraint restrictions are per-axis, not covered here - see
+     * 'lift_item_dimensions_applies_axis()'. Does not
      * check 'parameters.reduce' - the constructor only calls this after
      * already checking it.
      */
@@ -546,7 +560,11 @@ private:
      * 'OpenDimensionY' (for 'y'), or 'Objective::BinPackingWithLeftovers'
      * with a 'LeftoverMode' that depends on this axis ('LeftoverMode::X'
      * for 'x', 'LeftoverMode::Y' for 'y', 'LeftoverMode::Area' for
-     * either). Independent of 'lift_item_dimensions_applies()' - both
+     * either); and 'false' when the compaction along this axis could break
+     * a constraint: along 'x' with a semi-trailer truck, or with an
+     * unloading constraint 'OnlyYMovements'/'IncreasingX' (resp.
+     * 'OnlyXMovements'/'IncreasingY' along 'y') - see the class-level doc
+     * comment. Independent of 'lift_item_dimensions_applies()' - both
      * must hold for lifting to actually run on a given axis (see
      * 'lift_item_dimensions').
      */

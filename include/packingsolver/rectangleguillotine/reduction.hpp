@@ -49,37 +49,94 @@ struct ReductionParameters: optimizationtools::Parameters
      * 'Reduction::items_mergeable''s own doc comment.
      */
     bool merge_identical_items = true;
+
+    /**
+     * Enable/disable lifting item dimensions via a subset-sum bound (gates
+     * 'Reduction::lift_item_dimensions'). Still subject to
+     * 'Reduction::lift_item_dimensions_applies' and
+     * 'Reduction::lift_item_dimensions_applies_axis' regardless of this
+     * flag.
+     */
+    bool lift_item_dimensions = true;
 };
 
 /**
- * A two-operation subset of 'rectangle::Reduction' (see there for the full,
- * six-operation version this mirrors): a negative-profit item trim (see
- * 'remove_negative_profit_items') and an identical-item-type merge (see
- * 'merge_identical_items'). The other four rectangle operations (companion
- * absorption, subset-sum-based item dimension lifting, dominated-item
- * removal, dominated-bin-type removal) all reason about geometry in ways
- * that assume a solution is a free 2D placement - not obviously true of a
- * guillotine cut tree, whose stage structure and cut-count/cut-distance
- * constraints these two operations never touch - so they are deliberately
- * out of scope here.
+ * A three-operation subset of 'rectangle::Reduction' (see there for the
+ * full, six-operation version this mirrors): a negative-profit item trim
+ * (see 'remove_negative_profit_items'), a subset-sum item dimension lift
+ * adapted to cut trees (see 'lift_item_dimensions'), and an
+ * identical-item-type merge (see 'merge_identical_items'). The other
+ * rectangle operations (companion absorption, dominated-item removal,
+ * dominated-bin-type removal) reason about geometry in ways that assume a
+ * solution is a free 2D placement - not obviously true of a guillotine cut
+ * tree - so they are deliberately out of scope here.
  *
- * Both operations run for any objective except where noted, with no
- * shared precondition beyond 'parameters.reduce' - see
+ * The trim and the merge run for any objective except where noted, with
+ * no shared precondition beyond 'parameters.reduce' - see
  * 'remove_negative_profit_items_applies()' and 'items_mergeable()' for
- * their own, independent preconditions. Both also share the same
- * stack-alone restriction (an item type sharing a stack with others is
- * left untouched by either operation) - see 'items_mergeable()''s own doc
- * comment for why, and 'remove_negative_profit_items()''s own for why
- * trimming needs it too, not just merging.
+ * their own, independent preconditions. All three operations share the
+ * same stack-alone restriction (an item type sharing a stack with others
+ * is left untouched) - see 'items_mergeable()''s own doc comment for why,
+ * and 'remove_negative_profit_items()''s own for why trimming needs it
+ * too, not just merging.
+ *
+ * Lifting item dimensions (see 'lift_item_dimensions'): along an axis, if
+ * no combination of the other items can fill the space left beside an
+ * item type with a single copy, the item type is enlarged to close that
+ * gap - rectangle's own operation, against the bin shrunk to the largest
+ * total length of the items not exceeding it ("shrinking the bins"). For
+ * a cut tree, the argument is a compaction of the tree along the axis:
+ * every node delimited along the axis is pushed back against its previous
+ * sibling, and every node is shrunk to its content. The tree structure
+ * (depths, number of cuts) is unchanged, and the extent of the root along
+ * the axis is then the largest total length, plus one cut thickness
+ * between consecutive items, of a chain of items. Hence every length below
+ * is increased by the cut thickness (bin lengths included). After
+ * compaction, the items of any chain through the lifted item, other than
+ * itself, fill at most the gap's complement, so the enlarged item still
+ * fits. Enlarging the item may require trimming its siblings in the
+ * stacking direction, which depends on the cut type:
+ * - 'NonExact': the extra trimming cut absorbs it, any axis can be lifted;
+ * - 'Exact': only the axis of the last-stage cuts can be lifted (an item of
+ *   the last stage fills its node along the other axis, as its siblings
+ *   do), and only with a fixed first stage orientation;
+ * - 'Roadef2018': only the axis of the extra cuts can be lifted (two items
+ *   sharing an extra cut fill their node along the other axis), and only
+ *   with a fixed first stage orientation;
+ * - 'Homogenous': nothing is lifted.
+ * The compaction can make a distance between two cuts or a waste smaller,
+ * and 'unreduce_solution' adds a cut separating the true item from the
+ * provably empty margin, so nothing is lifted with a minimum distance
+ * between 1-cuts or 2-cuts, a minimum waste length, or a maximum number of
+ * 1-cuts or 2-cuts. A maximum distance between 1-cuts (resp. 2-cuts) is
+ * handled as a second capacity along the axes the 1-cuts (resp. 2-cuts)
+ * may be along: the item is lifted to the smaller of the two bounds, and
+ * only if it fits the maximum distance along both axes (since
+ * 'unreduce_solution' may turn its node into a plate subject to it). Also
+ * requires a single bin type without defects or fixed items, no trims when
+ * the cut thickness is not zero, an oriented item type alone in its stack
+ * without fixed copies, and an objective that only depends on which items
+ * and bins are used ('Knapsack', 'BinPacking', 'VariableSizedBinPacking',
+ * 'Feasibility'), or 'OpenDimensionX'/'OpenDimensionY' for the other axis.
+ * 'unreduce_solution' rewrites the cut tree around each enlarged item: if
+ * its node is delimited along the lifted axis, the node is shrunk, and the
+ * freed length goes to the first waste after it (the siblings in between
+ * are moved back), or to a new waste at the end of its parent;
+ * otherwise, the true item goes into a child node, followed by a waste; if
+ * the node is already at the deepest level allowed, its parent, which then
+ * only contains the item and a waste, is shrunk instead. See
+ * 'lift_item_dimensions_applies()' and
+ * 'lift_item_dimensions_applies_axis()'.
  *
  * Only ever needs one pass (unlike 'rectangle::Reduction''s fixpoint
- * loop): neither operation here ever changes an item type's own
- * dimensions or exposes a new merge/trim opportunity for the other -
- * trimming a negative-profit item type down to its 'copies_min' can only
- * ever narrow a later merge candidate's mandatory-vs-optional status
- * (never flip a type that was already fully mandatory or fully optional
- * into the other category - see 'effective_copies_min'), and merging
- * never changes any type's own profit or copies_min.
+ * loop): trimming a negative-profit item type down to its 'copies_min'
+ * can only ever narrow a later merge candidate's mandatory-vs-optional
+ * status (never flip a type that was already fully mandatory or fully
+ * optional into the other category - see 'effective_copies_min'), merging
+ * never changes any type's own profit or copies_min, and lifting only
+ * changes the dimensions of oriented item types with a single copy, which
+ * the redundant rotation removal does not look at. Lifting runs before
+ * merging, which compares the current (possibly enlarged) dimensions.
  *
  * Before both operations, redundant rotations are removed (see
  * 'remove_redundant_rotations'). The rotation of a non-oriented item type is
@@ -132,11 +189,27 @@ private:
     static bool remove_negative_profit_items_applies(const Instance& instance);
 
     /**
+     * 'true' iff lifting item dimensions (see 'lift_item_dimensions') is
+     * meaningful for 'instance' - see the class-level doc comment. Does not
+     * check 'parameters.reduce' - the constructor only calls this after
+     * already checking it.
+     */
+    static bool lift_item_dimensions_applies(const Instance& instance);
+
+    /**
+     * 'true' iff lifting item dimensions is sound along axis 'axis' ('0'
+     * for 'x', '1' for 'y') for 'instance' - see the class-level doc
+     * comment for the objective and cut type restrictions.
+     */
+    static bool lift_item_dimensions_applies_axis(
+            const Instance& instance,
+            int axis);
+
+    /**
      * Working representation of an item type during the reduction
      * process. Unlike 'rectangle::Reduction::ReductionItemType', carries
-     * no 'rect' or companion bookkeeping - neither operation here ever
-     * changes an item type's own dimensions or hides another item type
-     * behind it.
+     * no companion bookkeeping - no operation here hides another item
+     * type behind it.
      */
     struct ReductionItemType
     {
@@ -150,10 +223,16 @@ private:
         ItemTypeId merged_into = -1;
 
         /**
-         * Dimensions. Start at the original instance's own dimensions, and
-         * are only ever swapped, via 'remove_redundant_rotations'.
+         * Dimensions. Start at the original instance's own dimensions, can
+         * be swapped, via 'remove_redundant_rotations', and then only ever
+         * grow, via 'lift_item_dimensions'.
          */
         Rectangle rect;
+
+        /**
+         * Whether 'remove_redundant_rotations' swapped the dimensions.
+         */
+        bool swapped = false;
 
         /**
          * Whether the item type is oriented. Starts at the original
@@ -211,6 +290,28 @@ private:
      * requirement, so it is always safe to trim.
      */
     void remove_negative_profit_items(
+            std::vector<ReductionItemType>& reduction_item_types) const;
+
+    /**
+     * Upper bound on the largest total of the lengths along axis 'axis'
+     * ('0' for 'x', '1' for 'y'), each increased by 'offset', not exceeding
+     * 'capacity', of the current copies of the not-yet-'removed' item
+     * types, each taken in any orientation it allows - except, if
+     * 'excluded_item_type_id' is not '-1', one copy of that item type.
+     */
+    Length max_achievable_dimension_sum(
+            const std::vector<ReductionItemType>& reduction_item_types,
+            Length capacity,
+            int axis,
+            Length offset,
+            ItemTypeId excluded_item_type_id) const;
+
+    /**
+     * Enlarges the item types along every axis allowed by
+     * 'lift_item_dimensions_applies_axis' - see the class-level doc
+     * comment. Returns 'true' iff at least one item type was enlarged.
+     */
+    bool lift_item_dimensions(
             std::vector<ReductionItemType>& reduction_item_types) const;
 
     /**
@@ -278,6 +379,18 @@ private:
 
     /** Reduced instance. */
     Instance instance_;
+
+    /**
+     * For each item type of the original instance, its dimensions in the
+     * reduced instance (see 'ReductionItemType::rect').
+     */
+    std::vector<Rectangle> reduced_rects_;
+
+    /**
+     * For each item type of the original instance, whether its dimensions
+     * were swapped (see 'ReductionItemType::swapped').
+     */
+    std::vector<bool> swapped_item_types_;
 
     /**
      * One contiguous run of a reduced item type's copies that all came

@@ -48,6 +48,15 @@ struct ReductionParameters: optimizationtools::Parameters
      * 'Reduction::merge_identical_items').
      */
     bool merge_identical_items = true;
+
+    /**
+     * Enable/disable lifting item dimensions (gates
+     * 'Reduction::lift_item_dimensions'). Still subject to
+     * 'Reduction::lift_item_dimensions_applies' and
+     * 'Reduction::lift_item_dimensions_applies_axis' regardless of this
+     * flag.
+     */
+    bool lift_item_dimensions = true;
 };
 
 /**
@@ -55,7 +64,7 @@ struct ReductionParameters: optimizationtools::Parameters
  * 'rectangle::Reduction''s operations (see its own class-level doc comment
  * for the full six-operation version), restricted here to the two whose
  * soundness argument does not depend on anything specific to 2D geometry,
- * plus a redundant-rotation removal:
+ * plus a redundant-rotation removal and an item dimension lift:
  *
  * - Removing redundant rotations (see 'remove_redundant_rotations'): items
  *   are packed upright, so an item type allows at most rotations 'XYZ' and
@@ -83,6 +92,52 @@ struct ReductionParameters: optimizationtools::Parameters
  *   to skip here: 'boxstacks' bin/item types carry no resource-consumption
  *   mechanism at all (unlike 'rectangle'), so no indirect profit bonus can
  *   ever make a negative-profit copy worth keeping.
+ *
+ * - Lifting item dimensions (see 'lift_item_dimensions'): rectangle's own
+ *   subset-sum lift, applied to the footprints of the stacks. Only applied
+ *   to an item type with a single copy whose 'stackability_id' no other
+ *   remaining item type shares: such an item is always alone in its
+ *   stack, so its footprint is the footprint of its stack, and enlarging
+ *   it changes no stacking possibility. Along 'x' or 'y', the bin is first
+ *   shrunk to the largest total length of the items not exceeding it
+ *   ("shrinking the bins", see 'shrunk_bin_length'); then, if no
+ *   combination of the other items can fill the space left beside the
+ *   item in the shrunk bin, the item is enlarged to close that gap. Sound
+ *   because any solution can be compacted along the axis (every stack
+ *   pushed towards the origin while its other coordinate stays fixed): the
+ *   position of a stack is then the total length of a chain of stacks
+ *   before it, so the items of any chain through the lifted item, other
+ *   than itself, fill at most the gap's complement. Counting every other
+ *   item on its own, rather than one footprint per stack, only makes the
+ *   bound larger, which is safe. Requires the item type to have a single
+ *   allowed rotation (growing its 'x' would otherwise also change its
+ *   extent along 'y' when rotated). Along 'z', the item is enlarged to the
+ *   height of the bin, since its stack contains nothing else. The
+ *   compaction moves stacks, and the enlarged footprint changes the
+ *   reduced instance's view of some constraints, so:
+ *   - nothing is lifted with a single bin type that has defects or fixed
+ *     items (see 'lift_item_dimensions_applies');
+ *   - nothing is lifted along 'x' with a semi-trailer truck: the axle
+ *     weights depend on the 'x' positions and on the 'x' centers of the
+ *     stacks;
+ *   - with an unloading constraint, nothing is lifted along the axis whose
+ *     compaction could break it: 'x' for 'OnlyYMovements' and
+ *     'IncreasingX', 'y' for 'OnlyXMovements' and 'IncreasingY'
+ *     (compacting along 'x' keeps the 'y' coordinates and the order along
+ *     'x' of the stacks whose 'y' ranges intersect, so it keeps the
+ *     constraints that only depend on those);
+ *   - the footprint is only lifted if the item alone satisfies the maximum
+ *     stack density of the bin type with its true footprint, since the
+ *     reduced instance checks it against the enlarged one;
+ *   - an objective measuring how far the items extend along an axis
+ *     ('OpenDimensionX'/'OpenDimensionY', or 'BinPackingWithLeftovers'
+ *     with a 'LeftoverMode' involving the axis) never lifts along it.
+ *   'unreduce_solution' places the true items in stacks of their true
+ *   footprint, at the positions the solve chose for their enlarged
+ *   stand-ins. Runs before 'merge_identical_items'; a lifted item type is
+ *   never merged, since its 'stackability_id' is unique. See
+ *   'lift_item_dimensions_applies()' and
+ *   'lift_item_dimensions_applies_axis()'.
  *
  * - Merging identical item types (see 'merge_identical_items'): a merged
  *   item type's copies stay fully visible and independently placed in the
@@ -135,6 +190,24 @@ private:
      */
     static bool remove_negative_profit_items_applies(const Instance& instance);
 
+    /**
+     * 'true' iff lifting item dimensions (see 'lift_item_dimensions') is
+     * meaningful for 'instance' - a single bin type, without defects or
+     * fixed items. Does not check 'parameters.reduce' - the constructor
+     * only calls this after already checking it.
+     */
+    static bool lift_item_dimensions_applies(const Instance& instance);
+
+    /**
+     * 'true' iff lifting item dimensions is sound along axis 'axis' ('0'
+     * for 'x', '1' for 'y', '2' for 'z') for 'instance' - see the
+     * class-level doc comment for the objective, semi-trailer truck and
+     * unloading constraint exclusions.
+     */
+    static bool lift_item_dimensions_applies_axis(
+            const Instance& instance,
+            int axis);
+
     /*
      * Private types
      */
@@ -146,11 +219,12 @@ private:
      * reduction is running (only marked 'removed'): this keeps every id
      * stable throughout, and this vector's own indices double as
      * original-instance item type ids. Only ever holds what the reduction
-     * process can actually change ('copies', via a negative-profit trim)
-     * plus the bookkeeping needed to fold a merged-away item type into its
-     * survivor ('merged_into'). Every other item type field (profit,
-     * rotations, weight, ...) never changes during the process, so it is
-     * read directly from 'original_instance_' wherever needed.
+     * process can actually change ('copies', via a negative-profit trim,
+     * 'rotations' and 'box') plus the bookkeeping needed to fold a
+     * merged-away item type into its survivor ('merged_into'). Every other
+     * item type field (profit, weight, ...) never changes during the
+     * process, so it is read directly from 'original_instance_' wherever
+     * needed.
      */
     struct ReductionItemType
     {
@@ -179,6 +253,12 @@ private:
          * 'remove_negative_profit_items'.
          */
         ItemPos copies = 0;
+
+        /**
+         * Current (possibly enlarged) box. Starts at the original item
+         * type's own box and only ever grows, via 'lift_item_dimensions'.
+         */
+        Box box;
     };
 
     /**
@@ -211,6 +291,37 @@ private:
      * at least one item type was trimmed.
      */
     bool remove_negative_profit_items(
+            std::vector<ReductionItemType>& reduction_item_types) const;
+
+    /**
+     * Upper bound on the largest total length along axis 'axis' ('0' for
+     * 'x', '1' for 'y'), not exceeding 'capacity', of the current copies
+     * of the not-yet-'removed' item types, each taken with any of its
+     * allowed rotations - except, if 'excluded_item_type_id' is not '-1',
+     * one copy of that item type.
+     */
+    Length max_achievable_dimension_sum(
+            const std::vector<ReductionItemType>& reduction_item_types,
+            Length capacity,
+            int axis,
+            ItemTypeId excluded_item_type_id) const;
+
+    /**
+     * Largest total length along axis 'axis' ('0' for 'x', '1' for 'y') of
+     * the remaining items not exceeding the length of the (single) bin
+     * type along it ("shrinking the bins", see the class-level doc
+     * comment).
+     */
+    Length shrunk_bin_length(
+            const std::vector<ReductionItemType>& reduction_item_types,
+            int axis) const;
+
+    /**
+     * Enlarges the item types along every axis allowed by
+     * 'lift_item_dimensions_applies_axis' - see the class-level doc
+     * comment. Returns 'true' iff at least one item type was enlarged.
+     */
+    bool lift_item_dimensions(
             std::vector<ReductionItemType>& reduction_item_types) const;
 
     /**

@@ -2,6 +2,9 @@
 
 #include "packingsolver/rectangleguillotine/instance_builder.hpp"
 #include "rectangleguillotine/solution_builder.hpp"
+#include "algorithms/subset_sum_bound.hpp"
+
+#include <stdexcept>
 
 using namespace packingsolver;
 using namespace packingsolver::rectangleguillotine;
@@ -79,6 +82,7 @@ bool Reduction::remove_redundant_rotations(
         } else if (!fits && fits_rotated) {
             item.oriented = true;
             std::swap(item.rect.w, item.rect.h);
+            item.swapped = true;
             found = true;
         }
     }
@@ -129,6 +133,233 @@ void Reduction::remove_negative_profit_items(
         if (item.copies == 0)
             item.removed = true;
     }
+}
+
+bool Reduction::lift_item_dimensions_applies(const Instance& instance)
+{
+    // Objectives only depending on which items and bins are used (see the
+    // class-level doc comment); the open dimension ones only lift along the
+    // other axis (see 'lift_item_dimensions_applies_axis').
+    if (instance.objective() != Objective::Knapsack
+            && instance.objective() != Objective::BinPacking
+            && instance.objective() != Objective::VariableSizedBinPacking
+            && instance.objective() != Objective::Feasibility
+            && instance.objective() != Objective::OpenDimensionX
+            && instance.objective() != Objective::OpenDimensionY) {
+        return false;
+    }
+    if (instance.number_of_bin_types() != 1)
+        return false;
+    const BinType& bin_type = instance.bin_type(0);
+    if (!bin_type.defects.empty() || !bin_type.fixed_items.empty())
+        return false;
+    const Parameters& parameters = instance.parameters();
+    if (parameters.cut_type != CutType::NonExact
+            && parameters.cut_type != CutType::Exact
+            && parameters.cut_type != CutType::Roadef2018) {
+        return false;
+    }
+    // The compaction can make a distance between two cuts or a waste
+    // smaller, and 'unreduce_solution' adds cuts.
+    if (parameters.minimum_distance_1_cuts > 0
+            || parameters.minimum_distance_2_cuts > 0
+            || parameters.minimum_waste_length > 0
+            || parameters.maximum_number_1_cuts >= 0
+            || parameters.maximum_number_2_cuts >= 0) {
+        return false;
+    }
+    // With a cut thickness, the extent of a chain of items next to a trim
+    // depends on whether the trim is cut.
+    if (parameters.cut_thickness > 0
+            && (bin_type.left_trim > 0
+                || bin_type.right_trim > 0
+                || bin_type.bottom_trim > 0
+                || bin_type.top_trim > 0)) {
+        return false;
+    }
+    return true;
+}
+
+namespace
+{
+
+/**
+ * 'true' iff the nodes at depth 'depth' are delimited along 'x', i.e. are
+ * the result of cuts along 'x' ('l' and 'r' are cut positions), for a
+ * first cut orientation 'first_cut_orientation' ('Vertical' or
+ * 'Horizontal'). Mirrors 'SolutionBuilder::add_node'.
+ */
+bool delimited_along_x(
+        CutOrientation first_cut_orientation,
+        Depth depth)
+{
+    return (first_cut_orientation == CutOrientation::Vertical && depth % 2 == 1)
+        || (first_cut_orientation == CutOrientation::Horizontal && depth % 2 == 0);
+}
+
+}
+
+bool Reduction::lift_item_dimensions_applies_axis(
+        const Instance& instance,
+        int axis)
+{
+    bool along_x = (axis == 0);
+    if (along_x && instance.objective() == Objective::OpenDimensionX)
+        return false;
+    if (!along_x && instance.objective() == Objective::OpenDimensionY)
+        return false;
+
+    // See the class-level doc comment for the cut type restrictions.
+    const Parameters& parameters = instance.parameters();
+    if (parameters.cut_type == CutType::NonExact)
+        return true;
+    if (parameters.first_stage_orientation == CutOrientation::Any)
+        return false;
+    Depth depth = (parameters.cut_type == CutType::Exact)?
+        parameters.number_of_stages:
+        parameters.number_of_stages + 1;
+    return delimited_along_x(parameters.first_stage_orientation, depth) == along_x;
+}
+
+Length Reduction::max_achievable_dimension_sum(
+        const std::vector<ReductionItemType>& reduction_item_types,
+        Length capacity,
+        int axis,
+        Length offset,
+        ItemTypeId excluded_item_type_id) const
+{
+    std::vector<SubsetSumBoundItem> items;
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < (ItemTypeId)reduction_item_types.size();
+            ++item_type_id) {
+        const ReductionItemType& item = reduction_item_types[item_type_id];
+        if (item.removed)
+            continue;
+        SubsetSumBoundItem subset_sum_item;
+        subset_sum_item.copies = item.copies;
+        if (item_type_id == excluded_item_type_id)
+            subset_sum_item.copies--;
+        subset_sum_item.lengths.push_back(((axis == 0)? item.rect.w: item.rect.h) + offset);
+        if (!item.oriented)
+            subset_sum_item.lengths.push_back(((axis == 0)? item.rect.h: item.rect.w) + offset);
+        items.push_back(subset_sum_item);
+    }
+    return subset_sum_bound(items, capacity);
+}
+
+bool Reduction::lift_item_dimensions(
+        std::vector<ReductionItemType>& reduction_item_types) const
+{
+    const Parameters& parameters = original_instance_->parameters();
+    const BinType& bin_type = original_instance_->bin_type(0);
+    Length cut_thickness = parameters.cut_thickness;
+    CutOrientation first_stage_orientation = parameters.first_stage_orientation;
+
+    // For each maximum distance between cuts, the axes it may apply to.
+    // 1-cuts are along 'x' if the first stage is vertical.
+    struct MaximumDistance
+    {
+        Length distance;
+        bool along_x;
+        bool along_y;
+    };
+    std::vector<MaximumDistance> maximum_distances;
+    if (parameters.maximum_distance_1_cuts >= 0) {
+        maximum_distances.push_back({
+                parameters.maximum_distance_1_cuts,
+                first_stage_orientation != CutOrientation::Horizontal,
+                first_stage_orientation != CutOrientation::Vertical});
+    }
+    if (parameters.maximum_distance_2_cuts >= 0) {
+        maximum_distances.push_back({
+                parameters.maximum_distance_2_cuts,
+                first_stage_orientation != CutOrientation::Vertical,
+                first_stage_orientation != CutOrientation::Horizontal});
+    }
+
+    bool found = false;
+    for (int axis = 0; axis < 2; ++axis) {
+        if (!lift_item_dimensions_applies_axis(*original_instance_, axis))
+            continue;
+        bool along_x = (axis == 0);
+
+        // Lengths a chain of items along this axis must fit in: the bin
+        // without its trims, and the maximum distances between cuts along
+        // this axis. Each one is increased by the cut thickness and shrunk
+        // to the largest total length of the items (each also increased by
+        // the cut thickness) not exceeding it. Lifting an item type never
+        // changes them: every combination of items containing the enlarged
+        // item type still fits.
+        std::vector<Length> capacities;
+        capacities.push_back((along_x)?
+                bin_type.rect.w - bin_type.left_trim - bin_type.right_trim:
+                bin_type.rect.h - bin_type.bottom_trim - bin_type.top_trim);
+        for (const MaximumDistance& maximum_distance: maximum_distances)
+            if ((along_x)? maximum_distance.along_x: maximum_distance.along_y)
+                capacities.push_back(maximum_distance.distance);
+        std::vector<Length> shrunk_capacities;
+        for (Length capacity: capacities) {
+            shrunk_capacities.push_back(max_achievable_dimension_sum(
+                        reduction_item_types,
+                        capacity + cut_thickness,
+                        axis,
+                        cut_thickness,
+                        -1));
+        }
+
+        for (ItemTypeId item_type_id = 0;
+                item_type_id < (ItemTypeId)reduction_item_types.size();
+                ++item_type_id) {
+            ReductionItemType& item = reduction_item_types[item_type_id];
+            if (item.removed)
+                continue;
+            // Oriented, so that growing one dimension only changes the
+            // extent of the item along this axis, and a single copy, since
+            // the bound below only holds for one occurrence of the item
+            // type (see 'rectangle::Reduction::lift_item_dimensions_axis').
+            if (!item.oriented || item.copies != 1)
+                continue;
+            const ItemType& item_type = original_instance_->item_type(item_type_id);
+            if (item_type.copies_fixed > 0)
+                continue;
+            // Alone in its stack.
+            if (original_instance_->stack_size(item_type.stack_id) != 1)
+                continue;
+            // 'unreduce_solution' may turn the node of the item into a
+            // plate, subject to the maximum distances between cuts.
+            bool fits_maximum_distances = true;
+            for (const MaximumDistance& maximum_distance: maximum_distances) {
+                if ((maximum_distance.along_x && item.rect.w > maximum_distance.distance)
+                        || (maximum_distance.along_y && item.rect.h > maximum_distance.distance)) {
+                    fits_maximum_distances = false;
+                    break;
+                }
+            }
+            if (!fits_maximum_distances)
+                continue;
+
+            Length& item_length = (along_x)? item.rect.w: item.rect.h;
+            Length new_item_length = -1;
+            for (Length shrunk_capacity: shrunk_capacities) {
+                Length capacity = shrunk_capacity - (item_length + cut_thickness);
+                Length achievable_other = (capacity <= 0)? 0:
+                    max_achievable_dimension_sum(
+                            reduction_item_types,
+                            capacity,
+                            axis,
+                            cut_thickness,
+                            item_type_id);
+                Length length = shrunk_capacity - achievable_other - cut_thickness;
+                if (new_item_length == -1 || new_item_length > length)
+                    new_item_length = length;
+            }
+            if (new_item_length <= item_length)
+                continue;
+            item_length = new_item_length;
+            found = true;
+        }
+    }
+    return found;
 }
 
 namespace
@@ -381,11 +612,173 @@ Reduction::Reduction(
                 && parameters.remove_negative_profit_items) {
             remove_negative_profit_items(reduction_item_types);
         }
+        if (parameters.lift_item_dimensions
+                && lift_item_dimensions_applies(instance)
+                && !parameters.timer.needs_to_end()) {
+            lift_item_dimensions(reduction_item_types);
+        }
         if (parameters.merge_identical_items)
             merge_identical_items(reduction_item_types);
     }
 
+    for (const ReductionItemType& item: reduction_item_types) {
+        reduced_rects_.push_back(item.rect);
+        swapped_item_types_.push_back(item.swapped);
+    }
+
     instance_ = reduction_to_instance(reduction_item_types);
+}
+
+namespace
+{
+
+Length& node_start(
+        SolutionNode& node,
+        bool along_x)
+{
+    return (along_x)? node.l: node.b;
+}
+
+Length& node_end(
+        SolutionNode& node,
+        bool along_x)
+{
+    return (along_x)? node.r: node.t;
+}
+
+/** 'true' iff node 'node' is a waste without children. */
+bool is_waste(const SolutionNode& node)
+{
+    return (node.item_type_id == -1 || node.item_type_id == -3)
+        && node.children.empty();
+}
+
+/** Moves node 'node_id' and all its descendants by 'delta' along an axis. */
+void shift_subtree(
+        std::vector<SolutionNode>& nodes,
+        SolutionNodeId node_id,
+        bool along_x,
+        Length delta)
+{
+    node_start(nodes[node_id], along_x) += delta;
+    node_end(nodes[node_id], along_x) += delta;
+    for (SolutionNodeId child_id: nodes[node_id].children)
+        shift_subtree(nodes, child_id, along_x, delta);
+}
+
+/**
+ * Shrinks node 'node_id', delimited along the axis, by 'delta' at its end.
+ * Its next siblings are moved back by 'delta' up to the first waste, which
+ * grows by 'delta' instead. Without a waste after the node, the freed length
+ * becomes a waste at the end of the parent when the tree is replayed (see
+ * 'SolutionBuilder::add_node'). This adds a child to the parent only if it
+ * has no waste after the node.
+ */
+void shrink_in_parent(
+        std::vector<SolutionNode>& nodes,
+        SolutionNodeId node_id,
+        bool along_x,
+        Length delta)
+{
+    node_end(nodes[node_id], along_x) -= delta;
+    Depth depth = nodes[node_id].d;
+    bool after = false;
+    for (SolutionNodeId sibling_id: nodes[nodes[node_id].f].children) {
+        if (sibling_id == node_id) {
+            after = true;
+            continue;
+        }
+        if (!after || nodes[sibling_id].d != depth)
+            continue;
+        if (is_waste(nodes[sibling_id])) {
+            node_start(nodes[sibling_id], along_x) -= delta;
+            return;
+        }
+        shift_subtree(nodes, sibling_id, along_x, -delta);
+    }
+}
+
+/**
+ * Shrinks the item of leaf node 'node_id' by 'delta' along an axis (see
+ * 'Reduction''s class-level doc comment): in place if the node is
+ * delimited along the axis; otherwise, by moving the item into a child
+ * node, if 'maximum_depth' allows it; otherwise, by shrinking the parent,
+ * which must be delimited along the axis and only contain wastes besides
+ * the item. Returns the id of the node containing the item.
+ */
+SolutionNodeId shrink_item_node(
+        std::vector<SolutionNode>& nodes,
+        SolutionNodeId node_id,
+        bool along_x,
+        Length delta,
+        Depth maximum_depth,
+        CutOrientation first_cut_orientation)
+{
+    Depth depth = nodes[node_id].d;
+    if (delimited_along_x(first_cut_orientation, depth) == along_x) {
+        shrink_in_parent(nodes, node_id, along_x, delta);
+        return node_id;
+    }
+
+    if (depth + 1 <= maximum_depth) {
+        SolutionNode child = nodes[node_id];
+        child.f = node_id;
+        child.d = depth + 1;
+        child.children.clear();
+        node_end(child, along_x) -= delta;
+        SolutionNodeId child_id = nodes.size();
+        nodes[node_id].item_type_id = -2;
+        nodes[node_id].children = {child_id};
+        nodes.push_back(child);
+        return child_id;
+    }
+
+    SolutionNodeId parent_id = nodes[node_id].f;
+    bool parent_ok = (nodes[parent_id].d >= 1);
+    for (SolutionNodeId child_id: nodes[parent_id].children)
+        if (child_id != node_id && !is_waste(nodes[child_id]))
+            parent_ok = false;
+    if (!parent_ok) {
+        throw std::logic_error(
+                FUNC_SIGNATURE + ": "
+                "unable to shrink an enlarged item; "
+                "depth: " + std::to_string(depth) + ".");
+    }
+    for (SolutionNodeId child_id: nodes[parent_id].children)
+        node_end(nodes[child_id], along_x) -= delta;
+    shrink_in_parent(nodes, parent_id, along_x, delta);
+    return node_id;
+}
+
+/**
+ * Adds the descendants of node 'node_id' of a cut tree to 'solution_builder',
+ * in depth-first order (see 'SolutionBuilder::add_node': a node is appended
+ * as the last child of the last node added at the parent depth). The nodes
+ * of depth '0' or less (the root, the trims, and the plate inside the hard
+ * trims) are not added, 'SolutionBuilder::add_bin' adds them, but their
+ * descendants are.
+ */
+void add_subtree(
+        SolutionBuilder& solution_builder,
+        const std::vector<SolutionNode>& nodes,
+        SolutionNodeId node_id,
+        CutOrientation first_cut_orientation)
+{
+    for (SolutionNodeId child_id: nodes[node_id].children) {
+        const SolutionNode& child = nodes[child_id];
+        if (child.d <= 0) {
+            add_subtree(solution_builder, nodes, child_id, first_cut_orientation);
+            continue;
+        }
+        solution_builder.add_node(
+                child.d,
+                (delimited_along_x(first_cut_orientation, child.d))? child.r: child.t);
+        if (child.item_type_id >= 0)
+            solution_builder.set_last_node_item(child.item_type_id);
+        add_subtree(solution_builder, nodes, child_id, first_cut_orientation);
+    }
+}
+
 }
 
 ItemTypeId Reduction::consume_one_origin(
@@ -401,6 +794,14 @@ Solution Reduction::unreduce_solution(
         const Solution& solution) const
 {
     SolutionBuilder solution_builder(*original_instance_);
+
+    // Deepest level of a node: the number of stages, plus the extra cut
+    // for the cut types allowing one.
+    const Parameters& parameters = original_instance_->parameters();
+    Depth maximum_depth = (parameters.cut_type == CutType::Exact
+            || parameters.cut_type == CutType::Homogenous)?
+        parameters.number_of_stages:
+        parameters.number_of_stages + 1;
 
     // A working copy of 'reduced_item_origin_runs_' that this call
     // consumes from (via 'consume_one_origin') as it scans 'solution' -
@@ -483,48 +884,90 @@ Solution Reduction::unreduce_solution(
                 }
             }
 
-            // Replay every node of the cut tree exactly as-is (same
-            // depths, same cut positions - see 'SolutionBuilder::add_node'
-            // 's own doc comment: nodes are appended as the last child of
-            // the last node added at the parent depth, so replaying
-            // 'solution_bin.nodes' in their own stored order - already the
-            // order they were built in - reconstructs an identical tree),
-            // substituting each leaf's reduced item type id for its true
-            // original one.
-            //
-            // Which of 'r'/'t' a given depth's cut position actually is
-            // depends on 'solution_bin.first_cut_orientation', not on
-            // depth parity alone - see 'SolutionBuilder::add_node''s own
-            // condition, which this mirrors exactly.
-            // ('InstanceFlipper::unflip_solution' gets away with the
-            // depth-parity-only shortcut only because it always forces the
-            // flipped instance's own first cut to 'Vertical', so
-            // 'first_cut_orientation' is never actually a free variable
-            // there - not true here, since this reduction never touches
-            // cut orientation and the instance may leave it unconstrained
-            // ('Any').)
+            // Copy of the cut tree, with the original item type id of each
+            // item. Resolved in the stored order of the nodes, any
+            // consistent order works since a reduced item type's copies
+            // are interchangeable by construction.
+            // The children are rebuilt from the parents, in the stored
+            // order of the nodes, which is the order they were built in.
+            std::vector<SolutionNode> nodes = solution_bin.nodes;
+            for (SolutionNode& node: nodes)
+                node.children.clear();
+            for (SolutionNodeId node_id = 0;
+                    node_id < (SolutionNodeId)nodes.size();
+                    ++node_id) {
+                SolutionNode& node = nodes[node_id];
+                if (node.f >= 0)
+                    nodes[node.f].children.push_back(node_id);
+                if (node.d <= 0 || node.item_type_id < 0)
+                    continue;
+                node.item_type_id = (bin_fits_in_current_runs)?
+                    remaining_runs[node.item_type_id].back().item_type_id:
+                    consume_one_origin(remaining_runs[node.item_type_id]);
+            }
+
+            // Give each item enlarged by 'lift_item_dimensions' its true
+            // dimensions (see the class-level doc comment).
+            SolutionNodeId number_of_nodes = nodes.size();
+            for (SolutionNodeId node_id = 0; node_id < number_of_nodes; ++node_id) {
+                if (nodes[node_id].d <= 0 || nodes[node_id].item_type_id < 0)
+                    continue;
+                ItemTypeId item_type_id = nodes[node_id].item_type_id;
+                // True dimensions, in the orientation of the reduced item
+                // type, then in the orientation of the node.
+                Rectangle rect = original_instance_->item_type(item_type_id).rect;
+                if (swapped_item_types_[item_type_id])
+                    std::swap(rect.w, rect.h);
+                const Rectangle& reduced_rect = reduced_rects_[item_type_id];
+                const SolutionNode& node = nodes[node_id];
+                if (node.r - node.l != reduced_rect.w
+                        || node.t - node.b != reduced_rect.h) {
+                    std::swap(rect.w, rect.h);
+                }
+                Length delta_x = (node.r - node.l) - rect.w;
+                Length delta_y = (node.t - node.b) - rect.h;
+                if (delta_x < 0 || delta_y < 0) {
+                    throw std::logic_error(
+                            FUNC_SIGNATURE + ": "
+                            "item larger than its node; "
+                            "item_type_id: " + std::to_string(item_type_id) + ".");
+                }
+                // First along the axis the node is delimited along, then
+                // along the other one (see 'shrink_item_node').
+                bool first_along_x = delimited_along_x(solution_bin.first_cut_orientation, node.d);
+                Length first_delta = (first_along_x)? delta_x: delta_y;
+                Length second_delta = (first_along_x)? delta_y: delta_x;
+                SolutionNodeId item_node_id = node_id;
+                if (first_delta > 0) {
+                    item_node_id = shrink_item_node(
+                            nodes,
+                            item_node_id,
+                            first_along_x,
+                            first_delta,
+                            maximum_depth,
+                            solution_bin.first_cut_orientation);
+                }
+                if (second_delta > 0) {
+                    shrink_item_node(
+                            nodes,
+                            item_node_id,
+                            !first_along_x,
+                            second_delta,
+                            maximum_depth,
+                            solution_bin.first_cut_orientation);
+                }
+            }
+
+            // Replay the cut tree (see 'add_subtree').
             solution_builder.add_bin(
                     solution_bin.bin_type_id,
                     batch,
                     solution_bin.first_cut_orientation);
-            for (const SolutionNode& node: solution_bin.nodes) {
-                if (node.d <= 0)
-                    continue;
-                bool cut_along_x =
-                    (solution_bin.first_cut_orientation == CutOrientation::Vertical && node.d % 2 == 1)
-                    || (solution_bin.first_cut_orientation == CutOrientation::Horizontal && node.d % 2 == 0);
-                if (cut_along_x) {
-                    solution_builder.add_node(node.d, node.r);
-                } else {
-                    solution_builder.add_node(node.d, node.t);
-                }
-                if (node.item_type_id >= 0) {
-                    ItemTypeId original_item_type_id = (bin_fits_in_current_runs)?
-                        remaining_runs[node.item_type_id].back().item_type_id:
-                        consume_one_origin(remaining_runs[node.item_type_id]);
-                    solution_builder.set_last_node_item(original_item_type_id);
-                }
-            }
+            add_subtree(
+                    solution_builder,
+                    nodes,
+                    0,
+                    solution_bin.first_cut_orientation);
 
             if (bin_fits_in_current_runs) {
                 for (ItemTypeId reduced_item_type_id: touched_types) {
