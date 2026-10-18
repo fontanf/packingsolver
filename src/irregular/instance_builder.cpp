@@ -803,7 +803,7 @@ Instance InstanceBuilder::build()
             value_max = (std::max)(value_max, std::abs(aabb.x_max));
             value_max = (std::max)(value_max, std::abs(aabb.y_max));
         }
-        instance_.parameters_.scale_value = 1024.0 / smallest_power_of_two_greater_or_equal(value_max);
+        instance_.parameters_.scale_value = 1024.0 / packingsolver::smallest_power_of_two_greater_or_equal(value_max);
         //std::cout << "instance_.scale_value() " << instance_.parameters().scale_value << std::endl;
     }
 

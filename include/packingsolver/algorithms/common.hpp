@@ -174,7 +174,7 @@ double largest_power_of_two_lesser_or_equal(T value)
         while (res > value)
             res /= 2;
     } else {
-        while (res * 2 < value)
+        while (res * 2 <= value)
             res *= 2;
     }
     return res;
@@ -188,7 +188,7 @@ double smallest_power_of_two_greater_or_equal(T value)
         while (res < value)
             res *= 2;
     } else {
-        while (res / 2 > value)
+        while (res / 2 >= value)
             res /= 2;
     }
     return res;
