@@ -29,12 +29,16 @@ inline BasicShape apply_placement(
     BasicShape result = basic_shape;
     if (mirror) {
         result.shape = result.shape.axial_symmetry_y_axis();
-        if (result.type == BasicShapeType::CircularSegment)
+        if (result.type == BasicShapeType::CircularSegment
+                || result.type == BasicShapeType::Circle) {
             result.circle_center = result.circle_center.axial_symmetry_y_axis();
+        }
     }
     result.shape = result.shape.rotate(angle);
-    if (result.type == BasicShapeType::CircularSegment)
+    if (result.type == BasicShapeType::CircularSegment
+            || result.type == BasicShapeType::Circle) {
         result.circle_center = result.circle_center.rotate(angle);
+    }
     return result;
 }
 
