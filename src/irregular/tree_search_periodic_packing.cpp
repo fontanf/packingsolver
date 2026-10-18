@@ -516,10 +516,48 @@ BranchingSchemePeriodicPacking::root() const
                     aabb.y_max - aabb.y_min);
         }
     }
+    // Cut out the fixed items the same way, each shape approximated by the
+    // AABB of its shape inflated by the item-item spacing, placed as in the
+    // solution (mirrored, rotated, then shifted by its 'bl_corner'). The
+    // fixed items are part of every solution: they consume copies of their
+    // item types.
+    const std::vector<FixedItem>& fixed_items = bin_type().fixed_items;
+    for (const FixedItem& fixed_item: fixed_items) {
+        const ItemType& item_type = instance_.item_type(fixed_item.item_type_id);
+        Point bl_corner = instance_.parameters().scale_value * fixed_item.bl_corner;
+        for (const ItemShape& item_shape: item_type.shapes) {
+            ShapeWithHoles shape_inflated = item_shape.shape_inflated;
+            if (fixed_item.mirror)
+                shape_inflated = shape_inflated.axial_symmetry_y_axis();
+            shape_inflated = shape_inflated.rotate(fixed_item.angle);
+            AxisAlignedBoundingBox aabb = shape_inflated.compute_min_max();
+            cut_spaces(
+                    node->empty_spaces,
+                    {bl_corner.x + aabb.x_min, bl_corner.y + aabb.y_min},
+                    aabb.x_max - aabb.x_min,
+                    aabb.y_max - aabb.y_min);
+        }
+        node->item_number_of_copies[fixed_item.item_type_id]++;
+        node->item_area += item_type.area_scaled;
+        node->number_of_items++;
+        node->profit += item_type.profit;
+    }
     ItemPos number_of_blocks = (ItemPos)blocks_.size();
-    node->valid_block_ids.resize(number_of_blocks);
-    std::iota(node->valid_block_ids.begin(), node->valid_block_ids.end(), (ItemPos)0);
-    if (!defects.empty() || !borders.empty())
+    for (ItemPos block_id = 0; block_id < number_of_blocks; ++block_id) {
+        // Skip the blocks which would exceed the copies left by the fixed
+        // items.
+        bool feasible = true;
+        for (const std::pair<ItemTypeId, ItemPos>& kv: blocks_[block_id].item_copies) {
+            if (node->item_number_of_copies[kv.first] + kv.second
+                    > instance_.item_type(kv.first).copies) {
+                feasible = false;
+                break;
+            }
+        }
+        if (feasible)
+            node->valid_block_ids.push_back(block_id);
+    }
+    if (!defects.empty() || !borders.empty() || !fixed_items.empty())
         remove_unusable_spaces(*node);
     return node;
 }
@@ -1108,6 +1146,17 @@ Solution BranchingSchemePeriodicPacking::to_solution(
                     solution_item.angle,
                     solution_item.mirror);
         }
+    }
+
+    // Fixed items.
+    for (const FixedItem& fixed_item: bin_type().fixed_items) {
+        solution_builder.add_item(
+                bin_pos,
+                fixed_item.item_type_id,
+                fixed_item.bl_corner,
+                fixed_item.angle,
+                fixed_item.mirror,
+                true);
     }
 
     return solution_builder.build();

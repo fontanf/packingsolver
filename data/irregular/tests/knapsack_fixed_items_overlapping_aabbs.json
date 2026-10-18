@@ -1,0 +1,52 @@
+{
+    "objective": "Knapsack",
+    "bin_types": [
+        {
+            "type": "rectangle",
+            "width": 20,
+            "height": 10,
+            "copies": 1,
+            "fixed_items": [
+                {
+                    "item_type_id": 1,
+                    "bl_corner": {"x": 5, "y": 0},
+                    "angle": 0.0,
+                    "mirror": false
+                },
+                {
+                    "item_type_id": 2,
+                    "bl_corner": {"x": 6, "y": 0},
+                    "angle": 0.0,
+                    "mirror": false
+                }
+            ]
+        }
+    ],
+    "item_types": [
+        {
+            "type": "rectangle",
+            "width": 10,
+            "height": 10,
+            "copies": 2,
+            "profit": 1
+        },
+        {
+            "type": "polygon",
+            "vertices": [
+                {"x": 0, "y": 0},
+                {"x": 4, "y": 0},
+                {"x": 0, "y": 10}
+            ],
+            "profit": 1
+        },
+        {
+            "type": "polygon",
+            "vertices": [
+                {"x": 4, "y": 0},
+                {"x": 4, "y": 10},
+                {"x": 0, "y": 10}
+            ],
+            "profit": 1
+        }
+    ]
+}

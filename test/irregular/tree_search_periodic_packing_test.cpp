@@ -142,4 +142,13 @@ INSTANTIATE_TEST_SUITE_P(
                 // only 1 of the 2 copies fits.
                 fs::path("data") / "irregular" / "tests" / "knapsack_bin_border.json",
                 fs::path("data") / "irregular" / "tests" / "knapsack_bin_border_solution.json"
+            }, {
+                // Fixed items (#720): bin 20x10, two fixed right triangles
+                // filling the middle strip x in [5,10) without touching each
+                // other, whose AABBs overlap ([5,9] and [6,10]), and a 10x10
+                // item with 2 copies. Like defects, the fixed items are cut
+                // out of the empty spaces: only 1 of the 2 copies fits, at
+                // (10,0), and the fixed items must be in the solution.
+                fs::path("data") / "irregular" / "tests" / "knapsack_fixed_items_overlapping_aabbs.json",
+                fs::path("data") / "irregular" / "tests" / "knapsack_fixed_items_overlapping_aabbs_solution.json"
             }}));
