@@ -2,13 +2,20 @@
 #include "irregular/sequential_feasibility.hpp"
 #include "irregular/linear_programming.hpp"
 #include "irregular/solution_builder.hpp"
+#include "irregular/local_search_direct_trigonometry/polygon.hpp"
 
 #include "packingsolver/irregular/algorithm_formatter.hpp"
 
 #include "shape/boolean_operations.hpp"
+#include "shape/shapes_intersections.hpp"
+
+#include "localsearchsolver/population.hpp"
 //#include "shape/writer.hpp"
 
 #include <algorithm>
+#include <cmath>
+#include <map>
+#include <tuple>
 #include <random>
 #include <sstream>
 
@@ -262,56 +269,15 @@ bool pack_item(
     return true;
 }
 
-}  // namespace
-
-LocalSearchOutput packingsolver::irregular::local_search(
+/**
+ * Local search with the linear programming engine, for objective Feasibility.
+ */
+void local_search_linear_programming(
         const Instance& instance,
-        const LocalSearchParameters& parameters)
+        std::mt19937_64& generator,
+        const LocalSearchParameters& parameters,
+        AlgorithmFormatter& algorithm_formatter)
 {
-    if (instance.objective() != Objective::Feasibility) {
-        LocalSearchOutput output(instance);
-        AlgorithmFormatter algorithm_formatter(instance, parameters, output);
-        algorithm_formatter.start();
-        algorithm_formatter.print_header();
-
-        SequentialFeasibilitySolver solver = [&parameters, &algorithm_formatter](
-                const Instance& sub_instance)
-        {
-            LocalSearchParameters inner_parameters;
-            inner_parameters.verbosity_level = 0;
-            inner_parameters.timer = parameters.timer;
-            inner_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
-            inner_parameters.seed = parameters.seed;
-            inner_parameters.maximum_number_of_iterations_without_improvement
-                = parameters.maximum_number_of_iterations_without_improvement;
-            return local_search(sub_instance, inner_parameters).solution_pool;
-        };
-
-        SequentialFeasibilityParameters sf_parameters;
-        sf_parameters.verbosity_level = 0;
-        sf_parameters.timer = parameters.timer;
-        sf_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
-        sf_parameters.new_solution_callback = [&algorithm_formatter](
-                const packingsolver::Output<Instance, Solution>& sf_output)
-        {
-            algorithm_formatter.update_solution(
-                    sf_output.solution_pool.best(),
-                    sf_output.solution_pool.best_label());
-        };
-
-        sequential_feasibility(instance, solver, sf_parameters);
-
-        algorithm_formatter.end();
-        return output;
-    }
-
-    LocalSearchOutput output(instance);
-
-    AlgorithmFormatter algorithm_formatter(instance, parameters, output);
-    algorithm_formatter.start();
-    algorithm_formatter.print_header();
-
-    std::mt19937_64 rng(parameters.seed);
 
     SolutionBuilder solution_builder(instance);
     for (BinPos bin_pos = 0; bin_pos < instance.number_of_bins(); ++bin_pos)
@@ -365,7 +331,7 @@ LocalSearchOutput packingsolver::irregular::local_search(
         unpacked_items.pop_back();
         if (!pack_item(
                 instance,
-                rng,
+                generator,
                 item_type_id,
                 solution,
                 bin_data,
@@ -377,6 +343,429 @@ LocalSearchOutput packingsolver::irregular::local_search(
     std::stringstream ss;
     ss << "LS";
     algorithm_formatter.update_solution(solution, ss.str());
+}
+
+/**
+ * Return true iff the solution contains all the items, without overlaps and
+ * inside the bins, according to the exact shapes.
+ *
+ * Same checks as 'Solution::compute_overlapping_items', but only the pairs of
+ * shapes whose bounding boxes intersect are tested, and the pairs of shapes
+ * made of line segments are tested with the polygon intersection test (the
+ * holes of the items being ignored, which is conservative).
+ */
+bool is_feasible(const Solution& solution)
+{
+    if (!solution.full() || !solution.feasible())
+        return false;
+    const Instance& instance = solution.instance();
+    const LengthDbl scale_value = instance.parameters().scale_value;
+    const Point origin = {0.0, 0.0};
+
+    // Polygons of the item shapes in each orientation, not translated.
+    std::map<std::tuple<ItemTypeId, ItemShapePos, Angle, bool>, Polygon> item_polygons;
+
+    for (BinPos bin_pos = 0; bin_pos < solution.number_of_different_bins(); ++bin_pos) {
+        const SolutionBin& solution_bin = solution.bin(bin_pos);
+        const BinType& bin_type = instance.bin_type(solution_bin.bin_type_id);
+
+        // Shapes of the bin: the obstacles (item_pos == -1) and the items.
+        struct BinShape
+        {
+            ItemPos item_pos;
+            const ShapeWithHoles* shape;
+            const Polygon* polygon;
+            Point translation;
+            AxisAlignedBoundingBox aabb;
+        };
+        std::vector<ShapeWithHoles> item_shapes;
+        std::vector<BinShape> bin_shapes;
+        std::vector<Polygon> obstacle_polygons;
+        std::vector<const Defect*> obstacles;
+        for (const Defect& border: bin_type.borders)
+            obstacles.push_back(&border);
+        for (const Defect& defect: bin_type.defects)
+            obstacles.push_back(&defect);
+        obstacle_polygons.reserve(obstacles.size());
+        for (const Defect* obstacle: obstacles) {
+            BinShape bin_shape;
+            bin_shape.item_pos = -1;
+            bin_shape.shape = &obstacle->shape_scaled;
+            bin_shape.polygon = nullptr;
+            bin_shape.translation = origin;
+            bin_shape.aabb = obstacle->shape_scaled.shape.compute_min_max();
+            if (obstacle->shape_scaled.shape.is_polygon()) {
+                obstacle_polygons.push_back(build_polygon(obstacle->shape_scaled.shape));
+                bin_shape.polygon = &obstacle_polygons.back();
+            }
+            bin_shapes.push_back(bin_shape);
+        }
+        Counter number_of_item_shapes = 0;
+        for (const SolutionItem& item: solution_bin.items)
+            number_of_item_shapes += instance.item_type(item.item_type_id).shapes.size();
+        item_shapes.reserve(number_of_item_shapes);
+        for (ItemPos item_pos = 0; item_pos < (ItemPos)solution_bin.items.size(); ++item_pos) {
+            const SolutionItem& item = solution_bin.items[item_pos];
+            const ItemType& item_type = instance.item_type(item.item_type_id);
+            for (ItemShapePos item_shape_pos = 0;
+                    item_shape_pos < (ItemShapePos)item_type.shapes.size();
+                    ++item_shape_pos) {
+                item_shapes.push_back(solution.shape_scaled(bin_pos, item_pos, item_shape_pos));
+                BinShape bin_shape;
+                bin_shape.item_pos = item_pos;
+                bin_shape.shape = &item_shapes.back();
+                bin_shape.polygon = nullptr;
+                bin_shape.translation = {scale_value * item.bl_corner.x, scale_value * item.bl_corner.y};
+                bin_shape.aabb = item_shapes.back().shape.compute_min_max();
+                // Inside the bin.
+                if (shape::strictly_lesser(bin_shape.aabb.x_min, bin_type.aabb_scaled.x_min)
+                        || shape::strictly_greater(bin_shape.aabb.x_max, bin_type.aabb_scaled.x_max)
+                        || shape::strictly_lesser(bin_shape.aabb.y_min, bin_type.aabb_scaled.y_min)
+                        || shape::strictly_greater(bin_shape.aabb.y_max, bin_type.aabb_scaled.y_max)) {
+                    return false;
+                }
+                std::tuple<ItemTypeId, ItemShapePos, Angle, bool> key(
+                        item.item_type_id,
+                        item_shape_pos,
+                        item.angle,
+                        item.mirror);
+                auto item_polygon_it = item_polygons.find(key);
+                if (item_polygon_it == item_polygons.end()) {
+                    ShapeWithHoles shape = instance.item_shape_scaled(
+                            item.item_type_id,
+                            item_shape_pos,
+                            item.angle,
+                            item.mirror);
+                    if (shape.shape.is_polygon()) {
+                        item_polygon_it = item_polygons.insert({key, build_polygon(shape.shape)}).first;
+                    }
+                }
+                if (item_polygon_it != item_polygons.end())
+                    bin_shape.polygon = &item_polygon_it->second;
+                bin_shapes.push_back(bin_shape);
+            }
+        }
+
+        // Pairs of shapes whose bounding boxes intersect.
+        std::sort(
+                bin_shapes.begin(),
+                bin_shapes.end(),
+                [](const BinShape& bin_shape_1, const BinShape& bin_shape_2)
+                {
+                    return bin_shape_1.aabb.x_min < bin_shape_2.aabb.x_min;
+                });
+        for (Counter shape_pos_1 = 0; shape_pos_1 < (Counter)bin_shapes.size(); ++shape_pos_1) {
+            const BinShape& bin_shape_1 = bin_shapes[shape_pos_1];
+            for (Counter shape_pos_2 = shape_pos_1 + 1;
+                    shape_pos_2 < (Counter)bin_shapes.size()
+                    && bin_shapes[shape_pos_2].aabb.x_min < bin_shape_1.aabb.x_max;
+                    ++shape_pos_2) {
+                const BinShape& bin_shape_2 = bin_shapes[shape_pos_2];
+                if (bin_shape_1.item_pos == -1 && bin_shape_2.item_pos == -1)
+                    continue;
+                if (bin_shape_1.item_pos == bin_shape_2.item_pos)
+                    continue;
+                if (bin_shape_2.aabb.y_min >= bin_shape_1.aabb.y_max
+                        || bin_shape_1.aabb.y_min >= bin_shape_2.aabb.y_max) {
+                    continue;
+                }
+                bool overlap = (bin_shape_1.polygon != nullptr && bin_shape_2.polygon != nullptr)?
+                    intersect(
+                            *bin_shape_1.polygon,
+                            bin_shape_1.translation,
+                            *bin_shape_2.polygon,
+                            bin_shape_2.translation):
+                    shape::intersect(*bin_shape_1.shape, *bin_shape_2.shape, true);
+                if (overlap)
+                    return false;
+            }
+        }
+    }
+    return true;
+}
+
+/**
+ * Local search with the direct trigonometry engine, for objective
+ * Feasibility.
+ *
+ * Population-based iterated local search, generalizing the exploration phase
+ * of Sparrow at a fixed bin size: the layout is separated; after a failure,
+ * the layout is added to the population, and the next separation starts from
+ * a disruption of a layout of the population.
+ */
+void local_search_direct_trigonometry(
+        const Instance& instance,
+        std::mt19937_64& generator,
+        const Solution* initial_solution,
+        const LocalSearchParameters& parameters,
+        AlgorithmFormatter& algorithm_formatter)
+{
+    Separator separator(
+            instance,
+            parameters.separator_parameters,
+            generator,
+            parameters.separator_item_types);
+    if (initial_solution != nullptr) {
+        separator.set_solution(
+                convert_initial_solution(instance, *initial_solution),
+                parameters.timer);
+    } else {
+        separator.set_solution(Solution(instance), parameters.timer);
+    }
+
+    // Layouts of the failed separations: in a population, and sorted by
+    // increasing loss.
+    struct FailedLayout
+    {
+        std::vector<Separator::ItemState> layout;
+
+        double loss;
+    };
+    localsearchsolver::Population<FailedLayout, double>::Parameters population_parameters;
+    population_parameters.minimum_size = parameters.population_minimum_size;
+    population_parameters.maximum_size = parameters.population_maximum_size;
+    population_parameters.number_of_elite_solutions = parameters.population_number_of_elite_solutions;
+    population_parameters.number_of_closest_neighbors = parameters.population_number_of_closest_neighbors;
+    localsearchsolver::Population<FailedLayout, double> population(
+            [](const FailedLayout& failed_layout)
+            {
+                return failed_layout.loss;
+            },
+            [&separator](
+                const FailedLayout& failed_layout_1,
+                const FailedLayout& failed_layout_2)
+            {
+                return separator.distance(
+                        failed_layout_1.layout,
+                        failed_layout_2.layout);
+            },
+            population_parameters);
+    std::vector<FailedLayout> sorted_failed_layouts;
+
+    std::normal_distribution<double> normal_distribution(0.0, 0.25);
+    for (Counter number_of_failed_separations = 0;;) {
+        if (algorithm_formatter.end_boolean() || parameters.timer.needs_to_end())
+            return;
+        if (separator.separate(parameters.timer)) {
+            Solution solution = separator.solution();
+            if (is_feasible(solution)) {
+                algorithm_formatter.update_solution(solution, "LS");
+                return;
+            }
+        }
+
+        FailedLayout failed_layout = {separator.layout(), separator.total_loss()};
+        population.add(failed_layout, generator);
+        sorted_failed_layouts.insert(
+                std::upper_bound(
+                    sorted_failed_layouts.begin(),
+                    sorted_failed_layouts.end(),
+                    failed_layout,
+                    [](const FailedLayout& failed_layout_1, const FailedLayout& failed_layout_2)
+                    {
+                        return failed_layout_1.loss < failed_layout_2.loss;
+                    }),
+                failed_layout);
+        number_of_failed_separations++;
+        if (number_of_failed_separations >= parameters.maximum_number_of_failed_separations)
+            return;
+
+        // Disrupt the selected layout.
+        if (parameters.restart_selection == RestartSelection::Population) {
+            // Binary tournament in the population.
+            separator.set_layout(population.binary_tournament_single(generator).layout);
+        } else {
+            // A layout with a small loss (selection of Sparrow).
+            double sample = (std::min)(std::abs(normal_distribution(generator)), 0.999);
+            Counter failed_layout_pos = (Counter)(sample * sorted_failed_layouts.size());
+            separator.set_layout(sorted_failed_layouts[failed_layout_pos].layout);
+        }
+        separator.disrupt();
+    }
+}
+
+}  // namespace
+
+Solution packingsolver::irregular::convert_initial_solution(
+        const Instance& instance,
+        const Solution& solution)
+{
+    std::vector<BinPos> bin_types_remaining_copies(instance.number_of_bin_types());
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < instance.number_of_bin_types();
+            ++bin_type_id) {
+        bin_types_remaining_copies[bin_type_id]
+            = instance.bin_type(bin_type_id).copies;
+    }
+
+    // Bin type of each copy of each bin of 'solution' (-1 if dropped).
+    std::vector<std::vector<BinTypeId>> bins_bin_type_ids(solution.number_of_different_bins());
+    // First, the bins of the same bin type.
+    for (BinPos bin_pos = 0;
+            bin_pos < solution.number_of_different_bins();
+            ++bin_pos) {
+        const SolutionBin& bin = solution.bin(bin_pos);
+        bins_bin_type_ids[bin_pos].resize(bin.copies, -1);
+        if (bin.bin_type_id >= instance.number_of_bin_types())
+            continue;
+        for (BinPos copy = 0; copy < bin.copies; ++copy) {
+            if (bin_types_remaining_copies[bin.bin_type_id] == 0)
+                break;
+            bins_bin_type_ids[bin_pos][copy] = bin.bin_type_id;
+            bin_types_remaining_copies[bin.bin_type_id]--;
+        }
+    }
+    // Then, the remaining bins.
+    BinTypeId bin_type_id_cur = 0;
+    for (BinPos bin_pos = 0;
+            bin_pos < solution.number_of_different_bins();
+            ++bin_pos) {
+        for (BinTypeId& bin_type_id: bins_bin_type_ids[bin_pos]) {
+            if (bin_type_id != -1)
+                continue;
+            while (bin_type_id_cur < instance.number_of_bin_types()
+                    && bin_types_remaining_copies[bin_type_id_cur] == 0) {
+                bin_type_id_cur++;
+            }
+            if (bin_type_id_cur == instance.number_of_bin_types())
+                break;
+            bin_type_id = bin_type_id_cur;
+            bin_types_remaining_copies[bin_type_id_cur]--;
+        }
+    }
+
+    SolutionBuilder solution_builder(instance);
+    for (BinPos bin_pos = 0;
+            bin_pos < solution.number_of_different_bins();
+            ++bin_pos) {
+        const SolutionBin& bin = solution.bin(bin_pos);
+        for (BinTypeId bin_type_id: bins_bin_type_ids[bin_pos]) {
+            if (bin_type_id == -1)
+                continue;
+            BinPos bin_pos_new = solution_builder.add_bin(bin_type_id, 1);
+            for (const SolutionItem& item: bin.items) {
+                solution_builder.add_item(
+                        bin_pos_new,
+                        item.item_type_id,
+                        item.bl_corner,
+                        item.angle,
+                        item.mirror,
+                        item.is_fixed);
+            }
+        }
+    }
+    return solution_builder.build();
+}
+
+LocalSearchOutput packingsolver::irregular::local_search(
+        const Instance& instance,
+        std::mt19937_64& generator,
+        const Solution* initial_solution,
+        const LocalSearchParameters& parameters)
+{
+    if (instance.objective() != Objective::Feasibility) {
+        LocalSearchOutput output(instance);
+        AlgorithmFormatter algorithm_formatter(instance, parameters, output);
+        algorithm_formatter.start();
+        algorithm_formatter.print_header();
+
+        // The item types of the separator are the same for all the
+        // sub-problems.
+        std::shared_ptr<const Separator::ItemTypes> separator_item_types
+            = parameters.separator_item_types;
+        if (parameters.engine == LocalSearchEngine::DirectTrigonometry
+                && separator_item_types == nullptr) {
+            separator_item_types = Separator::build_item_types(
+                    instance,
+                    parameters.separator_parameters);
+        }
+
+        // The sequential feasibility algorithm only goes on after a
+        // sub-problem without feasible solution during the compression: then,
+        // each sub-problem is a single, more persistent, separation attempt.
+        bool compression = false;
+        SequentialFeasibilitySolver solver = [&parameters, &algorithm_formatter, &generator, &compression, initial_solution, separator_item_types](
+                const Instance& sub_instance,
+                const Solution* previous_solution)
+        {
+            LocalSearchParameters inner_parameters;
+            inner_parameters.verbosity_level = 0;
+            inner_parameters.timer = parameters.timer;
+            inner_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+            inner_parameters.engine = parameters.engine;
+            inner_parameters.shrink_ratio = parameters.shrink_ratio;
+            inner_parameters.compression = parameters.compression;
+            inner_parameters.exploration_time_ratio = parameters.exploration_time_ratio;
+            inner_parameters.separator_parameters = parameters.separator_parameters;
+            inner_parameters.separator_item_types = separator_item_types;
+            inner_parameters.restart_selection = parameters.restart_selection;
+            inner_parameters.maximum_number_of_failed_separations
+                = parameters.maximum_number_of_failed_separations;
+            inner_parameters.population_minimum_size = parameters.population_minimum_size;
+            inner_parameters.population_maximum_size = parameters.population_maximum_size;
+            inner_parameters.population_number_of_elite_solutions
+                = parameters.population_number_of_elite_solutions;
+            inner_parameters.population_number_of_closest_neighbors
+                = parameters.population_number_of_closest_neighbors;
+            inner_parameters.maximum_number_of_iterations_without_improvement
+                = parameters.maximum_number_of_iterations_without_improvement;
+            if (!compression && !std::isinf(parameters.timer.time_limit())) {
+                // Exploration: go on until the end of the exploration.
+                inner_parameters.timer.set_time_limit(
+                        parameters.exploration_time_ratio * parameters.timer.time_limit());
+                inner_parameters.maximum_number_of_failed_separations
+                    = std::numeric_limits<Counter>::max();
+            }
+            if (compression) {
+                inner_parameters.maximum_number_of_failed_separations
+                    = parameters.compression_maximum_number_of_failed_separations;
+                inner_parameters.separator_parameters = parameters.compression_separator_parameters;
+                inner_parameters.separator_parameters.maximum_approximation_ratio
+                    = parameters.separator_parameters.maximum_approximation_ratio;
+            }
+            // The first sub-problem has no previous solution: warm start it
+            // from the initial solution.
+            SolutionPool<Instance, Solution> solution_pool = local_search(
+                    sub_instance,
+                    generator,
+                    (previous_solution != nullptr)? previous_solution: initial_solution,
+                    inner_parameters).solution_pool;
+            if (!solution_pool.best().feasible())
+                compression = true;
+            return solution_pool;
+        };
+
+        SequentialFeasibilityParameters sf_parameters;
+        sf_parameters.verbosity_level = 0;
+        sf_parameters.shrink_ratio = parameters.shrink_ratio;
+        sf_parameters.compression = parameters.compression;
+        sf_parameters.timer = parameters.timer;
+        sf_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+        sf_parameters.new_solution_callback = [&algorithm_formatter](
+                const packingsolver::Output<Instance, Solution>& sf_output)
+        {
+            algorithm_formatter.update_solution(
+                    sf_output.solution_pool.best(),
+                    sf_output.solution_pool.best_label());
+        };
+
+        sequential_feasibility(instance, solver, sf_parameters);
+
+        algorithm_formatter.end();
+        return output;
+    }
+
+    LocalSearchOutput output(instance);
+
+    AlgorithmFormatter algorithm_formatter(instance, parameters, output);
+    algorithm_formatter.start();
+    algorithm_formatter.print_header();
+
+    if (parameters.engine == LocalSearchEngine::LinearProgramming) {
+        local_search_linear_programming(instance, generator, parameters, algorithm_formatter);
+    } else {
+        local_search_direct_trigonometry(instance, generator, initial_solution, parameters, algorithm_formatter);
+    }
 
     algorithm_formatter.end();
     return output;

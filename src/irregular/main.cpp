@@ -72,7 +72,7 @@ int main(int argc, char *argv[])
             ("certificate,c", po::value<std::string>(), "Certificate path")
             ("log,l", po::value<std::string>(), "Log path")
             ("time-limit,t", po::value<double>(), "Time limit in seconds")
-            ("seed,s", po::value<Seed>(), "Seed (not used)")
+            ("seed,s", po::value<Seed>(), "Seed")
             ("only-write-at-the-end,e", "Only write output and certificate files at the end")
             ("verbosity-level,v", po::value<int>(), "Verbosity level")
             ("log2stderr,w", "Write log in stderr")
@@ -85,7 +85,8 @@ int main(int argc, char *argv[])
             ("use-tree-search,", po::value<bool>(), "enable tree search algorithm")
             ("use-tree-search-periodic-packing,", po::value<bool>(), "enable tree search periodic packing algorithm")
             ("use-milp-raster,", po::value<bool>(), "enable MILP raster algorithm")
-            ("use-local-search,", po::value<bool>(), "enable local search algorithm")
+            ("use-local-search-linear-programming,", po::value<bool>(), "enable local search algorithm with the linear programming engine")
+            ("use-local-search-direct-trigonometry,", po::value<bool>(), "enable local search algorithm with the direct trigonometry engine")
             ("use-sequential-single-knapsack,", po::value<bool>(), "enable sequential-single-knapsack")
             ("use-sequential-value-correction,", po::value<bool>(), "enable sequential-value-correction")
             ("use-column-generation,", po::value<bool>(), "enable column-generation")
@@ -154,6 +155,8 @@ int main(int argc, char *argv[])
             parameters.linear_programming_solver_name = vm["linear-programming-solver"].as<columngenerationsolver::SolverName>();
         if (vm.count("optimization-mode"))
             parameters.optimization_mode = vm["optimization-mode"].as<OptimizationMode>();
+        if (vm.count("seed"))
+            parameters.seed = vm["seed"].as<Seed>();
         if (vm.count("memory-limit"))
             parameters.memory_limit_megabytes = vm["memory-limit"].as<Megabytes>();
 
@@ -163,8 +166,10 @@ int main(int argc, char *argv[])
             parameters.use_tree_search_periodic_packing = vm["use-tree-search-periodic-packing"].as<bool>();
         if (vm.count("use-milp-raster"))
             parameters.use_milp_raster = vm["use-milp-raster"].as<bool>();
-        if (vm.count("use-local-search"))
-            parameters.use_local_search = vm["use-local-search"].as<bool>();
+        if (vm.count("use-local-search-linear-programming"))
+            parameters.use_local_search_linear_programming = vm["use-local-search-linear-programming"].as<bool>();
+        if (vm.count("use-local-search-direct-trigonometry"))
+            parameters.use_local_search_direct_trigonometry = vm["use-local-search-direct-trigonometry"].as<bool>();
         if (vm.count("use-sequential-single-knapsack"))
             parameters.use_sequential_single_knapsack = vm["use-sequential-single-knapsack"].as<bool>();
         if (vm.count("use-sequential-value-correction"))

@@ -567,7 +567,7 @@ def test_local_search_bin_packing_with_leftovers(copies, reduce, tmp_path, monke
     instance_builder.set_objective(psi.Objective.BinPackingWithLeftovers)
     instance_builder.add_bin_type(square(10))
     instance_builder.add_item_type(item_shapes(square(5)), copies=copies)
-    parameters = quiet_parameters(use_local_search=True, use_tree_search=False)
+    parameters = quiet_parameters(use_local_search_linear_programming=True, use_tree_search=False)
     parameters.reduction_parameters.reduce = reduce
     output = psi.optimize(instance_builder.build(), parameters)
     assert output.solution.feasible()
@@ -581,7 +581,7 @@ def test_local_search_full_bin():
     constraint')."""
     instance_builder = psi.InstanceBuilder()
     instance_builder.read(os.path.join(DATA_DIR, "multiple_bins.json"))
-    parameters = quiet_parameters(use_local_search=True, use_tree_search=False)
+    parameters = quiet_parameters(use_local_search_linear_programming=True, use_tree_search=False)
     output = psi.optimize(instance_builder.build(), parameters)
     assert output.solution.feasible()
     assert output.solution.full()
