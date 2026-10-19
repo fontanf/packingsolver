@@ -645,7 +645,8 @@ void bind_irregular(nb::module_& m)
         .def(nb::init<>())
         .def_rw("reduce", &ReductionParameters::reduce)
         .def_rw("remove_negative_profit_items", &ReductionParameters::remove_negative_profit_items)
-        .def_rw("merge_identical_items", &ReductionParameters::merge_identical_items);
+        .def_rw("merge_identical_items", &ReductionParameters::merge_identical_items)
+        .def_rw("remove_dominated_bin_types", &ReductionParameters::remove_dominated_bin_types);
 
     nb::class_<OptimizeParameters> parameters = bind_parameters_base<irregular::Output, OptimizeParameters>(m);
     parameters

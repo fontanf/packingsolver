@@ -42,6 +42,14 @@ struct ReductionParameters: optimizationtools::Parameters
      * 'Reduction::merge_identical_items').
      */
     bool merge_identical_items = true;
+
+    /**
+     * Enable/disable removing dominated bin types (gates
+     * 'Reduction::compute_dominated_bin_types'). Still subject to
+     * 'Reduction::remove_dominated_bin_types_applies' regardless of this
+     * flag.
+     */
+    bool remove_dominated_bin_types = true;
 };
 
 /**
@@ -49,10 +57,10 @@ struct ReductionParameters: optimizationtools::Parameters
  *
  * A cut-down port of 'rectangle::Reduction' (see
  * 'include/packingsolver/rectangle/reduction.hpp' for the general
- * rationale behind both operations below) restricted to the two operations
- * that generalize to every problem type - unlike rectangle, this class
- * does not implement companion absorption, subset-sum-based item dimension
- * lifting, dominated-item/bin-type removal, or full-span item pinning:
+ * rationale behind the operations below) restricted to the ones that
+ * don't depend on the geometry of the items - unlike rectangle, this
+ * class does not implement companion absorption, subset-sum-based item
+ * dimension lifting, dominated-item removal, or full-span item pinning:
  *
  * - Trimming negative-profit item types (see
  *   'remove_negative_profit_items'): only for 'Knapsack' - for every other
@@ -80,6 +88,24 @@ struct ReductionParameters: optimizationtools::Parameters
  *   a conservative check: two item types with congruent but differently
  *   represented shapes are missed, only costing a missed reduction
  *   opportunity, never correctness.
+ *
+ * - Removing dominated bin types (see 'compute_dominated_bin_types'):
+ *   rectangle's own 'remove_dominated_bin_types', for bin types whose
+ *   shapes are both axis-aligned rectangles or both circles. The items
+ *   must stay at 'item_bin_minimum_spacing' from the border of their bin,
+ *   so they are inside the shape of the bin shrunk by it (a smaller
+ *   rectangle or circle). Bin type A dominates bin type B when A's shrunk
+ *   shape can hold B's (by translation), A is at most as costly, has no
+ *   resource (and B no negative-penalty one), and neither has defects or
+ *   fixed items. B is then left out of the reduced instance if it has no
+ *   'copies_min' and A has enough copies to replace any use of B on top of
+ *   its own (the number of items plus A's own 'copies_min'). Only for
+ *   'Knapsack', 'Feasibility' and 'VariableSizedBinPacking' with more than
+ *   one bin type: with the bin packing objectives ('BinPacking',
+ *   'BinPackingWithLeftovers'), the bin types must be used in their
+ *   declared order. 'unreduce_solution' maps the bin type ids of the
+ *   reduced instance back to the original ones. See
+ *   'remove_dominated_bin_types_applies()'.
  *
  * For every excluded case, this class no-ops entirely: 'instance()' returns
  * a copy of the original instance, and 'unreduce_solution' is the identity
@@ -112,6 +138,13 @@ private:
      * constructor only calls this after already checking it.
      */
     static bool remove_negative_profit_items_applies(const Instance& instance);
+
+    /**
+     * 'true' iff removing dominated bin types (see
+     * 'compute_dominated_bin_types') is meaningful for 'instance' - see
+     * the class-level doc comment.
+     */
+    static bool remove_dominated_bin_types_applies(const Instance& instance);
 
     /**
      * Working representation of an item type during the reduction process.
@@ -186,11 +219,28 @@ private:
             std::vector<ReductionItemType>& reduction_item_types);
 
     /**
+     * 'true' iff bin type 'bin_type_id_a' dominates bin type
+     * 'bin_type_id_b' - see the class-level doc comment.
+     */
+    bool bin_type_dominates(
+            BinTypeId bin_type_id_a,
+            BinTypeId bin_type_id_b) const;
+
+    /**
+     * For each bin type, 'true' iff it is dominated by another bin type
+     * with enough copies to replace it - see the class-level doc comment.
+     */
+    std::vector<bool> compute_dominated_bin_types() const;
+
+    /**
      * Builds the final reduced 'Instance' from the working representation,
-     * populating 'reduced_item_origin_runs_' alongside it.
+     * leaving out the bin types marked in 'bin_type_removed', populating
+     * 'reduced_item_origin_runs_' and 'reduced_to_original_bin_type_id_'
+     * alongside it.
      */
     Instance reduction_to_instance(
-            const std::vector<ReductionItemType>& reduction_item_types);
+            const std::vector<ReductionItemType>& reduction_item_types,
+            const std::vector<bool>& bin_type_removed);
 
     /** Original instance. */
     const Instance* original_instance_;
@@ -230,6 +280,12 @@ private:
      * to the number of copies itself.
      */
     std::vector<std::vector<OriginRun>> reduced_item_origin_runs_;
+
+    /**
+     * Original instance's bin type id of each of 'instance_''s own bin
+     * types - identity unless 'compute_dominated_bin_types' left some out.
+     */
+    std::vector<BinTypeId> reduced_to_original_bin_type_id_;
 
     /**
      * Consumes one copy from the end of 'runs' (a working copy of one

@@ -3,6 +3,7 @@
 #include "packingsolver/rectangle/instance_builder.hpp"
 #include "packingsolver/rectangle/optimize.hpp"
 #include "rectangle/solution_builder.hpp"
+#include "algorithms/dominated_items.hpp"
 
 #include "multiplechoicesubsetsumsolver/instance_builder.hpp"
 #include "multiplechoicesubsetsumsolver/algorithms/dynamic_programming_bellman.hpp"
@@ -1480,14 +1481,16 @@ bool items_incompatible(
                 && item_type_2.oriented
                 && item_type_1.rect.x + item_type_2.rect.x > bin_type.rect.x
                 && item_type_1.rect.y + item_type_2.rect.y > bin_type.rect.y)
+        // A non-oriented item can be rotated to put its shortest side
+        // along the axis the two items are side by side along.
         || (!item_type_1.oriented
                 && item_type_2.oriented
-                && item_type_1.rect.max() + item_type_2.rect.x > bin_type.rect.x
-                && item_type_1.rect.max() + item_type_2.rect.y > bin_type.rect.y)
+                && item_type_1.rect.min() + item_type_2.rect.x > bin_type.rect.x
+                && item_type_1.rect.min() + item_type_2.rect.y > bin_type.rect.y)
         || (item_type_1.oriented
                 && !item_type_2.oriented
-                && item_type_1.rect.x + item_type_2.rect.max() > bin_type.rect.x
-                && item_type_1.rect.y + item_type_2.rect.max() > bin_type.rect.y);
+                && item_type_1.rect.x + item_type_2.rect.min() > bin_type.rect.x
+                && item_type_1.rect.y + item_type_2.rect.min() > bin_type.rect.y);
     if (geometrically_incompatible)
         return true;
 
@@ -1585,35 +1588,41 @@ bool Reduction::item_type_dominates(
     return true;
 }
 
-bool Reduction::items_provably_incompatible(
-        ItemTypeId item_type_id_1,
-        ItemTypeId item_type_id_2) const
+ItemPos Reduction::dominated_item_copies_bound(
+        const std::vector<ReductionItemType>& reduction_item_types,
+        ItemTypeId item_type_id_a,
+        ItemTypeId item_type_id_b) const
 {
-    const ItemType& item_type_1 = original_instance_->item_type(item_type_id_1);
-    const ItemType& item_type_2 = original_instance_->item_type(item_type_id_2);
-
-    // Incompatible overall iff provably incompatible in *every* bin type
-    // either one could ever be placed in: a bin type neither is eligible
-    // for is irrelevant (never a place they could coexist anyway); a bin
-    // type only one is eligible for already keeps them apart there on its
-    // own; and a bin type checked 'false' below is a real, uncovered
-    // possibility for them to coexist, which rules out "incompatible"
-    // overall.
+    const ItemType& item_type_a = original_instance_->item_type(item_type_id_a);
+    const ItemType& item_type_b = original_instance_->item_type(item_type_id_b);
+    std::vector<DominatedItemsBinType> bin_types;
     for (BinTypeId bin_type_id = 0;
             bin_type_id < original_instance_->number_of_bin_types();
             ++bin_type_id) {
-        bool eligible_1 = original_instance_->item_type_fits_bin_type(item_type_id_1, bin_type_id);
-        bool eligible_2 = original_instance_->item_type_fits_bin_type(item_type_id_2, bin_type_id);
-        if (!eligible_1 || !eligible_2)
-            continue;
-        if (!items_incompatible(
-                item_type_1,
-                item_type_2,
-                bin_type_id,
-                original_instance_->bin_type(bin_type_id)))
-            return false;
+        const BinType& bin_type = original_instance_->bin_type(bin_type_id);
+        DominatedItemsBinType dominated_items_bin_type;
+        dominated_items_bin_type.copies = bin_type.copies;
+        dominated_items_bin_type.fits_b = original_instance_->item_type_fits_bin_type(item_type_id_b, bin_type_id);
+        bool fits_a = original_instance_->item_type_fits_bin_type(item_type_id_a, bin_type_id);
+        if (fits_a || dominated_items_bin_type.fits_b) {
+            // A fits in B's footprint, so it has the smallest area.
+            Counter maximum_number_of_items = bin_type.area() / item_type_a.area();
+            bool incompatible_a_a = items_incompatible(item_type_a, item_type_a, bin_type_id, bin_type);
+            dominated_items_bin_type.exclusive
+                = items_incompatible(item_type_a, item_type_b, bin_type_id, bin_type)
+                && items_incompatible(item_type_b, item_type_b, bin_type_id, bin_type);
+            dominated_items_bin_type.maximum_number_of_copies_a = (!fits_a)? 0:
+                (incompatible_a_a)? 1: maximum_number_of_items;
+            dominated_items_bin_type.maximum_number_of_items
+                = (incompatible_a_a && dominated_items_bin_type.exclusive)?
+                1: maximum_number_of_items;
+        }
+        bin_types.push_back(dominated_items_bin_type);
     }
-    return true;
+    return (ItemPos)packingsolver::dominated_item_copies_bound(
+            reduction_item_types[item_type_id_a].copies,
+            reduction_item_types[item_type_id_b].copies,
+            bin_types);
 }
 
 bool Reduction::remove_dominated_items(
@@ -1636,11 +1645,17 @@ bool Reduction::remove_dominated_items(
                 continue;
             if (!item_type_dominates(item_type_id_a, item_type_id_b))
                 continue;
-            if (!items_provably_incompatible(item_type_id_a, item_type_id_b))
+            ItemPos bound = dominated_item_copies_bound(
+                    reduction_item_types, item_type_id_a, item_type_id_b);
+            ReductionItemType& item_b = reduction_item_types[item_type_id_b];
+            if (bound >= item_b.copies)
                 continue;
-            reduction_item_types[item_type_id_b].removed = true;
+            item_b.copies = bound;
+            if (item_b.copies == 0)
+                item_b.removed = true;
             found = true;
-            break;
+            if (item_b.removed)
+                break;
         }
     }
     return found;
@@ -1721,8 +1736,9 @@ std::vector<bool> Reduction::compute_dominated_bin_types() const
     std::vector<bool> dominated(original_instance_->number_of_bin_types(), false);
     // See the class-level doc comment's "Removing dominated bin types"
     // paragraph for why this bound - unlike the equivalent one for items
-    // - is both sound and actually achievable.
-    BinPos enough_copies = (BinPos)original_instance_->number_of_items();
+    // - is both sound and actually achievable. A's own 'copies_min' bins
+    // are used anyway, so they come on top of it.
+    BinPos number_of_items = (BinPos)original_instance_->number_of_items();
     for (BinTypeId bin_type_id_b = 0;
             bin_type_id_b < original_instance_->number_of_bin_types();
             ++bin_type_id_b) {
@@ -1735,7 +1751,8 @@ std::vector<bool> Reduction::compute_dominated_bin_types() const
                 continue;
             if (dominated[bin_type_id_a])
                 continue;
-            if (original_instance_->bin_type(bin_type_id_a).copies < enough_copies)
+            const BinType& bin_type_a = original_instance_->bin_type(bin_type_id_a);
+            if (bin_type_a.copies < number_of_items + bin_type_a.copies_min)
                 continue;
             if (!bin_type_dominates(bin_type_id_a, bin_type_id_b))
                 continue;
@@ -2203,22 +2220,17 @@ bool Reduction::remove_dominated_items_applies(const Instance& instance)
 
 bool Reduction::remove_dominated_bin_types_applies(const Instance& instance)
 {
-    // Not for 'BinPacking': unlike every other objective this class
-    // handles, its bin types must be used in the exact order they are
-    // declared - each one's own copies fully exhausted before the next
-    // is ever touched (see 'tree_search.cpp''s own 'BranchingScheme'
-    // constructor, which builds its bin sequence in declared order for
-    // every objective except 'Knapsack', and 'onedimensional''s own
-    // 'Solution::bin_type_order_feasible()', explicitly scoped to
-    // 'BinPacking' alone - the order is a genuine, enforced constraint on
-    // solution validity only there, not merely a search-strategy detail).
-    // Removing a bin type shifts every later one's position in that fixed
-    // sequence, making it available *earlier* than the original problem
-    // ever allowed - not an equivalent substitution, a different problem
-    // entirely, regardless of how thoroughly one bin type dominates
-    // another.
-    if (instance.objective() == Objective::BinPacking)
+    // Only 'Knapsack', 'Feasibility' and 'VariableSizedBinPacking'. With
+    // the bin packing objectives ('BinPacking', 'BinPackingWithLeftovers',
+    // 'BinPackingCuttingCost'), the bin types must be used in the order
+    // they are declared, each one's own copies exhausted before the next
+    // is touched: removing a bin type would make the later ones available
+    // earlier than the original instance allows.
+    if (instance.objective() != Objective::Knapsack
+            && instance.objective() != Objective::Feasibility
+            && instance.objective() != Objective::VariableSizedBinPacking) {
         return false;
+    }
     return instance.number_of_bin_types() > 1;
 }
 

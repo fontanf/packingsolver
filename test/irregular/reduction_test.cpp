@@ -323,3 +323,92 @@ TEST(IrregularReduction, UnreduceSolutionUnequalCopiesProducesCompactGroups)
     EXPECT_EQ(copies_0, 30);
     EXPECT_EQ(copies_1, 20);
 }
+
+TEST(IrregularReduction, RemoveDominatedBinTypesRectangles)
+{
+    // 'VariableSizedBinPacking'. Bin type 1 (10x10, cost 100) dominates bin
+    // type 0 (8x8, cost 100), and has enough copies: bin type 0 is left
+    // out of the reduced instance, and 'unreduce_solution' maps the bin
+    // type of a solution of the reduced instance back.
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(Objective::VariableSizedBinPacking);
+    BinTypeId bin_type_id_0 = instance_builder.add_bin_type(rectangle_shape(8, 8));
+    instance_builder.set_bin_type_cost(bin_type_id_0, 100);
+    instance_builder.set_bin_type_copies(bin_type_id_0, 10);
+    BinTypeId bin_type_id_1 = instance_builder.add_bin_type(rectangle_shape(10, 10));
+    instance_builder.set_bin_type_cost(bin_type_id_1, 100);
+    instance_builder.set_bin_type_copies(bin_type_id_1, 10);
+    instance_builder.add_item_type(rectangle_item_shape(4, 4));
+    Instance instance = instance_builder.build();
+
+    Reduction reduction(instance);
+    const Instance& reduced_instance = reduction.instance();
+    ASSERT_EQ(reduced_instance.number_of_bin_types(), 1);
+    EXPECT_EQ(reduced_instance.bin_type(0).aabb_orig.x_max, 10);
+
+    SolutionBuilder solution_builder(reduced_instance);
+    BinPos bin_pos = solution_builder.add_bin(0, 1);
+    solution_builder.add_item(bin_pos, 0, {0, 0}, 0, false);
+    Solution solution = reduction.unreduce_solution(solution_builder.build());
+    ASSERT_EQ(solution.number_of_different_bins(), 1);
+    EXPECT_EQ(solution.bin(0).bin_type_id, bin_type_id_1);
+}
+
+TEST(IrregularReduction, RemoveDominatedBinTypesWithSpacing)
+{
+    // Same, but items must stay at 1.5 from the border of bin type 1:
+    // shrunk, it is a 7x7 square, which bin type 0 (8x8, no spacing) can
+    // hold. Bin type 0 dominates bin type 1, which is left out.
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(Objective::VariableSizedBinPacking);
+    BinTypeId bin_type_id_0 = instance_builder.add_bin_type(rectangle_shape(8, 8));
+    instance_builder.set_bin_type_cost(bin_type_id_0, 100);
+    instance_builder.set_bin_type_copies(bin_type_id_0, 10);
+    BinTypeId bin_type_id_1 = instance_builder.add_bin_type(rectangle_shape(10, 10));
+    instance_builder.set_bin_type_cost(bin_type_id_1, 100);
+    instance_builder.set_bin_type_copies(bin_type_id_1, 10);
+    instance_builder.set_item_bin_minimum_spacing(bin_type_id_1, 1.5);
+    instance_builder.add_item_type(rectangle_item_shape(4, 4));
+    Instance instance = instance_builder.build();
+
+    Reduction reduction(instance);
+    ASSERT_EQ(reduction.instance().number_of_bin_types(), 1);
+    EXPECT_EQ(reduction.instance().bin_type(0).aabb_orig.x_max, 8);
+}
+
+TEST(IrregularReduction, RemoveDominatedBinTypesCircles)
+{
+    // Bin type 1 (circle of radius 10) dominates bin type 0 (circle of
+    // radius 8, more expensive): bin type 0 is left out.
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(Objective::VariableSizedBinPacking);
+    BinTypeId bin_type_id_0 = instance_builder.add_bin_type(build_circle(8));
+    instance_builder.set_bin_type_cost(bin_type_id_0, 200);
+    instance_builder.set_bin_type_copies(bin_type_id_0, 10);
+    BinTypeId bin_type_id_1 = instance_builder.add_bin_type(build_circle(10));
+    instance_builder.set_bin_type_cost(bin_type_id_1, 100);
+    instance_builder.set_bin_type_copies(bin_type_id_1, 10);
+    instance_builder.add_item_type(rectangle_item_shape(4, 4));
+    Instance instance = instance_builder.build();
+
+    Reduction reduction(instance);
+    ASSERT_EQ(reduction.instance().number_of_bin_types(), 1);
+    EXPECT_EQ(reduction.instance().bin_type(0).cost, 100);
+}
+
+TEST(IrregularReduction, RemoveDominatedBinTypesNotAppliedForBinPacking)
+{
+    // 'BinPacking' uses the bin types in their declared order: nothing is
+    // removed.
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(Objective::BinPacking);
+    BinTypeId bin_type_id_0 = instance_builder.add_bin_type(rectangle_shape(8, 8));
+    instance_builder.set_bin_type_copies(bin_type_id_0, 10);
+    BinTypeId bin_type_id_1 = instance_builder.add_bin_type(rectangle_shape(10, 10));
+    instance_builder.set_bin_type_copies(bin_type_id_1, 10);
+    instance_builder.add_item_type(rectangle_item_shape(4, 4));
+    Instance instance = instance_builder.build();
+
+    Reduction reduction(instance);
+    EXPECT_EQ(reduction.instance().number_of_bin_types(), 2);
+}

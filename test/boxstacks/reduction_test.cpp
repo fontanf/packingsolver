@@ -293,5 +293,27 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "boxstacks" / "tests" / "semi_trailer_truck_lift_item_dimensions_skips_x",
                 ReductionParameters(),
                 true,
+            }, {
+                // 'Knapsack', two bins 10x10x10. Item type 0 (10x10x6,
+                // profit 10, 2 copies) dominates item type 1 (10x10x7,
+                // profit 9): same footprint and stackability id, lower. A
+                // bin holds at most its volume divided by 600 items of the
+                // two, so a single one: the two copies of item type 0 fill
+                // both bins, and item type 1 is removed.
+                fs::path("data") / "boxstacks" / "tests" / "knapsack_remove_dominated_items_removed",
+                ReductionParameters(),
+            }, {
+                // Same, with a single copy of item type 0: the optimal
+                // solution packs one item of each type (profit 19), so item
+                // type 1 is kept.
+                fs::path("data") / "boxstacks" / "tests" / "knapsack_remove_dominated_items_not_removed_with_several_bins",
+                ReductionParameters(),
+            }, {
+                // 'VariableSizedBinPacking'. Bin type 1 (10x10x10, cost
+                // 100) dominates bin type 0 (8x8x8, cost 100), and has
+                // enough copies: bin type 0 is left out of the reduced
+                // instance, and 'unreduce_solution' maps the bin type back.
+                fs::path("data") / "boxstacks" / "tests" / "variable_sized_bin_packing_remove_dominated_bin_types",
+                ReductionParameters(),
             },
         }));

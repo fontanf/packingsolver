@@ -58,18 +58,73 @@ struct ReductionParameters: optimizationtools::Parameters
      * flag.
      */
     bool lift_item_dimensions = true;
+
+    /**
+     * Enable/disable trimming the copies of dominated item types (gates
+     * 'Reduction::remove_dominated_items'). Still subject to
+     * 'Reduction::remove_dominated_items_applies' regardless of this flag.
+     */
+    bool remove_dominated_items = true;
+
+    /**
+     * Enable/disable removing dominated bin types (gates
+     * 'Reduction::compute_dominated_bin_types'). Still subject to
+     * 'Reduction::remove_dominated_bin_types_applies' regardless of this
+     * flag.
+     */
+    bool remove_dominated_bin_types = true;
 };
 
 /**
- * A three-operation subset of 'rectangle::Reduction' (see there for the
- * full, six-operation version this mirrors): a negative-profit item trim
- * (see 'remove_negative_profit_items'), a subset-sum item dimension lift
- * adapted to cut trees (see 'lift_item_dimensions'), and an
- * identical-item-type merge (see 'merge_identical_items'). The other
- * rectangle operations (companion absorption, dominated-item removal,
- * dominated-bin-type removal) reason about geometry in ways that assume a
- * solution is a free 2D placement - not obviously true of a guillotine cut
- * tree - so they are deliberately out of scope here.
+ * A subset of 'rectangle::Reduction' (see there for the full version this
+ * mirrors): a negative-profit item trim (see
+ * 'remove_negative_profit_items'), a dominated-item trim (see
+ * 'remove_dominated_items'), a subset-sum item dimension lift adapted to
+ * cut trees (see 'lift_item_dimensions'), an identical-item-type merge
+ * (see 'merge_identical_items'), and a dominated-bin-type removal (see
+ * 'compute_dominated_bin_types'). Rectangle's companion absorption
+ * reasons about geometry in ways that assume a solution is a free 2D
+ * placement - not obviously true of a guillotine cut tree - so it is
+ * deliberately out of scope here.
+ *
+ * Trimming dominated item types (see 'remove_dominated_items'): only for
+ * 'Knapsack', rectangle's own 'remove_dominated_items'. Item type A
+ * dominates item type B when A is at least as profitable, never consumes
+ * more of any resource, and fits inside B: for every orientation of B, A
+ * has an orientation at most as large along both axes. A copy of B can
+ * then always be replaced by an unused copy of A, so B's copies are
+ * trimmed down to 'dominated_item_copies_bound' (see
+ * 'algorithms/dominated_items.hpp'), B being removed when it is 0. Per bin
+ * type, a bin holds at most its area (without its trims) divided by A's
+ * items of A and B, or a single one if A and A, A and B, and B and B are
+ * incompatible (they can't be put side by side, with a cut thickness
+ * between them, in the bin without its trims, or a resource overflows).
+ * Putting A where B was is the same rewrite of the cut tree as shrinking a
+ * lifted item in 'unreduce_solution': it requires the same cut type and
+ * cut constraints as lifting (see 'items_can_shrink'), A must be as large
+ * as B along an axis items can't shrink along (see
+ * 'items_can_shrink_along'), and B must fit the maximum distances between
+ * cuts (its node can become a plate). Also requires A and B alone in their
+ * stacks, fully optional ('copies_min' 0), and without fixed copies.
+ *
+ * Removing dominated bin types (see 'compute_dominated_bin_types'):
+ * rectangle's own 'remove_dominated_bin_types'. Bin type A dominates bin
+ * type B when A is at least as large along both axes, has the same trims,
+ * is at most as costly, has no resource (and B no negative-penalty one),
+ * and neither has defects or fixed items. Any cut tree of B then fits in A:
+ * the extra length along each axis becomes a waste at the end of each
+ * node, at the same depth (an item node spanning B becomes a plate holding
+ * it and a waste). This can create small wastes and turn item nodes into
+ * plates, so with a minimum waste length, a minimum or maximum distance
+ * between cuts, or a maximum number of cuts, A must be exactly as large as
+ * B. B is then left out of the reduced instance if it has no 'copies_min'
+ * and A has enough copies to replace any use of B on top of its own (the
+ * number of items plus A's own 'copies_min'). Only for 'Knapsack',
+ * 'Feasibility' and 'VariableSizedBinPacking' with more than one bin type:
+ * with the bin packing objectives ('BinPacking',
+ * 'BinPackingWithLeftovers', 'BinPackingCuttingCost'), the bin types must
+ * be used in their declared order. 'unreduce_solution' maps the bin type ids of the reduced instance back
+ * to the original ones. See 'remove_dominated_bin_types_applies()'.
  *
  * The trim and the merge run for any objective except where noted, with
  * no shared precondition beyond 'parameters.reduce' - see
@@ -204,6 +259,50 @@ private:
     static bool lift_item_dimensions_applies_axis(
             const Instance& instance,
             int axis);
+
+    /**
+     * 'true' iff an item can be replaced by a smaller one in its node of a
+     * cut tree, the rest of the tree being rewritten as in
+     * 'unreduce_solution' (see the class-level doc comment): a cut type
+     * among 'NonExact', 'Exact' and 'Roadef2018', no minimum distance
+     * between cuts, no minimum waste length, no maximum number of cuts,
+     * and no defects.
+     */
+    static bool items_can_shrink(const Instance& instance);
+
+    /**
+     * 'true' iff, 'items_can_shrink' holding, an item can be shrunk along
+     * axis 'axis' ('0' for 'x', '1' for 'y'): any axis for 'NonExact',
+     * the axis of the last-stage cuts for 'Exact', the axis of the extra
+     * cuts for 'Roadef2018', both requiring a fixed first stage
+     * orientation.
+     */
+    static bool items_can_shrink_along(
+            const Instance& instance,
+            int axis);
+
+    /**
+     * 'true' iff a node of size 'rect' fits the maximum distances between
+     * 1-cuts and 2-cuts, along every axis they may apply to - required
+     * when shrinking an item turns its node into a plate.
+     */
+    static bool fits_maximum_distances(
+            const Instance& instance,
+            const Rectangle& rect);
+
+    /**
+     * 'true' iff trimming dominated item types (see
+     * 'remove_dominated_items') is meaningful for 'instance': only
+     * 'Knapsack', with 'items_can_shrink'.
+     */
+    static bool remove_dominated_items_applies(const Instance& instance);
+
+    /**
+     * 'true' iff removing dominated bin types (see
+     * 'compute_dominated_bin_types') is meaningful for 'instance' - see
+     * the class-level doc comment.
+     */
+    static bool remove_dominated_bin_types_applies(const Instance& instance);
 
     /**
      * Working representation of an item type during the reduction
@@ -364,15 +463,69 @@ private:
             std::vector<ReductionItemType>& reduction_item_types);
 
     /**
+     * 'true' iff item type 'item_type_id_a' dominates item type
+     * 'item_type_id_b' - see the class-level doc comment.
+     */
+    bool item_type_dominates(
+            const std::vector<ReductionItemType>& reduction_item_types,
+            ItemTypeId item_type_id_a,
+            ItemTypeId item_type_id_b) const;
+
+    /**
+     * 'true' iff a copy of item type 'item_type_id_1' and a copy of item
+     * type 'item_type_id_2' (possibly the same one) can never be packed
+     * together in a bin of type 'bin_type_id' - see the class-level doc
+     * comment.
+     */
+    bool items_incompatible(
+            const std::vector<ReductionItemType>& reduction_item_types,
+            ItemTypeId item_type_id_1,
+            ItemTypeId item_type_id_2,
+            BinTypeId bin_type_id) const;
+
+    /**
+     * Upper bound on the number of copies of item type 'item_type_id_b' an
+     * optimal solution needs, item type 'item_type_id_a' dominating it,
+     * computed with the current copies of both - see the class-level doc
+     * comment.
+     */
+    ItemPos dominated_item_copies_bound(
+            const std::vector<ReductionItemType>& reduction_item_types,
+            ItemTypeId item_type_id_a,
+            ItemTypeId item_type_id_b) const;
+
+    /**
+     * Trims the copies of every fully optional item type dominated by
+     * another, not-yet-'removed' one down to 'dominated_item_copies_bound',
+     * removing it when that is '0'.
+     */
+    void remove_dominated_items(
+            std::vector<ReductionItemType>& reduction_item_types) const;
+
+    /**
+     * 'true' iff bin type 'bin_type_id_a' dominates bin type
+     * 'bin_type_id_b' - see the class-level doc comment.
+     */
+    bool bin_type_dominates(
+            BinTypeId bin_type_id_a,
+            BinTypeId bin_type_id_b) const;
+
+    /**
+     * For each bin type, 'true' iff it is dominated by another bin type
+     * with enough copies to replace it - see the class-level doc comment.
+     */
+    std::vector<bool> compute_dominated_bin_types() const;
+
+    /**
      * Builds the reduced 'Instance' from the working representation,
-     * populating 'reduced_item_origin_runs_' along the way. Mirrors
-     * 'rectangle::Reduction::reduction_to_instance', minus everything
-     * about dedicated bins / bin type removal (out of scope for this
-     * two-operation class): every bin type is copied over unchanged, in
-     * its original order and with its original copies.
+     * leaving out the bin types marked in 'bin_type_removed', populating
+     * 'reduced_item_origin_runs_' and 'reduced_to_original_bin_type_id_'
+     * along the way. Mirrors 'rectangle::Reduction::reduction_to_instance',
+     * minus everything about dedicated bins.
      */
     Instance reduction_to_instance(
-            const std::vector<ReductionItemType>& reduction_item_types);
+            const std::vector<ReductionItemType>& reduction_item_types,
+            const std::vector<bool>& bin_type_removed);
 
     /** Original instance. */
     const Instance* original_instance_;
@@ -391,6 +544,12 @@ private:
      * were swapped (see 'ReductionItemType::swapped').
      */
     std::vector<bool> swapped_item_types_;
+
+    /**
+     * Original instance's bin type id of each of 'instance_''s own bin
+     * types - identity unless 'compute_dominated_bin_types' left some out.
+     */
+    std::vector<BinTypeId> reduced_to_original_bin_type_id_;
 
     /**
      * One contiguous run of a reduced item type's copies that all came

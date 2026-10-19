@@ -845,6 +845,32 @@ INSTANTIATE_TEST_SUITE_P(
                 false,
                 true,
             }, {
+                // Two bins 10x10. Item 0 (6x6, profit 10) dominates item 1
+                // (7x7, profit 9), and they are incompatible, but there are
+                // two bins: the optimal solution packs one in each (profit
+                // 19). A single copy of item 0 can't replace item 1, so
+                // item 1 is kept.
+                fs::path("data") / "rectangle" / "tests" / "knapsack_remove_dominated_items_not_removed_with_several_bins",
+                ReductionParameters(),
+                false,
+            }, {
+                // Same, with 3 copies of item 1. A bin holds a single item
+                // of the two (6+6, 6+7 and 7+7 exceed the bin), so once the
+                // copy of item 0 is packed, a single bin remains for item
+                // 1: item 1 is trimmed to 1 copy.
+                fs::path("data") / "rectangle" / "tests" / "knapsack_remove_dominated_items_trimmed_with_several_bins",
+                ReductionParameters(),
+                false,
+            }, {
+                // Bin 8x7. Item 0 (4x3, not oriented, profit 40) dominates
+                // item 1 (5x6, oriented, profit 25), and rotated (3x4), it
+                // fits beside it (3+5=8): they are not incompatible, and
+                // the optimal solution packs both (profit 65), so item 1 is
+                // kept.
+                fs::path("data") / "rectangle" / "tests" / "knapsack_remove_dominated_items_not_removed_when_compatible_rotated",
+                ReductionParameters(),
+                false,
+            }, {
                 // 'VariableSizedBinPacking'. Bin type 1 (20x20, cost 100, 1
                 // copy) dominates bin type 0 (10x10, also cost 100, 2
                 // copies): at least as big in both dimensions, no more
@@ -906,6 +932,17 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "rectangle" / "tests" / "bin_packing_remove_dominated_bin_types_not_removed_for_bin_packing",
                 ReductionParameters(),
                 false,
+            }, {
+                // Same, with 'BinPackingWithLeftovers', whose bin types are
+                // also used in the order they are declared: neither bin
+                // type is removed. 'skip_optimize_check': only the reduced
+                // instance is checked.
+                fs::path("data") / "rectangle" / "tests" / "bin_packing_with_leftovers_remove_dominated_bin_types_not_removed",
+                ReductionParameters(),
+                false,
+                false,
+                false,
+                true,
             }, {
                 // Same dominance relationship as the basic-removal case
                 // above, but bin type 0 (the dominated one) also has a

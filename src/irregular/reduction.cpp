@@ -101,6 +101,131 @@ bool Reduction::remove_negative_profit_items_applies(const Instance& instance)
     return true;
 }
 
+bool Reduction::remove_dominated_bin_types_applies(const Instance& instance)
+{
+    // Only 'Knapsack', 'Feasibility' and 'VariableSizedBinPacking': with
+    // the bin packing objectives ('BinPacking', 'BinPackingWithLeftovers',
+    // 'BinPackingCuttingCost'), the bin types must be used in the order
+    // they are declared, so removing one would make the later ones
+    // available earlier than the original instance allows.
+    if (instance.objective() != Objective::Knapsack
+            && instance.objective() != Objective::Feasibility
+            && instance.objective() != Objective::VariableSizedBinPacking) {
+        return false;
+    }
+    return instance.number_of_bin_types() > 1;
+}
+
+namespace
+{
+
+/** 'true' iff 'shape' is a rectangle with its sides along the axes. */
+bool is_axis_aligned_rectangle(
+        const Shape& shape,
+        const AxisAlignedBoundingBox& aabb)
+{
+    if (!shape.is_rectangle())
+        return false;
+    for (const ShapeElement& element: shape.elements) {
+        if (element.start.x != aabb.x_min && element.start.x != aabb.x_max)
+            return false;
+        if (element.start.y != aabb.y_min && element.start.y != aabb.y_max)
+            return false;
+    }
+    return true;
+}
+
+}
+
+bool Reduction::bin_type_dominates(
+        BinTypeId bin_type_id_a,
+        BinTypeId bin_type_id_b) const
+{
+    if (bin_type_id_a == bin_type_id_b)
+        return false;
+    const BinType& bin_type_a = original_instance_->bin_type(bin_type_id_a);
+    const BinType& bin_type_b = original_instance_->bin_type(bin_type_id_b);
+
+    // The shrunk shape of A must hold the shrunk shape of B.
+    LengthDbl spacing_a = bin_type_a.item_bin_minimum_spacing;
+    LengthDbl spacing_b = bin_type_b.item_bin_minimum_spacing;
+    const AxisAlignedBoundingBox& aabb_a = bin_type_a.aabb_orig;
+    const AxisAlignedBoundingBox& aabb_b = bin_type_b.aabb_orig;
+    if (is_axis_aligned_rectangle(bin_type_a.shape_orig, aabb_a)
+            && is_axis_aligned_rectangle(bin_type_b.shape_orig, aabb_b)) {
+        if (aabb_a.x_max - aabb_a.x_min - 2 * spacing_a
+                < aabb_b.x_max - aabb_b.x_min - 2 * spacing_b) {
+            return false;
+        }
+        if (aabb_a.y_max - aabb_a.y_min - 2 * spacing_a
+                < aabb_b.y_max - aabb_b.y_min - 2 * spacing_b) {
+            return false;
+        }
+    } else if (bin_type_a.shape_orig.is_circle()
+            && bin_type_b.shape_orig.is_circle()) {
+        if ((aabb_a.x_max - aabb_a.x_min) / 2 - spacing_a
+                < (aabb_b.x_max - aabb_b.x_min) / 2 - spacing_b) {
+            return false;
+        }
+    } else {
+        return false;
+    }
+
+    if (bin_type_a.cost > bin_type_b.cost)
+        return false;
+    if (!bin_type_a.defects.empty() || !bin_type_b.defects.empty())
+        return false;
+    if (!bin_type_a.fixed_items.empty() || !bin_type_b.fixed_items.empty())
+        return false;
+
+    // Resources: a resource id carries no meaning across two bin types, so
+    // any resource of A blocks dominance; B alone having resources is
+    // fine, except a 'penalize' one with a negative 'penalty' (a profit
+    // bonus A could never give) - see rectangle's own 'bin_type_dominates'.
+    if (bin_type_a.number_of_resources() > 0)
+        return false;
+    for (ResourceId resource_id = 0;
+            resource_id < bin_type_b.number_of_resources();
+            ++resource_id) {
+        const Resource& resource = bin_type_b.resource(resource_id);
+        if (resource.penalize && resource.penalty < 0)
+            return false;
+    }
+    return true;
+}
+
+std::vector<bool> Reduction::compute_dominated_bin_types() const
+{
+    std::vector<bool> dominated(original_instance_->number_of_bin_types(), false);
+    BinPos number_of_items = original_instance_->number_of_items();
+    for (BinTypeId bin_type_id_b = 0;
+            bin_type_id_b < original_instance_->number_of_bin_types();
+            ++bin_type_id_b) {
+        // A bin type that must be used can not be replaced.
+        if (original_instance_->bin_type(bin_type_id_b).copies_min != 0)
+            continue;
+        for (BinTypeId bin_type_id_a = 0;
+                bin_type_id_a < original_instance_->number_of_bin_types();
+                ++bin_type_id_a) {
+            if (bin_type_id_a == bin_type_id_b)
+                continue;
+            if (dominated[bin_type_id_a])
+                continue;
+            // A needs enough copies to replace every bin of B a solution
+            // could use, on top of its own mandatory ones: a solution never
+            // needs more non-empty bins than items.
+            const BinType& bin_type_a = original_instance_->bin_type(bin_type_id_a);
+            if (bin_type_a.copies < number_of_items + bin_type_a.copies_min)
+                continue;
+            if (!bin_type_dominates(bin_type_id_a, bin_type_id_b))
+                continue;
+            dominated[bin_type_id_b] = true;
+            break;
+        }
+    }
+    return dominated;
+}
+
 ItemPos Reduction::effective_copies_min(
         const std::vector<ReductionItemType>& reduction_item_types,
         ItemTypeId item_type_id) const
@@ -229,21 +354,28 @@ bool Reduction::merge_identical_items(
 }
 
 Instance Reduction::reduction_to_instance(
-        const std::vector<ReductionItemType>& reduction_item_types)
+        const std::vector<ReductionItemType>& reduction_item_types,
+        const std::vector<bool>& bin_type_removed)
 {
     InstanceBuilder instance_builder;
     instance_builder.set_objective(original_instance_->objective());
     instance_builder.set_parameters(original_instance_->parameters());
     instance_builder.set_feasibility_callback(original_instance_->feasibility_callback());
 
-    // Bin types are copied 1:1, in order - no bin-type removal in this
-    // scope - so the reduced instance's own bin type ids always coincide
-    // with 'original_instance_''s, unlike item type ids (which skip
-    // removed/merged-away entries below).
+    // Bin types are copied in order, without the dominated ones (see
+    // 'compute_dominated_bin_types'). 'add_item_type(original_instance,
+    // id)' below only copies the resource consumptions of the bin types
+    // added here.
+    reduced_to_original_bin_type_id_.clear();
     for (BinTypeId bin_type_id = 0;
             bin_type_id < original_instance_->number_of_bin_types();
             ++bin_type_id) {
+        if (bin_type_id < (BinTypeId)bin_type_removed.size()
+                && bin_type_removed[bin_type_id]) {
+            continue;
+        }
         instance_builder.add_bin_type(*original_instance_, bin_type_id);
+        reduced_to_original_bin_type_id_.push_back(bin_type_id);
     }
 
     reduced_item_origin_runs_.clear();
@@ -311,7 +443,7 @@ Reduction::Reduction(
     }
 
     if (!parameters.reduce) {
-        instance_ = reduction_to_instance(reduction_item_types);
+        instance_ = reduction_to_instance(reduction_item_types, {});
         return;
     }
 
@@ -328,7 +460,13 @@ Reduction::Reduction(
     if (parameters.merge_identical_items)
         merge_identical_items(reduction_item_types);
 
-    instance_ = reduction_to_instance(reduction_item_types);
+    std::vector<bool> bin_type_removed;
+    if (parameters.remove_dominated_bin_types
+            && remove_dominated_bin_types_applies(instance)) {
+        bin_type_removed = compute_dominated_bin_types();
+    }
+
+    instance_ = reduction_to_instance(reduction_item_types, bin_type_removed);
 }
 
 ItemTypeId Reduction::consume_one_origin(
@@ -409,7 +547,7 @@ Solution Reduction::unreduce_solution(
                             (BinPos)(remaining_runs[reduced_item_type_id].back().count
                                 / slot_count[reduced_item_type_id]));
                 }
-                BinPos new_bin_pos = solution_builder.add_bin(solution_bin.bin_type_id, batch);
+                BinPos new_bin_pos = solution_builder.add_bin(reduced_to_original_bin_type_id_[solution_bin.bin_type_id], batch);
                 for (const SolutionItem& solution_item: solution_bin.items) {
                     ItemTypeId original_item_type_id
                         = remaining_runs[solution_item.item_type_id].back().item_type_id;
@@ -433,7 +571,7 @@ Solution Reduction::unreduce_solution(
                 // this one physical bin the slow way instead (still only
                 // ever as many calls as this one bin has item slots, not
                 // proportional to 'remaining_bin_copies').
-                BinPos new_bin_pos = solution_builder.add_bin(solution_bin.bin_type_id, 1);
+                BinPos new_bin_pos = solution_builder.add_bin(reduced_to_original_bin_type_id_[solution_bin.bin_type_id], 1);
                 for (const SolutionItem& solution_item: solution_bin.items) {
                     ItemTypeId original_item_type_id
                         = consume_one_origin(remaining_runs[solution_item.item_type_id]);

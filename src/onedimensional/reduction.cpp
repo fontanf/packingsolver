@@ -2,6 +2,7 @@
 
 #include "packingsolver/onedimensional/instance_builder.hpp"
 #include "onedimensional/solution_builder.hpp"
+#include "algorithms/dominated_items.hpp"
 
 #include "subsetsumsolver/instance_builder.hpp"
 #include "subsetsumsolver/algorithms/dynamic_programming_bellman.hpp"
@@ -127,6 +128,179 @@ bool Reduction::full_bin_reduction_applies(const Instance& instance)
     return true;
 }
 
+bool Reduction::remove_dominated_items_applies(const Instance& instance)
+{
+    return instance.objective() == Objective::Knapsack;
+}
+
+bool Reduction::item_type_dominates(
+        ItemTypeId item_type_id_a,
+        ItemTypeId item_type_id_b) const
+{
+    if (item_type_id_a == item_type_id_b)
+        return false;
+    const ItemType& item_type_a = original_instance_->item_type(item_type_id_a);
+    const ItemType& item_type_b = original_instance_->item_type(item_type_id_b);
+    if (item_type_a.profit < item_type_b.profit)
+        return false;
+    if (item_type_a.length > item_type_b.length)
+        return false;
+    if (item_type_a.weight > item_type_b.weight)
+        return false;
+    if (item_type_a.maximum_weight_after < item_type_b.maximum_weight_after)
+        return false;
+    if (item_type_a.maximum_stackability < item_type_b.maximum_stackability)
+        return false;
+    // How much of a nested item's length is saved depends on the item
+    // before it, so replacing one by the other could change the length of
+    // the other items.
+    if (item_type_a.nesting_length != 0 || item_type_b.nesting_length != 0)
+        return false;
+    // A precedence names a specific item type id.
+    if (has_precedence(item_type_a) || has_precedence(item_type_b))
+        return false;
+
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < original_instance_->number_of_bin_types();
+            ++bin_type_id) {
+        if (original_instance_->item_type_fits_bin_type(item_type_id_b, bin_type_id)
+                && !original_instance_->item_type_fits_bin_type(item_type_id_a, bin_type_id)) {
+            return false;
+        }
+        // Resources: the largest consumption of A must not exceed the
+        // smallest consumption of B, since copies of A and B are not
+        // replaced at the same copy index.
+        const BinType& bin_type = original_instance_->bin_type(bin_type_id);
+        for (ResourceId resource_id = 0;
+                resource_id < bin_type.number_of_resources();
+                ++resource_id) {
+            const std::vector<double>* schedule_a
+                = find_item_type_schedule(item_type_a, bin_type_id, bin_type, resource_id);
+            const std::vector<double>* schedule_b
+                = find_item_type_schedule(item_type_b, bin_type_id, bin_type, resource_id);
+            double maximum_a = (schedule_a == nullptr || schedule_a->empty())? 0.0:
+                *std::max_element(schedule_a->begin(), schedule_a->end());
+            double minimum_b = (schedule_b == nullptr || schedule_b->empty())? 0.0:
+                *std::min_element(schedule_b->begin(), schedule_b->end());
+            if (maximum_a > minimum_b)
+                return false;
+        }
+    }
+    return true;
+}
+
+bool Reduction::items_incompatible(
+        ItemTypeId item_type_id_1,
+        ItemTypeId item_type_id_2,
+        BinTypeId bin_type_id) const
+{
+    const ItemType& item_type_1 = original_instance_->item_type(item_type_id_1);
+    const ItemType& item_type_2 = original_instance_->item_type(item_type_id_2);
+    const BinType& bin_type = original_instance_->bin_type(bin_type_id);
+    if (item_type_1.length + item_type_2.length > bin_type.length)
+        return true;
+    if (item_type_1.weight + item_type_2.weight > bin_type.maximum_weight)
+        return true;
+    if (item_type_1.maximum_stackability < 2 || item_type_2.maximum_stackability < 2)
+        return true;
+    for (ResourceId resource_id = 0;
+            resource_id < bin_type.number_of_resources();
+            ++resource_id) {
+        const Resource& resource = bin_type.resource(resource_id);
+        if (resource.penalize)
+            continue;
+        const std::vector<double>* schedule_1
+            = find_item_type_schedule(item_type_1, bin_type_id, bin_type, resource_id);
+        const std::vector<double>* schedule_2
+            = find_item_type_schedule(item_type_2, bin_type_id, bin_type, resource_id);
+        double minimum_1 = (schedule_1 == nullptr || schedule_1->empty())? 0.0:
+            *std::min_element(schedule_1->begin(), schedule_1->end());
+        double minimum_2 = (schedule_2 == nullptr || schedule_2->empty())? 0.0:
+            *std::min_element(schedule_2->begin(), schedule_2->end());
+        if (minimum_1 + minimum_2 > resource.capacity)
+            return true;
+    }
+    return false;
+}
+
+ItemPos Reduction::dominated_item_copies_bound(
+        const std::vector<ReductionItemType>& reduction_item_types,
+        ItemTypeId item_type_id_a,
+        ItemTypeId item_type_id_b) const
+{
+    const ItemType& item_type_a = original_instance_->item_type(item_type_id_a);
+    std::vector<DominatedItemsBinType> bin_types;
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < original_instance_->number_of_bin_types();
+            ++bin_type_id) {
+        const BinType& bin_type = original_instance_->bin_type(bin_type_id);
+        DominatedItemsBinType dominated_items_bin_type;
+        // Negative copies: unlimited. A solution never uses more non-empty
+        // bins than items.
+        dominated_items_bin_type.copies = (bin_type.copies >= 0)?
+            bin_type.copies:
+            (BinPos)original_instance_->number_of_items();
+        dominated_items_bin_type.fits_b = original_instance_->item_type_fits_bin_type(item_type_id_b, bin_type_id);
+        bool fits_a = original_instance_->item_type_fits_bin_type(item_type_id_a, bin_type_id);
+        if (fits_a || dominated_items_bin_type.fits_b) {
+            // A is at most as long as B.
+            Counter maximum_number_of_items = (item_type_a.length > 0)?
+                bin_type.length / item_type_a.length:
+                (Counter)original_instance_->number_of_items();
+            bool incompatible_a_a = items_incompatible(item_type_id_a, item_type_id_a, bin_type_id);
+            dominated_items_bin_type.exclusive
+                = items_incompatible(item_type_id_a, item_type_id_b, bin_type_id)
+                && items_incompatible(item_type_id_b, item_type_id_b, bin_type_id);
+            dominated_items_bin_type.maximum_number_of_copies_a = (!fits_a)? 0:
+                (incompatible_a_a)? 1: maximum_number_of_items;
+            dominated_items_bin_type.maximum_number_of_items
+                = (incompatible_a_a && dominated_items_bin_type.exclusive)?
+                1: maximum_number_of_items;
+        }
+        bin_types.push_back(dominated_items_bin_type);
+    }
+    return (ItemPos)packingsolver::dominated_item_copies_bound(
+            reduction_item_types[item_type_id_a].copies,
+            reduction_item_types[item_type_id_b].copies,
+            bin_types);
+}
+
+bool Reduction::remove_dominated_items(
+        std::vector<ReductionItemType>& reduction_item_types) const
+{
+    bool found = false;
+    for (ItemTypeId item_type_id_b = 0;
+            item_type_id_b < (ItemTypeId)reduction_item_types.size();
+            ++item_type_id_b) {
+        if (reduction_item_types[item_type_id_b].removed)
+            continue;
+        if (effective_copies_min(reduction_item_types, item_type_id_b) != 0)
+            continue;
+        for (ItemTypeId item_type_id_a = 0;
+                item_type_id_a < (ItemTypeId)reduction_item_types.size();
+                ++item_type_id_a) {
+            if (item_type_id_a == item_type_id_b)
+                continue;
+            if (reduction_item_types[item_type_id_a].removed)
+                continue;
+            if (!item_type_dominates(item_type_id_a, item_type_id_b))
+                continue;
+            ItemPos bound = dominated_item_copies_bound(
+                    reduction_item_types, item_type_id_a, item_type_id_b);
+            ReductionItemType& item_b = reduction_item_types[item_type_id_b];
+            if (bound >= item_b.copies)
+                continue;
+            item_b.copies = bound;
+            if (item_b.copies == 0)
+                item_b.removed = true;
+            found = true;
+            if (item_b.removed)
+                break;
+        }
+    }
+    return found;
+}
+
 bool Reduction::lift_item_lengths_applies(const Instance& instance)
 {
     // Single bin type (the bin's own length must be unambiguous), no fixed
@@ -146,14 +320,11 @@ bool Reduction::lift_item_lengths_applies(const Instance& instance)
 
 bool Reduction::remove_dominated_bin_types_applies(const Instance& instance)
 {
-    // Only objectives for which a bin type at least as long, at most as
-    // costly and otherwise at least as permissive is always a valid
-    // substitute: not 'BinPacking' (bin types must be used in their
-    // declared order - see 'Solution::bin_type_order_feasible()' - so
-    // removing one would make later ones available earlier than the
-    // original instance allows), and not 'BinPackingWithLeftovers'/
-    // 'Default' (both measure waste, which a longer substitute bin can
-    // only increase).
+    // Only 'Knapsack', 'Feasibility' and 'VariableSizedBinPacking': with
+    // the bin packing objectives ('BinPacking', 'BinPackingWithLeftovers',
+    // 'BinPackingCuttingCost'), the bin types must be used in the order
+    // they are declared, so removing one would make the later ones
+    // available earlier than the original instance allows.
     if (instance.objective() != Objective::Knapsack
             && instance.objective() != Objective::Feasibility
             && instance.objective() != Objective::VariableSizedBinPacking) {
@@ -1046,6 +1217,9 @@ Reduction::Reduction(
     // performs every useful reduction itself, far more efficiently: only
     // 'remove_negative_profit_items' above is applied then.
     if (parameters.reduce && !is_classical_knapsack(instance)) {
+        if (parameters.remove_dominated_items && remove_dominated_items_applies(instance))
+            remove_dominated_items(reduction_item_types);
+
         // The bin length every operation below reasons against: the
         // shrunk one (see 'shrunk_bin_length') when enabled, recomputed
         // before each operation from the items still remaining, since
