@@ -485,5 +485,19 @@ INSTANTIATE_TEST_SUITE_P(
                 // instance, which 'unreduce_solution' maps back to 2.
                 fs::path("data") / "onedimensional" / "tests" / "variable_sized_bin_packing_remove_dominated_bin_types",
                 ReductionParameters(),
+            }, {
+                // 'Knapsack', two bins of length 10. Item type 0 (length 6,
+                // profit 10, 2 copies) dominates item type 1 (length 7,
+                // profit 9), and a bin holds a single item of the two: the
+                // two copies of item type 0 fill both bins, so item type 1
+                // is removed.
+                fs::path("data") / "onedimensional" / "tests" / "knapsack_remove_dominated_items_removed",
+                ReductionParameters(),
+            }, {
+                // Same, with a single copy of item type 0: the optimal
+                // solution packs one item of each type (profit 19), so item
+                // type 1 is kept.
+                fs::path("data") / "onedimensional" / "tests" / "knapsack_remove_dominated_items_not_removed_with_several_bins",
+                ReductionParameters(),
             },
         }));

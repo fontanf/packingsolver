@@ -419,5 +419,25 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "rectangleguillotine" / "tests" / "bin_packing_lift_item_dimensions_maximum_distance_1_cuts",
                 ReductionParameters(),
                 true,
+            }, {
+                // 'Knapsack', two bins 10x10. Item type 0 (6x6, profit 10,
+                // 2 copies) dominates item type 1 (7x7, profit 9), and a
+                // bin holds a single item of the two: the two copies of
+                // item type 0 fill both bins, so item type 1 is removed.
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_remove_dominated_items_removed",
+                ReductionParameters(),
+            }, {
+                // Same, with a single copy of item type 0: the optimal
+                // solution packs one item of each type (profit 19), so item
+                // type 1 is kept. Item type 0 is lifted to 7x7.
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_remove_dominated_items_not_removed_with_several_bins",
+                ReductionParameters(),
+            }, {
+                // 'VariableSizedBinPacking'. Bin type 1 (10x10, cost 100)
+                // dominates bin type 0 (8x8, cost 100), and has enough
+                // copies: bin type 0 is left out of the reduced instance,
+                // and 'unreduce_solution' maps the bin type back.
+                fs::path("data") / "rectangleguillotine" / "tests" / "variable_sized_bin_packing_remove_dominated_bin_types",
+                ReductionParameters(),
             },
         }));

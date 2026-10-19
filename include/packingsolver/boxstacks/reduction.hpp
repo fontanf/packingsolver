@@ -57,6 +57,21 @@ struct ReductionParameters: optimizationtools::Parameters
      * flag.
      */
     bool lift_item_dimensions = true;
+
+    /**
+     * Enable/disable trimming the copies of dominated item types (gates
+     * 'Reduction::remove_dominated_items'). Still subject to
+     * 'Reduction::remove_dominated_items_applies' regardless of this flag.
+     */
+    bool remove_dominated_items = true;
+
+    /**
+     * Enable/disable removing dominated bin types (gates
+     * 'Reduction::compute_dominated_bin_types'). Still subject to
+     * 'Reduction::remove_dominated_bin_types_applies' regardless of this
+     * flag.
+     */
+    bool remove_dominated_bin_types = true;
 };
 
 /**
@@ -155,6 +170,42 @@ struct ReductionParameters: optimizationtools::Parameters
  *   uniform profit for every copy and let the solve choose a suboptimal
  *   subset on wrong information).
  *
+ * - Trimming dominated item types (see 'remove_dominated_items'): only for
+ *   'Knapsack', rectangle's own 'remove_dominated_items', adapted to
+ *   stacks. Item type A dominates item type B when a copy of A can take the
+ *   place of a copy of B in its stack: A is at least as profitable, for
+ *   every allowed rotation of B it has an allowed rotation with the same
+ *   footprint, it has the same stackability id and group, it is at most as
+ *   high (alone and nested) and as heavy, and at least as permissive
+ *   ('maximum_weight_above', 'maximum_stackability'). A copy of B can then
+ *   always be replaced by an unused copy of A, so B's copies are trimmed
+ *   down to 'dominated_item_copies_bound' (see
+ *   'algorithms/dominated_items.hpp'), B being removed when it is 0. Per
+ *   bin type, a bin holds at most its volume divided by A's (with its
+ *   nesting height removed) items of A and B, or a single one if A and A,
+ *   A and B, and B and B are incompatible: they can't share a stack
+ *   (different stackability ids), no pair of allowed rotations puts their
+ *   footprints side by side, or their weights overflow the bin. Not with a
+ *   semi-trailer truck: a lighter item can move the center of gravity and
+ *   increase an axle weight. Only for fully optional ('copies_min' 0) item
+ *   types without fixed copies. Runs before 'lift_item_dimensions'. See
+ *   'remove_dominated_items_applies()'.
+ *
+ * - Removing dominated bin types (see 'compute_dominated_bin_types'):
+ *   rectangle's own 'remove_dominated_bin_types'. Bin type A dominates bin
+ *   type B when A is at least as large along every axis, at most as
+ *   costly, has at least B's maximum weight and maximum stack density, and
+ *   neither has defects, fixed items, or is a semi-trailer truck. B is
+ *   then left out of the reduced instance if it has no 'copies_min' and A
+ *   has enough copies to replace any use of B on top of its own (the
+ *   number of items plus A's own 'copies_min'). Only for 'Knapsack',
+ *   'Feasibility' and 'VariableSizedBinPacking' with more than one bin
+ *   type: with the bin packing objectives ('BinPacking',
+ *   'BinPackingWithLeftovers'), the bin types must be used in their
+ *   declared order. 'unreduce_solution' maps the bin type ids of the
+ *   reduced instance back to the original ones. See
+ *   'remove_dominated_bin_types_applies()'.
+ *
  * Unlike 'rectangle::Reduction', neither operation here can ever prove the
  * instance infeasible or hide items in a dedicated bin outside the reduced
  * instance, so this class has no 'proven_infeasible()'/
@@ -207,6 +258,20 @@ private:
     static bool lift_item_dimensions_applies_axis(
             const Instance& instance,
             int axis);
+
+    /**
+     * 'true' iff trimming dominated item types (see
+     * 'remove_dominated_items') is meaningful for 'instance': only
+     * 'Knapsack', without semi-trailer trucks.
+     */
+    static bool remove_dominated_items_applies(const Instance& instance);
+
+    /**
+     * 'true' iff removing dominated bin types (see
+     * 'compute_dominated_bin_types') is meaningful for 'instance' - see
+     * the class-level doc comment.
+     */
+    static bool remove_dominated_bin_types_applies(const Instance& instance);
 
     /*
      * Private types
@@ -346,16 +411,72 @@ private:
             std::vector<ReductionItemType>& reduction_item_types);
 
     /**
+     * 'true' iff item type 'item_type_id_a' dominates item type
+     * 'item_type_id_b' - see the class-level doc comment.
+     */
+    bool item_type_dominates(
+            const std::vector<ReductionItemType>& reduction_item_types,
+            ItemTypeId item_type_id_a,
+            ItemTypeId item_type_id_b) const;
+
+    /**
+     * 'true' iff a copy of item type 'item_type_id_1' and a copy of item
+     * type 'item_type_id_2' (possibly the same one) can never be packed
+     * together in a bin of type 'bin_type_id' - see the class-level doc
+     * comment.
+     */
+    bool items_incompatible(
+            const std::vector<ReductionItemType>& reduction_item_types,
+            ItemTypeId item_type_id_1,
+            ItemTypeId item_type_id_2,
+            BinTypeId bin_type_id) const;
+
+    /**
+     * Upper bound on the number of copies of item type 'item_type_id_b' an
+     * optimal solution needs, item type 'item_type_id_a' dominating it,
+     * computed with the current copies of both - see the class-level doc
+     * comment.
+     */
+    ItemPos dominated_item_copies_bound(
+            const std::vector<ReductionItemType>& reduction_item_types,
+            ItemTypeId item_type_id_a,
+            ItemTypeId item_type_id_b) const;
+
+    /**
+     * Trims the copies of every fully optional item type dominated by
+     * another, not-yet-'removed' one down to 'dominated_item_copies_bound',
+     * removing it when that is '0'. Returns 'true' iff at least one item
+     * type was trimmed.
+     */
+    bool remove_dominated_items(
+            std::vector<ReductionItemType>& reduction_item_types) const;
+
+    /**
+     * 'true' iff bin type 'bin_type_id_a' dominates bin type
+     * 'bin_type_id_b' - see the class-level doc comment.
+     */
+    bool bin_type_dominates(
+            BinTypeId bin_type_id_a,
+            BinTypeId bin_type_id_b) const;
+
+    /**
+     * For each bin type, 'true' iff it is dominated by another bin type
+     * with enough copies to replace it - see the class-level doc comment.
+     */
+    std::vector<bool> compute_dominated_bin_types() const;
+
+    /**
      * Builds the final reduced 'Instance' from 'reduction_item_types':
-     * copies every bin type over unchanged (no bin-type-level operation in
-     * this class), then, for each original item type not entirely trimmed
+     * copies every bin type not marked in 'bin_type_removed' over
+     * unchanged, then, for each original item type not entirely trimmed
      * away and not merged into another, adds one item type with the
      * combined copies/'copies_min' of itself and everything merged into it
-     * - populating 'reduced_item_origin_runs_' alongside (see its own doc
-     * comment).
+     * - populating 'reduced_item_origin_runs_' and
+     * 'reduced_to_original_bin_type_id_' alongside.
      */
     Instance reduction_to_instance(
-            const std::vector<ReductionItemType>& reduction_item_types);
+            const std::vector<ReductionItemType>& reduction_item_types,
+            const std::vector<bool>& bin_type_removed);
 
     /*
      * Private attributes
@@ -399,6 +520,12 @@ private:
      * to the number of copies itself.
      */
     std::vector<std::vector<OriginRun>> reduced_item_origin_runs_;
+
+    /**
+     * Original instance's bin type id of each of 'instance_''s own bin
+     * types - identity unless 'compute_dominated_bin_types' left some out.
+     */
+    std::vector<BinTypeId> reduced_to_original_bin_type_id_;
 
     /**
      * Consumes one copy from the end of 'runs' (a working copy of one

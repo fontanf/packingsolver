@@ -323,24 +323,21 @@ struct ReductionParameters: optimizationtools::Parameters
  *   'items_mergeable''s own use of the same requirement), and A is
  *   eligible for every bin type B is (a superset - checked, alongside
  *   geometric fit, via 'Instance::item_type_fits_bin_type', exactly as
- *   'benders_decomposition.cpp' does). Unlike a plain precedence hint,
- *   removing B *outright* additionally needs A and B to be provably
- *   *incompatible* - unable to ever both be packed into the same bin (see
- *   'items_provably_incompatible'), derived from geometry (the same
- *   pigeonhole argument 'benders_decomposition.cpp''s own
- *   'items_incompatible' uses for its no-good cuts), weight, or resource
- *   consumption (their combined minimum possible consumption already
- *   exceeding a non-'penalize' resource's capacity). Plain dominance
- *   alone is not enough for an outright removal the way it is for a soft
- *   precedence hint: 2D packing is not an exclusive-choice problem, so A
- *   being pointwise at least as good as B does not by itself mean a
- *   solution could never still profitably use *both* - in different
- *   bins, or side by side in the same one - only provable incompatibility
- *   rules that out, turning it into a genuine either/or choice that
- *   dominance can then resolve in A's favor. Only ever applied to item
- *   types with 'copies_min' 0 (fully optional) - a partially-or-fully
- *   mandatory item type cannot simply be swapped away. See
- *   'remove_dominated_items_applies()'.
+ *   'benders_decomposition.cpp' does). In any solution, a copy of B can
+ *   then be replaced by an unused copy of A, at the same position, without
+ *   lowering the profit. This only removes copies of B while unused
+ *   copies of A remain, so B's copies are trimmed down to a bound on the
+ *   number of copies of B an optimal solution may still need, B being
+ *   removed when the bound is 0 (see 'dominated_item_copies_bound' in
+ *   'algorithms/dominated_items.hpp'). Per bin type, a bin holds at most
+ *   its area divided by A's items of A and B (A fits in B's footprint, so
+ *   it is the smallest), or a single one if A and A, A and B, and B and B
+ *   are incompatible (see 'items_incompatible'). Incompatibility alone is
+ *   not enough to remove B: with several bins (or several copies of B), a
+ *   solution can use every copy of A and copies of B in other bins. Only
+ *   ever applied to item types with 'copies_min' 0 (fully
+ *   optional) - a partially-or-fully mandatory item type cannot simply be
+ *   swapped away. See 'remove_dominated_items_applies()'.
  *
  * - Removing dominated bin types (see 'compute_dominated_bin_types'): the
  *   bin-type analogue of the previous paragraph, but *not* restricted to
@@ -350,14 +347,12 @@ struct ReductionParameters: optimizationtools::Parameters
  *   'Feasibility' and 'Knapsack' (no optimal solution for any of them
  *   ever includes a genuinely empty bin, so preferring a strictly-as-
  *   good-or-better bin type wherever a worse one might have been used is
- *   always at least as good) - but *not* for 'BinPacking': unlike every
- *   other objective here, its bin types must be used in the exact order
- *   they are declared, each one's own copies fully exhausted before the
- *   next is ever touched (see 'rectangle::tree_search.cpp''s own
- *   'BranchingScheme' constructor, and 'onedimensional''s own
- *   'Solution::bin_type_order_feasible()', explicitly scoped to
- *   'BinPacking' alone - the order is a genuine, enforced constraint on
- *   solution validity only there). Removing a bin type would shift every
+ *   always at least as good) - but *not* for the bin packing objectives
+ *   ('BinPacking', 'BinPackingWithLeftovers', 'BinPackingCuttingCost'):
+ *   their bin types must be used in the exact order they are declared,
+ *   each one's own copies fully exhausted before the next is ever
+ *   touched (see 'rectangle::tree_search.cpp''s own 'BranchingScheme'
+ *   constructor). Removing a bin type would shift every
  *   later one's position in that fixed sequence, making it available
  *   *earlier* than the original problem ever allowed - not an equivalent
  *   substitution, a different problem entirely, regardless of how
@@ -395,14 +390,11 @@ struct ReductionParameters: optimizationtools::Parameters
  *   type choice genuinely is an exclusive, one-at-a-time decision - but
  *   it does need A's own copies to be "enough" that its supply could
  *   never run out before every genuine use of B ever would have:
- *   conservatively, 'instance.number_of_items()' (no optimal solution for
- *   any of these objectives ever uses more non-empty bins than there are
- *   items to put in them, regardless of bin type mix), unlike the
- *   equivalent bound for items (see "Removing dominated item types"
- *   above), which is unsatisfiable there because it would have to cover
- *   B's own copies too - here, 'copies_A' and 'number_of_items()' are
- *   different quantities (bin copies vs. total item copies), so no such
- *   self-inclusion contradiction arises. Only ever applied to bin types
+ *   conservatively, 'instance.number_of_items()' plus A's own
+ *   'copies_min' (no optimal solution for any of these objectives ever
+ *   uses more non-empty bins than there are items to put in them,
+ *   regardless of bin type mix, and A's mandatory bins are used anyway).
+ *   Only ever applied to bin types
  *   with 'copies_min' 0 (fully optional) - a partially-or-fully mandatory
  *   bin type cannot simply be dropped. See
  *   'remove_dominated_bin_types_applies()'.
@@ -596,12 +588,12 @@ private:
      * 'compute_dominated_bin_types') is meaningful for 'instance' - the
      * class-level doc comment's "Removing dominated bin types" paragraph:
      * only when there is more than one bin type (nothing to compare
-     * otherwise), and never for 'BinPacking' (its bin types must be used
-     * in declared order - a hard solution-validity constraint this
-     * operation would break by shifting later bin types' positions in
-     * that fixed sequence). Unlike every other operation in this class,
-     * not restricted to a *specific* objective - it excludes exactly one
-     * ('BinPacking') rather than allowing exactly one or a few. Does not
+     * otherwise), and only for 'Knapsack', 'Feasibility' and
+     * 'VariableSizedBinPacking': with the bin packing objectives
+     * ('BinPacking', 'BinPackingWithLeftovers', 'BinPackingCuttingCost'),
+     * the bin types must be used in declared order - a hard
+     * solution-validity constraint this operation would break by shifting
+     * later bin types' positions in that fixed sequence. Does not
      * check 'parameters.reduce' - the constructor only calls this after
      * already checking it.
      */
@@ -1621,49 +1613,31 @@ private:
             ItemTypeId item_type_id_b) const;
 
     /**
-     * 'true' iff item types 'item_type_id_1' and 'item_type_id_2'
-     * (possibly the same one twice) provably cannot both be packed into
-     * any single bin: 'true' whenever they are pairwise incompatible (see
-     * the free function of the same purpose in 'reduction.cpp') in
-     * *every* bin type either one could ever be placed in (a bin type
-     * neither is eligible for is irrelevant; a bin type only one is
-     * eligible for already keeps them apart there on its own). Used by
-     * 'remove_dominated_items' to justify an outright removal: dominance
-     * alone is not enough on its own - see that method's own doc comment
-     * for why.
+     * Upper bound on the number of copies of item type 'item_type_id_b'
+     * an optimal solution needs, given that item type 'item_type_id_a'
+     * dominates it (see 'item_type_dominates'), computed with the current
+     * copies of both - see the class-level doc comment's "Removing
+     * dominated item types" paragraph.
      */
-    bool items_provably_incompatible(
-            ItemTypeId item_type_id_1,
-            ItemTypeId item_type_id_2) const;
+    ItemPos dominated_item_copies_bound(
+            const std::vector<ReductionItemType>& reduction_item_types,
+            ItemTypeId item_type_id_a,
+            ItemTypeId item_type_id_b) const;
 
     /**
-     * Marks item type B 'removed' whenever some other, not-yet-'removed'
-     * item type A both 'item_type_dominates' it and is
-     * 'items_provably_incompatible' with it - see the class-level doc
-     * comment's "Removing dominated item types" paragraph for why *both*
-     * are needed together: dominance alone only says A is never a worse
-     * choice than B *for a single shared role* - it says nothing about
-     * whether a solution could still profitably use *both*, in different
-     * bins or side by side in the same one, since 2D packing is not an
-     * exclusive-choice problem the way substituting one item for another
-     * in a 1D knapsack is. Provable incompatibility closes that gap: it
-     * guarantees A and B can never both appear in the same bin at all, so
-     * wherever a solution would have used B, only A could have been used
-     * instead anyway - a genuine either/or choice, which dominance alone
-     * then correctly resolves in A's favor. Only ever considers item
-     * types with 'copies_min' 0 (fully optional) as removal candidates -
-     * a partially-or-fully mandatory item type cannot simply be dropped.
-     * A dominator's own copies are never adjusted (unlike
-     * 'merge_identical_items', nothing is folded into it). Naturally
-     * self-resolves a fully-tied pair (A and B mutually dominating and
-     * incompatible with each other) without removing both: whichever one
-     * is checked first, while the other is still available as its own
-     * dominator, gets removed, after which the survivor's own now-removed
-     * former dominator no longer qualifies as one. Run once, upfront (not
-     * part of the main per-round loop) alongside
+     * Trims the copies of every fully optional ('copies_min' 0) item type
+     * B dominated by another, not-yet-'removed' item type A down to
+     * 'dominated_item_copies_bound', marking it 'removed' when that is 0 -
+     * see the class-level doc comment's "Removing dominated item types"
+     * paragraph. A dominator's own copies are never adjusted. Each trim is
+     * valid for the instance left by the previous ones (the bound is
+     * computed with the current copies), and a fully-tied pair (A and B
+     * dominating each other) is never removed entirely: the survivor's
+     * former dominator is then 'removed' and no longer qualifies as one.
+     * Run once, upfront (not part of the main per-round loop) alongside
      * 'remove_negative_profit_items', for the same reason: nothing this
      * method reads about an item type ever changes across rounds. Returns
-     * 'true' iff at least one item type was removed.
+     * 'true' iff at least one item type was trimmed or removed.
      */
     bool remove_dominated_items(
             std::vector<ReductionItemType>& reduction_item_types) const;

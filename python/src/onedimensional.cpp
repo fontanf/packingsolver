@@ -317,7 +317,8 @@ void bind_onedimensional(nb::module_& m)
         .def_rw("reduce_dominant_sets", &ReductionParameters::reduce_dominant_sets)
         .def_rw("lift_item_lengths", &ReductionParameters::lift_item_lengths)
         .def_rw("shrink_bin", &ReductionParameters::shrink_bin)
-        .def_rw("remove_dominated_bin_types", &ReductionParameters::remove_dominated_bin_types);
+        .def_rw("remove_dominated_bin_types", &ReductionParameters::remove_dominated_bin_types)
+        .def_rw("remove_dominated_items", &ReductionParameters::remove_dominated_items);
 
     nb::class_<OptimizeParameters> parameters = bind_parameters_base<onedimensional::Output, OptimizeParameters>(m);
     parameters

@@ -335,7 +335,9 @@ void bind_box(nb::module_& m)
         .def_rw("remove_redundant_rotations", &ReductionParameters::remove_redundant_rotations)
         .def_rw("remove_negative_profit_items", &ReductionParameters::remove_negative_profit_items)
         .def_rw("merge_identical_items", &ReductionParameters::merge_identical_items)
-        .def_rw("lift_item_dimensions", &ReductionParameters::lift_item_dimensions);
+        .def_rw("lift_item_dimensions", &ReductionParameters::lift_item_dimensions)
+        .def_rw("remove_dominated_items", &ReductionParameters::remove_dominated_items)
+        .def_rw("remove_dominated_bin_types", &ReductionParameters::remove_dominated_bin_types);
 
     nb::class_<OptimizeParameters> parameters = bind_parameters_base<box::Output, OptimizeParameters>(m);
     parameters

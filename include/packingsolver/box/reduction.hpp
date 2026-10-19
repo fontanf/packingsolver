@@ -57,16 +57,31 @@ struct ReductionParameters: optimizationtools::Parameters
      * flag.
      */
     bool lift_item_dimensions = true;
+
+    /**
+     * Enable/disable trimming the copies of dominated item types (gates
+     * 'Reduction::remove_dominated_items'). Still subject to
+     * 'Reduction::remove_dominated_items_applies' regardless of this flag.
+     */
+    bool remove_dominated_items = true;
+
+    /**
+     * Enable/disable removing dominated bin types (gates
+     * 'Reduction::compute_dominated_bin_types'). Still subject to
+     * 'Reduction::remove_dominated_bin_types_applies' regardless of this
+     * flag.
+     */
+    bool remove_dominated_bin_types = true;
 };
 
 /**
  * A redundant-rotation removal (see 'remove_redundant_rotations'), a
  * negative-profit item trim (see 'remove_negative_profit_items'), a
- * subset-sum item dimension lift (see 'lift_item_dimensions') plus an
- * identical-item-type merge (see 'merge_identical_items') - the 'box'
- * analogue of 'rectangle::Reduction', scoped down to just these four
- * operations (rectangle's own companion absorption, dominated-item removal
- * and dominated-bin-type removal are not implemented here).
+ * dominated-item trim (see 'remove_dominated_items'), a subset-sum item
+ * dimension lift (see 'lift_item_dimensions'), an identical-item-type
+ * merge (see 'merge_identical_items') plus a dominated-bin-type removal
+ * (see 'compute_dominated_bin_types') - the 'box' analogue of
+ * 'rectangle::Reduction', without its companion absorption.
  *
  * - Removing redundant rotations (see 'remove_redundant_rotations'): a
  *   rotation of an item type is redundant if another allowed rotation gives
@@ -126,6 +141,38 @@ struct ReductionParameters: optimizationtools::Parameters
  *   which compares the current (possibly enlarged) boxes. See
  *   'lift_item_dimensions_applies()' and
  *   'lift_item_dimensions_applies_axis()'.
+ *
+ * - Trimming dominated item types (see 'remove_dominated_items'): only for
+ *   'Knapsack', rectangle's own 'remove_dominated_items'. Item type A
+ *   dominates item type B when A is at least as profitable, at most as
+ *   heavy, never consumes more of any resource, and fits inside B: for
+ *   every allowed rotation of B, A has an allowed rotation fitting inside
+ *   the rotated box of B. A copy of B can then always be replaced by an
+ *   unused copy of A, so B's copies are trimmed down to
+ *   'dominated_item_copies_bound' (see 'algorithms/dominated_items.hpp'),
+ *   B being removed when it is 0. Per bin type, a bin holds at most its
+ *   volume divided by A's items of A and B, or a single one if A and A, A
+ *   and B, and B and B are incompatible: no pair of allowed rotations puts
+ *   them side by side along some axis, or their weights or a resource
+ *   overflow the bin. Uses the rotations left by
+ *   'remove_redundant_rotations', and the original boxes (it runs before
+ *   'lift_item_dimensions'). Only for fully optional ('copies_min' 0) item
+ *   types without fixed copies. See 'remove_dominated_items_applies()'.
+ *
+ * - Removing dominated bin types (see 'compute_dominated_bin_types'):
+ *   rectangle's own 'remove_dominated_bin_types'. Bin type A dominates bin
+ *   type B when A is at least as large along every axis, at most as
+ *   costly, has at least B's maximum weight, has no resource (and B no
+ *   negative-penalty one), and neither has fixed items. B is then left out
+ *   of the reduced instance if it has no 'copies_min' and A has enough
+ *   copies to replace any use of B on top of its own (the number of items
+ *   plus A's own 'copies_min'). Only for 'Knapsack', 'Feasibility' and
+ *   'VariableSizedBinPacking' with more than one bin type: with the bin
+ *   packing objectives ('BinPacking', 'BinPackingWithLeftovers'), the bin
+ *   types must be used in their declared order. 'unreduce_solution' maps
+ *   the bin type ids of
+ *   the reduced instance back to the original ones. See
+ *   'remove_dominated_bin_types_applies()'.
  *
  * - Merging identical item types (see 'merge_identical_items'): a merged
  *   item type's copies stay fully visible and independently placed in the
@@ -196,6 +243,20 @@ private:
     static bool lift_item_dimensions_applies_axis(
             const Instance& instance,
             int axis);
+
+    /**
+     * 'true' iff trimming dominated item types (see
+     * 'remove_dominated_items') is meaningful for 'instance': only
+     * 'Knapsack'.
+     */
+    static bool remove_dominated_items_applies(const Instance& instance);
+
+    /**
+     * 'true' iff removing dominated bin types (see
+     * 'compute_dominated_bin_types') is meaningful for 'instance' - see
+     * the class-level doc comment.
+     */
+    static bool remove_dominated_bin_types_applies(const Instance& instance);
 
     /*
      * Private types
@@ -324,11 +385,69 @@ private:
             std::vector<ReductionItemType>& reduction_item_types);
 
     /**
+     * 'true' iff item type 'item_type_id_a' dominates item type
+     * 'item_type_id_b' - see the class-level doc comment.
+     */
+    bool item_type_dominates(
+            const std::vector<ReductionItemType>& reduction_item_types,
+            ItemTypeId item_type_id_a,
+            ItemTypeId item_type_id_b) const;
+
+    /**
+     * 'true' iff a copy of item type 'item_type_id_1' and a copy of item
+     * type 'item_type_id_2' (possibly the same one) can never be packed
+     * together in a bin of type 'bin_type_id' - see the class-level doc
+     * comment.
+     */
+    bool items_incompatible(
+            const std::vector<ReductionItemType>& reduction_item_types,
+            ItemTypeId item_type_id_1,
+            ItemTypeId item_type_id_2,
+            BinTypeId bin_type_id) const;
+
+    /**
+     * Upper bound on the number of copies of item type 'item_type_id_b' an
+     * optimal solution needs, item type 'item_type_id_a' dominating it,
+     * computed with the current copies of both - see the class-level doc
+     * comment.
+     */
+    ItemPos dominated_item_copies_bound(
+            const std::vector<ReductionItemType>& reduction_item_types,
+            ItemTypeId item_type_id_a,
+            ItemTypeId item_type_id_b) const;
+
+    /**
+     * Trims the copies of every fully optional item type dominated by
+     * another, not-yet-'removed' one down to 'dominated_item_copies_bound',
+     * removing it when that is '0'. Returns 'true' iff at least one item
+     * type was trimmed.
+     */
+    bool remove_dominated_items(
+            std::vector<ReductionItemType>& reduction_item_types) const;
+
+    /**
+     * 'true' iff bin type 'bin_type_id_a' dominates bin type
+     * 'bin_type_id_b' - see the class-level doc comment.
+     */
+    bool bin_type_dominates(
+            BinTypeId bin_type_id_a,
+            BinTypeId bin_type_id_b) const;
+
+    /**
+     * For each bin type, 'true' iff it is dominated by another bin type
+     * with enough copies to replace it - see the class-level doc comment.
+     */
+    std::vector<bool> compute_dominated_bin_types() const;
+
+    /**
      * Builds the final reduced 'Instance' from 'reduction_item_types',
-     * populating 'reduced_item_origin_runs_' along the way.
+     * leaving out the bin types marked in 'bin_type_removed', populating
+     * 'reduced_item_origin_runs_' and 'reduced_to_original_bin_type_id_'
+     * along the way.
      */
     Instance reduction_to_instance(
-            const std::vector<ReductionItemType>& reduction_item_types);
+            const std::vector<ReductionItemType>& reduction_item_types,
+            const std::vector<bool>& bin_type_removed);
 
     /*
      * Private attributes
@@ -372,6 +491,12 @@ private:
      * to the number of copies itself.
      */
     std::vector<std::vector<OriginRun>> reduced_item_origin_runs_;
+
+    /**
+     * Original instance's bin type id of each of 'instance_''s own bin
+     * types - identity unless 'compute_dominated_bin_types' left some out.
+     */
+    std::vector<BinTypeId> reduced_to_original_bin_type_id_;
 
     /**
      * Consumes one copy from the end of 'runs' (a working copy of one

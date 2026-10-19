@@ -39,14 +39,16 @@ bool items_incompatible(
                 && item_type_2.oriented
                 && item_type_1.rect.x + item_type_2.rect.x > bin_type.rect.x
                 && item_type_1.rect.y + item_type_2.rect.y > bin_type.rect.y)
+        // A non-oriented item can be rotated to put its shortest side
+        // along the axis the two items are side by side along.
         || (!item_type_1.oriented
                 && item_type_2.oriented
-                && item_type_1.rect.max() + item_type_2.rect.x > bin_type.rect.x
-                && item_type_1.rect.max() + item_type_2.rect.y > bin_type.rect.y)
+                && item_type_1.rect.min() + item_type_2.rect.x > bin_type.rect.x
+                && item_type_1.rect.min() + item_type_2.rect.y > bin_type.rect.y)
         || (item_type_1.oriented
                 && !item_type_2.oriented
-                && item_type_1.rect.x + item_type_2.rect.max() > bin_type.rect.x
-                && item_type_1.rect.y + item_type_2.rect.max() > bin_type.rect.y);
+                && item_type_1.rect.x + item_type_2.rect.min() > bin_type.rect.x
+                && item_type_1.rect.y + item_type_2.rect.min() > bin_type.rect.y);
 }
 
 /**

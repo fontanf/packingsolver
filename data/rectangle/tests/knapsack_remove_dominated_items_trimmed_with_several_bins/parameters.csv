@@ -1,0 +1,4 @@
+NAME,VALUE
+objective,Knapsack
+unloading_constraint,None
+leftover_mode,Area
