@@ -625,6 +625,8 @@ void optimize_tree_search_periodic_packing(
     ts_pp_parameters.optimization_mode = parameters.optimization_mode;
     ts_pp_parameters.not_anytime_tree_search_queue_size
         = parameters.not_anytime_tree_search_periodic_packing_queue_size;
+    ts_pp_parameters.maximum_approximation_ratio
+        = parameters.not_anytime_maximum_approximation_ratio;
     ts_pp_parameters.new_solution_callback = [&algorithm_formatter](
             const packingsolver::Output<Instance, Solution>& ts_output)
     {

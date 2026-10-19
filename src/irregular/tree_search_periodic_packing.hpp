@@ -204,6 +204,14 @@ public:
      */
     struct Parameters
     {
+        /**
+         * Maximum approximation ratio of the obstacles (defects, borders and
+         * fixed items), approximated by rectangles: their total waste is at
+         * most this ratio times the smallest of the bin area and of the
+         * total item area (the same rule as for the shape simplification).
+         */
+        double maximum_approximation_ratio = 0.05;
+
         double alpha = 3.7015;
         double beta = 3.0;
         double gamma = 0.3968;
@@ -360,6 +368,13 @@ private:
     const Instance& instance_;
     std::vector<PeriodicBlock> blocks_;
     Parameters parameters_;
+
+    /**
+     * Rectangles covering the obstacles of the bin (defects, borders and
+     * fixed items, inflated by their spacings), cut out of the empty spaces
+     * of the root node.
+     */
+    std::vector<AxisAlignedBoundingBox> obstacles_;
 
     /** The (single) bin type packed into, looked up fresh each time: cheap inline accessors on Instance, no need to cache. */
     inline const BinType& bin_type() const { return instance_.bin_type(instance_.bin_type_id(0)); }
@@ -528,6 +543,12 @@ struct TreeSearchPeriodicPackingOutput: Output
 struct TreeSearchPeriodicPackingParameters: packingsolver::Parameters<Instance, Solution, Output>
 {
     OptimizationMode optimization_mode = OptimizationMode::Anytime;
+
+    /**
+     * Maximum approximation ratio of the obstacles (see
+     * 'BranchingSchemePeriodicPacking::Parameters::maximum_approximation_ratio').
+     */
+    double maximum_approximation_ratio = 0.05;
 
     NodeId not_anytime_tree_search_queue_size = 1;
 };
