@@ -47,6 +47,10 @@ INSTANTIATE_TEST_SUITE_P(
         Algorithms,
         PowerOfTwoTest,
         testing::ValuesIn(std::vector<PowerOfTwoTestParams>{
+            // No power of two is lower than or equal to a value lower than
+            // or equal to 0: 1, a neutral scaling factor.
+            {0, 1, 1},
+            {-3, 1, 1},
             {0.25, 0.25, 0.25},
             {0.3, 0.25, 0.5},
             {0.5, 0.5, 0.5},

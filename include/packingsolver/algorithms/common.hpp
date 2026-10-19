@@ -166,9 +166,19 @@ inline bool equal_weight(double v1, double v2, double weight_tolerance)
         && !strictly_greater_weight(v2, v1, weight_tolerance);
 }
 
+/**
+ * Largest power of two lesser than or equal to 'value'.
+ *
+ * The helpers are used to compute scaling factors: there is no power of two
+ * lesser than or equal to a value lower than or equal to 0, so they return
+ * 1, a neutral factor, instead (the loops below would never end, or end
+ * with 0).
+ */
 template<typename T>
 double largest_power_of_two_lesser_or_equal(T value)
 {
+    if (!(value > 0))
+        return 1;
     double res = 1;
     if (res > value) {
         while (res > value)
@@ -180,9 +190,15 @@ double largest_power_of_two_lesser_or_equal(T value)
     return res;
 }
 
+/**
+ * Smallest power of two greater than or equal to 'value'; 1 if 'value' is
+ * lower than or equal to 0 (see 'largest_power_of_two_lesser_or_equal').
+ */
 template<typename T>
 double smallest_power_of_two_greater_or_equal(T value)
 {
+    if (!(value > 0))
+        return 1;
     double res = 1;
     if (res < value) {
         while (res < value)
