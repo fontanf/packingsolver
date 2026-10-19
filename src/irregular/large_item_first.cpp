@@ -77,6 +77,7 @@ LargeItemFirstOutput packingsolver::irregular::large_item_first(
     // Build sub-parameters to pass to each sub-problem.
     auto make_sub_parameters = [&parameters, &algorithm_formatter]() {
         OptimizeParameters sub_parameters;
+        sub_parameters.seed = parameters.seed;
         sub_parameters.verbosity_level = 0;
         sub_parameters.timer = parameters.timer;
         sub_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
@@ -87,7 +88,8 @@ LargeItemFirstOutput packingsolver::irregular::large_item_first(
             = parameters.not_anytime_tree_search_queue_size;
         sub_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
         sub_parameters.use_tree_search = parameters.use_tree_search;
-        sub_parameters.use_local_search = parameters.use_local_search;
+        sub_parameters.use_local_search_linear_programming = parameters.use_local_search_linear_programming;
+        sub_parameters.use_local_search_direct_trigonometry = parameters.use_local_search_direct_trigonometry;
         sub_parameters.use_milp_raster = parameters.use_milp_raster;
         sub_parameters.use_sequential_single_knapsack = parameters.use_sequential_single_knapsack;
         sub_parameters.use_sequential_value_correction = parameters.use_sequential_value_correction;

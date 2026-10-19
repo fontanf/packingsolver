@@ -154,6 +154,9 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
     /** Optimization mode. */
     OptimizationMode optimization_mode = OptimizationMode::Anytime;
 
+    /** Seed of the random number generators of the randomized algorithms. */
+    Seed seed = 0;
+
     /**
      * Memory limit in mebibytes.
      *
@@ -172,8 +175,17 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
     /** Use tree search periodic packing algorithm. */
     bool use_tree_search_periodic_packing = false;
 
-    /** Use local search algorithm. */
-    bool use_local_search = false;
+    /**
+     * Use local search algorithm with the linear programming engine (the
+     * items are shrunk to remove the overlaps).
+     */
+    bool use_local_search_linear_programming = false;
+
+    /**
+     * Use local search algorithm with the direct trigonometry engine (the
+     * overlap between the items is minimized).
+     */
+    bool use_local_search_direct_trigonometry = false;
 
     /** Use MILP raster algorithm. */
     bool use_milp_raster = false;

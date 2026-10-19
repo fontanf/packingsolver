@@ -2810,7 +2810,8 @@ const packingsolver::irregular::TreeSearchOutput packingsolver::irregular::tree_
         algorithm_formatter.print_header();
 
         SequentialFeasibilitySolver solver = [&parameters, &algorithm_formatter](
-                const Instance& sub_instance)
+                const Instance& sub_instance,
+                const Solution*)
         {
             TreeSearchParameters inner_parameters;
             inner_parameters.verbosity_level = 0;

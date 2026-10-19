@@ -1,0 +1,125 @@
+{
+    "objective": "open-dimension-x",
+    "bin_types": [
+        {
+            "type": "rectangle",
+            "width": 100,
+            "height": 20,
+            "copies": 1
+        }
+    ],
+    "item_types": [
+        {
+            "type": "polygon",
+            "vertices": [
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 8,
+                    "y": 0
+                },
+                {
+                    "x": 8,
+                    "y": 2
+                },
+                {
+                    "x": 2,
+                    "y": 2
+                },
+                {
+                    "x": 2,
+                    "y": 10
+                },
+                {
+                    "x": 0,
+                    "y": 10
+                }
+            ],
+            "copies": 4,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0,
+                    "mirror": false
+                },
+                {
+                    "start": 180,
+                    "end": 180,
+                    "mirror": false
+                }
+            ]
+        },
+        {
+            "type": "polygon",
+            "vertices": [
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 9,
+                    "y": 0
+                },
+                {
+                    "x": 0,
+                    "y": 7
+                }
+            ],
+            "copies": 4,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0,
+                    "mirror": false
+                },
+                {
+                    "start": 180,
+                    "end": 180,
+                    "mirror": false
+                }
+            ]
+        },
+        {
+            "type": "polygon",
+            "vertices": [
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 10,
+                    "y": 0
+                },
+                {
+                    "x": 7,
+                    "y": 5
+                },
+                {
+                    "x": 3,
+                    "y": 5
+                }
+            ],
+            "copies": 3,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0,
+                    "mirror": false
+                },
+                {
+                    "start": 180,
+                    "end": 180,
+                    "mirror": false
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "width": 6,
+            "height": 4,
+            "copies": 3
+        }
+    ]
+}

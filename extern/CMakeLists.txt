@@ -113,6 +113,17 @@ FetchContent_Declare(
     EXCLUDE_FROM_ALL)
 FetchContent_MakeAvailable(treesearchsolver)
 
+# Fetch fontanf/localsearchsolver.
+set(LOCALSEARCHSOLVER_BUILD_TEST OFF)
+set(LOCALSEARCHSOLVER_BUILD_EXAMPLES OFF)
+FetchContent_Declare(
+    localsearchsolver
+    GIT_REPOSITORY https://github.com/fontanf/localsearchsolver.git
+    GIT_TAG 237395a1fb7b5e1e586a1d3bcb22a38ec958616f
+    #SOURCE_DIR "${PROJECT_SOURCE_DIR}/../localsearchsolver/"
+    EXCLUDE_FROM_ALL)
+FetchContent_MakeAvailable(localsearchsolver)
+
 # Fetch fontanf/columngenerationsolver.
 set(COLUMNGENERATIONSOLVER_USE_CLP ${PACKINGSOLVER_USE_CLP})
 set(COLUMNGENERATIONSOLVER_USE_HIGHS ${PACKINGSOLVER_USE_HIGHS})

@@ -1,0 +1,19 @@
+{
+    "objective": "bin-packing-with-leftovers",
+    "bin_types": [
+        {
+            "type": "rectangle",
+            "width": 30,
+            "height": 10,
+            "copies": 3
+        }
+    ],
+    "item_types": [
+        {
+            "type": "rectangle",
+            "width": 9,
+            "height": 9,
+            "copies": 4
+        }
+    ]
+}

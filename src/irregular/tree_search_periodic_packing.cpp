@@ -1267,7 +1267,8 @@ packingsolver::irregular::tree_search_periodic_packing(
         algorithm_formatter.print_header();
 
         SequentialFeasibilitySolver solver = [&parameters, &algorithm_formatter](
-                const Instance& sub_instance)
+                const Instance& sub_instance,
+                const Solution*)
         {
             TreeSearchPeriodicPackingParameters inner_parameters;
             inner_parameters.verbosity_level = 0;

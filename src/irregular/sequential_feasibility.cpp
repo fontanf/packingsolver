@@ -152,6 +152,60 @@ ColumnPacking pack_columns(const Instance& instance)
 
 }
 
+namespace
+{
+
+/**
+ * Add to 'sub_instance_builder' a bin type with one copy: the bin type
+ * 'bin_type_id' of 'instance', restricted to 'restricting_aabb' (in scaled
+ * coordinates), with its cost, its spacings, its defects and its fixed items.
+ */
+BinTypeId add_restricted_bin_type(
+        InstanceBuilder& sub_instance_builder,
+        const Instance& instance,
+        BinTypeId bin_type_id,
+        const AxisAlignedBoundingBox& restricting_aabb)
+{
+    const BinType& bin_type = instance.bin_type(bin_type_id);
+    const Shape restricting_rect = shape::build_rectangle(restricting_aabb);
+    // Intersect in scaled coordinates (both operands scaled), then convert the
+    // result back to original (unscaled) units: the sub-instance builder
+    // re-applies scale_value to shape_orig during build(), so passing an
+    // already-scaled shape here would scale it down twice.
+    const shape::MultiShapeWithHoles intersection = shape::compute_intersection(
+            {{bin_type.shape_scaled},
+            {restricting_rect}});
+    Shape sub_bin_shape_orig = (1.0 / instance.parameters().scale_value)
+        * intersection.shapes_with_holes[0].shape;
+    BinTypeId sub_bin_type_id = sub_instance_builder.add_bin_type(sub_bin_shape_orig);
+    sub_instance_builder.set_bin_type_cost(sub_bin_type_id, bin_type.cost);
+    sub_instance_builder.set_bin_type_copies(sub_bin_type_id, 1);
+    sub_instance_builder.set_item_bin_minimum_spacing(
+            sub_bin_type_id,
+            bin_type.item_bin_minimum_spacing);
+    for (const Defect& defect: bin_type.defects) {
+        DefectId defect_id = sub_instance_builder.add_defect(
+                sub_bin_type_id,
+                defect.type,
+                defect.shape_orig);
+        sub_instance_builder.set_item_defect_minimum_spacing(
+                sub_bin_type_id,
+                defect_id,
+                defect.item_defect_minimum_spacing);
+    }
+    for (const FixedItem& fixed_item: bin_type.fixed_items) {
+        sub_instance_builder.add_fixed_item(
+                sub_bin_type_id,
+                fixed_item.item_type_id,
+                fixed_item.bl_corner,
+                fixed_item.angle,
+                fixed_item.mirror);
+    }
+    return sub_bin_type_id;
+}
+
+}
+
 SequentialFeasibilityOutput packingsolver::irregular::sequential_feasibility(
         const Instance& instance,
         const SequentialFeasibilitySolver& solver,
@@ -175,10 +229,19 @@ SequentialFeasibilityOutput packingsolver::irregular::sequential_feasibility(
         total_item_aabb_area += dx * dy * item_type.copies;
     }
 
+    // Last solution found, the warm start of the next sub-problem.
+    Solution previous_solution(instance);
+    bool has_previous_solution = false;
+
     // Initialize the open dimension variable(s) and/or bin count.
     BinPos current_number_of_bins = 0;
     LengthDbl x = 0;
     LengthDbl y = 0;
+
+    // Targets of the sub-problem in which the best solution has been found.
+    LengthDbl x_best = 0;
+    LengthDbl y_best = 0;
+    BinPos number_of_bins_best = 0;
     if (instance.objective() == Objective::BinPacking) {
         AreaDbl total_bin_aabb_area = 0;
         for (BinTypeId bin_type_id = 0;
@@ -229,9 +292,91 @@ SequentialFeasibilityOutput packingsolver::irregular::sequential_feasibility(
         // of the first iteration is smaller.
         ColumnPacking column_packing = pack_columns(instance);
         algorithm_formatter.update_solution(column_packing.solution, "SF columns");
-        x = 0.99 * column_packing.x_max;
+        previous_solution = column_packing.solution;
+        has_previous_solution = true;
+        x_best = column_packing.x_max;
+        y_best = x_best * instance.parameters().open_dimension_xy_aspect_ratio;
+        x = (1 - parameters.shrink_ratio) * column_packing.x_max;
         y = x * instance.parameters().open_dimension_xy_aspect_ratio;
     }
+
+    // Update the open dimension variable(s) and/or bin count from a solution
+    // found, shrinking them by 'shrink_ratio'. Return false if there is
+    // nothing left to try.
+    auto update_targets = [&instance, &current_number_of_bins, &x, &y](
+            const Solution& solution,
+            double shrink_ratio)
+    {
+        if (instance.objective() == Objective::BinPacking) {
+            current_number_of_bins = solution.number_of_bins() - 1;
+            if (current_number_of_bins == 0)
+                return false;
+        } else if (instance.objective() == Objective::BinPackingWithLeftovers) {
+            BinTypeId bin_type_id_last = instance.bin_type_id(solution.number_of_bins() - 1);
+            const BinType& bin_type_last = instance.bin_type(bin_type_id_last);
+            LengthDbl scale_value = instance.parameters().scale_value;
+            x = (1 - shrink_ratio) * (scale_value * solution.x_max() - bin_type_last.aabb_scaled.x_min)
+                + scale_value * bin_type_last.item_bin_minimum_spacing;
+            if (solution.number_of_bins() < current_number_of_bins) {
+                current_number_of_bins = solution.number_of_bins();
+                BinTypeId bin_type_id_new = instance.bin_type_id(current_number_of_bins - 1);
+                const BinType& bin_type_new = instance.bin_type(bin_type_id_new);
+                x = bin_type_new.aabb_scaled.x_max;
+            } else if (!strictly_greater(x, bin_type_last.aabb_scaled.x_min + scale_value * bin_type_last.item_bin_minimum_spacing)) {
+                current_number_of_bins = solution.number_of_bins() - 1;
+                if (current_number_of_bins == 0)
+                    return false;
+                BinTypeId bin_type_id_new = instance.bin_type_id(current_number_of_bins - 1);
+                const BinType& bin_type_new = instance.bin_type(bin_type_id_new);
+                x = bin_type_new.aabb_scaled.x_max;
+            }
+        } else if (instance.objective() == Objective::OpenDimensionX) {
+            const BinType& bin_type = instance.bin_type(instance.bin_type_id(0));
+            LengthDbl scale_value = instance.parameters().scale_value;
+            x = (1 - shrink_ratio) * (scale_value * solution.x_max() - bin_type.aabb_scaled.x_min)
+                + scale_value * bin_type.item_bin_minimum_spacing;
+        } else if (instance.objective() == Objective::OpenDimensionY) {
+            const BinType& bin_type = instance.bin_type(instance.bin_type_id(0));
+            LengthDbl scale_value = instance.parameters().scale_value;
+            y = (1 - shrink_ratio) * (scale_value * solution.y_max() - bin_type.aabb_scaled.y_min)
+                + scale_value * bin_type.item_bin_minimum_spacing;
+        } else {  // OpenDimensionXY
+            const BinType& bin_type = instance.bin_type(instance.bin_type_id(0));
+            LengthDbl scale_value = instance.parameters().scale_value;
+            // The bin must shrink at each iteration, else the same solution
+            // can be found again and again.
+            x = (1 - shrink_ratio) * x;
+            x = (std::min)(x, (1 - shrink_ratio) * (std::max)(
+                    scale_value * solution.x_max() - bin_type.aabb_scaled.x_min,
+                    scale_value * solution.y_max() - bin_type.aabb_scaled.y_min)
+                + scale_value * bin_type.item_bin_minimum_spacing);
+            AreaDbl a_cur = (solution.x_max() - solution.x_min()) * (solution.y_max() - solution.y_min());
+            LengthDbl x_cur = scale_value * std::sqrt(a_cur / instance.parameters().open_dimension_xy_aspect_ratio);
+            if (x > x_cur)
+                x = x_cur;
+            y = x * instance.parameters().open_dimension_xy_aspect_ratio;
+        }
+        return true;
+    };
+
+    // Shrink ratio; it decreases during the compression.
+    double shrink_ratio = parameters.shrink_ratio;
+    bool compression = false;
+    double compression_start_time = 0.0;
+    const double time_limit = parameters.timer.time_limit();
+    const bool time_based_compression = !std::isinf(time_limit);
+    // Shrink ratio of the compression when it depends on the time: it
+    // decreases linearly from half of the shrink ratio to the minimum shrink
+    // ratio at the time limit.
+    auto time_based_compression_shrink_ratio = [&parameters, &compression_start_time, time_limit]()
+    {
+        double ratio_start = parameters.shrink_ratio / 2;
+        double ratio_end = parameters.compression_minimum_shrink_ratio;
+        double fraction = (parameters.timer.elapsed_time() - compression_start_time)
+            / (std::max)(time_limit - compression_start_time, 1e-9);
+        fraction = (std::max)(0.0, (std::min)(1.0, fraction));
+        return ratio_start + fraction * (ratio_end - ratio_start);
+    };
 
     for (Counter it = 0;; ++it) {
         if (algorithm_formatter.end_boolean())
@@ -259,55 +404,49 @@ SequentialFeasibilityOutput packingsolver::irregular::sequential_feasibility(
                 remaining_bins -= copies;
             }
         } else if (instance.objective() == Objective::BinPackingWithLeftovers) {
-            // Like BinPacking but each bin type is x-restricted (like OpenDimensionX).
+            // Like BinPacking, but the last bin is x-restricted (like
+            // OpenDimensionX). The other bins keep their bin type. The last
+            // bin is a bin type of its own, added after the others, unless it
+            // is the only copy of its bin type.
             BinPos remaining_bins = current_number_of_bins;
             for (BinTypeId bin_type_id = 0;
                     bin_type_id < instance.number_of_bin_types() && remaining_bins > 0;
                     ++bin_type_id) {
                 const BinType& bin_type = instance.bin_type(bin_type_id);
                 BinPos copies = std::min(bin_type.copies, remaining_bins);
+                remaining_bins -= copies;
+                BinPos copies_full = (remaining_bins == 0)? copies - 1: copies;
+                if (copies_full > 0) {
+                    BinTypeId sub_bin_type_id = sub_instance_builder.add_bin_type(instance, bin_type_id);
+                    sub_instance_builder.set_bin_type_copies(sub_bin_type_id, copies_full);
+                    sub_instance_builder.set_bin_type_copies_min(sub_bin_type_id, 0);
+                    sub_to_orig_bin_type_ids.push_back(bin_type_id);
+                }
+                if (remaining_bins > 0)
+                    continue;
+
+                // Last bin.
                 AxisAlignedBoundingBox restricting_aabb = bin_type.aabb_scaled;
                 restricting_aabb.x_max = restricting_aabb.x_min + x;
-                const Shape restricting_rect = shape::build_rectangle(restricting_aabb);
-                // Intersect in scaled coordinates (both operands scaled), then
-                // convert the result back to original (unscaled) units: the
-                // sub-instance builder re-applies scale_value to shape_orig
-                // during build(), so passing an already-scaled shape here
-                // would scale it down twice.
-                const shape::MultiShapeWithHoles intersection = shape::compute_intersection(
-                        {{bin_type.shape_scaled},
-                        {restricting_rect}});
-                Shape sub_bin_shape_orig = (1.0 / instance.parameters().scale_value)
-                    * intersection.shapes_with_holes[0].shape;
-                BinTypeId sub_bin_type_id = sub_instance_builder.add_bin_type(
-                        sub_bin_shape_orig);
-                sub_instance_builder.set_bin_type_cost(sub_bin_type_id, bin_type.cost);
-                sub_instance_builder.set_bin_type_copies(sub_bin_type_id, copies);
-                sub_instance_builder.set_item_bin_minimum_spacing(
-                        sub_bin_type_id, bin_type.item_bin_minimum_spacing);
+                add_restricted_bin_type(
+                        sub_instance_builder,
+                        instance,
+                        bin_type_id,
+                        restricting_aabb);
                 sub_to_orig_bin_type_ids.push_back(bin_type_id);
-                remaining_bins -= copies;
             }
         } else {
             // Build a single bin as the intersection of the original bin with a
             // rectangle restricted to the current open dimension estimate.
-            const BinType& original_bin_type = instance.bin_type(instance.bin_type_id(0));
-            AxisAlignedBoundingBox restricting_aabb = original_bin_type.aabb_scaled;
+            BinTypeId bin_type_id = instance.bin_type_id(0);
+            AxisAlignedBoundingBox restricting_aabb = instance.bin_type(bin_type_id).aabb_scaled;
             restricting_aabb.x_max = restricting_aabb.x_min + x;
             restricting_aabb.y_max = restricting_aabb.y_min + y;
-            const Shape restricting_rect = shape::build_rectangle(restricting_aabb);
-            // Intersect in scaled coordinates, then convert back to original
-            // (unscaled) units before handing off to the sub-instance builder,
-            // which re-applies scale_value during build().
-            const shape::MultiShapeWithHoles intersection = shape::compute_intersection(
-                    {{original_bin_type.shape_scaled},
-                    {restricting_rect}});
-            Shape sub_bin_shape_orig = (1.0 / instance.parameters().scale_value)
-                * intersection.shapes_with_holes[0].shape;
-            sub_instance_builder.add_bin_type(sub_bin_shape_orig);
-            sub_instance_builder.set_item_bin_minimum_spacing(
-                    0,
-                    instance.bin_type(0).item_bin_minimum_spacing);
+            add_restricted_bin_type(
+                    sub_instance_builder,
+                    instance,
+                    bin_type_id,
+                    restricting_aabb);
         }
         for (ItemTypeId item_type_id = 0;
                 item_type_id < instance.number_of_item_types();
@@ -316,12 +455,40 @@ SequentialFeasibilityOutput packingsolver::irregular::sequential_feasibility(
         }
         Instance sub_instance = sub_instance_builder.build();
 
-        // Solve the sub-instance.
-        SolutionPool<Instance, Solution> sub_solution_pool = solver(sub_instance);
+        // Solve the sub-instance, warm-started from the previous solution.
+        SolutionPool<Instance, Solution> sub_solution_pool = solver(
+                sub_instance,
+                (has_previous_solution)? &previous_solution: nullptr);
 
-        // If no feasible solution found, stop.
-        if (!sub_solution_pool.best().feasible())
-            break;
+        if (!sub_solution_pool.best().feasible()) {
+            // No feasible solution found. Without compression, stop.
+            // Otherwise, shrink the best solution by a smaller ratio.
+            if (!parameters.compression
+                    || !has_previous_solution
+                    || instance.objective() == Objective::BinPacking) {
+                break;
+            }
+            if (!compression) {
+                compression = true;
+                compression_start_time = parameters.timer.elapsed_time();
+                shrink_ratio = parameters.shrink_ratio / 2;
+            } else if (time_based_compression) {
+                shrink_ratio = time_based_compression_shrink_ratio();
+            } else {
+                shrink_ratio *= parameters.compression_shrink_ratio_decay;
+                if (shrink_ratio < parameters.compression_minimum_shrink_ratio)
+                    break;
+            }
+            x = x_best;
+            y = y_best;
+            current_number_of_bins = number_of_bins_best;
+            if (!update_targets(previous_solution, shrink_ratio))
+                break;
+            continue;
+        }
+        x_best = x;
+        y_best = y;
+        number_of_bins_best = current_number_of_bins;
 
         // Transfer the sub-solution to the main instance.
         Solution solution(instance);
@@ -339,59 +506,16 @@ SequentialFeasibilityOutput packingsolver::irregular::sequential_feasibility(
                     {0});  // bin_type_ids
         }
         std::stringstream ss;
-        ss << "SF it " << it << " " << sub_solution_pool.best_label();
+        ss << "SF it " << it << ((compression)? " compression ": " ") << sub_solution_pool.best_label();
         algorithm_formatter.update_solution(solution, ss.str());
+        previous_solution = solution;
+        has_previous_solution = true;
 
         // Update for the next iteration.
-        if (instance.objective() == Objective::BinPacking) {
-            current_number_of_bins = solution.number_of_bins() - 1;
-            if (current_number_of_bins == 0)
-                break;
-        } else if (instance.objective() == Objective::BinPackingWithLeftovers) {
-            BinTypeId bin_type_id_last = instance.bin_type_id(solution.number_of_bins() - 1);
-            const BinType& bin_type_last = instance.bin_type(bin_type_id_last);
-            LengthDbl scale_value = instance.parameters().scale_value;
-            x = 0.99 * (scale_value * solution.x_max() - bin_type_last.aabb_scaled.x_min)
-                + scale_value * bin_type_last.item_bin_minimum_spacing;
-            if (solution.number_of_bins() < current_number_of_bins) {
-                current_number_of_bins = solution.number_of_bins();
-                BinTypeId bin_type_id_new = instance.bin_type_id(current_number_of_bins - 1);
-                const BinType& bin_type_new = instance.bin_type(bin_type_id_new);
-                x = bin_type_new.aabb_scaled.x_max;
-            } else if (!strictly_greater(x, bin_type_last.aabb_scaled.x_min + scale_value * bin_type_last.item_bin_minimum_spacing)) {
-                current_number_of_bins = solution.number_of_bins() - 1;
-                if (current_number_of_bins == 0)
-                    break;
-                BinTypeId bin_type_id_new = instance.bin_type_id(current_number_of_bins - 1);
-                const BinType& bin_type_new = instance.bin_type(bin_type_id_new);
-                x = bin_type_new.aabb_scaled.x_max;
-            }
-        } else if (instance.objective() == Objective::OpenDimensionX) {
-            const BinType& bin_type = instance.bin_type(instance.bin_type_id(0));
-            LengthDbl scale_value = instance.parameters().scale_value;
-            x = 0.99 * (scale_value * solution.x_max() - bin_type.aabb_scaled.x_min)
-                + scale_value * bin_type.item_bin_minimum_spacing;
-        } else if (instance.objective() == Objective::OpenDimensionY) {
-            const BinType& bin_type = instance.bin_type(instance.bin_type_id(0));
-            LengthDbl scale_value = instance.parameters().scale_value;
-            y = 0.99 * (scale_value * solution.y_max() - bin_type.aabb_scaled.y_min)
-                + scale_value * bin_type.item_bin_minimum_spacing;
-        } else {  // OpenDimensionXY
-            const BinType& bin_type = instance.bin_type(instance.bin_type_id(0));
-            LengthDbl scale_value = instance.parameters().scale_value;
-            // The bin must shrink at each iteration, else the same solution
-            // can be found again and again.
-            x = 0.99 * x;
-            x = (std::min)(x, 0.99 * (std::max)(
-                    scale_value * solution.x_max() - bin_type.aabb_scaled.x_min,
-                    scale_value * solution.y_max() - bin_type.aabb_scaled.y_min)
-                + scale_value * bin_type.item_bin_minimum_spacing);
-            AreaDbl a_cur = (solution.x_max() - solution.x_min()) * (solution.y_max() - solution.y_min());
-            LengthDbl x_cur = scale_value * std::sqrt(a_cur / instance.parameters().open_dimension_xy_aspect_ratio);
-            if (x > x_cur)
-                x = x_cur;
-            y = x * instance.parameters().open_dimension_xy_aspect_ratio;
-        }
+        if (compression && time_based_compression)
+            shrink_ratio = time_based_compression_shrink_ratio();
+        if (!update_targets(solution, shrink_ratio))
+            break;
     }
 
     algorithm_formatter.end();
