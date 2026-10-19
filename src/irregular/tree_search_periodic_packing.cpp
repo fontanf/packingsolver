@@ -12,6 +12,8 @@
 
 #include "optimizationtools/containers/indexed_map.hpp"
 
+#include "shape/rectangular_approximation.hpp"
+
 #include <thread>
 #include <forward_list>
 #include <algorithm>
@@ -474,6 +476,67 @@ BranchingSchemePeriodicPacking::BranchingSchemePeriodicPacking(
     const std::vector<std::vector<ItemTypeRotation>>& item_type_rotations
         = all_item_type_rotations[bin_type_id];
     blocks_ = compute_periodic_blocks(instance_, packings, item_type_rotations);
+
+    // Approximate the obstacles by rectangles. The empty spaces span the
+    // bin's full bounding box (see usable_bin_bx()/by()'s comment), which
+    // for a non-rectangular bin shape extends past the shape itself: the
+    // borders -- the parts of that bounding box outside of the shape, built
+    // alongside the defects in InstanceBuilder::build() -- are obstacles
+    // too. The fixed items are placed as in the solution (mirrored, rotated,
+    // then shifted by their 'bl_corner') and inflated by the item-item
+    // spacing.
+    std::vector<shape::OuterApproximationByRectanglesInputShape> obstacles;
+    for (const std::vector<Defect>& defects: {bin_type().defects, bin_type().borders}) {
+        for (const Defect& defect: defects) {
+            shape::OuterApproximationByRectanglesInputShape obstacle;
+            obstacle.shape = defect.shape_inflated;
+            obstacles.push_back(obstacle);
+        }
+    }
+    for (const FixedItem& fixed_item: bin_type().fixed_items) {
+        const ItemType& item_type = instance_.item_type(fixed_item.item_type_id);
+        Point bl_corner = instance_.parameters().scale_value * fixed_item.bl_corner;
+        for (const ItemShape& item_shape: item_type.shapes) {
+            shape::OuterApproximationByRectanglesInputShape obstacle;
+            obstacle.shape = item_shape.shape_inflated;
+            if (fixed_item.mirror)
+                obstacle.shape = obstacle.shape.axial_symmetry_y_axis();
+            obstacle.shape = obstacle.shape.rotate(fixed_item.angle);
+            obstacle.shape.shift(bl_corner.x, bl_corner.y);
+            obstacles.push_back(obstacle);
+        }
+    }
+    if (!obstacles.empty()) {
+        // Same maximum waste as for the shape simplification.
+        AreaDbl total_item_area = 0.0;
+        for (ItemTypeId item_type_id = 0;
+                item_type_id < instance_.number_of_item_types();
+                ++item_type_id) {
+            const ItemType& item_type = instance_.item_type(item_type_id);
+            total_item_area += item_type.copies * item_type.area_scaled;
+        }
+        AreaDbl maximum_waste = parameters_.maximum_approximation_ratio
+            * (std::min)(bin_type().area_scaled, total_item_area);
+        // The extent of a block ends one item-item spacing past its items
+        // (see usable_bin_bx()/by()'s comment): a block on the left of (or
+        // below) an obstacle only needs to end at the obstacle for its items
+        // to be at the required distance. So the left and bottom sides of
+        // the rectangles are moved by one item-item spacing (at most to their
+        // middle, which is enough for the narrower rectangles).
+        LengthDbl item_spacing = instance_.item_spacing_scaled();
+        for (const std::vector<AxisAlignedBoundingBox>& rectangles:
+                shape::outer_approximation_by_rectangles(obstacles, maximum_waste)) {
+            for (AxisAlignedBoundingBox rectangle: rectangles) {
+                rectangle.x_min = (std::min)(
+                        rectangle.x_min + item_spacing,
+                        (rectangle.x_min + rectangle.x_max) / 2);
+                rectangle.y_min = (std::min)(
+                        rectangle.y_min + item_spacing,
+                        (rectangle.y_min + rectangle.y_max) / 2);
+                obstacles_.push_back(rectangle);
+            }
+        }
+    }
 }
 
 LengthDbl BranchingSchemePeriodicPacking::bin_bx() const
@@ -497,46 +560,19 @@ BranchingSchemePeriodicPacking::root() const
     space.bx = bin_bx();
     space.by = bin_by();
     node->empty_spaces.push_back(space);
-    // Cut out defects and borders (approximated by their inflated AABB) from
-    // the initial empty space. 'space' spans the bin's full bounding box
-    // (see usable_bin_bx()/by()'s comment above), which for a non-rectangular
-    // bin shape extends past the shape itself; without cutting out 'borders'
-    // -- the AABB decomposition of that bounding-box-minus-shape area, built
-    // alongside 'defects' in InstanceBuilder::build() -- the search would
-    // treat that area as free space and place items outside the bin.
-    const std::vector<Defect>& defects = bin_type().defects;
-    const std::vector<Defect>& borders = bin_type().borders;
-    for (const std::vector<Defect>& obstacles: {defects, borders}) {
-        for (const Defect& obstacle: obstacles) {
-            AxisAlignedBoundingBox aabb = obstacle.shape_inflated.compute_min_max();
-            cut_spaces(
-                    node->empty_spaces,
-                    {aabb.x_min, aabb.y_min},
-                    aabb.x_max - aabb.x_min,
-                    aabb.y_max - aabb.y_min);
-        }
+    // Cut out the obstacles (defects, borders and fixed items) from the
+    // initial empty space.
+    for (const AxisAlignedBoundingBox& obstacle: obstacles_) {
+        cut_spaces(
+                node->empty_spaces,
+                {obstacle.x_min, obstacle.y_min},
+                obstacle.x_max - obstacle.x_min,
+                obstacle.y_max - obstacle.y_min);
     }
-    // Cut out the fixed items the same way, each shape approximated by the
-    // AABB of its shape inflated by the item-item spacing, placed as in the
-    // solution (mirrored, rotated, then shifted by its 'bl_corner'). The
-    // fixed items are part of every solution: they consume copies of their
-    // item types.
-    const std::vector<FixedItem>& fixed_items = bin_type().fixed_items;
-    for (const FixedItem& fixed_item: fixed_items) {
+    // The fixed items are part of every solution: they consume copies of
+    // their item types.
+    for (const FixedItem& fixed_item: bin_type().fixed_items) {
         const ItemType& item_type = instance_.item_type(fixed_item.item_type_id);
-        Point bl_corner = instance_.parameters().scale_value * fixed_item.bl_corner;
-        for (const ItemShape& item_shape: item_type.shapes) {
-            ShapeWithHoles shape_inflated = item_shape.shape_inflated;
-            if (fixed_item.mirror)
-                shape_inflated = shape_inflated.axial_symmetry_y_axis();
-            shape_inflated = shape_inflated.rotate(fixed_item.angle);
-            AxisAlignedBoundingBox aabb = shape_inflated.compute_min_max();
-            cut_spaces(
-                    node->empty_spaces,
-                    {bl_corner.x + aabb.x_min, bl_corner.y + aabb.y_min},
-                    aabb.x_max - aabb.x_min,
-                    aabb.y_max - aabb.y_min);
-        }
         node->item_number_of_copies[fixed_item.item_type_id]++;
         node->item_area += item_type.area_scaled;
         node->number_of_items++;
@@ -557,7 +593,7 @@ BranchingSchemePeriodicPacking::root() const
         if (feasible)
             node->valid_block_ids.push_back(block_id);
     }
-    if (!defects.empty() || !borders.empty() || !fixed_items.empty())
+    if (!obstacles_.empty())
         remove_unusable_spaces(*node);
     return node;
 }
@@ -1276,6 +1312,7 @@ packingsolver::irregular::tree_search_periodic_packing(
             inner_parameters.optimization_mode = parameters.optimization_mode;
             inner_parameters.not_anytime_tree_search_queue_size
                 = parameters.not_anytime_tree_search_queue_size;
+            inner_parameters.maximum_approximation_ratio = parameters.maximum_approximation_ratio;
             return tree_search_periodic_packing(sub_instance, inner_parameters).solution_pool;
         };
 
@@ -1319,6 +1356,7 @@ packingsolver::irregular::tree_search_periodic_packing(
     std::vector<std::unique_ptr<AlgorithmFormatter>> local_algorithm_formatters;
     {
         BranchingSchemePeriodicPacking::Parameters branching_scheme_parameters;
+        branching_scheme_parameters.maximum_approximation_ratio = parameters.maximum_approximation_ratio;
         branching_schemes.push_back(BranchingSchemePeriodicPacking(
                 instance, branching_scheme_parameters));
         if (branching_schemes.back().empty()) {

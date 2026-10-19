@@ -147,8 +147,27 @@ INSTANTIATE_TEST_SUITE_P(
                 // filling the middle strip x in [5,10) without touching each
                 // other, whose AABBs overlap ([5,9] and [6,10]), and a 10x10
                 // item with 2 copies. Like defects, the fixed items are cut
-                // out of the empty spaces: only 1 of the 2 copies fits, at
-                // (10,0), and the fixed items must be in the solution.
+                // out of the empty spaces (approximated by rectangles): only
+                // 1 of the 2 copies fits, at (10,0), and the fixed items must
+                // be in the solution.
                 fs::path("data") / "irregular" / "tests" / "knapsack_fixed_items_overlapping_aabbs.json",
                 fs::path("data") / "irregular" / "tests" / "knapsack_fixed_items_overlapping_aabbs_solution.json"
+            }, {
+                // Fixed item with a hole (#720): a 100x60 frame with an 80x40
+                // hole, fixed at (0,0) in a 100x60 bin, and a 10x10 item with
+                // 40 copies. The fixed items are approximated by rectangles
+                // instead of their AABB, which would cover the whole bin: the
+                // frame is covered exactly by 4 rectangles, and 32 copies fit
+                // in its hole.
+                fs::path("data") / "irregular" / "tests" / "knapsack_fixed_item_with_hole.json",
+                fs::path("data") / "irregular" / "tests" / "knapsack_fixed_item_with_hole_solution.json"
+            }, {
+                // Same with an item-item spacing of 2: a 100x58 frame with an
+                // 80x38 hole, which leaves a 76x34 free space once the frame
+                // is inflated by the spacing. 3 rows of 10x10 items, 2 apart,
+                // are exactly 34 high, but the extent of a block ends one
+                // spacing past its items: the obstacles must give it back,
+                // otherwise only 2 rows fit. 6 x 3 = 18 copies fit.
+                fs::path("data") / "irregular" / "tests" / "knapsack_fixed_item_with_hole_spacing.json",
+                fs::path("data") / "irregular" / "tests" / "knapsack_fixed_item_with_hole_spacing_solution.json"
             }}));
