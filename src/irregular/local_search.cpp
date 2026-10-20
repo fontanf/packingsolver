@@ -490,10 +490,10 @@ bool is_feasible(const Solution& solution)
  * Feasibility.
  *
  * Population-based iterated local search, generalizing the exploration phase
- * of Sparrow at a fixed bin size: the layout is separated; after a failure,
- * the layout is added to the population, and the next separation starts from
- * a disruption of a layout of the population. It is given up early if its loss
- * doesn't get below the loss of this layout.
+ * of Sparrow at a fixed bin size: the initial layout is separated; then, while
+ * the separations fail, their layouts are added to a population, and the next
+ * separation starts from a disruption of a layout drawn from the population.
+ * It is given up early if its loss doesn't get below the loss of this layout.
  */
 void local_search_direct_trigonometry(
         const Instance& instance,
@@ -515,8 +515,7 @@ void local_search_direct_trigonometry(
         separator.set_solution(Solution(instance), parameters.timer);
     }
 
-    // Layouts of the failed separations: in a population, and sorted by
-    // increasing loss.
+    // Layouts of the failed separations.
     struct FailedLayout
     {
         std::vector<Separator::ItemState> layout;
@@ -542,73 +541,59 @@ void local_search_direct_trigonometry(
                         failed_layout_2.layout);
             },
             population_parameters);
-    std::vector<FailedLayout> sorted_failed_layouts;
 
-    std::normal_distribution<double> normal_distribution(0.0, 0.25);
-    // Loss of the failed layout the separation starts from, before its
-    // disruption.
-    double reference_loss = std::numeric_limits<double>::infinity();
-    for (Counter number_of_failed_separations = 0;;) {
-        if (algorithm_formatter.end_boolean() || parameters.timer.needs_to_end())
-            return;
-
-        // More effort for the separation of the initial layout.
-        bool initial_separation = (number_of_failed_separations == 0);
-        if (initial_separation) {
-            separator.set_stopping_criteria(
-                    (parameters.initial_separation_maximum_number_of_iterations_without_improvement != -1)?
-                    parameters.initial_separation_maximum_number_of_iterations_without_improvement:
-                    parameters.separator_parameters.maximum_number_of_iterations_without_improvement,
-                    (parameters.initial_separation_maximum_number_of_strikes != -1)?
-                    parameters.initial_separation_maximum_number_of_strikes:
-                    parameters.separator_parameters.maximum_number_of_strikes);
-        }
-        bool separated = separator.separate(parameters.timer, reference_loss);
-        if (initial_separation) {
-            separator.set_stopping_criteria(
-                    parameters.separator_parameters.maximum_number_of_iterations_without_improvement,
-                    parameters.separator_parameters.maximum_number_of_strikes);
-        }
+    // If the last separation succeeded, return true and report the solution.
+    // Otherwise, add its layout to the population.
+    auto process_separation = [&separator, &algorithm_formatter, &population, &generator](
+            bool separated)
+    {
         if (separated) {
             Solution solution = separator.solution();
             if (is_feasible(solution)) {
                 algorithm_formatter.update_solution(solution, "LS");
-                return;
+                return true;
             }
         }
-
         FailedLayout failed_layout = {separator.layout(), separator.total_loss()};
         population.add(failed_layout, generator);
-        sorted_failed_layouts.insert(
-                std::upper_bound(
-                    sorted_failed_layouts.begin(),
-                    sorted_failed_layouts.end(),
-                    failed_layout,
-                    [](const FailedLayout& failed_layout_1, const FailedLayout& failed_layout_2)
-                    {
-                        return failed_layout_1.loss < failed_layout_2.loss;
-                    }),
-                failed_layout);
-        number_of_failed_separations++;
-        if (parameters.maximum_number_of_failed_separations != -1
-                && number_of_failed_separations >= parameters.maximum_number_of_failed_separations) {
-            return;
-        }
+        return false;
+    };
 
-        // Disrupt the selected layout.
-        if (parameters.restart_selection == RestartSelection::Population) {
-            // Binary tournament in the population.
-            FailedLayout selected_layout = population.binary_tournament_single(generator);
-            separator.set_layout(selected_layout.layout);
-            reference_loss = selected_layout.loss;
-        } else {
-            // A layout with a small loss (selection of Sparrow).
-            double sample = (std::min)(std::abs(normal_distribution(generator)), 0.999);
-            Counter failed_layout_pos = (Counter)(sample * sorted_failed_layouts.size());
-            separator.set_layout(sorted_failed_layouts[failed_layout_pos].layout);
-            reference_loss = sorted_failed_layouts[failed_layout_pos].loss;
-        }
+    // Separation of the initial layout, with more effort.
+    if (algorithm_formatter.end_boolean() || parameters.timer.needs_to_end())
+        return;
+    separator.set_stopping_criteria(
+            (parameters.initial_separation_maximum_number_of_iterations_without_improvement != -1)?
+            parameters.initial_separation_maximum_number_of_iterations_without_improvement:
+            parameters.separator_parameters.maximum_number_of_iterations_without_improvement,
+            (parameters.initial_separation_maximum_number_of_strikes != -1)?
+            parameters.initial_separation_maximum_number_of_strikes:
+            parameters.separator_parameters.maximum_number_of_strikes);
+    bool separated = separator.separate(parameters.timer);
+    separator.set_stopping_criteria(
+            parameters.separator_parameters.maximum_number_of_iterations_without_improvement,
+            parameters.separator_parameters.maximum_number_of_strikes);
+    if (process_separation(separated))
+        return;
+
+    for (Counter number_of_failed_separations = 1;
+            parameters.maximum_number_of_failed_separations == -1
+            || number_of_failed_separations < parameters.maximum_number_of_failed_separations;
+            ++number_of_failed_separations) {
+        if (algorithm_formatter.end_boolean() || parameters.timer.needs_to_end())
+            return;
+
+        // Draw a failed layout from the population (binary tournament) and
+        // disrupt it.
+        FailedLayout selected_layout = population.binary_tournament_single(generator);
+        separator.set_layout(selected_layout.layout);
         separator.disrupt();
+
+        // Separate it; the separation is given up early if its loss doesn't
+        // get below the loss of the drawn layout.
+        separated = separator.separate(parameters.timer, selected_layout.loss);
+        if (process_separation(separated))
+            return;
     }
 }
 
@@ -726,7 +711,6 @@ LocalSearchOutput packingsolver::irregular::local_search(
                 = parameters.initial_separation_maximum_number_of_strikes;
             inner_parameters.maximum_number_of_failed_separations
                 = parameters.maximum_number_of_failed_separations;
-            inner_parameters.restart_selection = parameters.restart_selection;
             inner_parameters.population_minimum_size = parameters.population_minimum_size;
             inner_parameters.population_maximum_size = parameters.population_maximum_size;
             inner_parameters.population_number_of_elite_solutions
