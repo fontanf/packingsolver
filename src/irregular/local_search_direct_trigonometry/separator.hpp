@@ -28,6 +28,7 @@
 
 #include "optimizationtools/utils/timer.hpp"
 
+#include <limits>
 #include <memory>
 #include <random>
 
@@ -52,6 +53,13 @@ struct SeparatorParameters
      * improvement.
      */
     Counter maximum_number_of_strikes = 3;
+
+    /**
+     * Maximum number of consecutive separation attempts without substantial
+     * improvement while the loss isn't smaller than the reference loss (see
+     * 'Separator::separate').
+     */
+    Counter maximum_number_of_strikes_above_reference = 1;
 
     /** Number of samples in the whole bins, for a move. */
     Counter number_of_container_samples = 50;
@@ -185,8 +193,29 @@ public:
      *
      * Return true iff successful. In any case, the current layout is the one
      * with the smallest loss found.
+     *
+     * While the smallest loss found isn't smaller than 'reference_loss', the
+     * separation stops after
+     * 'SeparatorParameters::maximum_number_of_strikes_above_reference'
+     * strikes instead of 'SeparatorParameters::maximum_number_of_strikes'.
      */
-    bool separate(const optimizationtools::Timer& timer);
+    bool separate(
+            const optimizationtools::Timer& timer,
+            double reference_loss = std::numeric_limits<double>::infinity());
+
+    /**
+     * Set the stopping criteria of the next separations
+     * ('SeparatorParameters::maximum_number_of_iterations_without_improvement'
+     * and 'SeparatorParameters::maximum_number_of_strikes').
+     */
+    void set_stopping_criteria(
+            Counter maximum_number_of_iterations_without_improvement,
+            Counter maximum_number_of_strikes)
+    {
+        parameters_.maximum_number_of_iterations_without_improvement
+            = maximum_number_of_iterations_without_improvement;
+        parameters_.maximum_number_of_strikes = maximum_number_of_strikes;
+    }
 
     /** Get the total (unweighted) collision loss of the current layout. */
     double total_loss() const;

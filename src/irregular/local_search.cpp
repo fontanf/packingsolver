@@ -14,6 +14,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include <map>
 #include <tuple>
 #include <random>
@@ -491,7 +492,8 @@ bool is_feasible(const Solution& solution)
  * Population-based iterated local search, generalizing the exploration phase
  * of Sparrow at a fixed bin size: the layout is separated; after a failure,
  * the layout is added to the population, and the next separation starts from
- * a disruption of a layout of the population.
+ * a disruption of a layout of the population. It is given up early if its loss
+ * doesn't get below the loss of this layout.
  */
 void local_search_direct_trigonometry(
         const Instance& instance,
@@ -543,10 +545,31 @@ void local_search_direct_trigonometry(
     std::vector<FailedLayout> sorted_failed_layouts;
 
     std::normal_distribution<double> normal_distribution(0.0, 0.25);
+    // Loss of the failed layout the separation starts from, before its
+    // disruption.
+    double reference_loss = std::numeric_limits<double>::infinity();
     for (Counter number_of_failed_separations = 0;;) {
         if (algorithm_formatter.end_boolean() || parameters.timer.needs_to_end())
             return;
-        if (separator.separate(parameters.timer)) {
+
+        // More effort for the separation of the initial layout.
+        bool initial_separation = (number_of_failed_separations == 0);
+        if (initial_separation) {
+            separator.set_stopping_criteria(
+                    (parameters.initial_separation_maximum_number_of_iterations_without_improvement != -1)?
+                    parameters.initial_separation_maximum_number_of_iterations_without_improvement:
+                    parameters.separator_parameters.maximum_number_of_iterations_without_improvement,
+                    (parameters.initial_separation_maximum_number_of_strikes != -1)?
+                    parameters.initial_separation_maximum_number_of_strikes:
+                    parameters.separator_parameters.maximum_number_of_strikes);
+        }
+        bool separated = separator.separate(parameters.timer, reference_loss);
+        if (initial_separation) {
+            separator.set_stopping_criteria(
+                    parameters.separator_parameters.maximum_number_of_iterations_without_improvement,
+                    parameters.separator_parameters.maximum_number_of_strikes);
+        }
+        if (separated) {
             Solution solution = separator.solution();
             if (is_feasible(solution)) {
                 algorithm_formatter.update_solution(solution, "LS");
@@ -567,18 +590,23 @@ void local_search_direct_trigonometry(
                     }),
                 failed_layout);
         number_of_failed_separations++;
-        if (number_of_failed_separations >= parameters.maximum_number_of_failed_separations)
+        if (parameters.maximum_number_of_failed_separations != -1
+                && number_of_failed_separations >= parameters.maximum_number_of_failed_separations) {
             return;
+        }
 
         // Disrupt the selected layout.
         if (parameters.restart_selection == RestartSelection::Population) {
             // Binary tournament in the population.
-            separator.set_layout(population.binary_tournament_single(generator).layout);
+            FailedLayout selected_layout = population.binary_tournament_single(generator);
+            separator.set_layout(selected_layout.layout);
+            reference_loss = selected_layout.loss;
         } else {
             // A layout with a small loss (selection of Sparrow).
             double sample = (std::min)(std::abs(normal_distribution(generator)), 0.999);
             Counter failed_layout_pos = (Counter)(sample * sorted_failed_layouts.size());
             separator.set_layout(sorted_failed_layouts[failed_layout_pos].layout);
+            reference_loss = sorted_failed_layouts[failed_layout_pos].loss;
         }
         separator.disrupt();
     }
@@ -680,11 +708,7 @@ LocalSearchOutput packingsolver::irregular::local_search(
                     parameters.separator_parameters);
         }
 
-        // The sequential feasibility algorithm only goes on after a
-        // sub-problem without feasible solution during the compression: then,
-        // each sub-problem is a single, more persistent, separation attempt.
-        bool compression = false;
-        SequentialFeasibilitySolver solver = [&parameters, &algorithm_formatter, &generator, &compression, initial_solution, separator_item_types](
+        SequentialFeasibilitySolver solver = [&parameters, &algorithm_formatter, &generator, initial_solution, separator_item_types](
                 const Instance& sub_instance,
                 const Solution* previous_solution)
         {
@@ -694,13 +718,15 @@ LocalSearchOutput packingsolver::irregular::local_search(
             inner_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
             inner_parameters.engine = parameters.engine;
             inner_parameters.shrink_ratio = parameters.shrink_ratio;
-            inner_parameters.compression = parameters.compression;
-            inner_parameters.exploration_time_ratio = parameters.exploration_time_ratio;
             inner_parameters.separator_parameters = parameters.separator_parameters;
             inner_parameters.separator_item_types = separator_item_types;
-            inner_parameters.restart_selection = parameters.restart_selection;
+            inner_parameters.initial_separation_maximum_number_of_iterations_without_improvement
+                = parameters.initial_separation_maximum_number_of_iterations_without_improvement;
+            inner_parameters.initial_separation_maximum_number_of_strikes
+                = parameters.initial_separation_maximum_number_of_strikes;
             inner_parameters.maximum_number_of_failed_separations
                 = parameters.maximum_number_of_failed_separations;
+            inner_parameters.restart_selection = parameters.restart_selection;
             inner_parameters.population_minimum_size = parameters.population_minimum_size;
             inner_parameters.population_maximum_size = parameters.population_maximum_size;
             inner_parameters.population_number_of_elite_solutions
@@ -709,36 +735,18 @@ LocalSearchOutput packingsolver::irregular::local_search(
                 = parameters.population_number_of_closest_neighbors;
             inner_parameters.maximum_number_of_iterations_without_improvement
                 = parameters.maximum_number_of_iterations_without_improvement;
-            if (!compression && !std::isinf(parameters.timer.time_limit())) {
-                // Exploration: go on until the end of the exploration.
-                inner_parameters.timer.set_time_limit(
-                        parameters.exploration_time_ratio * parameters.timer.time_limit());
-                inner_parameters.maximum_number_of_failed_separations
-                    = std::numeric_limits<Counter>::max();
-            }
-            if (compression) {
-                inner_parameters.maximum_number_of_failed_separations
-                    = parameters.compression_maximum_number_of_failed_separations;
-                inner_parameters.separator_parameters = parameters.compression_separator_parameters;
-                inner_parameters.separator_parameters.maximum_approximation_ratio
-                    = parameters.separator_parameters.maximum_approximation_ratio;
-            }
             // The first sub-problem has no previous solution: warm start it
             // from the initial solution.
-            SolutionPool<Instance, Solution> solution_pool = local_search(
+            return local_search(
                     sub_instance,
                     generator,
                     (previous_solution != nullptr)? previous_solution: initial_solution,
                     inner_parameters).solution_pool;
-            if (!solution_pool.best().feasible())
-                compression = true;
-            return solution_pool;
         };
 
         SequentialFeasibilityParameters sf_parameters;
         sf_parameters.verbosity_level = 0;
         sf_parameters.shrink_ratio = parameters.shrink_ratio;
-        sf_parameters.compression = parameters.compression;
         sf_parameters.timer = parameters.timer;
         sf_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
         sf_parameters.new_solution_callback = [&algorithm_formatter](

@@ -266,9 +266,20 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
 
     /**
      * Maximum number of iterations without improvement when the local search
-     * packs an item, after which the item is considered not to fit.
+     * with the linear programming engine packs an item, after which the item
+     * is considered not to fit.
      */
     Counter not_anytime_local_search_maximum_number_of_iterations_without_improvement = 100;
+
+    /**
+     * Maximum number of failed separations of the local search with the
+     * direct trigonometry engine, after which a sub-problem is considered
+     * infeasible.
+     *
+     * In 'Anytime' mode, there is no limit: the local search only stops with
+     * the timer.
+     */
+    Counter not_anytime_local_search_maximum_number_of_failed_separations = 10;
 
     /**
      * Size of the queue in the bin packing subproblem of the dichotomic search

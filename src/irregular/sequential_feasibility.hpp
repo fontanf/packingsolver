@@ -58,30 +58,6 @@ struct SequentialFeasibilityParameters: packingsolver::Parameters<Instance, Solu
      * shrunk to build the next sub-problem.
      */
     double shrink_ratio = 0.01;
-
-    /**
-     * Enable the compression: after a sub-problem without feasible solution,
-     * instead of stopping, the best solution found is shrunk by a smaller
-     * ratio, starting from half of 'shrink_ratio':
-     * - if the timer has a time limit, the ratio decreases linearly with the
-     *   elapsed time, down to 'compression_minimum_shrink_ratio' at the time
-     *   limit (compression phase of Sparrow);
-     * - otherwise, it is multiplied by 'compression_shrink_ratio_decay' after
-     *   each failure, until it gets below 'compression_minimum_shrink_ratio'.
-     *
-     * Not available for objective BinPacking, whose number of bins can't be
-     * shrunk by a small ratio.
-     */
-    bool compression = false;
-
-    /**
-     * Decay of the shrink ratio after each failure during the compression,
-     * without time limit.
-     */
-    double compression_shrink_ratio_decay = 0.9;
-
-    /** Minimum shrink ratio of the compression. */
-    double compression_minimum_shrink_ratio = 1e-5;
 };
 
 SequentialFeasibilityOutput sequential_feasibility(
