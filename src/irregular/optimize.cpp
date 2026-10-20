@@ -698,10 +698,27 @@ void optimize_milp_raster(
 }
 
 /**
+ * Area of the bin of a single-bin instance which is left for the items to
+ * place: its area minus the areas of its fixed items and of its defects
+ * (approximate if defects overlap each other or go out of the bin).
+ */
+AreaDbl bin_free_area(const Instance& instance)
+{
+    const BinType& bin_type = instance.bin_type(0);
+    AreaDbl free_area = bin_type.space();
+    for (const FixedItem& fixed_item: bin_type.fixed_items)
+        free_area -= instance.item_type(fixed_item.item_type_id).space();
+    for (const Defect& defect: bin_type.defects)
+        free_area -= defect.shape_orig.compute_area();
+    return (std::max)(free_area, 0.0);
+}
+
+/**
  * Estimate the maximum number of items that could fit in the (single) bin
  * of the instance, using only their areas: sort item types by increasing
  * item area and greedily count copies (smallest items first) until their
- * cumulative area reaches the bin's area.
+ * cumulative area reaches the bin's free area (see 'bin_free_area'). Only
+ * the copies which are not fixed are counted.
  */
 ItemPos max_number_of_items_in_bin(const Instance& instance)
 {
@@ -710,11 +727,13 @@ ItemPos max_number_of_items_in_bin(const Instance& instance)
             item_type_id < instance.number_of_item_types();
             ++item_type_id) {
         const ItemType& item_type = instance.item_type(item_type_id);
-        items_by_area.push_back({item_type.space(), item_type.copies});
+        ItemPos copies = item_type.copies - item_type.copies_fixed;
+        if (copies > 0)
+            items_by_area.push_back({item_type.space(), copies});
     }
     std::sort(items_by_area.begin(), items_by_area.end());
 
-    AreaDbl bin_area = instance.bin_type(0).space();
+    AreaDbl bin_area = bin_free_area(instance);
     AreaDbl cumulative_area = 0.0;
     ItemPos number_of_items = 0;
     for (const auto& p: items_by_area) {
@@ -893,20 +912,22 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
                 && !use_milp_raster) {
             // tree_search_periodic_packing is worth running when the
             // instance is dominated by item types with many copies: either
-            // these alone already exceed the bin's area (so a periodic
+            // these alone already exceed the bin's free area (so a periodic
             // tiling of them is going to be needed regardless of the other
             // item types), or they make up the entire instance (no other
-            // item type contributes any area).
-            AreaDbl bin_area = instance.bin_type(0).space();
+            // item type contributes any area). The fixed items and the
+            // defects are not counted: they leave less area to fill.
+            AreaDbl bin_area = bin_free_area(instance);
             AreaDbl high_copies_area = 0.0;
             AreaDbl total_item_area = 0.0;
             for (ItemTypeId item_type_id = 0;
                     item_type_id < instance.number_of_item_types();
                     ++item_type_id) {
                 const ItemType& item_type = instance.item_type(item_type_id);
-                AreaDbl item_type_area = item_type.copies * item_type.space();
+                ItemPos copies = item_type.copies - item_type.copies_fixed;
+                AreaDbl item_type_area = copies * item_type.space();
                 total_item_area += item_type_area;
-                if (item_type.copies > parameters.periodic_packing_copies_threshold)
+                if (copies > parameters.periodic_packing_copies_threshold)
                     high_copies_area += item_type_area;
             }
             bool periodic_packing_runnable
