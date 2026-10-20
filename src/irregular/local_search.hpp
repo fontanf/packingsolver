@@ -18,25 +18,6 @@ namespace packingsolver
 namespace irregular
 {
 
-/**
- * Rule selecting the layout from which a separation restarts after a failed
- * one.
- */
-enum class RestartSelection
-{
-    /**
-     * Binary tournament in the population of the failed layouts, whose
-     * fitness combines their loss and their contribution to the diversity.
-     */
-    Population,
-
-    /**
-     * A failed layout with a small loss (selection of Sparrow: the rank of
-     * the layout, by increasing loss, follows a half-normal distribution).
-     */
-    LowestLoss,
-};
-
 /** Engine of the local search for objective Feasibility. */
 enum class LocalSearchEngine
 {
@@ -115,16 +96,14 @@ struct LocalSearchParameters: packingsolver::Parameters<Instance, Solution, Outp
      * considered infeasible.
      *
      * After a failed separation, the next one starts from a disruption of a
-     * failed layout, selected by 'restart_selection'. It is given up early if
-     * its loss doesn't get below the loss of this failed layout (see
+     * failed layout, selected by binary tournament in a population. It is
+     * given up early if its loss doesn't get below the loss of this failed
+     * layout (see
      * 'SeparatorParameters::maximum_number_of_strikes_above_reference').
      *
      * -1 means no limit: the search only stops with the timer.
      */
     Counter maximum_number_of_failed_separations = 10;
-
-    /** Rule selecting the failed layout from which a separation restarts. */
-    RestartSelection restart_selection = RestartSelection::Population;
 
     /** Minimum size of the population. */
     Counter population_minimum_size = 4;
