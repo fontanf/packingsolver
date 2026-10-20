@@ -1559,7 +1559,9 @@ void Separator::move_items_workers(const optimizationtools::Timer& timer)
     copy_state(*workers_[best_worker_pos]);
 }
 
-bool Separator::separate(const optimizationtools::Timer& timer)
+bool Separator::separate(
+        const optimizationtools::Timer& timer,
+        double reference_loss)
 {
     // Algorithm 9 of the Sparrow paper.
     struct Snapshot
@@ -1603,8 +1605,14 @@ bool Separator::separate(const optimizationtools::Timer& timer)
         return true;
     Snapshot best = save();
     Counter number_of_strikes = 0;
-    while (number_of_strikes < parameters_.maximum_number_of_strikes
-            && !timer.needs_to_end()) {
+    for (;;) {
+        Counter maximum_number_of_strikes = (minimum_loss < reference_loss)?
+            parameters_.maximum_number_of_strikes:
+            parameters_.maximum_number_of_strikes_above_reference;
+        if (number_of_strikes >= maximum_number_of_strikes
+                || timer.needs_to_end()) {
+            break;
+        }
         Counter number_of_iterations_without_improvement = 0;
         double initial_loss = total_loss();
         while (number_of_iterations_without_improvement

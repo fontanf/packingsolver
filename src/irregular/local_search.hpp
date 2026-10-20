@@ -19,18 +19,6 @@ namespace irregular
 {
 
 /**
- * Default parameters of the separator for the sub-problems of the compression:
- * more persistent separations (compression phase of Sparrow).
- */
-inline SeparatorParameters default_compression_separator_parameters()
-{
-    SeparatorParameters parameters;
-    parameters.maximum_number_of_iterations_without_improvement = 100;
-    parameters.maximum_number_of_strikes = 5;
-    return parameters;
-}
-
-/**
  * Rule selecting the layout from which a separation restarts after a failed
  * one.
  */
@@ -87,31 +75,6 @@ struct LocalSearchParameters: packingsolver::Parameters<Instance, Solution, Outp
     /** Shrink ratio (see 'SequentialFeasibilityParameters'). */
     double shrink_ratio = 0.001;
 
-    /** Enable the compression (see 'SequentialFeasibilityParameters'). */
-    bool compression = true;
-
-    /**
-     * Proportion of the time limit given to the exploration (exploration phase
-     * of Sparrow), if there is a time limit.
-     *
-     * Before the first sub-problem without feasible solution, a sub-problem
-     * is only given up at the end of the exploration: until then, the failed
-     * separations go on, from disruptions of the layouts of the population.
-     * Without time limit, a sub-problem is given up after
-     * 'maximum_number_of_failed_separations' failed separations.
-     */
-    double exploration_time_ratio = 0.8;
-
-    /**
-     * Maximum number of failed separations of the sub-problems of the
-     * compression (the sub-problems following a sub-problem without feasible
-     * solution).
-     */
-    Counter compression_maximum_number_of_failed_separations = 1;
-
-    /** Parameters of the separator for the sub-problems of the compression. */
-    SeparatorParameters compression_separator_parameters = default_compression_separator_parameters();
-
     /*
      * Parameters of the direct trigonometry engine.
      */
@@ -130,11 +93,33 @@ struct LocalSearchParameters: packingsolver::Parameters<Instance, Solution, Outp
     std::shared_ptr<const Separator::ItemTypes> separator_item_types;
 
     /**
+     * Maximum number of iterations without improvement of the separation of
+     * the initial layout.
+     *
+     * -1 means the one of 'separator_parameters'.
+     */
+    Counter initial_separation_maximum_number_of_iterations_without_improvement = -1;
+
+    /**
+     * Maximum number of strikes of the separation of the initial layout.
+     *
+     * The initial layout, built from the initial solution, is separated with
+     * more effort than the disruptions of the failed layouts.
+     *
+     * -1 means the one of 'separator_parameters'.
+     */
+    Counter initial_separation_maximum_number_of_strikes = 10;
+
+    /**
      * Maximum number of failed separations, after which the instance is
      * considered infeasible.
      *
      * After a failed separation, the next one starts from a disruption of a
-     * failed layout, selected by 'restart_selection'.
+     * failed layout, selected by 'restart_selection'. It is given up early if
+     * its loss doesn't get below the loss of this failed layout (see
+     * 'SeparatorParameters::maximum_number_of_strikes_above_reference').
+     *
+     * -1 means no limit: the search only stops with the timer.
      */
     Counter maximum_number_of_failed_separations = 10;
 

@@ -174,55 +174,6 @@ TEST(IrregularSequentialFeasibility, WarmStartBinPacking)
     EXPECT_EQ(solver_calls[1].initial_solution_item_xs.size(), 3);
 }
 
-TEST(IrregularSequentialFeasibility, Compression)
-{
-    // The mock solver packs the three items side by side (length 30) in the
-    // first sub-problem, then fails. With the compression, the next
-    // sub-problems shrink the best solution by smaller and smaller ratios
-    // (half of the shrink ratio, then multiplied by 0.9), warm-started from
-    // the best solution.
-    Instance instance = build_open_dimension_x_instance();
-
-    std::vector<SolverCall> solver_calls;
-    SequentialFeasibilitySolver solver = [&instance, &solver_calls](
-            const Instance& sub_instance,
-            const Solution* initial_solution)
-    {
-        solver_calls.push_back(record_call(instance, sub_instance, initial_solution));
-        SolutionPool<Instance, Solution> solution_pool(sub_instance, 1);
-        if (solver_calls.size() == 1) {
-            SolutionBuilder solution_builder(sub_instance);
-            BinPos bin_pos = solution_builder.add_bin(0, 1);
-            for (LengthDbl x: {0.0, 10.0, 20.0})
-                solution_builder.add_item(bin_pos, 0, {x, 0}, 0, false);
-            solution_pool.add(solution_builder.build(), "mock");
-        }
-        return solution_pool;
-    };
-
-    SequentialFeasibilityParameters parameters;
-    parameters.verbosity_level = 0;
-    parameters.compression = true;
-    SequentialFeasibilityOutput output = sequential_feasibility(
-            instance,
-            solver,
-            parameters);
-
-    ASSERT_GE(solver_calls.size(), 4);
-    EXPECT_NEAR(solver_calls[1].bin_x_max, 30 * (1 - 0.01), 1e-6);
-    EXPECT_NEAR(solver_calls[2].bin_x_max, 30 * (1 - 0.005), 1e-6);
-    EXPECT_NEAR(solver_calls[3].bin_x_max, 30 * (1 - 0.0045), 1e-6);
-    for (Counter call_pos = 1; call_pos < (Counter)solver_calls.size(); ++call_pos) {
-        ASSERT_TRUE(solver_calls[call_pos].has_initial_solution);
-        EXPECT_EQ(
-                solver_calls[call_pos].initial_solution_item_xs,
-                std::vector<LengthDbl>({0.0, 10.0, 20.0}));
-    }
-    // The compression stops once the ratio gets below the minimum.
-    EXPECT_LT(solver_calls.size(), 100);
-    EXPECT_NEAR(output.solution_pool.best().x_max(), 30, 1e-6);
-}
-
 TEST(IrregularSequentialFeasibility, BinPackingWithLeftoversRestrictsLastBin)
 {
     // Three 30x10 bins, four 10x10 items. The mock solver packs three items in

@@ -547,6 +547,9 @@ def test_parameters():
     assert parameters.not_anytime_local_search_maximum_number_of_iterations_without_improvement == 100
     parameters.not_anytime_local_search_maximum_number_of_iterations_without_improvement = 10
     assert parameters.not_anytime_local_search_maximum_number_of_iterations_without_improvement == 10
+    assert parameters.not_anytime_local_search_maximum_number_of_failed_separations == 10
+    parameters.not_anytime_local_search_maximum_number_of_failed_separations = 5
+    assert parameters.not_anytime_local_search_maximum_number_of_failed_separations == 5
     parameters.initial_maximum_approximation_ratio = 0.1
     assert parameters.initial_maximum_approximation_ratio == pytest.approx(0.1)
     parameters.reduction_parameters.reduce = False

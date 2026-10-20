@@ -320,6 +320,8 @@ void optimize_tree_search(
         last_bin_parameters.not_anytime_tree_search_queue_size = parameters.not_anytime_tree_search_queue_size;
         last_bin_parameters.not_anytime_local_search_maximum_number_of_iterations_without_improvement
             = parameters.not_anytime_local_search_maximum_number_of_iterations_without_improvement;
+        last_bin_parameters.not_anytime_local_search_maximum_number_of_failed_separations
+            = parameters.not_anytime_local_search_maximum_number_of_failed_separations;
         last_bin_parameters.tree_search_guides = {2, 3};
         last_bin_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
         // Respect the caller's explicit algorithm selection (if any), rather
@@ -369,10 +371,16 @@ void optimize_local_search(
     ls_parameters.engine = engine;
     ls_parameters.verbosity_level = 0;
     ls_parameters.timer = parameters.timer;
-    if (parameters.optimization_mode != OptimizationMode::Anytime) {
+    if (parameters.optimization_mode == OptimizationMode::Anytime) {
+        ls_parameters.maximum_number_of_failed_separations = -1;
+    } else {
         ls_parameters.maximum_number_of_iterations_without_improvement
             = parameters.not_anytime_local_search_maximum_number_of_iterations_without_improvement;
+        ls_parameters.maximum_number_of_failed_separations
+            = parameters.not_anytime_local_search_maximum_number_of_failed_separations;
     }
+    if (parameters.optimization_mode == OptimizationMode::NotAnytimeSequential)
+        ls_parameters.separator_parameters.number_of_workers = 1;
     ls_parameters.new_solution_callback = [&algorithm_formatter, engine](
             const irregular::Output& ps_output)
     {

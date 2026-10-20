@@ -238,10 +238,6 @@ SequentialFeasibilityOutput packingsolver::irregular::sequential_feasibility(
     LengthDbl x = 0;
     LengthDbl y = 0;
 
-    // Targets of the sub-problem in which the best solution has been found.
-    LengthDbl x_best = 0;
-    LengthDbl y_best = 0;
-    BinPos number_of_bins_best = 0;
     if (instance.objective() == Objective::BinPacking) {
         AreaDbl total_bin_aabb_area = 0;
         for (BinTypeId bin_type_id = 0;
@@ -294,8 +290,6 @@ SequentialFeasibilityOutput packingsolver::irregular::sequential_feasibility(
         algorithm_formatter.update_solution(column_packing.solution, "SF columns");
         previous_solution = column_packing.solution;
         has_previous_solution = true;
-        x_best = column_packing.x_max;
-        y_best = x_best * instance.parameters().open_dimension_xy_aspect_ratio;
         x = (1 - parameters.shrink_ratio) * column_packing.x_max;
         y = x * instance.parameters().open_dimension_xy_aspect_ratio;
     }
@@ -303,9 +297,9 @@ SequentialFeasibilityOutput packingsolver::irregular::sequential_feasibility(
     // Update the open dimension variable(s) and/or bin count from a solution
     // found, shrinking them by 'shrink_ratio'. Return false if there is
     // nothing left to try.
-    auto update_targets = [&instance, &current_number_of_bins, &x, &y](
-            const Solution& solution,
-            double shrink_ratio)
+    const double shrink_ratio = parameters.shrink_ratio;
+    auto update_targets = [&instance, &current_number_of_bins, &x, &y, shrink_ratio](
+            const Solution& solution)
     {
         if (instance.objective() == Objective::BinPacking) {
             current_number_of_bins = solution.number_of_bins() - 1;
@@ -357,25 +351,6 @@ SequentialFeasibilityOutput packingsolver::irregular::sequential_feasibility(
             y = x * instance.parameters().open_dimension_xy_aspect_ratio;
         }
         return true;
-    };
-
-    // Shrink ratio; it decreases during the compression.
-    double shrink_ratio = parameters.shrink_ratio;
-    bool compression = false;
-    double compression_start_time = 0.0;
-    const double time_limit = parameters.timer.time_limit();
-    const bool time_based_compression = !std::isinf(time_limit);
-    // Shrink ratio of the compression when it depends on the time: it
-    // decreases linearly from half of the shrink ratio to the minimum shrink
-    // ratio at the time limit.
-    auto time_based_compression_shrink_ratio = [&parameters, &compression_start_time, time_limit]()
-    {
-        double ratio_start = parameters.shrink_ratio / 2;
-        double ratio_end = parameters.compression_minimum_shrink_ratio;
-        double fraction = (parameters.timer.elapsed_time() - compression_start_time)
-            / (std::max)(time_limit - compression_start_time, 1e-9);
-        fraction = (std::max)(0.0, (std::min)(1.0, fraction));
-        return ratio_start + fraction * (ratio_end - ratio_start);
     };
 
     for (Counter it = 0;; ++it) {
@@ -460,35 +435,9 @@ SequentialFeasibilityOutput packingsolver::irregular::sequential_feasibility(
                 sub_instance,
                 (has_previous_solution)? &previous_solution: nullptr);
 
-        if (!sub_solution_pool.best().feasible()) {
-            // No feasible solution found. Without compression, stop.
-            // Otherwise, shrink the best solution by a smaller ratio.
-            if (!parameters.compression
-                    || !has_previous_solution
-                    || instance.objective() == Objective::BinPacking) {
-                break;
-            }
-            if (!compression) {
-                compression = true;
-                compression_start_time = parameters.timer.elapsed_time();
-                shrink_ratio = parameters.shrink_ratio / 2;
-            } else if (time_based_compression) {
-                shrink_ratio = time_based_compression_shrink_ratio();
-            } else {
-                shrink_ratio *= parameters.compression_shrink_ratio_decay;
-                if (shrink_ratio < parameters.compression_minimum_shrink_ratio)
-                    break;
-            }
-            x = x_best;
-            y = y_best;
-            current_number_of_bins = number_of_bins_best;
-            if (!update_targets(previous_solution, shrink_ratio))
-                break;
-            continue;
-        }
-        x_best = x;
-        y_best = y;
-        number_of_bins_best = current_number_of_bins;
+        // No feasible solution found: stop.
+        if (!sub_solution_pool.best().feasible())
+            break;
 
         // Transfer the sub-solution to the main instance.
         Solution solution(instance);
@@ -506,15 +455,13 @@ SequentialFeasibilityOutput packingsolver::irregular::sequential_feasibility(
                     {0});  // bin_type_ids
         }
         std::stringstream ss;
-        ss << "SF it " << it << ((compression)? " compression ": " ") << sub_solution_pool.best_label();
+        ss << "SF it " << it << " " << sub_solution_pool.best_label();
         algorithm_formatter.update_solution(solution, ss.str());
         previous_solution = solution;
         has_previous_solution = true;
 
         // Update for the next iteration.
-        if (compression && time_based_compression)
-            shrink_ratio = time_based_compression_shrink_ratio();
-        if (!update_targets(solution, shrink_ratio))
+        if (!update_targets(solution))
             break;
     }
 
