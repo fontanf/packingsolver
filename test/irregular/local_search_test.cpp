@@ -258,6 +258,20 @@ TEST_P(IrregularLocalSearchTest, IrregularLocalSearch)
     reference_solution.format(std::cout);
 
     EXPECT_TRUE(not_worse(solution, reference_solution, 0.05));
+    // The fixed items aren't packed as free items.
+    std::vector<ItemPos> item_types_free_copies(instance.number_of_item_types(), 0);
+    for (BinPos bin_pos = 0; bin_pos < solution.number_of_different_bins(); ++bin_pos) {
+        const SolutionBin& solution_bin = solution.bin(bin_pos);
+        for (const SolutionItem& item: solution_bin.items)
+            if (!item.is_fixed)
+                item_types_free_copies[item.item_type_id] += solution_bin.copies;
+    }
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance.number_of_item_types();
+            ++item_type_id) {
+        const ItemType& item_type = instance.item_type(item_type_id);
+        EXPECT_LE(item_types_free_copies[item_type_id], item_type.copies - item_type.copies_fixed);
+    }
     for (BinPos bin_pos = 0; bin_pos < solution.number_of_different_bins(); ++bin_pos) {
         Solution::OverlappingItems overlapping_items = solution.compute_overlapping_items(bin_pos);
         EXPECT_TRUE(overlapping_items.item_border_pairs.empty());
