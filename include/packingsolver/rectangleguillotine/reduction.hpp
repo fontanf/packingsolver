@@ -73,6 +73,22 @@ struct ReductionParameters: optimizationtools::Parameters
      * flag.
      */
     bool remove_dominated_bin_types = true;
+
+    /**
+     * Enable/disable reserving a dedicated bin for each copy of an item
+     * type filling the bin (gates 'Reduction::reduce_full_bin_items').
+     * Still subject to 'Reduction::full_bin_reduction_applies' regardless
+     * of this flag.
+     */
+    bool reduce_full_bin_items = true;
+
+    /**
+     * Enable/disable reserving a dedicated bin for pairs of item types
+     * filling the bin together (gates 'Reduction::reduce_perfect_pairs').
+     * Still subject to 'Reduction::full_bin_reduction_applies' regardless
+     * of this flag.
+     */
+    bool reduce_perfect_pairs = true;
 };
 
 /**
@@ -183,6 +199,33 @@ struct ReductionParameters: optimizationtools::Parameters
  * 'lift_item_dimensions_applies()' and
  * 'lift_item_dimensions_applies_axis()'.
  *
+ * Reserving dedicated bins (see 'reduce_full_bin_items' and
+ * 'reduce_perfect_pairs'): rectangle's own operations, compared against
+ * the bin shrunk along each axis to the largest total length of the items
+ * not exceeding it, every length (bin included) being increased by the cut
+ * thickness, as for lifting. An item filling the shrunk bin can't share its
+ * bin with any other item: it gets a dedicated bin. Two oriented items
+ * spanning the shrunk bin along one axis, filling it together along the
+ * other one, also get a dedicated bin together: in a solution, compacted
+ * along the axis of the pair (see the lifting paragraph above), the other
+ * items of the bin of each of them are beside it, in subtrees spanning the
+ * bin along the other axis, whose total length is at most the length of
+ * the other item of the pair; the subtrees of the two bins fit in a single
+ * bin, as first-stage nodes if the first stage is along the axis of the
+ * pair, as second-stage nodes of a single first-stage node otherwise
+ * (never deeper than they were). Only for 'BinPacking' with a single bin
+ * type without trims, defects, fixed items or resources, with the cut
+ * constraints of 'items_can_shrink' (the item of a dedicated bin can be
+ * smaller than the bin, leaving a waste), and for items alone in their
+ * stacks (see 'full_bin_reduction_applies()'). Never reserves more
+ * dedicated bins than the bin type has copies; if they take every copy
+ * while items remain, the instance is infeasible (see
+ * 'proven_infeasible()'). The dedicated items are left out of the reduced
+ * instance, the bin type has its 'copies' reduced accordingly, and
+ * 'unreduce_solution' adds the dedicated bins back, with the true
+ * dimensions of the items. Run after lifting, which can make an item fill
+ * the shrunk bin.
+ *
  * Only ever needs one pass (unlike 'rectangle::Reduction''s fixpoint
  * loop): trimming a negative-profit item type down to its 'copies_min'
  * can only ever narrow a later merge candidate's mandatory-vs-optional
@@ -218,6 +261,21 @@ public:
 
     /** Get the reduced instance. */
     const Instance& instance() const { return instance_; }
+
+    /**
+     * Number of bins reserved as dedicated bins (see
+     * 'reduce_full_bin_items'/'reduce_perfect_pairs'), entirely absent from
+     * 'instance()' - a caller solving 'instance()' needs to add this back
+     * onto any bin-count bound it finds.
+     */
+    BinPos number_of_dedicated_bins() const;
+
+    /**
+     * 'true' iff the reduction alone proves the original instance
+     * infeasible: the dedicated bins take every copy of the bin type while
+     * items remain. 'instance()' is then not meaningful to solve.
+     */
+    bool proven_infeasible() const { return proven_infeasible_; }
 
     /** Unreduce a solution of the reduced instance. */
     Solution unreduce_solution(
@@ -303,6 +361,13 @@ private:
      * the class-level doc comment.
      */
     static bool remove_dominated_bin_types_applies(const Instance& instance);
+
+    /**
+     * 'true' iff reserving dedicated bins (see 'reduce_full_bin_items' and
+     * 'reduce_perfect_pairs') is meaningful for 'instance' - see the
+     * class-level doc comment.
+     */
+    static bool full_bin_reduction_applies(const Instance& instance);
 
     /**
      * Working representation of an item type during the reduction
@@ -550,6 +615,69 @@ private:
      * types - identity unless 'compute_dominated_bin_types' left some out.
      */
     std::vector<BinTypeId> reduced_to_original_bin_type_id_;
+
+    /** A dedicated bin for each copy of an item type filling the bin. */
+    struct FullBinItem
+    {
+        /** Item type id, original instance's id space. */
+        ItemTypeId item_type_id;
+
+        /** Number of dedicated bins. */
+        ItemPos copies;
+    };
+
+    /** Dedicated bins for pairs of item types filling the bin together. */
+    struct PerfectPair
+    {
+        /** Item type ids, original instance's id space. */
+        ItemTypeId item_type_id_1;
+        ItemTypeId item_type_id_2;
+
+        /** Axis along which the two items are side by side ('0' for 'x'). */
+        int axis;
+
+        /** Number of dedicated bins. */
+        ItemPos copies;
+    };
+
+    /** See 'reduce_full_bin_items'. */
+    std::vector<FullBinItem> full_bin_items_;
+
+    /** See 'reduce_perfect_pairs'. */
+    std::vector<PerfectPair> perfect_pairs_;
+
+    /** See 'proven_infeasible()'. */
+    bool proven_infeasible_ = false;
+
+    /**
+     * The bin shrunk along each axis (see the class-level doc comment),
+     * each length being increased by the cut thickness.
+     */
+    Rectangle shrunk_bin(
+            const std::vector<ReductionItemType>& reduction_item_types) const;
+
+    /**
+     * Reserves a dedicated bin for every copy of every item type filling
+     * the shrunk bin. Returns 'true' iff at least one item type was
+     * reserved.
+     */
+    bool reduce_full_bin_items(
+            std::vector<ReductionItemType>& reduction_item_types);
+
+    /**
+     * Reserves a dedicated bin for 'min(copies_1, copies_2)' copies of every
+     * pair of oriented item types filling the shrunk bin together
+     * (including two copies of the same item type). Returns 'true' iff at
+     * least one pair was reserved.
+     */
+    bool reduce_perfect_pairs(
+            std::vector<ReductionItemType>& reduction_item_types);
+
+    /**
+     * True dimensions of the original item type 'item_type_id', in the
+     * orientation of the reduced item type (see 'swapped_item_types_').
+     */
+    Rectangle true_rect(ItemTypeId item_type_id) const;
 
     /**
      * One contiguous run of a reduced item type's copies that all came

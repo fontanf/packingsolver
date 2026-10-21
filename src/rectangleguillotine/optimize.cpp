@@ -700,13 +700,22 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
         reduction_parameters.timer = parameters.timer;
         Reduction reduction(instance, reduction_parameters);
 
+        if (reduction.proven_infeasible()) {
+            // The dedicated bins (see 'Reduction::reduce_full_bin_items'/
+            // 'reduce_perfect_pairs') take every copy of the bin type while
+            // items remain: 'reduction.instance()' is not meaningful.
+            algorithm_formatter.update_is_proven_infeasible();
+            algorithm_formatter.end();
+            return output;
+        }
+
         // Forwards a solution/bound found for the reduced instance to the
         // original 'algorithm_formatter', in original-instance
-        // coordinates. Unlike 'rectangle::Reduction', this class never
-        // sets aside dedicated bins or proves infeasibility on its own,
-        // so every bound of 'reduced_output' already is the original
-        // instance's own bound, in exactly 'Output's own field layout -
-        // no translation needed.
+        // coordinates. The bounds of 'reduced_output' are the original
+        // instance's own bounds, except the dedicated bins (see
+        // 'Reduction::number_of_dedicated_bins', 'BinPacking' only),
+        // absent from the reduced instance: they are added back onto the
+        // bin packing bound.
         auto report_reduced_output = [&reduction, &algorithm_formatter](
                 const rectangleguillotine::Output& reduced_output)
             {
@@ -735,7 +744,9 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
                             reduction.unreduce_solution(reduced_solution),
                             reduced_output.solution_pool.best_label());
                 }
-                algorithm_formatter.update_bounds(reduced_output);
+                rectangleguillotine::Output translated_output(reduced_output);
+                translated_output.bin_packing_bound += reduction.number_of_dedicated_bins();
+                algorithm_formatter.update_bounds(translated_output);
             };
 
         OptimizeParameters reduced_parameters = parameters;

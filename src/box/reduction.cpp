@@ -112,19 +112,29 @@ Reduction::Reduction(
     // Lifting can make more rotations redundant (two rotations giving the
     // same enlarged box, or a rotation of the enlarged box fitting in no
     // bin type), and removing rotations can enable lifting (it requires
-    // every allowed rotation to put the same dimension along the axis).
-    if (parameters.lift_item_dimensions
-            && lift_item_dimensions_applies(instance)) {
-        for (;;) {
-            if (parameters.timer.needs_to_end())
-                break;
-            if (!lift_item_dimensions(reduction_item_types))
-                break;
-            if (!parameters.remove_redundant_rotations
-                    || !remove_redundant_rotations(reduction_item_types)) {
-                break;
-            }
-        }
+    // every allowed rotation to put the same dimension along the axis) and
+    // perfect pairs (they require a single allowed rotation). Lifting can
+    // make an item fill the shrunk bin, and a dedicated bin can shrink the
+    // bin further.
+    bool run_lift = parameters.lift_item_dimensions
+        && lift_item_dimensions_applies(instance);
+    bool full_bin_reduction = full_bin_reduction_applies(instance);
+    bool run_full_bin_items = full_bin_reduction && parameters.reduce_full_bin_items;
+    bool run_perfect_pairs = full_bin_reduction && parameters.reduce_perfect_pairs;
+    while (run_lift || run_full_bin_items || run_perfect_pairs) {
+        if (parameters.timer.needs_to_end())
+            break;
+        bool found = false;
+        if (run_lift)
+            found |= lift_item_dimensions(reduction_item_types);
+        if (found && parameters.remove_redundant_rotations)
+            remove_redundant_rotations(reduction_item_types);
+        if (run_full_bin_items)
+            found |= reduce_full_bin_items(reduction_item_types);
+        if (run_perfect_pairs)
+            found |= reduce_perfect_pairs(reduction_item_types);
+        if (!found)
+            break;
     }
 
     if (parameters.merge_identical_items)
@@ -576,6 +586,167 @@ std::vector<bool> Reduction::compute_dominated_bin_types() const
     return dominated;
 }
 
+bool Reduction::full_bin_reduction_applies(const Instance& instance)
+{
+    if (instance.objective() != Objective::BinPacking)
+        return false;
+    // A single bin type, so that the bin of the reservations is
+    // unambiguous, without fixed items (they would share the dedicated
+    // bins).
+    if (instance.number_of_bin_types() != 1)
+        return false;
+    const BinType& bin_type = instance.bin_type(0);
+    if (!bin_type.fixed_items.empty())
+        return false;
+    // The exchange arguments move items between bins: a weight or resource
+    // constraint, a whole-bin aggregate, could be violated.
+    if (instance.resources_matter())
+        return false;
+    if (bin_type.maximum_weight != std::numeric_limits<Weight>::infinity()) {
+        for (ItemTypeId item_type_id = 0;
+                item_type_id < instance.number_of_item_types();
+                ++item_type_id) {
+            if (instance.item_type(item_type_id).weight != 0)
+                return false;
+        }
+    }
+    return true;
+}
+
+BinPos Reduction::number_of_dedicated_bins() const
+{
+    BinPos total = 0;
+    for (const FullBinItem& full_bin_item: full_bin_items_)
+        total += full_bin_item.copies;
+    for (const PerfectPair& pair: perfect_pairs_)
+        total += pair.copies;
+    return total;
+}
+
+bool Reduction::reduce_full_bin_items(
+        std::vector<ReductionItemType>& reduction_item_types)
+{
+    const BinType& bin_type = original_instance_->bin_type(0);
+    bool found = false;
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < (ItemTypeId)reduction_item_types.size();
+            ++item_type_id) {
+        ReductionItemType& item = reduction_item_types[item_type_id];
+        if (item.removed || item.copies == 0)
+            continue;
+        if (original_instance_->item_type(item_type_id).copies_fixed > 0)
+            continue;
+        // Recomputed for each item type, since each reservation removes
+        // items and can shrink the bin.
+        Box shrunk_bin = {
+            shrunk_bin_length(reduction_item_types, 0),
+            shrunk_bin_length(reduction_item_types, 1),
+            shrunk_bin_length(reduction_item_types, 2)};
+        bool matches = false;
+        Rotation rotation = Rotation::XYZ;
+        for (Rotation r: item.rotations) {
+            if (item.box.rotate(r) == shrunk_bin) {
+                matches = true;
+                rotation = r;
+                break;
+            }
+        }
+        if (!matches)
+            continue;
+        // Never more dedicated bins than the bin type has copies.
+        if (number_of_dedicated_bins() + item.copies > bin_type.copies)
+            continue;
+        full_bin_items_.push_back({item_type_id, rotation, item.copies});
+        item.copies = 0;
+        item.removed = true;
+        found = true;
+    }
+    return found;
+}
+
+bool Reduction::reduce_perfect_pairs(
+        std::vector<ReductionItemType>& reduction_item_types)
+{
+    const BinType& bin_type = original_instance_->bin_type(0);
+    bool found = false;
+    for (ItemTypeId item_type_id_1 = 0;
+            item_type_id_1 < (ItemTypeId)reduction_item_types.size();
+            ++item_type_id_1) {
+        ReductionItemType& item_1 = reduction_item_types[item_type_id_1];
+        if (item_1.removed || item_1.copies == 0 || item_1.rotations.size() != 1)
+            continue;
+        if (original_instance_->item_type(item_type_id_1).copies_fixed > 0)
+            continue;
+        for (ItemTypeId item_type_id_2 = item_type_id_1;
+                item_type_id_2 < (ItemTypeId)reduction_item_types.size();
+                ++item_type_id_2) {
+            ReductionItemType& item_2 = reduction_item_types[item_type_id_2];
+            if (item_2.removed || item_2.copies == 0 || item_2.rotations.size() != 1)
+                continue;
+            if (original_instance_->item_type(item_type_id_2).copies_fixed > 0)
+                continue;
+            // Two copies of the same item type.
+            if (item_type_id_2 == item_type_id_1 && item_1.copies < 2)
+                continue;
+
+            Box shrunk_bin = {
+                shrunk_bin_length(reduction_item_types, 0),
+                shrunk_bin_length(reduction_item_types, 1),
+                shrunk_bin_length(reduction_item_types, 2)};
+            Box box_1 = item_1.box.rotate(item_1.rotations.front());
+            Box box_2 = item_2.box.rotate(item_2.rotations.front());
+            int pair_axis = -1;
+            for (int axis = 0; axis < 3; ++axis) {
+                bool other_axes_full = true;
+                for (int other_axis = 0; other_axis < 3; ++other_axis) {
+                    if (other_axis == axis)
+                        continue;
+                    if (box_length(box_1, other_axis) != box_length(shrunk_bin, other_axis)
+                            || box_length(box_2, other_axis) != box_length(shrunk_bin, other_axis)) {
+                        other_axes_full = false;
+                    }
+                }
+                if (other_axes_full
+                        && box_length(box_1, axis) + box_length(box_2, axis)
+                        == box_length(shrunk_bin, axis)) {
+                    pair_axis = axis;
+                    break;
+                }
+            }
+            if (pair_axis == -1)
+                continue;
+
+            ItemPos copies = (item_type_id_2 == item_type_id_1)?
+                item_1.copies / 2:
+                (std::min)(item_1.copies, item_2.copies);
+            // Never more dedicated bins than the bin type has copies.
+            if (number_of_dedicated_bins() + copies > bin_type.copies)
+                continue;
+            perfect_pairs_.push_back({
+                    item_type_id_1,
+                    item_type_id_2,
+                    item_1.rotations.front(),
+                    item_2.rotations.front(),
+                    pair_axis,
+                    copies});
+            if (item_type_id_2 == item_type_id_1) {
+                item_1.copies -= 2 * copies;
+            } else {
+                item_1.copies -= copies;
+                item_2.copies -= copies;
+                if (item_2.copies == 0)
+                    item_2.removed = true;
+            }
+            if (item_1.copies == 0)
+                item_1.removed = true;
+            found = true;
+            if (item_1.removed)
+                break;
+        }
+    }
+    return found;
+}
+
 bool Reduction::lift_item_dimensions_applies(const Instance& instance)
 {
     // A single bin type, so that the bin dimensions are unambiguous, and
@@ -827,8 +998,29 @@ Instance Reduction::reduction_to_instance(
                 && bin_type_removed[bin_type_id]) {
             continue;
         }
-        instance_builder.add_bin_type(*original_instance_, bin_type_id);
+        BinTypeId new_bin_type_id = instance_builder.add_bin_type(*original_instance_, bin_type_id);
         reduced_to_original_bin_type_id_.push_back(bin_type_id);
+        // The dedicated bins (see 'reduce_full_bin_items'/
+        // 'reduce_perfect_pairs', single bin type) are left out of the
+        // reduced instance. They never take more than the bin type's
+        // copies; if they take all of them while items remain, the
+        // instance is infeasible.
+        BinPos number_of_dedicated_bins = this->number_of_dedicated_bins();
+        if (number_of_dedicated_bins > 0) {
+            BinPos copies = original_instance_->bin_type(bin_type_id).copies - number_of_dedicated_bins;
+            if (copies > 0) {
+                instance_builder.set_bin_type_copies(new_bin_type_id, copies);
+            } else {
+                bool remaining_items = false;
+                for (const ReductionItemType& item: reduction_item_types)
+                    if (item.copies > 0)
+                        remaining_items = true;
+                // Without remaining items, the bin type keeps its copies,
+                // never used.
+                if (remaining_items)
+                    proven_infeasible_ = true;
+            }
+        }
     }
 
     reduced_item_origin_runs_.clear();
@@ -996,6 +1188,40 @@ Solution Reduction::unreduce_solution(
 
         for (ItemTypeId reduced_item_type_id: touched_types)
             slot_count[reduced_item_type_id] = 0;
+    }
+
+    // The dedicated bins, left out of 'instance_' (single bin type, see
+    // 'full_bin_reduction_applies'). A pair is placed side by side along
+    // its axis, with the true boxes of the items.
+    for (const FullBinItem& full_bin_item: full_bin_items_) {
+        BinPos new_bin_pos = solution_builder.add_bin(0, full_bin_item.copies);
+        solution_builder.add_item(
+                new_bin_pos,
+                full_bin_item.item_type_id,
+                {0, 0, 0},
+                full_bin_item.rotation);
+    }
+    for (const PerfectPair& pair: perfect_pairs_) {
+        BinPos new_bin_pos = solution_builder.add_bin(0, pair.copies);
+        solution_builder.add_item(
+                new_bin_pos,
+                pair.item_type_id_1,
+                {0, 0, 0},
+                pair.rotation_1);
+        Box box_1 = original_instance_->item_type(pair.item_type_id_1).box.rotate(pair.rotation_1);
+        Point position = {0, 0, 0};
+        if (pair.axis == 0) {
+            position.x = box_1.x;
+        } else if (pair.axis == 1) {
+            position.y = box_1.y;
+        } else {
+            position.z = box_1.z;
+        }
+        solution_builder.add_item(
+                new_bin_pos,
+                pair.item_type_id_2,
+                position,
+                pair.rotation_2);
     }
 
     return solution_builder.build();
