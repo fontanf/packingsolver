@@ -371,6 +371,7 @@ void optimize_local_search(
     ls_parameters.engine = engine;
     ls_parameters.verbosity_level = 0;
     ls_parameters.timer = parameters.timer;
+    ls_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
     if (parameters.optimization_mode == OptimizationMode::Anytime) {
         ls_parameters.maximum_number_of_failed_separations = -1;
     } else {
@@ -941,6 +942,8 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
                 = !periodic_packing_runnable
                 || max_number_of_items_in_bin(instance)
                     < parameters.periodic_packing_max_items_threshold;
+            if (instance.objective() != Objective::Knapsack)
+                use_local_search_direct_trigonometry = true;
         }
     } else if (instance.objective() == Objective::Feasibility) {
         // Disable algorithms which are not available for this objective.
@@ -967,6 +970,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
             } else {
                 use_tree_search = true;
                 use_column_generation = true;
+                use_local_search_direct_trigonometry = true;
             }
         }
     } else if (instance.objective() == Objective::Knapsack) {
@@ -1039,6 +1043,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
                 }
             } else {
                 use_tree_search = true;
+                use_local_search_direct_trigonometry = true;
                 if (mean_number_of_items_in_bins
                         > parameters.many_items_in_bins_threshold) {
                     use_sequential_single_knapsack = true;
