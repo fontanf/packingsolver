@@ -287,6 +287,9 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "irregular" / "tests" / "open_dimension_x_mixed_shapes.json",
                 fs::path("data") / "irregular" / "tests" / "open_dimension_x_mixed_shapes_solution.json"
             }, {
+                fs::path("data") / "irregular" / "tests" / "open_dimension_x_fixed_items_defects_spacing.json",
+                fs::path("data") / "irregular" / "tests" / "open_dimension_x_fixed_items_defects_spacing_solution.json"
+            }, {
                 fs::path("data") / "irregular" / "tests" / "circle.json",
                 fs::path("data") / "irregular" / "tests" / "circle_solution.json"
             }, {
