@@ -18,6 +18,12 @@ namespace packingsolver
 namespace irregular
 {
 
+/**
+ * Exact shapes of the item types, cached for the feasibility checks of the
+ * solutions found by the direct trigonometry engine.
+ */
+struct ExactItemShapes;
+
 /** Engine of the local search for objective Feasibility. */
 enum class LocalSearchEngine
 {
@@ -72,6 +78,15 @@ struct LocalSearchParameters: packingsolver::Parameters<Instance, Solution, Outp
      * algorithm.
      */
     std::shared_ptr<const Separator::ItemTypes> separator_item_types;
+
+    /**
+     * Exact shapes of the item types, if already cached; cached by the local
+     * search otherwise.
+     *
+     * For the other objectives than Feasibility, they are shared by the
+     * sub-problems of the sequential feasibility algorithm.
+     */
+    std::shared_ptr<ExactItemShapes> exact_item_shapes;
 
     /**
      * Maximum number of iterations without improvement of the separation of

@@ -178,6 +178,9 @@ AxisAlignedBoundingBox ItemType::compute_min_max(
         bool mirror,
         int type) const
 {
+    for (const DiscreteRotationMinMax& rotation_min_max: discrete_rotations_min_max)
+        if (rotation_min_max.angle == angle && rotation_min_max.mirror == mirror)
+            return rotation_min_max.aabbs[type];
     AxisAlignedBoundingBox output;
     for (const ItemShape& item_shape: shapes) {
         AxisAlignedBoundingBox aabb =

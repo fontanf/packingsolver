@@ -376,6 +376,8 @@ ItemTypeId InstanceBuilder::add_item_type(
     ItemType& new_item_type = instance_.item_types_[item_type_id];
     new_item_type.periodic_packings = item_type.periodic_packings;
     new_item_type.periodic_packings_computed = item_type.periodic_packings_computed;
+    // Same for the bounding boxes in the discrete allowed orientations.
+    new_item_type.discrete_rotations_min_max = item_type.discrete_rotations_min_max;
     if (item_type_id != original_item_type_id) {
         for (PeriodicItemPacking& packing: new_item_type.periodic_packings) {
             for (SolutionItem& solution_item: packing.items)
@@ -969,6 +971,29 @@ Instance InstanceBuilder::build()
             }
         }
 
+        // Compute the bounding boxes in the discrete allowed orientations,
+        // unless already copied from another instance.
+        for (const AllowedRotation& rotation: item_type.allowed_rotations) {
+            if (rotation.start_angle != rotation.end_angle)
+                continue;
+            bool computed = false;
+            for (const ItemType::DiscreteRotationMinMax& rotation_min_max: item_type.discrete_rotations_min_max)
+                if (rotation_min_max.angle == rotation.start_angle && rotation_min_max.mirror == rotation.mirror)
+                    computed = true;
+            if (computed)
+                continue;
+            ItemType::DiscreteRotationMinMax rotation_min_max;
+            rotation_min_max.angle = rotation.start_angle;
+            rotation_min_max.mirror = rotation.mirror;
+            for (int type = 0; type < 3; ++type) {
+                rotation_min_max.aabbs[type] = item_type.compute_min_max(
+                        rotation.start_angle,
+                        rotation.mirror,
+                        type);
+            }
+            item_type.discrete_rotations_min_max.push_back(rotation_min_max);
+        }
+
         // Update number_of_items_.
         // Guard against ItemPos overflow before the running total of item
         // copies is increased: an absurd 'copies' value (or the accumulation
@@ -1153,15 +1178,15 @@ Instance InstanceBuilder::build()
         // search preferred; 42 and above did not.
         const shape::ElementPos periodic_packings_simplification_minimum_number_of_vertices = 64;
 
-        auto all_item_type_rotations = compute_item_type_rotations(instance_);
-        const std::vector<std::vector<ItemTypeRotation>>& item_type_rotations
-            = all_item_type_rotations[instance_.bin_type_id(0)];
         LengthDbl item_item_minimum_spacing = instance_.item_spacing_scaled();
-        // Computed lazily (only the first time it is actually needed) since
+        // Computed lazily (only the first time they are actually needed) since
         // most instances have few, if any, item types above the copies
-        // threshold below.
+        // threshold below, and since the item types copied from another
+        // instance already have their periodic packings.
         SimplifiedInstance simplified_instance;
         bool simplified_instance_computed = false;
+        decltype(compute_item_type_rotations(instance_)) all_item_type_rotations;
+        bool item_type_rotations_computed = false;
         for (ItemTypeId item_type_id = 0;
                 item_type_id < instance_.number_of_item_types();
                 ++item_type_id) {
@@ -1175,6 +1200,12 @@ Instance InstanceBuilder::build()
                                 periodic_packings_simplification_minimum_number_of_vertices);
                         simplified_instance_computed = true;
                     }
+                    if (!item_type_rotations_computed) {
+                        all_item_type_rotations = compute_item_type_rotations(instance_);
+                        item_type_rotations_computed = true;
+                    }
+                    const std::vector<std::vector<ItemTypeRotation>>& item_type_rotations
+                        = all_item_type_rotations[instance_.bin_type_id(0)];
                     std::vector<ShapeWithHoles> item_shapes;
                     ElementPos number_of_vertices = 0;
                     for (const SimplifiedShape& simplified_shape:
