@@ -160,6 +160,37 @@ namespace
  * 'bin_type_id' of 'instance', restricted to 'restricting_aabb' (in scaled
  * coordinates), with its cost, its spacings, its defects and its fixed items.
  */
+/**
+ * Return true iff the fixed items of a bin type stay inside the bin once
+ * restricted to 'restricting_aabb' (taking the item-bin spacing into
+ * account).
+ */
+bool fixed_items_inside(
+        const Instance& instance,
+        BinTypeId bin_type_id,
+        const AxisAlignedBoundingBox& restricting_aabb)
+{
+    const BinType& bin_type = instance.bin_type(bin_type_id);
+    const LengthDbl scale_value = instance.parameters().scale_value;
+    const LengthDbl bin_spacing = instance.bin_spacing_scaled(bin_type_id);
+    for (const FixedItem& fixed_item: bin_type.fixed_items) {
+        const ItemType& item_type = instance.item_type(fixed_item.item_type_id);
+        AxisAlignedBoundingBox aabb = item_type.compute_min_max(
+                fixed_item.angle,
+                fixed_item.mirror,
+                1);
+        if (shape::strictly_greater(
+                    scale_value * fixed_item.bl_corner.x + aabb.x_max,
+                    restricting_aabb.x_max - bin_spacing)
+                || shape::strictly_greater(
+                    scale_value * fixed_item.bl_corner.y + aabb.y_max,
+                    restricting_aabb.y_max - bin_spacing)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 BinTypeId add_restricted_bin_type(
         InstanceBuilder& sub_instance_builder,
         const Instance& instance,
@@ -364,6 +395,7 @@ SequentialFeasibilityOutput packingsolver::irregular::sequential_feasibility(
         sub_instance_builder.set_objective(Objective::Feasibility);
         sub_instance_builder.set_parameters(instance.parameters());
         std::vector<BinTypeId> sub_to_orig_bin_type_ids;
+        bool fixed_item_outside = false;
         if (instance.objective() == Objective::BinPacking) {
             // Add bin types from the original instance up to current_number_of_bins.
             BinPos remaining_bins = current_number_of_bins;
@@ -403,6 +435,10 @@ SequentialFeasibilityOutput packingsolver::irregular::sequential_feasibility(
                 // Last bin.
                 AxisAlignedBoundingBox restricting_aabb = bin_type.aabb_scaled;
                 restricting_aabb.x_max = restricting_aabb.x_min + x;
+                if (!fixed_items_inside(instance, bin_type_id, restricting_aabb)) {
+                    fixed_item_outside = true;
+                    break;
+                }
                 add_restricted_bin_type(
                         sub_instance_builder,
                         instance,
@@ -417,12 +453,18 @@ SequentialFeasibilityOutput packingsolver::irregular::sequential_feasibility(
             AxisAlignedBoundingBox restricting_aabb = instance.bin_type(bin_type_id).aabb_scaled;
             restricting_aabb.x_max = restricting_aabb.x_min + x;
             restricting_aabb.y_max = restricting_aabb.y_min + y;
+            if (!fixed_items_inside(instance, bin_type_id, restricting_aabb))
+                fixed_item_outside = true;
             add_restricted_bin_type(
                     sub_instance_builder,
                     instance,
                     bin_type_id,
                     restricting_aabb);
         }
+        // A fixed item would be out of the restricted bin: the objective can't
+        // be improved anymore.
+        if (fixed_item_outside)
+            break;
         for (ItemTypeId item_type_id = 0;
                 item_type_id < instance.number_of_item_types();
                 ++item_type_id) {

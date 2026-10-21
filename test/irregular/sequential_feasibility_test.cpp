@@ -245,3 +245,48 @@ TEST(IrregularSequentialFeasibility, BinPackingWithLeftoversRestrictsLastBin)
     // The last bin of the previous solution goes to the restricted bin.
     EXPECT_EQ(call.initial_solution_bin_type_ids, std::vector<BinTypeId>({0, 1}));
 }
+
+TEST(IrregularSequentialFeasibility, StopsWhenAFixedItemWouldBeOutOfTheBin)
+{
+    // Strip 100x10 with three 10x10 items and a 10x10 fixed item at x = 40.
+    // The mock solver packs the three items on the left: the length of the
+    // solutions is the end of the fixed item, 50, and the next sub-problem
+    // would cut the fixed item. The algorithm must stop.
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(Objective::OpenDimensionX);
+    BinTypeId bin_type_id = instance_builder.add_bin_type(rectangle_shape(100, 10));
+    ItemTypeId item_type_id = instance_builder.add_item_type(rectangle_item_shape(10, 10));
+    instance_builder.set_item_type_copies(item_type_id, 3);
+    ItemTypeId fixed_item_type_id = instance_builder.add_item_type(rectangle_item_shape(10, 10));
+    instance_builder.add_fixed_item(bin_type_id, fixed_item_type_id, {40, 0}, 0, false);
+    Instance instance = instance_builder.build();
+
+    std::vector<SolverCall> solver_calls;
+    SequentialFeasibilitySolver solver = [&instance, &solver_calls](
+            const Instance& sub_instance,
+            const Solution* initial_solution)
+    {
+        solver_calls.push_back(record_call(instance, sub_instance, initial_solution));
+        SolutionPool<Instance, Solution> solution_pool(sub_instance, 1);
+        // Safeguard against an infinite loop.
+        if (solver_calls.size() > 100)
+            return solution_pool;
+        SolutionBuilder solution_builder(sub_instance);
+        BinPos bin_pos = solution_builder.add_bin(0, 1);
+        solution_builder.add_item(bin_pos, 1, {40, 0}, 0, false, true);
+        for (LengthDbl x: {0.0, 10.0, 20.0})
+            solution_builder.add_item(bin_pos, 0, {x, 0}, 0, false);
+        solution_pool.add(solution_builder.build(), "mock");
+        return solution_pool;
+    };
+
+    SequentialFeasibilityParameters parameters;
+    parameters.verbosity_level = 0;
+    SequentialFeasibilityOutput output = sequential_feasibility(
+            instance,
+            solver,
+            parameters);
+
+    EXPECT_EQ(solver_calls.size(), 1);
+    EXPECT_NEAR(output.solution_pool.best().x_max(), 50, 1e-6);
+}

@@ -1,0 +1,153 @@
+{
+ "objective": "open-dimension-x",
+ "parameters": {
+  "item_item_minimum_spacing": 0.7
+ },
+ "bin_types": [
+  {
+   "type": "rectangle",
+   "width": 80,
+   "height": 25,
+   "copies": 1,
+   "item_bin_minimum_spacing": 1.2,
+   "defects": [
+    {
+     "type": "rectangle",
+     "x": 40,
+     "y": 12,
+     "width": 6,
+     "height": 8,
+     "item_defect_minimum_spacing": 1.5
+    },
+    {
+     "type": "polygon",
+     "vertices": [
+      {
+       "x": 30,
+       "y": 10
+      },
+      {
+       "x": 36,
+       "y": 10
+      },
+      {
+       "x": 33,
+       "y": 20
+      }
+     ],
+     "item_defect_minimum_spacing": 1.0
+    }
+   ],
+   "fixed_items": [
+    {
+     "item_type_id": 2,
+     "angle": 0,
+     "mirror": false,
+     "bl_corner": {
+      "x": 20,
+      "y": 10
+     }
+    },
+    {
+     "item_type_id": 0,
+     "angle": 0,
+     "mirror": false,
+     "bl_corner": {
+      "x": 5,
+      "y": 5
+     }
+    }
+   ]
+  }
+ ],
+ "item_types": [
+  {
+   "type": "polygon",
+   "vertices": [
+    {
+     "x": 0,
+     "y": 0
+    },
+    {
+     "x": 8,
+     "y": 0
+    },
+    {
+     "x": 8,
+     "y": 2
+    },
+    {
+     "x": 2,
+     "y": 2
+    },
+    {
+     "x": 2,
+     "y": 10
+    },
+    {
+     "x": 0,
+     "y": 10
+    }
+   ],
+   "copies": 4,
+   "allowed_rotations": [
+    {
+     "start": 0,
+     "end": 0,
+     "mirror": false
+    },
+    {
+     "start": 90,
+     "end": 90,
+     "mirror": false
+    },
+    {
+     "start": 180,
+     "end": 180,
+     "mirror": false
+    },
+    {
+     "start": 270,
+     "end": 270,
+     "mirror": false
+    }
+   ]
+  },
+  {
+   "type": "polygon",
+   "vertices": [
+    {
+     "x": 0,
+     "y": 0
+    },
+    {
+     "x": 9,
+     "y": 0
+    },
+    {
+     "x": 0,
+     "y": 7
+    }
+   ],
+   "copies": 4,
+   "allowed_rotations": [
+    {
+     "start": 0,
+     "end": 0,
+     "mirror": false
+    },
+    {
+     "start": 180,
+     "end": 180,
+     "mirror": false
+    }
+   ]
+  },
+  {
+   "type": "rectangle",
+   "width": 6,
+   "height": 4,
+   "copies": 3
+  }
+ ]
+}
