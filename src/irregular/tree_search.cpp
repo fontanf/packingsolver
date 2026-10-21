@@ -2880,32 +2880,32 @@ const packingsolver::irregular::TreeSearchOutput packingsolver::irregular::tree_
                 directions = {
                     BranchingScheme::Direction::LeftToRightThenBottomToTop,
                     BranchingScheme::Direction::BottomToTopThenLeftToRight,
-                    BranchingScheme::Direction::LeftToRightThenTopToBottom,
-                    BranchingScheme::Direction::BottomToTopThenRightToLeft,
+                    //BranchingScheme::Direction::LeftToRightThenTopToBottom,
+                    //BranchingScheme::Direction::BottomToTopThenRightToLeft,
                 };
                 break;
             } case LeftoverMode::BottomRight: {
                 directions = {
                     BranchingScheme::Direction::RightToLeftThenBottomToTop,
                     BranchingScheme::Direction::BottomToTopThenLeftToRight,
-                    BranchingScheme::Direction::RightToLeftThenTopToBottom,
-                    BranchingScheme::Direction::BottomToTopThenRightToLeft,
+                    //BranchingScheme::Direction::RightToLeftThenTopToBottom,
+                    //BranchingScheme::Direction::BottomToTopThenRightToLeft,
                 };
                 break;
             } case LeftoverMode::TopLeft: {
                 directions = {
                     BranchingScheme::Direction::LeftToRightThenBottomToTop,
                     BranchingScheme::Direction::TopToBottomThenLeftToRight,
-                    BranchingScheme::Direction::LeftToRightThenTopToBottom,
-                    BranchingScheme::Direction::TopToBottomThenRightToLeft,
+                    //BranchingScheme::Direction::LeftToRightThenTopToBottom,
+                    //BranchingScheme::Direction::TopToBottomThenRightToLeft,
                 };
                 break;
             } case LeftoverMode::TopRight: {
                 directions = {
                     BranchingScheme::Direction::RightToLeftThenBottomToTop,
                     BranchingScheme::Direction::TopToBottomThenLeftToRight,
-                    BranchingScheme::Direction::RightToLeftThenTopToBottom,
-                    BranchingScheme::Direction::TopToBottomThenRightToLeft,
+                    //BranchingScheme::Direction::RightToLeftThenTopToBottom,
+                    //BranchingScheme::Direction::TopToBottomThenRightToLeft,
                 };
                 break;
             } case LeftoverMode::Left: {
@@ -2938,8 +2938,8 @@ const packingsolver::irregular::TreeSearchOutput packingsolver::irregular::tree_
             directions = {
                 BranchingScheme::Direction::LeftToRightThenBottomToTop,
                 BranchingScheme::Direction::BottomToTopThenLeftToRight,
-                BranchingScheme::Direction::RightToLeftThenTopToBottom,
-                BranchingScheme::Direction::TopToBottomThenRightToLeft,
+                //BranchingScheme::Direction::RightToLeftThenTopToBottom,
+                //BranchingScheme::Direction::TopToBottomThenRightToLeft,
             };
         }
     } else {
@@ -2996,8 +2996,8 @@ const packingsolver::irregular::TreeSearchOutput packingsolver::irregular::tree_
         directions = {BranchingScheme::Direction::LeftToRightThenBottomToTop};
 
     std::vector<double> growth_factors = {1.5};
-    if (guides.size() * directions.size() * 2 <= 4)
-        growth_factors = {1.33, 1.5};
+    //if (guides.size() * directions.size() * 2 <= 4)
+    //    growth_factors = {1.33, 1.5};
     if (parameters.optimization_mode != OptimizationMode::Anytime)
         growth_factors = {1.5};
 
