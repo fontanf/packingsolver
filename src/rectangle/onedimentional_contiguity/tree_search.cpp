@@ -367,8 +367,13 @@ OnedimensionalContiguityResult packingsolver::rectangle::onedimentional_contigui
         = treesearchsolver::iterative_beam_search_2<BranchingScheme>(
                 branching_scheme, ibs_parameters);
 
-    if (best_node != nullptr)
-        return branching_scheme.to_result(best_node);
+    if (best_node != nullptr) {
+        OnedimensionalContiguityResult result = branching_scheme.to_result(best_node);
+        // The best leaf is only optimal if the search was exhaustive.
+        if (tssibs_output.optimal)
+            result.bound = result.objective_value;
+        return result;
+    }
 
     // No valid leaf found. Only sound to report 'Infeasible' if the search
     // was exhaustive (proven optimal - i.e. it explored the whole tree,
