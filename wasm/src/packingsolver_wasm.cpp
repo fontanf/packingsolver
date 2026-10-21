@@ -20,10 +20,11 @@
  *   it from a Web Worker (the main thread can't block).
  * - 'Session' solves an instance in a thread of its own, without blocking:
  *   'start(problemType, instanceJson, parametersJson)' starts the
- *   optimization, 'poll()' returns the updates since the previous call and,
- *   at the end, the result, and 'stop()' stops the optimization. There is an
- *   update each time the best solution or a bound improves: an update may
- *   have the same solution as the previous one, or an empty solution.
+ *   optimization, 'poll()' returns the latest update since the previous call
+ *   and, at the end, the result, and 'stop()' stops the optimization. There
+ *   is an update each time the best solution or a bound improves, but only
+ *   the latest one since the previous call is returned: an update may have
+ *   the same solution as the previous one, or an empty solution.
  *
  * The threads of the algorithms run in a pool of Web Workers started when
  * the module is loaded.
@@ -53,9 +54,11 @@
 #include <emscripten/bind.h>
 
 #include <functional>
+#include <memory>
 #include <mutex>
 #include <sstream>
 #include <thread>
+#include <type_traits>
 
 using namespace packingsolver;
 
@@ -101,9 +104,13 @@ nlohmann::json to_result(const Output& output)
 }
 
 /**
- * Called with the result each time the best solution or a bound improves.
+ * Called each time the best solution or a bound improves, with a function
+ * returning the result.
+ *
+ * The result is only computed when needed: the algorithms may find many
+ * solutions, and writing each of them would slow them down.
  */
-using SolutionCallback = std::function<void(const nlohmann::json&)>;
+using SolutionCallback = std::function<void(const std::function<nlohmann::json()>&)>;
 
 /**
  * Read an instance of a problem type, solve it and return the result.
@@ -130,7 +137,10 @@ nlohmann::json run(
     if (solution_callback) {
         parameters.new_solution_callback = [&solution_callback](const auto& output)
         {
-            solution_callback(to_result(output));
+            using OutputType = typename std::decay<decltype(output)>::type;
+            std::shared_ptr<const OutputType> output_copy
+                = std::make_shared<const OutputType>(output);
+            solution_callback([output_copy]() { return to_result(*output_copy); });
         };
     }
     const auto output = optimize_function(instance, parameters);
@@ -235,10 +245,12 @@ public:
                         problem_type,
                         instance_json,
                         parameters_json,
-                        [this](const nlohmann::json& solution)
+                        [this](const std::function<nlohmann::json()>& solution)
                         {
+                            // Only the latest update is kept: the page
+                            // only shows the latest one.
                             std::lock_guard<std::mutex> lock(mutex_);
-                            solutions_.push_back(solution);
+                            latest_solution_ = solution;
                         },
                         &end_);
             } catch (const std::exception& e) {
@@ -253,8 +265,8 @@ public:
 
     /**
      * Return, as JSON:
-     * - "solutions": the updates since the previous call (each time the best
- *   solution or a bound improved);
+     * - "solutions": the latest update since the previous call, if any (the
+     *   best solution or a bound improved);
      * - "done": 'true' once the optimization has ended;
      * - "result": then, the final result (or "error").
      */
@@ -263,15 +275,18 @@ public:
         nlohmann::json poll_result;
         poll_result["solutions"] = nlohmann::json::array();
         bool done = false;
+        std::function<nlohmann::json()> latest_solution;
         {
             std::lock_guard<std::mutex> lock(mutex_);
-            for (nlohmann::json& solution: solutions_)
-                poll_result["solutions"].push_back(std::move(solution));
-            solutions_.clear();
+            latest_solution = latest_solution_;
+            latest_solution_ = nullptr;
             done = done_;
             if (done)
                 poll_result["result"] = result_;
         }
+        // Computed outside of the lock, not to block the algorithms.
+        if (latest_solution)
+            poll_result["solutions"].push_back(latest_solution());
         poll_result["done"] = done;
         if (done && thread_.joinable())
             thread_.join();
@@ -298,8 +313,8 @@ private:
     /** Protects the members below. */
     std::mutex mutex_;
 
-    /** Updates, not returned by 'poll' yet. */
-    std::vector<nlohmann::json> solutions_;
+    /** Latest update, not returned by 'poll' yet. */
+    std::function<nlohmann::json()> latest_solution_;
 
     /** 'true' once the optimization has ended. */
     bool done_ = false;
