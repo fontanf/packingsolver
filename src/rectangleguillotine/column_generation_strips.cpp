@@ -2147,6 +2147,12 @@ PricingOutput ColumnGenerationPricingSolver::solve_pricing(
         reduced_cost_bound = std::numeric_limits<Value>::infinity();
     }
 
+    // The pattern generators stop early when the timer ends, leaving
+    // 'reduced_cost_bound' covering only the sub-problems solved so far, so
+    // it doesn't bound the reduced cost of every column anymore.
+    if (parameters_.timer.needs_to_end())
+        reduced_cost_bound = std::numeric_limits<Value>::infinity();
+
     if (instance_.objective() == Objective::Knapsack) {
         for (const std::shared_ptr<const Column>& column: output.columns) {
             const Solution& solution = *std::static_pointer_cast<Solution>(column->extra);
