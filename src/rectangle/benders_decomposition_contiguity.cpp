@@ -1350,8 +1350,10 @@ BendersDecompositionContiguityOutput packingsolver::rectangle::benders_decomposi
             break;
         }
 
-        if (instance.objective() == Objective::Knapsack)
-            algorithm_formatter.update_knapsack_bound(bmp_result.objective_value);
+        if (instance.objective() == Objective::Knapsack
+                && bmp_result.bound != std::numeric_limits<double>::infinity()) {
+            algorithm_formatter.update_knapsack_bound(bmp_result.bound);
+        }
 
         if (parameters.timer.needs_to_end())
             break;

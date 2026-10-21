@@ -160,6 +160,12 @@ struct OnedimensionalContiguityResult
     /** Objective value (0 for 'Feasibility'); only meaningful if 'status == Feasible'. */
     double objective_value = 0.0;
 
+    /**
+     * Upper bound on the optimal objective value ('Knapsack'); +inf if the
+     * search doesn't provide one.
+     */
+    double bound = std::numeric_limits<double>::infinity();
+
     /** Selected units, i.e. the chosen placement of every selected unit; only meaningful if 'status == Feasible'. */
     std::vector<Candidate> selected_units;
 };

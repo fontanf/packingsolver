@@ -354,6 +354,7 @@ OnedimensionalContiguityResult packingsolver::rectangle::onedimentional_contigui
     // duplicated (or silently skipped) when HiGHS is not available.
     bool proven_infeasible = false;
     std::vector<double> solution;
+    double bound = std::numeric_limits<double>::infinity();
 #ifdef HIGHS_FOUND
     Highs highs;
     mathoptsolverscmake::reduce_printout(highs);
@@ -363,8 +364,12 @@ OnedimensionalContiguityResult packingsolver::rectangle::onedimentional_contigui
     proven_infeasible =
         (highs.getModelStatus() == HighsModelStatus::kInfeasible
          || highs.getModelStatus() == HighsModelStatus::kUnboundedOrInfeasible);
-    if (!proven_infeasible)
+    if (!proven_infeasible) {
         solution = mathoptsolverscmake::get_solution(highs);
+        // The dual bound rather than the objective value of the solution,
+        // since HiGHS may stop before optimality (time limit, relative gap).
+        bound = mathoptsolverscmake::get_bound(highs);
+    }
 #else
     throw std::invalid_argument(FUNC_SIGNATURE);
 #endif
@@ -384,6 +389,7 @@ OnedimensionalContiguityResult packingsolver::rectangle::onedimentional_contigui
             result.selected_units.push_back(candidates[candidate_id]);
     }
     result.objective_value = model.evaluate_objective(solution);
+    result.bound = bound;
     result.status = OnedimensionalContiguityResult::Status::Feasible;
     return result;
 }
