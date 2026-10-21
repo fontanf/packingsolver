@@ -2149,8 +2149,11 @@ PricingOutput ColumnGenerationPricingSolver::solve_pricing(
 
     // The pattern generators stop early when the timer ends, leaving
     // 'reduced_cost_bound' covering only the sub-problems solved so far, so
-    // it doesn't bound the reduced cost of every column anymore.
-    if (parameters_.timer.needs_to_end())
+    // it doesn't bound the reduced cost of every column anymore. The
+    // sub-problems also stop when 'algorithm_formatter_' ends, which
+    // 'parameters_.timer' doesn't account for.
+    if (parameters_.timer.needs_to_end()
+            || algorithm_formatter_.end_boolean())
         reduced_cost_bound = std::numeric_limits<Value>::infinity();
 
     if (instance_.objective() == Objective::Knapsack) {
