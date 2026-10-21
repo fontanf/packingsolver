@@ -348,10 +348,36 @@ struct ItemType
     /** Return type of shape of the item type. */
     ShapeType shape_type() const;
 
+    /**
+     * Bounding box of the item type in a given orientation.
+     *
+     * 'type' selects the shapes: 0 for the original shapes, 1 for the scaled
+     * shapes, 2 for the inflated shapes.
+     */
     AxisAlignedBoundingBox compute_min_max(
             Angle angle = 0.0,
             bool mirror = false,
             int type = 0) const;
+
+    /** Bounding boxes of the item type in one of its discrete orientations. */
+    struct DiscreteRotationMinMax
+    {
+        /** Angle. */
+        Angle angle = 0.0;
+
+        /** Mirror. */
+        bool mirror = false;
+
+        /** Bounding boxes, for each type of shapes (see 'compute_min_max'). */
+        AxisAlignedBoundingBox aabbs[3];
+    };
+
+    /**
+     * Bounding boxes of the item type in its discrete allowed orientations,
+     * computed when building the instance, so that 'compute_min_max' doesn't
+     * need to transform the shapes again.
+     */
+    std::vector<DiscreteRotationMinMax> discrete_rotations_min_max;
 
     bool has_full_continuous_rotations() const;
 

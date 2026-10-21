@@ -208,6 +208,9 @@ public:
      * ('SeparatorParameters::maximum_number_of_iterations_without_improvement'
      * and 'SeparatorParameters::maximum_number_of_strikes').
      */
+    /** Get the item types of the separator. */
+    const std::shared_ptr<const ItemTypes>& item_types() const { return item_types_pointer_; }
+
     void set_stopping_criteria(
             Counter maximum_number_of_iterations_without_improvement,
             Counter maximum_number_of_strikes)
