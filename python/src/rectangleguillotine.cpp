@@ -471,7 +471,9 @@ void bind_rectangleguillotine(nb::module_& m)
         .def_rw("merge_identical_items", &ReductionParameters::merge_identical_items)
         .def_rw("lift_item_dimensions", &ReductionParameters::lift_item_dimensions)
         .def_rw("remove_dominated_items", &ReductionParameters::remove_dominated_items)
-        .def_rw("remove_dominated_bin_types", &ReductionParameters::remove_dominated_bin_types);
+        .def_rw("remove_dominated_bin_types", &ReductionParameters::remove_dominated_bin_types)
+        .def_rw("reduce_full_bin_items", &ReductionParameters::reduce_full_bin_items)
+        .def_rw("reduce_perfect_pairs", &ReductionParameters::reduce_perfect_pairs);
 
     nb::class_<OptimizeParameters> parameters = bind_parameters_base<rectangleguillotine::Output, OptimizeParameters>(m);
     parameters

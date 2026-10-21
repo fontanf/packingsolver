@@ -61,6 +61,19 @@ void expect_instances_equal(const Instance& actual, const Instance& expected)
     }
 }
 
+/**
+ * The default parameters, without the dedicated-bin reservations, for the
+ * scenarios testing other operations on instances they would reduce
+ * entirely.
+ */
+ReductionParameters parameters_without_dedicated_bins()
+{
+    ReductionParameters parameters;
+    parameters.reduce_full_bin_items = false;
+    parameters.reduce_perfect_pairs = false;
+    return parameters;
+}
+
 }
 
 /**
@@ -300,7 +313,7 @@ INSTANTIATE_TEST_SUITE_P(
                 // merged pattern was reused across more than one physical
                 // bin.
                 fs::path("data") / "box" / "tests" / "bin_packing_merge_identical_items_unequal_copies_produces_compact_groups",
-                ReductionParameters(),
+                parameters_without_dedicated_bins(),
                 false,
                 false,
                 false,
@@ -334,7 +347,7 @@ INSTANTIATE_TEST_SUITE_P(
                 // lifted to 7x10x10 (nothing else fits beside it). Both
                 // item types are then identical and merge.
                 fs::path("data") / "box" / "tests" / "bin_packing_lift_item_dimensions",
-                ReductionParameters(),
+                parameters_without_dedicated_bins(),
             }, {
                 // Bin 10x10x10. Item type 7x10x10 with one copy, item type
                 // 4x10x10 with two copies, oriented. Along 'x', the bin is
@@ -343,7 +356,7 @@ INSTANTIATE_TEST_SUITE_P(
                 // it). The 4x10x10 item type has two copies, so it is not
                 // lifted.
                 fs::path("data") / "box" / "tests" / "bin_packing_lift_item_dimensions_requires_single_copy",
-                ReductionParameters(),
+                parameters_without_dedicated_bins(),
             }, {
                 // Bin 10x10x10. Item type 7x8x4 allowing 'XYZ' and 'YXZ',
                 // item type 4x4x7 oriented. The first item type is only
@@ -351,7 +364,7 @@ INSTANTIATE_TEST_SUITE_P(
                 // the same dimension along, to 7. The second item type is
                 // lifted along 'x' and 'y' to 8 (the shrunk bin).
                 fs::path("data") / "box" / "tests" / "bin_packing_lift_item_dimensions_rotations",
-                ReductionParameters(),
+                parameters_without_dedicated_bins(),
             }, {
                 // 'OpenDimensionX', bin 12x10x10. Item types 7x10x10,
                 // 3x10x10 and 5x10x10, oriented, one copy each. Along 'x',
@@ -384,6 +397,26 @@ INSTANTIATE_TEST_SUITE_P(
                 // enough copies: bin type 0 is left out of the reduced
                 // instance, and 'unreduce_solution' maps the bin type back.
                 fs::path("data") / "box" / "tests" / "variable_sized_bin_packing_remove_dominated_bin_types",
+                ReductionParameters(),
+            }, {
+                // 'BinPacking', bin 10x10x10, 5 copies. Item type 0
+                // (10x10x10, 2 copies) fills the bin: 2 dedicated bins, the
+                // reduced instance keeps 3 bins for item type 1 (5x5x5, 3
+                // copies).
+                fs::path("data") / "box" / "tests" / "bin_packing_full_bin_items",
+                ReductionParameters(),
+            }, {
+                // 'BinPacking', bin 10x10x10, 5 copies. Item types 0
+                // (6x10x10) and 1 (4x10x10), oriented, 2 copies each, fill
+                // the bin together along 'x': 2 dedicated bins, the reduced
+                // instance keeps 3 bins for item type 2 (3x3x3, 2 copies).
+                fs::path("data") / "box" / "tests" / "bin_packing_perfect_pairs",
+                ReductionParameters(),
+            }, {
+                // Same as 'bin_packing_full_bin_items', with a maximum
+                // weight and weighted items: moving items between bins could
+                // break the weight constraint, nothing is reserved.
+                fs::path("data") / "box" / "tests" / "bin_packing_full_bin_items_not_reserved_with_weight",
                 ReductionParameters(),
             },
         }));

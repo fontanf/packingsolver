@@ -426,18 +426,31 @@ packingsolver::box::Output packingsolver::box::optimize(
         reduction_parameters.timer = parameters.timer;
         Reduction reduction(instance, reduction_parameters);
 
+        if (reduction.proven_infeasible()) {
+            // The dedicated bins (see 'Reduction::reduce_full_bin_items'/
+            // 'reduce_perfect_pairs') take every copy of the bin type while
+            // items remain: 'reduction.instance()' is not meaningful.
+            algorithm_formatter.update_is_proven_infeasible();
+            algorithm_formatter.end();
+            return output;
+        }
+
         // Forwards a solution/bound found for the reduced instance to the
         // original 'algorithm_formatter', in original-instance
-        // coordinates. Every bound needs no reduction-specific
-        // translation: removing/merging items via this reduction never
-        // changes them (cost, feasibility, ...).
+        // coordinates. Removing/merging items via this reduction never
+        // changes the bounds (cost, feasibility, ...), except the dedicated
+        // bins (see 'Reduction::number_of_dedicated_bins', 'BinPacking'
+        // only), absent from the reduced instance: they are added back onto
+        // the bin packing bound.
         auto report_reduced_output = [&reduction, &algorithm_formatter](
                 const box::Output& reduced_output)
             {
                 algorithm_formatter.update_solution(
                         reduction.unreduce_solution(reduced_output.solution_pool.best()),
                         reduced_output.solution_pool.best_label());
-                algorithm_formatter.update_bounds(reduced_output);
+                box::Output translated_output(reduced_output);
+                translated_output.bin_packing_bound += reduction.number_of_dedicated_bins();
+                algorithm_formatter.update_bounds(translated_output);
             };
 
         OptimizeParameters reduced_parameters = parameters;

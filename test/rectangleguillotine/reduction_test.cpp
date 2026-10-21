@@ -49,6 +49,18 @@ void expect_instances_equal(const Instance& actual, const Instance& expected)
     EXPECT_EQ(actual.number_of_stacks(), expected.number_of_stacks());
 }
 
+/**
+ * The default parameters, without the dedicated-bin reservations, for the
+ * scenarios testing other operations on instances they would reduce.
+ */
+ReductionParameters parameters_without_dedicated_bins()
+{
+    ReductionParameters parameters;
+    parameters.reduce_full_bin_items = false;
+    parameters.reduce_perfect_pairs = false;
+    return parameters;
+}
+
 }
 
 /**
@@ -171,7 +183,9 @@ TEST(RectangleGuillotineReduction, MergeUnequalCopiesProducesCompactGroups)
     instance_builder.set_first_stage_orientation(CutOrientation::Vertical);
     Instance instance = instance_builder.build();
 
-    Reduction reduction(instance);
+    // Each item fills the bin: without the dedicated-bin reservations, which
+    // would take them all.
+    Reduction reduction(instance, parameters_without_dedicated_bins());
     const Instance& reduced_instance = reduction.instance();
     ASSERT_EQ(reduced_instance.number_of_item_types(), 1);
     ASSERT_EQ(reduced_instance.item_type(0).copies, 50);
@@ -294,7 +308,7 @@ INSTANTIATE_TEST_SUITE_P(
                 // exercises that replay logic directly, with a bin that
                 // places more than one item.
                 fs::path("data") / "rectangleguillotine" / "tests" / "bin_packing_merge_identical_items_unreduce_solution_round_trip",
-                ReductionParameters(),
+                parameters_without_dedicated_bins(),
             }, {
                 // 'rectangleguillotine'-specific: no 'rectangle' equivalent.
                 // Bin 20x10. Two item types, both 10x10, oriented,
@@ -350,7 +364,7 @@ INSTANTIATE_TEST_SUITE_P(
                 // item type's own copies instead. They still merge into a
                 // single reduced item type with the combined 5 copies.
                 fs::path("data") / "rectangleguillotine" / "tests" / "bin_packing_merge_identical_items_alone_in_stack_with_multiple_copies",
-                ReductionParameters(),
+                parameters_without_dedicated_bins(),
                 true,
             }, {
                 // Bin 100x100. Item type 0 (10x10) is a square: its
@@ -366,21 +380,21 @@ INSTANTIATE_TEST_SUITE_P(
                 // the solution of the reduced instance accept the original
                 // item type rotated.
                 fs::path("data") / "rectangleguillotine" / "tests" / "remove_redundant_rotations_rotation_fits_no_bin",
-                ReductionParameters(),
+                parameters_without_dedicated_bins(),
             }, {
                 // Bin 100x40. Item type 0 (30x45) only fits rotated: it
                 // becomes an oriented 45x30 item type. Item type 1 (45x30)
                 // only fits unrotated: it becomes oriented. Both are then
                 // identical and merge.
                 fs::path("data") / "rectangleguillotine" / "tests" / "bin_packing_merge_identical_items_after_removing_redundant_rotations",
-                ReductionParameters(),
+                parameters_without_dedicated_bins(),
             }, {
                 // Bin 10x10, 'NonExact'. Item types 7x10 and 4x10, oriented,
                 // one copy each: they can't share a bin, so the bin is shrunk
                 // along 'x' to 7, and the 4x10 item type is lifted to 7x10.
                 // Both item types are then identical and merge.
                 fs::path("data") / "rectangleguillotine" / "tests" / "bin_packing_lift_item_dimensions",
-                ReductionParameters(),
+                parameters_without_dedicated_bins(),
             }, {
                 // Bin 10x10, 'NonExact'. Item types 7x6 and 4x5, oriented,
                 // one copy each: the 4x5 item type is lifted to 7 along 'x'
@@ -388,20 +402,20 @@ INSTANTIATE_TEST_SUITE_P(
                 // solution of the reduced instance needs its cut tree to be
                 // rewritten along both axes.
                 fs::path("data") / "rectangleguillotine" / "tests" / "bin_packing_lift_item_dimensions_both_axes",
-                ReductionParameters(),
+                parameters_without_dedicated_bins(),
             }, {
                 // Same items as above, 2 stages, 'Exact', vertical first
                 // stage. Only the axis of the 2-cuts ('y') can be lifted:
                 // the 4x5 item type is lifted to 4x6.
                 fs::path("data") / "rectangleguillotine" / "tests" / "bin_packing_lift_item_dimensions_exact",
-                ReductionParameters(),
+                parameters_without_dedicated_bins(),
             }, {
                 // Bin 10x10, cut thickness 1. Item types 6x10 and 4x10,
                 // oriented, one copy each: with the cut thickness, they
                 // can't share a bin (6 + 1 + 4 > 10), so the 4x10 item
                 // type is lifted to 6x10, and merges with the other one.
                 fs::path("data") / "rectangleguillotine" / "tests" / "bin_packing_lift_item_dimensions_cut_thickness",
-                ReductionParameters(),
+                parameters_without_dedicated_bins(),
             }, {
                 // Same as 'bin_packing_lift_item_dimensions', with a
                 // minimum waste length: nothing is lifted.
@@ -438,6 +452,24 @@ INSTANTIATE_TEST_SUITE_P(
                 // copies: bin type 0 is left out of the reduced instance,
                 // and 'unreduce_solution' maps the bin type back.
                 fs::path("data") / "rectangleguillotine" / "tests" / "variable_sized_bin_packing_remove_dominated_bin_types",
+                ReductionParameters(),
+            }, {
+                // 'BinPacking', bin 10x10, 5 copies. Item type 0 (10x10, 2
+                // copies) fills the bin: 2 dedicated bins, the reduced
+                // instance keeps 3 bins for item type 1 (5x5, 3 copies).
+                fs::path("data") / "rectangleguillotine" / "tests" / "bin_packing_full_bin_items",
+                ReductionParameters(),
+            }, {
+                // 'BinPacking', bin 10x10, 5 copies. Item types 0 (6x10)
+                // and 1 (4x10), oriented, 2 copies each, fill the bin
+                // together: 2 dedicated bins, the reduced instance keeps 3
+                // bins for item type 2 (3x3, 2 copies).
+                fs::path("data") / "rectangleguillotine" / "tests" / "bin_packing_perfect_pairs",
+                ReductionParameters(),
+            }, {
+                // Same, with a cut thickness of 1 and item type 1 of size
+                // 3x10: 6 + 1 + 3 fills the bin.
+                fs::path("data") / "rectangleguillotine" / "tests" / "bin_packing_perfect_pairs_cut_thickness",
                 ReductionParameters(),
             },
         }));
