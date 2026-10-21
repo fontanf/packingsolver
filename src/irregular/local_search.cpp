@@ -341,9 +341,7 @@ void local_search_linear_programming(
             break;
     }
 
-    std::stringstream ss;
-    ss << "LS";
-    algorithm_formatter.update_solution(solution, ss.str());
+    algorithm_formatter.update_solution(solution, "");
 }
 
 /**
@@ -542,15 +540,18 @@ void local_search_direct_trigonometry(
             },
             population_parameters);
 
-    // If the last separation succeeded, return true and report the solution.
-    // Otherwise, add its layout to the population.
+    // If the last separation, of iteration 'iteration', succeeded, return true
+    // and report the solution. Otherwise, add its layout to the population.
     auto process_separation = [&separator, &algorithm_formatter, &population, &generator](
-            bool separated)
+            bool separated,
+            Counter iteration)
     {
         if (separated) {
             Solution solution = separator.solution();
             if (is_feasible(solution)) {
-                algorithm_formatter.update_solution(solution, "LS");
+                std::stringstream ss;
+                ss << "it " << iteration;
+                algorithm_formatter.update_solution(solution, ss.str());
                 return true;
             }
         }
@@ -573,7 +574,7 @@ void local_search_direct_trigonometry(
     separator.set_stopping_criteria(
             parameters.separator_parameters.maximum_number_of_iterations_without_improvement,
             parameters.separator_parameters.maximum_number_of_strikes);
-    if (process_separation(separated))
+    if (process_separation(separated, 0))
         return;
 
     for (Counter number_of_failed_separations = 1;
@@ -592,7 +593,7 @@ void local_search_direct_trigonometry(
         // Separate it; the separation is given up early if its loss doesn't
         // get below the loss of the drawn layout.
         separated = separator.separate(parameters.timer, selected_layout.loss);
-        if (process_separation(separated))
+        if (process_separation(separated, number_of_failed_separations))
             return;
     }
 }

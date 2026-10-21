@@ -385,7 +385,9 @@ void optimize_local_search(
             const irregular::Output& ps_output)
     {
         std::stringstream ss;
-        ss << ((engine == LocalSearchEngine::LinearProgramming)? "LS LP": "LS DT");
+        ss << ((engine == LocalSearchEngine::LinearProgramming)? "LS-LP": "LS-DT");
+        if (!ps_output.solution_pool.best_label().empty())
+            ss << " " << ps_output.solution_pool.best_label();
         algorithm_formatter.update_solution(ps_output.solution_pool.best(), ss.str());
     };
     std::mt19937_64 generator(parameters.seed);
