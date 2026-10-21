@@ -455,7 +455,9 @@ SequentialFeasibilityOutput packingsolver::irregular::sequential_feasibility(
                     {0});  // bin_type_ids
         }
         std::stringstream ss;
-        ss << "SF it " << it << " " << sub_solution_pool.best_label();
+        ss << "SF it " << it;
+        if (!sub_solution_pool.best_label().empty())
+            ss << " " << sub_solution_pool.best_label();
         algorithm_formatter.update_solution(solution, ss.str());
         previous_solution = solution;
         has_previous_solution = true;
