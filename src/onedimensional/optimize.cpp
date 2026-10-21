@@ -205,8 +205,10 @@ void optimize_trivial_bound(
         kp_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
         auto kp_output = optimize(kp_instance, kp_parameters);
 
+        // The knapsack bound rather than the best solution, since the
+        // knapsack may not have been solved to optimality.
         algorithm_formatter.update_variable_sized_bin_packing_bound(
-                total_cost - kp_output.solution_pool.best().profit());
+                total_cost - kp_output.knapsack_bound);
         return;
     }
 }
@@ -300,7 +302,10 @@ void optimize_dynamic_programming(
         ss << "DP";
         algorithm_formatter.update_solution(solution, ss.str());
     }
-    algorithm_formatter.update_knapsack_bound(solution.profit());
+    // When interrupted, the dynamic programming returns its current best
+    // solution, which is not a bound.
+    if (kp_output.solution.profit() == kp_output.bound)
+        algorithm_formatter.update_knapsack_bound(solution.profit());
 }
 
 void optimize_tree_search(
