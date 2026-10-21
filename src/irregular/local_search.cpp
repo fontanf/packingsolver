@@ -2,12 +2,10 @@
 #include "irregular/sequential_feasibility.hpp"
 #include "irregular/linear_programming.hpp"
 #include "irregular/solution_builder.hpp"
-#include "irregular/local_search_direct_trigonometry/polygon.hpp"
 
 #include "packingsolver/irregular/algorithm_formatter.hpp"
 
 #include "shape/boolean_operations.hpp"
-#include "shape/shapes_intersections.hpp"
 
 #include "localsearchsolver/population.hpp"
 //#include "shape/writer.hpp"
@@ -15,8 +13,6 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
-#include <map>
-#include <tuple>
 #include <random>
 #include <sstream>
 
@@ -344,245 +340,6 @@ void local_search_linear_programming(
     algorithm_formatter.update_solution(solution, "");
 }
 
-}  // namespace
-
-/**
- * Exact shapes of the item types in each orientation, not translated, used
- * by the feasibility checks of the solutions found.
- */
-struct packingsolver::irregular::ExactItemShapes
-{
-    struct ExactItemShape
-    {
-        /** Shape. */
-        ShapeWithHoles shape;
-
-        /** Polygon of the shape, if it is made of line segments. */
-        Polygon polygon;
-
-        /** True iff the shape is made of line segments. */
-        bool is_polygon = false;
-
-        /** Bounding box of the shape. */
-        AxisAlignedBoundingBox aabb;
-
-        /**
-         * Polygon of the simplified shape of the separator, an outer
-         * approximation of the shape, if any.
-         */
-        Polygon simplified_polygon;
-
-        /** True iff there is a simplified polygon. */
-        bool has_simplified_polygon = false;
-    };
-
-    /** Item types of the separator, for the simplified polygons. */
-    std::shared_ptr<const Separator::ItemTypes> separator_item_types;
-
-    std::map<std::tuple<ItemTypeId, ItemShapePos, Angle, bool>, ExactItemShape> item_shapes;
-
-    const ExactItemShape& get(
-            const Instance& instance,
-            ItemTypeId item_type_id,
-            ItemShapePos item_shape_pos,
-            Angle angle,
-            bool mirror)
-    {
-        std::tuple<ItemTypeId, ItemShapePos, Angle, bool> key(
-                item_type_id,
-                item_shape_pos,
-                angle,
-                mirror);
-        auto item_shape_it = item_shapes.find(key);
-        if (item_shape_it != item_shapes.end())
-            return item_shape_it->second;
-        ExactItemShape item_shape;
-        item_shape.shape = instance.item_shape_scaled(
-                item_type_id,
-                item_shape_pos,
-                angle,
-                mirror);
-        item_shape.aabb = item_shape.shape.shape.compute_min_max();
-        item_shape.is_polygon = item_shape.shape.shape.is_polygon();
-        if (item_shape.is_polygon)
-            item_shape.polygon = build_polygon(item_shape.shape.shape);
-        if (separator_item_types != nullptr) {
-            for (const Separator::Orientation& orientation:
-                    (*separator_item_types)[item_type_id].orientations) {
-                if (equal(orientation.angle, angle)
-                        && orientation.mirror == mirror
-                        && item_shape_pos < (ItemShapePos)orientation.polygons.size()) {
-                    item_shape.simplified_polygon = orientation.polygons[item_shape_pos];
-                    item_shape.has_simplified_polygon = true;
-                    break;
-                }
-            }
-        }
-        return item_shapes.insert({key, item_shape}).first->second;
-    }
-};
-
-namespace
-{
-
-/**
- * Return true iff the solution contains all the items, without overlaps and
- * inside the bins, according to the exact shapes.
- *
- * Same checks as 'Solution::compute_overlapping_items', but only the pairs of
- * shapes whose bounding boxes intersect are tested, and the pairs of shapes
- * made of line segments are tested with the polygon intersection test (the
- * holes of the items being ignored, which is conservative).
- */
-bool is_feasible(
-        const Solution& solution,
-        ExactItemShapes& exact_item_shapes)
-{
-    if (!solution.full() || !solution.feasible())
-        return false;
-    const Instance& instance = solution.instance();
-    const LengthDbl scale_value = instance.parameters().scale_value;
-    const Point origin = {0.0, 0.0};
-
-    for (BinPos bin_pos = 0; bin_pos < solution.number_of_different_bins(); ++bin_pos) {
-        const SolutionBin& solution_bin = solution.bin(bin_pos);
-        const BinType& bin_type = instance.bin_type(solution_bin.bin_type_id);
-
-        // Shapes of the bin: the obstacles (item_pos == -1) and the items.
-        struct BinShape
-        {
-            ItemPos item_pos;
-            /** Shape, translated, for the obstacles. */
-            const ShapeWithHoles* shape;
-            /** Shape, not translated, for the items. */
-            const ShapeWithHoles* item_shape;
-            const Polygon* polygon;
-            /**
-             * Polygon of an outer approximation of the shape: the simplified
-             * polygon for the items, the polygon for the obstacles.
-             */
-            const Polygon* outer_polygon;
-            Point translation;
-            AxisAlignedBoundingBox aabb;
-        };
-        std::vector<BinShape> bin_shapes;
-        std::vector<Polygon> obstacle_polygons;
-        std::vector<const Defect*> obstacles;
-        for (const Defect& border: bin_type.borders)
-            obstacles.push_back(&border);
-        for (const Defect& defect: bin_type.defects)
-            obstacles.push_back(&defect);
-        obstacle_polygons.reserve(obstacles.size());
-        for (const Defect* obstacle: obstacles) {
-            BinShape bin_shape;
-            bin_shape.item_pos = -1;
-            bin_shape.shape = &obstacle->shape_scaled;
-            bin_shape.item_shape = nullptr;
-            bin_shape.polygon = nullptr;
-            bin_shape.translation = origin;
-            bin_shape.aabb = obstacle->shape_scaled.shape.compute_min_max();
-            if (obstacle->shape_scaled.shape.is_polygon()) {
-                obstacle_polygons.push_back(build_polygon(obstacle->shape_scaled.shape));
-                bin_shape.polygon = &obstacle_polygons.back();
-            }
-            bin_shape.outer_polygon = bin_shape.polygon;
-            bin_shapes.push_back(bin_shape);
-        }
-        for (ItemPos item_pos = 0; item_pos < (ItemPos)solution_bin.items.size(); ++item_pos) {
-            const SolutionItem& item = solution_bin.items[item_pos];
-            const ItemType& item_type = instance.item_type(item.item_type_id);
-            for (ItemShapePos item_shape_pos = 0;
-                    item_shape_pos < (ItemShapePos)item_type.shapes.size();
-                    ++item_shape_pos) {
-                const ExactItemShapes::ExactItemShape& exact_item_shape = exact_item_shapes.get(
-                        instance,
-                        item.item_type_id,
-                        item_shape_pos,
-                        item.angle,
-                        item.mirror);
-                BinShape bin_shape;
-                bin_shape.item_pos = item_pos;
-                bin_shape.shape = nullptr;
-                bin_shape.item_shape = &exact_item_shape.shape;
-                bin_shape.polygon = (exact_item_shape.is_polygon)? &exact_item_shape.polygon: nullptr;
-                bin_shape.outer_polygon = (exact_item_shape.has_simplified_polygon)?
-                    &exact_item_shape.simplified_polygon: bin_shape.polygon;
-                bin_shape.translation = {scale_value * item.bl_corner.x, scale_value * item.bl_corner.y};
-                bin_shape.aabb.x_min = exact_item_shape.aabb.x_min + bin_shape.translation.x;
-                bin_shape.aabb.x_max = exact_item_shape.aabb.x_max + bin_shape.translation.x;
-                bin_shape.aabb.y_min = exact_item_shape.aabb.y_min + bin_shape.translation.y;
-                bin_shape.aabb.y_max = exact_item_shape.aabb.y_max + bin_shape.translation.y;
-                // Inside the bin.
-                if (shape::strictly_lesser(bin_shape.aabb.x_min, bin_type.aabb_scaled.x_min)
-                        || shape::strictly_greater(bin_shape.aabb.x_max, bin_type.aabb_scaled.x_max)
-                        || shape::strictly_lesser(bin_shape.aabb.y_min, bin_type.aabb_scaled.y_min)
-                        || shape::strictly_greater(bin_shape.aabb.y_max, bin_type.aabb_scaled.y_max)) {
-                    return false;
-                }
-                bin_shapes.push_back(bin_shape);
-            }
-        }
-
-        // Translated shape, for the pairs of shapes which aren't both made of
-        // line segments.
-        auto translated_shape = [](const BinShape& bin_shape)
-        {
-            if (bin_shape.shape != nullptr)
-                return *bin_shape.shape;
-            ShapeWithHoles shape = *bin_shape.item_shape;
-            shape.shift(bin_shape.translation.x, bin_shape.translation.y);
-            return shape;
-        };
-
-        // Pairs of shapes whose bounding boxes intersect.
-        std::sort(
-                bin_shapes.begin(),
-                bin_shapes.end(),
-                [](const BinShape& bin_shape_1, const BinShape& bin_shape_2)
-                {
-                    return bin_shape_1.aabb.x_min < bin_shape_2.aabb.x_min;
-                });
-        for (Counter shape_pos_1 = 0; shape_pos_1 < (Counter)bin_shapes.size(); ++shape_pos_1) {
-            const BinShape& bin_shape_1 = bin_shapes[shape_pos_1];
-            for (Counter shape_pos_2 = shape_pos_1 + 1;
-                    shape_pos_2 < (Counter)bin_shapes.size()
-                    && bin_shapes[shape_pos_2].aabb.x_min < bin_shape_1.aabb.x_max;
-                    ++shape_pos_2) {
-                const BinShape& bin_shape_2 = bin_shapes[shape_pos_2];
-                if (bin_shape_1.item_pos == -1 && bin_shape_2.item_pos == -1)
-                    continue;
-                if (bin_shape_1.item_pos == bin_shape_2.item_pos)
-                    continue;
-                if (bin_shape_2.aabb.y_min >= bin_shape_1.aabb.y_max
-                        || bin_shape_1.aabb.y_min >= bin_shape_2.aabb.y_max) {
-                    continue;
-                }
-                // If the outer approximations don't intersect, the shapes
-                // don't either.
-                if (bin_shape_1.outer_polygon != nullptr
-                        && bin_shape_2.outer_polygon != nullptr
-                        && !intersect(
-                            *bin_shape_1.outer_polygon,
-                            bin_shape_1.translation,
-                            *bin_shape_2.outer_polygon,
-                            bin_shape_2.translation)) {
-                    continue;
-                }
-                bool overlap = (bin_shape_1.polygon != nullptr && bin_shape_2.polygon != nullptr)?
-                    intersect(
-                            *bin_shape_1.polygon,
-                            bin_shape_1.translation,
-                            *bin_shape_2.polygon,
-                            bin_shape_2.translation):
-                    shape::intersect(translated_shape(bin_shape_1), translated_shape(bin_shape_2), true);
-                if (overlap)
-                    return false;
-            }
-        }
-    }
-    return true;
-}
-
 /**
  * Local search with the direct trigonometry engine, for objective
  * Feasibility.
@@ -642,23 +399,15 @@ void local_search_direct_trigonometry(
 
     // If the last separation, of iteration 'iteration', succeeded, return true
     // and report the solution. Otherwise, add its layout to the population.
-    std::shared_ptr<ExactItemShapes> exact_item_shapes = parameters.exact_item_shapes;
-    if (exact_item_shapes == nullptr) {
-        exact_item_shapes = std::make_shared<ExactItemShapes>();
-        exact_item_shapes->separator_item_types = separator.item_types();
-    }
-    auto process_separation = [&separator, &algorithm_formatter, &population, &generator, &exact_item_shapes](
+    auto process_separation = [&separator, &algorithm_formatter, &population, &generator](
             bool separated,
             Counter iteration)
     {
         if (separated) {
-            Solution solution = separator.solution();
-            if (is_feasible(solution, *exact_item_shapes)) {
-                std::stringstream ss;
-                ss << "it " << iteration;
-                algorithm_formatter.update_solution(solution, ss.str());
-                return true;
-            }
+            std::stringstream ss;
+            ss << "it " << iteration;
+            algorithm_formatter.update_solution(separator.solution(), ss.str());
+            return true;
         }
         FailedLayout failed_layout = {separator.layout(), separator.total_loss()};
         population.add(failed_layout, generator);
@@ -799,14 +548,7 @@ LocalSearchOutput packingsolver::irregular::local_search(
                     parameters.separator_parameters);
         }
 
-        std::shared_ptr<ExactItemShapes> exact_item_shapes = parameters.exact_item_shapes;
-        if (parameters.engine == LocalSearchEngine::DirectTrigonometry
-                && exact_item_shapes == nullptr) {
-            exact_item_shapes = std::make_shared<ExactItemShapes>();
-            exact_item_shapes->separator_item_types = separator_item_types;
-        }
-
-        SequentialFeasibilitySolver solver = [&parameters, &algorithm_formatter, &generator, initial_solution, separator_item_types, exact_item_shapes](
+        SequentialFeasibilitySolver solver = [&parameters, &algorithm_formatter, &generator, initial_solution, separator_item_types](
                 const Instance& sub_instance,
                 const Solution* previous_solution)
         {
@@ -818,7 +560,6 @@ LocalSearchOutput packingsolver::irregular::local_search(
             inner_parameters.shrink_ratio = parameters.shrink_ratio;
             inner_parameters.separator_parameters = parameters.separator_parameters;
             inner_parameters.separator_item_types = separator_item_types;
-            inner_parameters.exact_item_shapes = exact_item_shapes;
             inner_parameters.initial_separation_maximum_number_of_iterations_without_improvement
                 = parameters.initial_separation_maximum_number_of_iterations_without_improvement;
             inner_parameters.initial_separation_maximum_number_of_strikes
