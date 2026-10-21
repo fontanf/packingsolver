@@ -266,6 +266,10 @@ SequentialFeasibilityOutput packingsolver::irregular::sequential_feasibility(
 
     // Initialize the open dimension variable(s) and/or bin count.
     BinPos current_number_of_bins = 0;
+    // The bins up to the last one with fixed items must be used: a
+    // sub-problem with fewer bins would turn the fixed items of the missing
+    // bins into free items.
+    const BinPos minimum_number_of_bins = (std::max)((BinPos)1, instance.last_bin_with_fixed_items() + 1);
     LengthDbl x = 0;
     LengthDbl y = 0;
 
@@ -286,6 +290,7 @@ SequentialFeasibilityOutput packingsolver::irregular::sequential_feasibility(
             if (total_bin_aabb_area >= 2.0 * total_item_aabb_area)
                 break;
         }
+        current_number_of_bins = (std::max)(current_number_of_bins, minimum_number_of_bins);
     } else if (instance.objective() == Objective::BinPackingWithLeftovers) {
         AreaDbl total_bin_aabb_area = 0;
         for (BinTypeId bin_type_id = 0;
@@ -303,6 +308,7 @@ SequentialFeasibilityOutput packingsolver::irregular::sequential_feasibility(
             if (total_bin_aabb_area >= 2.0 * total_item_aabb_area)
                 break;
         }
+        current_number_of_bins = (std::max)(current_number_of_bins, minimum_number_of_bins);
         BinTypeId last_bin_type_id = instance.bin_type_id(current_number_of_bins - 1);
         const BinType& last_bin_type = instance.bin_type(last_bin_type_id);
         x = last_bin_type.aabb_scaled.x_max - last_bin_type.aabb_scaled.x_min;
@@ -329,12 +335,12 @@ SequentialFeasibilityOutput packingsolver::irregular::sequential_feasibility(
     // found, shrinking them by 'shrink_ratio'. Return false if there is
     // nothing left to try.
     const double shrink_ratio = parameters.shrink_ratio;
-    auto update_targets = [&instance, &current_number_of_bins, &x, &y, shrink_ratio](
+    auto update_targets = [&instance, &current_number_of_bins, &x, &y, shrink_ratio, minimum_number_of_bins](
             const Solution& solution)
     {
         if (instance.objective() == Objective::BinPacking) {
             current_number_of_bins = solution.number_of_bins() - 1;
-            if (current_number_of_bins == 0)
+            if (current_number_of_bins < minimum_number_of_bins)
                 return false;
         } else if (instance.objective() == Objective::BinPackingWithLeftovers) {
             BinTypeId bin_type_id_last = instance.bin_type_id(solution.number_of_bins() - 1);
@@ -349,7 +355,7 @@ SequentialFeasibilityOutput packingsolver::irregular::sequential_feasibility(
                 x = bin_type_new.aabb_scaled.x_max;
             } else if (!strictly_greater(x, bin_type_last.aabb_scaled.x_min + scale_value * bin_type_last.item_bin_minimum_spacing)) {
                 current_number_of_bins = solution.number_of_bins() - 1;
-                if (current_number_of_bins == 0)
+                if (current_number_of_bins < minimum_number_of_bins)
                     return false;
                 BinTypeId bin_type_id_new = instance.bin_type_id(current_number_of_bins - 1);
                 const BinType& bin_type_new = instance.bin_type(bin_type_id_new);
