@@ -1222,11 +1222,14 @@ Instance InstanceBuilder::build()
         bool simplified_instance_computed = false;
         decltype(compute_item_type_rotations(instance_)) all_item_type_rotations;
         bool item_type_rotations_computed = false;
+        // Item types whose periodic packings are computed in this call.
+        std::vector<bool> periodic_packings_computed_here(instance_.number_of_item_types(), false);
         for (ItemTypeId item_type_id = 0;
                 item_type_id < instance_.number_of_item_types();
                 ++item_type_id) {
             ItemType& item_type = instance_.item_types_[item_type_id];
             if (!item_type.periodic_packings_computed) {
+                periodic_packings_computed_here[item_type_id] = true;
                 if (item_type.copies > periodic_packings_copies_threshold) {
                     if (!simplified_instance_computed) {
                         simplified_instance = shape_simplification(
@@ -1267,6 +1270,67 @@ Instance InstanceBuilder::build()
                     }
                 }
                 item_type.periodic_packings_computed = true;
+            }
+        }
+
+        // Periodic packings of an item type wrapping around another one (see
+        // compute_wrapping_periodic_packings), between the item types for
+        // which periodic packings are computed above. Those between item
+        // types whose periodic packings were all already computed have been
+        // carried over from the original instance.
+        bool compute_wrapping_periodic_packings_needed = false;
+        ItemTypeId number_of_wrapping_item_types = 0;
+        for (ItemTypeId item_type_id = 0;
+                item_type_id < instance_.number_of_item_types();
+                ++item_type_id) {
+            if (instance_.item_type(item_type_id).copies <= periodic_packings_copies_threshold)
+                continue;
+            number_of_wrapping_item_types++;
+            if (periodic_packings_computed_here[item_type_id])
+                compute_wrapping_periodic_packings_needed = true;
+        }
+        if (compute_wrapping_periodic_packings_needed
+                && number_of_wrapping_item_types >= 2) {
+            if (!simplified_instance_computed) {
+                simplified_instance = shape_simplification(
+                        instance_,
+                        0.001,
+                        periodic_packings_simplification_minimum_number_of_vertices);
+                simplified_instance_computed = true;
+            }
+            if (!item_type_rotations_computed) {
+                all_item_type_rotations = compute_item_type_rotations(instance_);
+                item_type_rotations_computed = true;
+            }
+            const std::vector<std::vector<ItemTypeRotation>>& item_type_rotations
+                = all_item_type_rotations[instance_.bin_type_id(0)];
+            std::vector<PeriodicPackingItemType> wrapping_item_types;
+            for (ItemTypeId item_type_id = 0;
+                    item_type_id < instance_.number_of_item_types();
+                    ++item_type_id) {
+                if (instance_.item_type(item_type_id).copies <= periodic_packings_copies_threshold)
+                    continue;
+                PeriodicPackingItemType wrapping_item_type;
+                wrapping_item_type.item_type_id = item_type_id;
+                ElementPos number_of_vertices = 0;
+                for (const SimplifiedShape& simplified_shape:
+                        simplified_instance.item_types[item_type_id].shapes) {
+                    wrapping_item_type.shapes.push_back(simplified_shape.shape);
+                    number_of_vertices += simplified_shape.shape.shape.elements.size();
+                }
+                // Same cap as above.
+                if (number_of_vertices > periodic_packings_maximum_number_of_vertices)
+                    continue;
+                wrapping_item_type.rotations = item_type_rotations[item_type_id];
+                wrapping_item_type.compute = periodic_packings_computed_here[item_type_id];
+                wrapping_item_types.push_back(wrapping_item_type);
+            }
+            std::vector<PeriodicItemPacking> single_item_type_packings = instance_.periodic_packings_;
+            for (PeriodicItemPacking& packing: compute_wrapping_periodic_packings(
+                        wrapping_item_types,
+                        single_item_type_packings,
+                        item_item_minimum_spacing)) {
+                instance_.periodic_packings_.push_back(std::move(packing));
             }
         }
     }
