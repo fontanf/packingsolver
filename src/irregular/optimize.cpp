@@ -240,14 +240,6 @@ void optimize_tree_search(
         const OptimizeParameters& parameters,
         AlgorithmFormatter& algorithm_formatter)
 {
-    // Tracks tree_search's own best solution locally (in addition to
-    // reporting it via 'algorithm_formatter' as usual), so
-    // that the last-bin post-process below -- which is specific to
-    // tree_search's own guides -- always has access to it, regardless of
-    // whether other algorithms are running alongside it and regardless of
-    // the deterministic/non-deterministic reporting mode.
-    irregular::Output ts_local_output(instance);
-
     TreeSearchParameters ts_parameters;
     ts_parameters.verbosity_level = 0;
     ts_parameters.timer = parameters.timer;
@@ -259,25 +251,44 @@ void optimize_tree_search(
     ts_parameters.not_anytime_maximum_approximation_ratio = parameters.not_anytime_maximum_approximation_ratio;
     ts_parameters.maximum_approximation_ratio_factor = parameters.maximum_approximation_ratio_factor;
     ts_parameters.json_search_tree_path = parameters.json_search_tree_path;
-    ts_parameters.new_solution_callback = [&algorithm_formatter, &ts_local_output](
+    ts_parameters.new_solution_callback = [&algorithm_formatter](
             const irregular::Output& ts_output)
     {
-        ts_local_output.solution_pool.add(
-                ts_output.solution_pool.best(),
-                ts_output.solution_pool.best_label());
         algorithm_formatter.update_solution(ts_output.solution_pool.best(), "TS " + ts_output.solution_pool.best_label());
     };
     tree_search(instance, ts_parameters);
+}
 
-    // Post-process: for BinPackingWithLeftovers in a not-anytime mode, if
-    // tree_search didn't already use guides {2, 3}, re-optimize just the
-    // last bin (as its own single-bin sub-instance) with guides {2, 3}
-    // forced, in case that guide combination packs it into less leftover
-    // space than the one tree_search used.
-    const Solution& solution_best = ts_local_output.solution_pool.best();
-    if (instance.objective() == Objective::BinPackingWithLeftovers
-            && parameters.optimization_mode != OptimizationMode::Anytime
-            && parameters.tree_search_guides != std::vector<GuideId>({2, 3})
+
+/**
+ * Post-process for BinPackingWithLeftovers in a not-anytime mode: if the
+ * tree search didn't already use guides {2, 3}, re-optimize just the last
+ * bin of 'solution_best' (as its own single-bin sub-instance) with the tree
+ * search with guides {2, 3}, in case that guide combination packs it into
+ * less leftover space: the used area of the last bin doesn't have to span
+ * the whole width or the whole height of the bin, whichever algorithm found
+ * the solution.
+ *
+ * It is applied to the best solution of each algorithm, not only to the
+ * best solution overall: the re-optimized last bin of a solution which isn't
+ * the best one may make it better than the best one.
+ */
+bool last_bin_post_process_applies(
+        const Instance& instance,
+        const OptimizeParameters& parameters)
+{
+    return instance.objective() == Objective::BinPackingWithLeftovers
+        && parameters.optimization_mode != OptimizationMode::Anytime
+        && parameters.tree_search_guides != std::vector<GuideId>({2, 3});
+}
+
+void optimize_last_bin_post_process(
+        const Instance& instance,
+        const OptimizeParameters& parameters,
+        const Solution& solution_best,
+        AlgorithmFormatter& algorithm_formatter)
+{
+    if (last_bin_post_process_applies(instance, parameters)
             && solution_best.number_of_bins() > 0
             && solution_best.bin(solution_best.number_of_different_bins() - 1).copies == 1) {
 
@@ -310,7 +321,8 @@ void optimize_tree_search(
         // Build instance.
         Instance last_bin_instance = last_bin_instance_builder.build();
 
-        // Solve instance.
+        // Solve instance. Only the tree search is run: the guides {2, 3}
+        // are specific to it.
         OptimizeParameters last_bin_parameters;
         last_bin_parameters.seed = parameters.seed;
         last_bin_parameters.verbosity_level = 0;
@@ -318,18 +330,9 @@ void optimize_tree_search(
         last_bin_parameters.optimization_mode = parameters.optimization_mode;
         last_bin_parameters.not_anytime_maximum_approximation_ratio = parameters.not_anytime_maximum_approximation_ratio;
         last_bin_parameters.not_anytime_tree_search_queue_size = parameters.not_anytime_tree_search_queue_size;
-        last_bin_parameters.not_anytime_local_search_maximum_number_of_failed_separations
-            = parameters.not_anytime_local_search_maximum_number_of_failed_separations;
         last_bin_parameters.tree_search_guides = {2, 3};
         last_bin_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
-        // Respect the caller's explicit algorithm selection (if any), rather
-        // than always falling back to automatic selection for this
-        // single-bin sub-instance.
-        last_bin_parameters.use_tree_search = parameters.use_tree_search;
-        last_bin_parameters.use_tree_search_periodic_packing = parameters.use_tree_search_periodic_packing;
-        last_bin_parameters.use_local_search_linear_programming = parameters.use_local_search_linear_programming;
-        last_bin_parameters.use_local_search_direct_trigonometry = parameters.use_local_search_direct_trigonometry;
-        last_bin_parameters.use_milp_raster = parameters.use_milp_raster;
+        last_bin_parameters.use_tree_search = true;
         auto last_bin_output = optimize(last_bin_instance, last_bin_parameters);
 
         if (last_bin_output.solution_pool.best().feasible()) {
@@ -354,7 +357,7 @@ void optimize_tree_search(
 
             // Update best solution.
             std::stringstream ss;
-            ss << "TS post-process";
+            ss << "post-process";
             algorithm_formatter.update_solution(solution, ss.str());
         }
     }
@@ -1108,7 +1111,8 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
     // its own solution is proven optimal against the bounds already known,
     // which only depends on its own progress.
     // These local formatters share 'local_parameters': silenced (no
-    // messages, no JSON output, no new solution callback), and whose timer
+    // messages, no JSON output, and no new solution callback, except the one
+    // forwarding to the shared formatter, see below), and whose timer
     // also stops on the shared formatter's end boolean (e.g. set by the
     // memory monitor), since the algorithms only add the end boolean of the
     // formatter they report to. A 'unique_ptr' is used since an
@@ -1122,15 +1126,31 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
     local_parameters.messages_streams.clear();
     local_parameters.write_json_output = false;
     local_parameters.new_solution_callback = [](const Output&) { };
+    // The last bin post-process (see 'optimize_last_bin_post_process') is
+    // applied to the best solution of each algorithm, so in that case too,
+    // each algorithm reports to its own algorithm formatter. Outside of
+    // 'NotAnytimeDeterministic' mode, these local formatters forward every
+    // solution and bound to the shared 'algorithm_formatter' as soon as they
+    // get it, instead of only at the end.
+    bool local = deterministic || last_bin_post_process_applies(instance, parameters);
+    if (local && !deterministic) {
+        local_parameters.new_solution_callback = [&algorithm_formatter](const Output& local_output)
+        {
+            algorithm_formatter.update_solution(
+                    local_output.solution_pool.best(),
+                    local_output.solution_pool.best_label());
+            algorithm_formatter.update_bounds(local_output);
+        };
+    }
     std::vector<std::unique_ptr<Output>> local_outputs;
     std::vector<std::unique_ptr<AlgorithmFormatter>> local_algorithm_formatters;
     // Return the parameters and the algorithm formatter a new algorithm task
     // should use.
     auto task_context = [&instance, &parameters, &algorithm_formatter, &output,
-         deterministic, &local_parameters, &local_outputs, &local_algorithm_formatters]()
+         local, &local_parameters, &local_outputs, &local_algorithm_formatters]()
         -> std::pair<const OptimizeParameters*, AlgorithmFormatter*>
     {
-        if (!deterministic)
+        if (!local)
             return {&parameters, &algorithm_formatter};
         local_outputs.push_back(std::make_unique<Output>(instance));
         local_outputs.back()->update_bounds(output);
@@ -1274,6 +1294,32 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
                     local_output->solution_pool.best(),
                     local_output->solution_pool.best_label());
             algorithm_formatter.update_bounds(*local_output);
+        }
+    }
+
+    // Last bin post-process, on the best solution of each algorithm, and on
+    // the best solution overall if it doesn't come from one of them (e.g.
+    // found before running them). The best solution is copied since the
+    // post-process may replace it.
+    if (last_bin_post_process_applies(instance, parameters)) {
+        Solution solution_best = output.solution_pool.best();
+        bool solution_best_found_by_an_algorithm = false;
+        for (const auto& local_output: local_outputs) {
+            const Solution& local_solution = local_output->solution_pool.best();
+            if (!(local_solution < solution_best))
+                solution_best_found_by_an_algorithm = true;
+            optimize_last_bin_post_process(
+                    instance,
+                    parameters,
+                    local_solution,
+                    algorithm_formatter);
+        }
+        if (!solution_best_found_by_an_algorithm) {
+            optimize_last_bin_post_process(
+                    instance,
+                    parameters,
+                    solution_best,
+                    algorithm_formatter);
         }
     }
 
