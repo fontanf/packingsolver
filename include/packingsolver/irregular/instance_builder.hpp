@@ -266,6 +266,37 @@ private:
     /** Mapping from original item type IDs to sub-instance item type IDs. */
     std::vector<ItemTypeId> orig_to_sub_item_type_ids_;
 
+    /**
+     * Periodic packings of a single item type carried over from the
+     * original instances by 'add_item_type(original_instance, ...)', with
+     * their item type ids already mapped to the sub-instance ones.
+     */
+    std::vector<PeriodicItemPacking> periodic_packings_;
+
+    /**
+     * Original instance the item types are added from by
+     * 'add_item_type(original_instance, ...)', used to carry over its
+     * periodic packings of several item types. Only used to identify it:
+     * its periodic packings of several item types are copied into
+     * 'original_multiple_item_types_periodic_packings_' on the first call.
+     */
+    const Instance* original_instance_ = nullptr;
+
+    /**
+     * Periodic packings of several item types of 'original_instance_', with
+     * the original item type ids, carried over in 'build()' when all their
+     * item types have been added.
+     */
+    std::vector<PeriodicItemPacking> original_multiple_item_types_periodic_packings_;
+
+    /**
+     * True iff item types have been added from several original instances,
+     * in which case periodic packings of several item types are not carried
+     * over, since 'orig_to_sub_item_type_ids_' can't tell the original
+     * instances apart.
+     */
+    bool several_original_instances_ = false;
+
 };
 
 }

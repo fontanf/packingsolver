@@ -247,9 +247,11 @@ std::ostream& operator<<(std::ostream &os, const SolutionItem& item);
  * Fully resolved periodic packing with item metadata (item type, angle,
  * mirror) and a scaled bounding box.
  *
- * Only depends on the item type's own shape and rotations, so it is
- * cacheable directly on ItemType (see ItemType::periodic_packings below);
- * the Instance-dependent computation lives in
+ * A unit cell may contain items of several item types. A periodic packing
+ * only depends on the shapes and rotations of its item types, not on the bin
+ * dimensions or on the number of copies, so it is computed once, stored in
+ * the instance (see Instance::periodic_packings()), and carried over to the
+ * sub-instances built from it; the computation lives in
  * src/irregular/periodic_packing.hpp/.cpp.
  */
 struct PeriodicItemPacking
@@ -316,18 +318,16 @@ struct ItemType
     AreaDbl area_scaled = 0;
 
     /**
-     * Periodic packings of this item type against itself (self-NFP-derived
-     * lattice tilings), used by the periodic-packing tree search.
+     * True iff the periodic packings of this item type against itself
+     * (self-NFP-derived lattice tilings) have already been computed. They
+     * are stored in Instance::periodic_packings().
      *
-     * Only depends on the item type's own shape and rotations (not on bin
-     * dimensions), so it is computed once, cached here, and copied along
-     * with the item type by InstanceBuilder::add_item_type(instance, id)
-     * instead of being recomputed for every sub-instance built from this
-     * item type (e.g. successive sequential_feasibility iterations).
+     * Copied along with the item type by
+     * InstanceBuilder::add_item_type(instance, id), together with its
+     * periodic packings, instead of recomputing them for every sub-instance
+     * built from this item type (e.g. successive sequential_feasibility
+     * iterations).
      */
-    std::vector<PeriodicItemPacking> periodic_packings;
-
-    /** True iff periodic_packings has already been computed for this item type. */
     bool periodic_packings_computed = false;
 
     /**
@@ -504,6 +504,15 @@ public:
     inline const ItemType& item_type(ItemTypeId item_type_id) const { return item_types_[item_type_id]; }
 
     /**
+     * Get the periodic packings of the instance, used by the periodic-packing
+     * tree search.
+     *
+     * The item types of a periodic packing are given by the 'item_type_id'
+     * of its items.
+     */
+    inline const std::vector<PeriodicItemPacking>& periodic_packings() const { return periodic_packings_; }
+
+    /**
      * Return the scaled shape of item type 'item_type_id', shape 'item_shape_pos',
      * after applying the given mirror (axial symmetry about the y-axis) and
      * rotation angle.
@@ -624,6 +633,9 @@ private:
 
     /** Item types. */
     std::vector<ItemType> item_types_;
+
+    /** Periodic packings. */
+    std::vector<PeriodicItemPacking> periodic_packings_;
 
     /*
      * Private attributes computed by the 'build' method

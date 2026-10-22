@@ -1068,3 +1068,12 @@ std::vector<PeriodicItemPacking> packingsolver::irregular::compute_periodic_pack
 
     return output;
 }
+
+bool packingsolver::irregular::periodic_packing_has_single_item_type(
+        const PeriodicItemPacking& packing)
+{
+    for (const SolutionItem& item: packing.items)
+        if (item.item_type_id != packing.items[0].item_type_id)
+            return false;
+    return true;
+}

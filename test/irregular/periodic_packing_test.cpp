@@ -485,3 +485,64 @@ TEST(ComputePeriodicPackingsInstanceTest, AabbScaledMatchesPlacedItems)
         EXPECT_TRUE(shape::equal(expected_aabb.y_max, packing.aabb_scaled.y_max));
     }
 }
+
+// The periodic packings computed by InstanceBuilder::build() are stored in
+// the instance, and carried over, with their item type ids remapped, to the
+// sub-instances built with InstanceBuilder::add_item_type(instance, id),
+// instead of being recomputed.
+TEST(ComputePeriodicPackingsInstanceTest, PeriodicPackingsCarriedOverToSubInstances)
+{
+    InstanceBuilder instance_builder;
+    instance_builder.add_bin_type(shape::build_rectangle(2000, 2000));
+    // Below the copies threshold: no periodic packing.
+    ItemTypeId item_type_id_0 = instance_builder.add_item_type(
+            {{shape::build_rectangle(100, 50)}});
+    instance_builder.set_item_type_copies(item_type_id_0, 2);
+    ItemTypeId item_type_id_1 = instance_builder.add_item_type(
+            {{shape::build_shape({{0, 20}, {20, 0}, {207, 0}, {0, 205}})}});
+    instance_builder.add_item_type_allowed_rotation(item_type_id_1, 0.0, 0.0, false);
+    instance_builder.add_item_type_allowed_rotation(item_type_id_1, 180.0, 180.0, false);
+    instance_builder.set_item_type_copies(item_type_id_1, 20);
+    Instance instance = instance_builder.build();
+
+    ASSERT_FALSE(instance.periodic_packings().empty());
+    for (const PeriodicItemPacking& packing: instance.periodic_packings())
+        for (const SolutionItem& item: packing.items)
+            EXPECT_EQ(item.item_type_id, item_type_id_1);
+    EXPECT_TRUE(instance.item_type(item_type_id_0).periodic_packings_computed);
+    EXPECT_TRUE(instance.item_type(item_type_id_1).periodic_packings_computed);
+
+    // Sub-instance with the item types in the reverse order.
+    InstanceBuilder sub_instance_builder;
+    sub_instance_builder.add_bin_type(shape::build_rectangle(2000, 2000));
+    ItemTypeId sub_item_type_id_1 = sub_instance_builder.add_item_type(instance, item_type_id_1);
+    sub_instance_builder.add_item_type(instance, item_type_id_0);
+    Instance sub_instance = sub_instance_builder.build();
+
+    ASSERT_EQ(sub_instance.periodic_packings().size(), instance.periodic_packings().size());
+    for (std::size_t packing_pos = 0;
+            packing_pos < sub_instance.periodic_packings().size();
+            ++packing_pos) {
+        const PeriodicItemPacking& packing = instance.periodic_packings()[packing_pos];
+        const PeriodicItemPacking& sub_packing = sub_instance.periodic_packings()[packing_pos];
+        ASSERT_EQ(sub_packing.items.size(), packing.items.size());
+        for (std::size_t item_pos = 0; item_pos < packing.items.size(); ++item_pos) {
+            EXPECT_EQ(sub_packing.items[item_pos].item_type_id, sub_item_type_id_1);
+            EXPECT_EQ(sub_packing.items[item_pos].angle, packing.items[item_pos].angle);
+            EXPECT_EQ(sub_packing.items[item_pos].mirror, packing.items[item_pos].mirror);
+            EXPECT_TRUE(shape::equal(sub_packing.items[item_pos].bl_corner.x, packing.items[item_pos].bl_corner.x));
+            EXPECT_TRUE(shape::equal(sub_packing.items[item_pos].bl_corner.y, packing.items[item_pos].bl_corner.y));
+        }
+        EXPECT_TRUE(shape::equal(sub_packing.vector_1.x, packing.vector_1.x));
+        EXPECT_TRUE(shape::equal(sub_packing.vector_1.y, packing.vector_1.y));
+        EXPECT_TRUE(shape::equal(sub_packing.vector_2.x, packing.vector_2.x));
+        EXPECT_TRUE(shape::equal(sub_packing.vector_2.y, packing.vector_2.y));
+    }
+
+    // Sub-instance without that item type: no periodic packing.
+    InstanceBuilder sub_instance_builder_2;
+    sub_instance_builder_2.add_bin_type(shape::build_rectangle(2000, 2000));
+    sub_instance_builder_2.add_item_type(instance, item_type_id_0);
+    Instance sub_instance_2 = sub_instance_builder_2.build();
+    EXPECT_TRUE(sub_instance_2.periodic_packings().empty());
+}

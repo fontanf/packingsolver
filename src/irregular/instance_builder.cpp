@@ -368,22 +368,35 @@ ItemTypeId InstanceBuilder::add_item_type(
 
     // Carry over already-computed periodic packings instead of recomputing
     // them from scratch for this sub-instance's item type: they only depend
-    // on the item type's own shape/rotations, not on anything else about the
-    // instance. Each packing only ever pairs the item type against itself,
-    // so every embedded item_type_id equals 'original_item_type_id'; remap
-    // it to this sub-instance's (possibly different) 'item_type_id', since
-    // callers match blocks/packings to item types by that id.
+    // on the shapes/rotations of their item types, not on anything else
+    // about the instance. The packings of this item type alone are copied
+    // here, with their item type id remapped to this sub-instance's
+    // (possibly different) 'item_type_id', since callers match
+    // blocks/packings to item types by that id. The packings of several
+    // item types are carried over in 'build()', once it is known whether all
+    // their item types have been added.
     ItemType& new_item_type = instance_.item_types_[item_type_id];
-    new_item_type.periodic_packings = item_type.periodic_packings;
     new_item_type.periodic_packings_computed = item_type.periodic_packings_computed;
+    if (original_instance_ == nullptr) {
+        original_instance_ = &original_instance;
+        for (const PeriodicItemPacking& packing: original_instance.periodic_packings())
+            if (!periodic_packing_has_single_item_type(packing))
+                original_multiple_item_types_periodic_packings_.push_back(packing);
+    } else if (original_instance_ != &original_instance) {
+        several_original_instances_ = true;
+    }
+    for (const PeriodicItemPacking& packing: original_instance.periodic_packings()) {
+        if (!periodic_packing_has_single_item_type(packing)
+                || packing.items[0].item_type_id != original_item_type_id) {
+            continue;
+        }
+        PeriodicItemPacking new_packing = packing;
+        for (SolutionItem& solution_item: new_packing.items)
+            solution_item.item_type_id = item_type_id;
+        periodic_packings_.push_back(std::move(new_packing));
+    }
     // Same for the bounding boxes in the discrete allowed orientations.
     new_item_type.discrete_rotations_min_max = item_type.discrete_rotations_min_max;
-    if (item_type_id != original_item_type_id) {
-        for (PeriodicItemPacking& packing: new_item_type.periodic_packings) {
-            for (SolutionItem& solution_item: packing.items)
-                solution_item.item_type_id = item_type_id;
-        }
-    }
 
     if ((ItemTypeId)orig_to_sub_item_type_ids_.size() <= original_item_type_id)
         orig_to_sub_item_type_ids_.resize(original_item_type_id + 1, -1);
@@ -1140,12 +1153,34 @@ Instance InstanceBuilder::build()
     // tree_search_periodic_packing.cpp), since they also depend on the
     // item type's available copies, which can differ across sub-instances
     // built from the same source item type.
+    // Periodic packings carried over from the original instance (see
+    // add_item_type(original_instance, ...)): those of a single item type
+    // are already remapped; those of several item types are kept only if
+    // all their item types have been added.
+    instance_.periodic_packings_ = periodic_packings_;
+    if (!several_original_instances_) {
+        for (const PeriodicItemPacking& packing: original_multiple_item_types_periodic_packings_) {
+            PeriodicItemPacking new_packing = packing;
+            bool ok = true;
+            for (SolutionItem& solution_item: new_packing.items) {
+                if (solution_item.item_type_id >= (ItemTypeId)orig_to_sub_item_type_ids_.size()
+                        || orig_to_sub_item_type_ids_[solution_item.item_type_id] == -1) {
+                    ok = false;
+                    break;
+                }
+                solution_item.item_type_id = orig_to_sub_item_type_ids_[solution_item.item_type_id];
+            }
+            if (ok)
+                instance_.periodic_packings_.push_back(std::move(new_packing));
+        }
+    }
+
     if (instance_.number_of_bin_types() > 0) {
         // The NFP-based self-pairing search periodic_packings relies on can
         // be expensive (worst case close to quadratic in the shape's vertex
         // count for highly concave shapes), so it is only worth paying for
         // item types that will actually be tiled many times over. Below
-        // this threshold, periodic_packings is left empty; the item type
+        // this threshold, no periodic packing is computed; the item type
         // still gets plain AABB-grid blocks (cheap regardless of shape
         // complexity, just no periodic-interlocking ones) when
         // compute_periodic_blocks_for_item_type is later called on it.
@@ -1219,13 +1254,16 @@ Instance InstanceBuilder::build()
                     // not by the item type's original, unsimplified vertex
                     // count, so the cap is checked against the former.
                     if (number_of_vertices <= periodic_packings_maximum_number_of_vertices) {
-                        item_type.periodic_packings = compute_periodic_packings_for_item_type(
-                                item_shapes,
-                                item_type_rotations[item_type_id],
-                                item_item_minimum_spacing);
-                        for (PeriodicItemPacking& item_packing: item_type.periodic_packings)
+                        std::vector<PeriodicItemPacking> item_type_packings
+                            = compute_periodic_packings_for_item_type(
+                                    item_shapes,
+                                    item_type_rotations[item_type_id],
+                                    item_item_minimum_spacing);
+                        for (PeriodicItemPacking& item_packing: item_type_packings) {
                             for (SolutionItem& item: item_packing.items)
                                 item.item_type_id = item_type_id;
+                            instance_.periodic_packings_.push_back(std::move(item_packing));
+                        }
                     }
                 }
                 item_type.periodic_packings_computed = true;
