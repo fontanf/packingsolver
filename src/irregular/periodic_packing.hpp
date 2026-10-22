@@ -63,6 +63,10 @@ std::vector<PeriodicItemPacking> compute_periodic_packings(
         const Instance& instance,
         const std::vector<std::vector<ItemTypeRotation>>& item_type_rotations);
 
+/** Return true iff all the items of 'packing' have the same item type. */
+bool periodic_packing_has_single_item_type(
+        const PeriodicItemPacking& packing);
+
 /**
  * Get the combined shape of an item type for a given rotation.
  *

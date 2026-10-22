@@ -18,11 +18,11 @@ namespace irregular
  * Items are positioned relative to the block's bottom-left corner (0, 0)
  * in scaled coordinates. bx and by are the AABB dimensions of the full tiling.
  *
- * Unlike PeriodicItemPacking, this depends on bin dimensions and on the item
- * type's available copies (both of which can differ across sub-instances
- * built from the same source item type), so it is never cached on ItemType
- * and is always recomputed by compute_periodic_blocks_for_item_type /
- * compute_periodic_blocks below.
+ * Unlike PeriodicItemPacking, this depends on bin dimensions and on the
+ * available copies of its item types (both of which can differ across
+ * sub-instances built from the same source instance), so it is never cached
+ * in the instance and is always recomputed by
+ * compute_periodic_blocks_for_item_type / compute_periodic_blocks below.
  */
 struct PeriodicBlock
 {
@@ -68,8 +68,8 @@ struct PeriodicBlock
  * dimensions (block growth stops once a tiling no longer fits the bin) and
  * on the item type's available copies, both of which can differ across
  * sub-instances built from the same source item type; for that reason,
- * unlike periodic_packings, results are never cached on ItemType and are
- * always recomputed by the caller.
+ * unlike periodic packings, results are never cached in the instance and
+ * are always recomputed by the caller.
  */
 std::vector<PeriodicBlock> compute_periodic_blocks_for_item_type(
         const Instance& instance,
@@ -77,6 +77,11 @@ std::vector<PeriodicBlock> compute_periodic_blocks_for_item_type(
         const std::vector<PeriodicItemPacking>& packings,
         const std::vector<ItemTypeRotation>& rotations);
 
+/**
+ * Compute the periodic blocks of all item types (see
+ * compute_periodic_blocks_for_item_type), plus the blocks of the periodic
+ * packings of several item types.
+ */
 std::vector<PeriodicBlock> compute_periodic_blocks(
         const Instance& instance,
         const std::vector<PeriodicItemPacking>& packings,
@@ -224,9 +229,9 @@ public:
     };
 
     /**
-     * Assembles periodic packings (reading from the ItemType::periodic_packings
-     * cache when available, computing on the fly otherwise) and builds the
-     * blocks internally.
+     * Assembles periodic packings (reading from Instance::periodic_packings()
+     * when available, computing on the fly otherwise) and builds the blocks
+     * internally.
      */
     BranchingSchemePeriodicPacking(
             const Instance& instance,
@@ -555,9 +560,8 @@ struct TreeSearchPeriodicPackingParameters: packingsolver::Parameters<Instance, 
 
 /**
  * Computes everything from scratch: periodic packings (item shapes/rotations
- * only, independent of bin size; read from the ItemType::periodic_packings
- * cache when available), then blocks (bin-size-dependent), then runs the
- * search.
+ * only, independent of bin size; read from Instance::periodic_packings()
+ * when available), then blocks (bin-size-dependent), then runs the search.
  */
 const TreeSearchPeriodicPackingOutput tree_search_periodic_packing(
         const Instance& instance,

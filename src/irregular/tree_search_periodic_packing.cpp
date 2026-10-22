@@ -33,19 +33,49 @@ std::vector<PeriodicItemPacking> assemble_periodic_packings(const Instance& inst
 ////////////////////////////////////////////////////////////////////////////////
 
 /**
+ * Return true iff 'block_1' dominates 'block_2': it contains the same item
+ * types, at least as many copies of each of them, and takes no more space in
+ * both dimensions.
+ *
+ * Blocks with different sets of item types are never compared: a block
+ * using copies of an item type that 'block_2' doesn't use might not be
+ * usable when 'block_2' is.
+ */
+static bool dominates(
+        const PeriodicBlock& block_1,
+        const PeriodicBlock& block_2)
+{
+    if (block_1.item_copies.size() != block_2.item_copies.size())
+        return false;
+    for (const std::pair<ItemTypeId, ItemPos>& copies_2: block_2.item_copies) {
+        bool found = false;
+        for (const std::pair<ItemTypeId, ItemPos>& copies_1: block_1.item_copies) {
+            if (copies_1.first == copies_2.first) {
+                if (copies_1.second < copies_2.second)
+                    return false;
+                found = true;
+                break;
+            }
+        }
+        if (!found)
+            return false;
+    }
+    return !shape::strictly_greater(block_1.bx, block_2.bx)
+        && !shape::strictly_greater(block_1.by, block_2.by);
+}
+
+/**
  * Add 'block' to 'blocks' unless it is dominated by a block already present,
  * pruning greedily as candidates are generated rather than collecting every
  * candidate and filtering the whole list afterwards.
  *
- * A block is dominated by another block that packs at least as many copies
- * of this item type (all blocks handled by a single
- * compute_periodic_blocks_for_item_type call concern the same, single item
- * type) into no more space in both dimensions -- the tree search can then
- * always prefer that other block, since it is never worse in items, bx, or
- * by. This also removes any existing blocks that the newly added one now
- * dominates.
+ * A block is dominated by another block that packs the same item types, at
+ * least as many copies of each, into no more space in both dimensions (see
+ * 'dominates') -- the tree search can then always prefer that other block,
+ * since it is never worse in items, bx, or by. This also removes any
+ * existing blocks that the newly added one now dominates.
  *
- * A single-copy block is exempted from all of this and always kept
+ * A single-item block is exempted from all of this and always kept
  * unconditionally: it is the only way to place an item type's very last
  * remaining copy, so it must never be discarded as "dominated" by a block
  * that needs more copies than might still be available -- e.g. when only 1
@@ -58,22 +88,16 @@ static void add_block_if_not_dominated(
         std::vector<PeriodicBlock>& blocks,
         PeriodicBlock&& block)
 {
-    ItemPos count = block.item_copies[0].second;
-
-    if (count == 1) {
+    if (block.number_of_items == 1) {
         blocks.push_back(std::move(block));
         return;
     }
 
-    for (const PeriodicBlock& existing: blocks) {
-        if (existing.item_copies[0].second >= count
-                && !shape::strictly_greater(existing.bx, block.bx)
-                && !shape::strictly_greater(existing.by, block.by)) {
+    for (const PeriodicBlock& existing: blocks)
+        if (dominates(existing, block))
             return;
-        }
-    }
 
-    // Drop existing blocks now dominated by 'block' (except single-copy
+    // Drop existing blocks now dominated by 'block' (except single-item
     // ones, which are never removed), swapping each one with the last
     // element and popping instead of erase/remove_if, since order doesn't
     // matter here. When 'i' is itself the last element, skip the
@@ -81,10 +105,8 @@ static void add_block_if_not_dominated(
     // moving a vector-holding struct into itself is not guaranteed safe and
     // was observed to corrupt the heap (double free) in practice.
     for (int i = 0; i < (int)blocks.size(); ) {
-        if (blocks[i].item_copies[0].second != 1
-                && count >= blocks[i].item_copies[0].second
-                && !shape::strictly_greater(block.bx, blocks[i].bx)
-                && !shape::strictly_greater(block.by, blocks[i].by)) {
+        if (blocks[i].number_of_items != 1
+                && dominates(block, blocks[i])) {
             if (i != (int)blocks.size() - 1)
                 blocks[i] = std::move(blocks.back());
             blocks.pop_back();
@@ -224,6 +246,193 @@ static void add_aabb_grid_blocks_for_item_type(
     }
 }
 
+/**
+ * Add the periodic blocks of a periodic packing: nx × ny tilings of its unit
+ * cell, bounded both by the available copies of its item types and by the
+ * bin dimensions.
+ */
+static void add_periodic_blocks_for_packing(
+        const Instance& instance,
+        int packing_id,
+        const PeriodicItemPacking& packing,
+        std::vector<PeriodicBlock>& blocks)
+{
+    BinTypeId bin_type_id = instance.bin_type_id(0);
+    LengthDbl item_spacing = instance.item_spacing_scaled();
+    LengthDbl bin_bx = usable_bin_bx(instance, bin_type_id);
+    LengthDbl bin_by = usable_bin_by(instance, bin_type_id);
+
+
+    // Unit-cell bounding box dimensions.
+    LengthDbl unit_bx = packing.aabb_scaled.x_max - packing.aabb_scaled.x_min;
+    LengthDbl unit_by = packing.aabb_scaled.y_max - packing.aabb_scaled.y_min;
+
+    if (shape::strictly_greater(unit_bx, bin_bx) || shape::strictly_greater(unit_by, bin_by))
+        return;
+
+    // Precompute item copies and profit per unit cell. Item type ids are
+    // dense small integers, so an IndexedMap (O(1) get/set, no per-key
+    // allocation) is a better fit here than std::map.
+    optimizationtools::IndexedMap<ItemPos> unit_copies_map(
+            instance.number_of_item_types(), 0);
+    AreaDbl unit_item_area = 0.0;
+    Profit unit_item_profit = 0;
+    for (const SolutionItem& item: packing.items) {
+        unit_copies_map.set(item.item_type_id, unit_copies_map[item.item_type_id] + 1);
+        unit_item_area += instance.item_type(item.item_type_id).area_scaled;
+        unit_item_profit += instance.item_type(item.item_type_id).profit;
+    }
+    std::vector<std::pair<ItemTypeId, ItemPos>> unit_copies(
+            unit_copies_map.begin(), unit_copies_map.end());
+
+    // A block with total_cells unit-cell repetitions must not use more
+    // copies of any item type than the instance provides.
+    int max_total_cells = std::numeric_limits<int>::max();
+    for (const std::pair<ItemTypeId, ItemPos>& kv: unit_copies) {
+        ItemPos limit = instance.item_type(kv.first).copies;
+        max_total_cells = std::min(max_total_cells, (int)(limit / kv.second));
+    }
+    if (max_total_cells < 1)
+        return;
+
+    // Row (index j, stepped by vector_2) offset, with drift along
+    // vector_1's direction wrapped back by an integer number of
+    // vector_1 translations. Without this, a vector_2 that is not
+    // parallel/perpendicular to vector_1 (i.e. not axis-aligned once
+    // vector_1 is) shears the tiling into a parallelogram: each row is
+    // offset further along vector_1's direction than the last, forcing
+    // the block's rectangular AABB to grow to contain the full drift
+    // and leaving two opposite corners empty. Since columns (index i)
+    // already repeat every vector_1, translating an entire row by a
+    // whole multiple of vector_1 just selects a different (but equally
+    // valid, still gapless) window of the same infinite periodic row;
+    // choosing the multiple that cancels the row's drift keeps every
+    // row's window aligned with the others, so the AABB stays close to
+    // the items' actual footprint instead of growing with ny.
+    LengthDbl v1_dot_v1 = packing.vector_1.x * packing.vector_1.x
+        + packing.vector_1.y * packing.vector_1.y;
+    LengthDbl v1_dot_v2 = packing.vector_1.x * packing.vector_2.x
+        + packing.vector_1.y * packing.vector_2.y;
+    std::vector<LengthDbl> row_offset_x = {0.0};
+    std::vector<LengthDbl> row_offset_y = {0.0};
+    auto ensure_row_offset = [&](int j)
+    {
+        while ((int)row_offset_x.size() <= j) {
+            int jj = (int)row_offset_x.size();
+            double k = (v1_dot_v1 > 0.0)?
+                std::round(jj * v1_dot_v2 / v1_dot_v1): 0.0;
+            row_offset_x.push_back(jj * packing.vector_2.x - k * packing.vector_1.x);
+            row_offset_y.push_back(jj * packing.vector_2.y - k * packing.vector_1.y);
+        }
+    };
+
+    for (int nx = 1; ; ++nx) {
+        for (int ny = 1; ; ++ny) {
+            // Compute the AABB of the (nx, ny) tiling iteratively.
+            // Copy (i, j) is offset by i * v1 + j * v2 from the reference.
+            // Each copy's AABB is [offset_x, offset_x + unit_bx] × [offset_y, offset_y + unit_by].
+            LengthDbl tiling_x_min = +std::numeric_limits<LengthDbl>::infinity();
+            LengthDbl tiling_x_max = -std::numeric_limits<LengthDbl>::infinity();
+            LengthDbl tiling_y_min = +std::numeric_limits<LengthDbl>::infinity();
+            LengthDbl tiling_y_max = -std::numeric_limits<LengthDbl>::infinity();
+            for (int j = 0; j < ny; ++j)
+                ensure_row_offset(j);
+            for (int i = 0; i < nx; ++i) {
+                for (int j = 0; j < ny; ++j) {
+                    LengthDbl cx = i * packing.vector_1.x + row_offset_x[j];
+                    LengthDbl cy = i * packing.vector_1.y + row_offset_y[j];
+                    tiling_x_min = std::min(tiling_x_min, cx);
+                    tiling_x_max = std::max(tiling_x_max, cx + unit_bx);
+                    tiling_y_min = std::min(tiling_y_min, cy);
+                    tiling_y_max = std::max(tiling_y_max, cy + unit_by);
+                }
+            }
+            // The + item_spacing here is a trailing margin past the
+            // tiling's own tight footprint, not needed by the items
+            // within this block (packing.vector_1/vector_2 already keep
+            // periodic copies item_spacing apart, that's what
+            // compute_periodic_packings solved for) but reserved so that
+            // whatever the branching scheme places flush against this
+            // block's high edge -- another block, most commonly -- ends
+            // up at least item_spacing away from this block's actual
+            // items (see add_aabb_grid_blocks_for_item_type's comment
+            // for the same convention applied to its grid blocks).
+            LengthDbl block_bx = tiling_x_max - tiling_x_min + item_spacing;
+            LengthDbl block_by = tiling_y_max - tiling_y_min + item_spacing;
+
+            // Stop growing ny once the block no longer fits in the bin.
+            if (shape::strictly_greater(block_by, bin_by))
+                break;
+            // Still check x: skip this (nx, ny) but continue ny loop if bx fits.
+            if (shape::strictly_greater(block_bx, bin_bx))
+                break;
+            // Stop growing ny once the block would use more copies of an
+            // item type than the instance provides.
+            if (nx * ny > max_total_cells)
+                break;
+
+            // Build the PeriodicBlock.
+            PeriodicBlock block;
+            block.packing_id = packing_id;
+            block.nx = nx;
+            block.ny = ny;
+            block.bx = block_bx;
+            block.by = block_by;
+
+            int total_cells = nx * ny;
+            block.items.reserve(total_cells * (int)packing.items.size());
+            block.number_of_items = total_cells * (int)packing.items.size();
+            block.item_area = total_cells * unit_item_area;
+            block.item_profit = total_cells * unit_item_profit;
+
+            for (const std::pair<ItemTypeId, ItemPos>& kv: unit_copies)
+                block.item_copies.push_back({kv.first, total_cells * kv.second});
+
+            for (int i = 0; i < nx; ++i) {
+                for (int j = 0; j < ny; ++j) {
+                    LengthDbl offset_x = i * packing.vector_1.x + row_offset_x[j]
+                        - tiling_x_min;
+                    LengthDbl offset_y = i * packing.vector_1.y + row_offset_y[j]
+                        - tiling_y_min;
+                    for (const SolutionItem& item: packing.items) {
+                        SolutionItem placed_item = item;
+                        placed_item.bl_corner.x = item.bl_corner.x + offset_x;
+                        placed_item.bl_corner.y = item.bl_corner.y + offset_y;
+                        block.items.push_back(placed_item);
+                    }
+                }
+            }
+
+            add_block_if_not_dominated(blocks, std::move(block));
+        }
+
+        // Stop growing nx once even the smallest possible block (ny = 1)
+        // in this nx direction no longer fits the bin in either dimension:
+        // growing nx further can only make the block larger, never
+        // smaller, so there is no point trying larger values.
+        {
+            LengthDbl col_x_min = +std::numeric_limits<LengthDbl>::infinity();
+            LengthDbl col_x_max = -std::numeric_limits<LengthDbl>::infinity();
+            LengthDbl col_y_min = +std::numeric_limits<LengthDbl>::infinity();
+            LengthDbl col_y_max = -std::numeric_limits<LengthDbl>::infinity();
+            for (int i = 0; i < nx; ++i) {
+                LengthDbl cx = i * packing.vector_1.x;
+                LengthDbl cy = i * packing.vector_1.y;
+                col_x_min = std::min(col_x_min, cx);
+                col_x_max = std::max(col_x_max, cx + unit_bx);
+                col_y_min = std::min(col_y_min, cy);
+                col_y_max = std::max(col_y_max, cy + unit_by);
+            }
+            LengthDbl candidate_bx = col_x_max - col_x_min;
+            LengthDbl candidate_by = col_y_max - col_y_min;
+            if (shape::strictly_greater(candidate_bx, bin_bx)
+                    || shape::strictly_greater(candidate_by, bin_by)
+                    || nx >= max_total_cells)
+                break;
+        }
+    }
+}
+
 std::vector<PeriodicBlock> packingsolver::irregular::compute_periodic_blocks_for_item_type(
         const Instance& instance,
         ItemTypeId item_type_id,
@@ -233,185 +442,10 @@ std::vector<PeriodicBlock> packingsolver::irregular::compute_periodic_blocks_for
     if (instance.number_of_bin_types() == 0)
         return {};
 
-    BinTypeId bin_type_id = instance.bin_type_id(0);
-    LengthDbl item_spacing = instance.item_spacing_scaled();
-    LengthDbl bin_bx = usable_bin_bx(instance, bin_type_id);
-    LengthDbl bin_by = usable_bin_by(instance, bin_type_id);
-
     std::vector<PeriodicBlock> blocks;
 
-    for (int packing_id = 0; packing_id < (int)packings.size(); ++packing_id) {
-        const PeriodicItemPacking& packing = packings[packing_id];
-
-        // Unit-cell bounding box dimensions.
-        LengthDbl unit_bx = packing.aabb_scaled.x_max - packing.aabb_scaled.x_min;
-        LengthDbl unit_by = packing.aabb_scaled.y_max - packing.aabb_scaled.y_min;
-
-        if (shape::strictly_greater(unit_bx, bin_bx) || shape::strictly_greater(unit_by, bin_by))
-            continue;
-
-        // Precompute item copies and profit per unit cell. Item type ids are
-        // dense small integers, so an IndexedMap (O(1) get/set, no per-key
-        // allocation) is a better fit here than std::map.
-        optimizationtools::IndexedMap<ItemPos> unit_copies_map(
-                instance.number_of_item_types(), 0);
-        AreaDbl unit_item_area = 0.0;
-        Profit unit_item_profit = 0;
-        for (const SolutionItem& item: packing.items) {
-            unit_copies_map.set(item.item_type_id, unit_copies_map[item.item_type_id] + 1);
-            unit_item_area += instance.item_type(item.item_type_id).area_scaled;
-            unit_item_profit += instance.item_type(item.item_type_id).profit;
-        }
-        std::vector<std::pair<ItemTypeId, ItemPos>> unit_copies(
-                unit_copies_map.begin(), unit_copies_map.end());
-
-        // A block with total_cells unit-cell repetitions must not use more
-        // copies of any item type than the instance provides.
-        int max_total_cells = std::numeric_limits<int>::max();
-        for (const std::pair<ItemTypeId, ItemPos>& kv: unit_copies) {
-            ItemPos limit = instance.item_type(kv.first).copies;
-            max_total_cells = std::min(max_total_cells, (int)(limit / kv.second));
-        }
-        if (max_total_cells < 1)
-            continue;
-
-        // Row (index j, stepped by vector_2) offset, with drift along
-        // vector_1's direction wrapped back by an integer number of
-        // vector_1 translations. Without this, a vector_2 that is not
-        // parallel/perpendicular to vector_1 (i.e. not axis-aligned once
-        // vector_1 is) shears the tiling into a parallelogram: each row is
-        // offset further along vector_1's direction than the last, forcing
-        // the block's rectangular AABB to grow to contain the full drift
-        // and leaving two opposite corners empty. Since columns (index i)
-        // already repeat every vector_1, translating an entire row by a
-        // whole multiple of vector_1 just selects a different (but equally
-        // valid, still gapless) window of the same infinite periodic row;
-        // choosing the multiple that cancels the row's drift keeps every
-        // row's window aligned with the others, so the AABB stays close to
-        // the items' actual footprint instead of growing with ny.
-        LengthDbl v1_dot_v1 = packing.vector_1.x * packing.vector_1.x
-            + packing.vector_1.y * packing.vector_1.y;
-        LengthDbl v1_dot_v2 = packing.vector_1.x * packing.vector_2.x
-            + packing.vector_1.y * packing.vector_2.y;
-        std::vector<LengthDbl> row_offset_x = {0.0};
-        std::vector<LengthDbl> row_offset_y = {0.0};
-        auto ensure_row_offset = [&](int j)
-        {
-            while ((int)row_offset_x.size() <= j) {
-                int jj = (int)row_offset_x.size();
-                double k = (v1_dot_v1 > 0.0)?
-                    std::round(jj * v1_dot_v2 / v1_dot_v1): 0.0;
-                row_offset_x.push_back(jj * packing.vector_2.x - k * packing.vector_1.x);
-                row_offset_y.push_back(jj * packing.vector_2.y - k * packing.vector_1.y);
-            }
-        };
-
-        for (int nx = 1; ; ++nx) {
-            for (int ny = 1; ; ++ny) {
-                // Compute the AABB of the (nx, ny) tiling iteratively.
-                // Copy (i, j) is offset by i * v1 + j * v2 from the reference.
-                // Each copy's AABB is [offset_x, offset_x + unit_bx] × [offset_y, offset_y + unit_by].
-                LengthDbl tiling_x_min = +std::numeric_limits<LengthDbl>::infinity();
-                LengthDbl tiling_x_max = -std::numeric_limits<LengthDbl>::infinity();
-                LengthDbl tiling_y_min = +std::numeric_limits<LengthDbl>::infinity();
-                LengthDbl tiling_y_max = -std::numeric_limits<LengthDbl>::infinity();
-                for (int j = 0; j < ny; ++j)
-                    ensure_row_offset(j);
-                for (int i = 0; i < nx; ++i) {
-                    for (int j = 0; j < ny; ++j) {
-                        LengthDbl cx = i * packing.vector_1.x + row_offset_x[j];
-                        LengthDbl cy = i * packing.vector_1.y + row_offset_y[j];
-                        tiling_x_min = std::min(tiling_x_min, cx);
-                        tiling_x_max = std::max(tiling_x_max, cx + unit_bx);
-                        tiling_y_min = std::min(tiling_y_min, cy);
-                        tiling_y_max = std::max(tiling_y_max, cy + unit_by);
-                    }
-                }
-                // The + item_spacing here is a trailing margin past the
-                // tiling's own tight footprint, not needed by the items
-                // within this block (packing.vector_1/vector_2 already keep
-                // periodic copies item_spacing apart, that's what
-                // compute_periodic_packings solved for) but reserved so that
-                // whatever the branching scheme places flush against this
-                // block's high edge -- another block, most commonly -- ends
-                // up at least item_spacing away from this block's actual
-                // items (see add_aabb_grid_blocks_for_item_type's comment
-                // for the same convention applied to its grid blocks).
-                LengthDbl block_bx = tiling_x_max - tiling_x_min + item_spacing;
-                LengthDbl block_by = tiling_y_max - tiling_y_min + item_spacing;
-
-                // Stop growing ny once the block no longer fits in the bin.
-                if (shape::strictly_greater(block_by, bin_by))
-                    break;
-                // Still check x: skip this (nx, ny) but continue ny loop if bx fits.
-                if (shape::strictly_greater(block_bx, bin_bx))
-                    break;
-                // Stop growing ny once the block would use more copies of an
-                // item type than the instance provides.
-                if (nx * ny > max_total_cells)
-                    break;
-
-                // Build the PeriodicBlock.
-                PeriodicBlock block;
-                block.packing_id = packing_id;
-                block.nx = nx;
-                block.ny = ny;
-                block.bx = block_bx;
-                block.by = block_by;
-
-                int total_cells = nx * ny;
-                block.items.reserve(total_cells * (int)packing.items.size());
-                block.number_of_items = total_cells * (int)packing.items.size();
-                block.item_area = total_cells * unit_item_area;
-                block.item_profit = total_cells * unit_item_profit;
-
-                for (const std::pair<ItemTypeId, ItemPos>& kv: unit_copies)
-                    block.item_copies.push_back({kv.first, total_cells * kv.second});
-
-                for (int i = 0; i < nx; ++i) {
-                    for (int j = 0; j < ny; ++j) {
-                        LengthDbl offset_x = i * packing.vector_1.x + row_offset_x[j]
-                            - tiling_x_min;
-                        LengthDbl offset_y = i * packing.vector_1.y + row_offset_y[j]
-                            - tiling_y_min;
-                        for (const SolutionItem& item: packing.items) {
-                            SolutionItem placed_item = item;
-                            placed_item.bl_corner.x = item.bl_corner.x + offset_x;
-                            placed_item.bl_corner.y = item.bl_corner.y + offset_y;
-                            block.items.push_back(placed_item);
-                        }
-                    }
-                }
-
-                add_block_if_not_dominated(blocks, std::move(block));
-            }
-
-            // Stop growing nx once even the smallest possible block (ny = 1)
-            // in this nx direction no longer fits the bin in either dimension:
-            // growing nx further can only make the block larger, never
-            // smaller, so there is no point trying larger values.
-            {
-                LengthDbl col_x_min = +std::numeric_limits<LengthDbl>::infinity();
-                LengthDbl col_x_max = -std::numeric_limits<LengthDbl>::infinity();
-                LengthDbl col_y_min = +std::numeric_limits<LengthDbl>::infinity();
-                LengthDbl col_y_max = -std::numeric_limits<LengthDbl>::infinity();
-                for (int i = 0; i < nx; ++i) {
-                    LengthDbl cx = i * packing.vector_1.x;
-                    LengthDbl cy = i * packing.vector_1.y;
-                    col_x_min = std::min(col_x_min, cx);
-                    col_x_max = std::max(col_x_max, cx + unit_bx);
-                    col_y_min = std::min(col_y_min, cy);
-                    col_y_max = std::max(col_y_max, cy + unit_by);
-                }
-                LengthDbl candidate_bx = col_x_max - col_x_min;
-                LengthDbl candidate_by = col_y_max - col_y_min;
-                if (shape::strictly_greater(candidate_bx, bin_bx)
-                        || shape::strictly_greater(candidate_by, bin_by)
-                        || nx >= max_total_cells)
-                    break;
-            }
-        }
-    }
+    for (int packing_id = 0; packing_id < (int)packings.size(); ++packing_id)
+        add_periodic_blocks_for_packing(instance, packing_id, packings[packing_id], blocks);
 
     // Blocks are already pruned as they are generated (see
     // add_block_if_not_dominated): 'blocks' only ever holds the current
@@ -427,13 +461,14 @@ std::vector<PeriodicBlock> packingsolver::irregular::compute_periodic_blocks(
         const std::vector<PeriodicItemPacking>& packings,
         const std::vector<std::vector<ItemTypeRotation>>& item_type_rotations)
 {
-    // Group packings by item type (every PeriodicItemPacking's items all
-    // share the same item_type_id, since packings only ever pair a single
-    // item type's own rotations against itself).
+    // Group the packings of a single item type by item type, to build their
+    // blocks together with the AABB-grid blocks of this item type. The
+    // packings of several item types get their own blocks, built after.
     std::vector<std::vector<PeriodicItemPacking>> packings_by_item_type(
             instance.number_of_item_types());
     for (const PeriodicItemPacking& packing: packings)
-        packings_by_item_type[packing.items[0].item_type_id].push_back(packing);
+        if (periodic_packing_has_single_item_type(packing))
+            packings_by_item_type[packing.items[0].item_type_id].push_back(packing);
 
     std::vector<PeriodicBlock> output;
     for (ItemTypeId item_type_id = 0;
@@ -449,6 +484,23 @@ std::vector<PeriodicBlock> packingsolver::irregular::compute_periodic_blocks(
                 output.end(),
                 std::make_move_iterator(item_type_output.begin()),
                 std::make_move_iterator(item_type_output.end()));
+    }
+
+    if (instance.number_of_bin_types() > 0) {
+        std::vector<PeriodicBlock> multiple_item_types_output;
+        for (int packing_id = 0; packing_id < (int)packings.size(); ++packing_id) {
+            if (periodic_packing_has_single_item_type(packings[packing_id]))
+                continue;
+            add_periodic_blocks_for_packing(
+                    instance,
+                    packing_id,
+                    packings[packing_id],
+                    multiple_item_types_output);
+        }
+        output.insert(
+                output.end(),
+                std::make_move_iterator(multiple_item_types_output.begin()),
+                std::make_move_iterator(multiple_item_types_output.end()));
     }
 
     return output;
@@ -1224,19 +1276,19 @@ void validate_tree_search_periodic_packing_instance(const Instance& instance)
 }
 
 /**
- * Assemble periodic packings for every item type, reading from the
- * ItemType::periodic_packings cache when available (see
- * InstanceBuilder::build()): sub-instances built by copying item types from
- * a source instance (e.g. successive sequential_feasibility iterations, or
- * the last-bin post-process) inherit the cache for free instead of
- * recomputing from scratch, which can otherwise dominate the running time
- * for items with complex shapes. Falls back to computing on the fly for the
- * rare item type whose cache wasn't populated (e.g. an Instance not built
+ * Assemble the periodic packings of the instance, reading from
+ * Instance::periodic_packings() (see InstanceBuilder::build()):
+ * sub-instances built by copying item types from a source instance (e.g.
+ * successive sequential_feasibility iterations, or the last-bin
+ * post-process) inherit them for free instead of recomputing from scratch,
+ * which can otherwise dominate the running time for items with complex
+ * shapes. Falls back to computing on the fly the periodic packings of the
+ * rare item type whose ones weren't computed (e.g. an Instance not built
  * through InstanceBuilder).
  */
 std::vector<PeriodicItemPacking> assemble_periodic_packings(const Instance& instance)
 {
-    std::vector<PeriodicItemPacking> packings;
+    std::vector<PeriodicItemPacking> packings = instance.periodic_packings();
     std::vector<std::vector<ItemTypeRotation>> item_type_rotations;
     // Computed lazily (only if some item type's cache actually needs it).
     // See instance_builder.cpp's periodic_packings_simplification_minimum_
@@ -1247,13 +1299,8 @@ std::vector<PeriodicItemPacking> assemble_periodic_packings(const Instance& inst
             item_type_id < instance.number_of_item_types();
             ++item_type_id) {
         const ItemType& item_type = instance.item_type(item_type_id);
-        if (item_type.periodic_packings_computed) {
-            packings.insert(
-                    packings.end(),
-                    item_type.periodic_packings.begin(),
-                    item_type.periodic_packings.end());
+        if (item_type.periodic_packings_computed)
             continue;
-        }
         if (item_type_rotations.empty()) {
             auto all_item_type_rotations = compute_item_type_rotations(instance);
             item_type_rotations = all_item_type_rotations[instance.bin_type_id(0)];
