@@ -630,6 +630,108 @@ void optimize_benders_decomposition_contiguity(
  *
  * Only uses 'Instance::fits_some_bin', which is a cheap necessary condition.
  */
+bool last_bin_post_process_applies(
+        const Instance& instance,
+        const OptimizeParameters& parameters)
+{
+    return instance.objective() == Objective::BinPackingWithLeftovers
+        && parameters.optimization_mode != OptimizationMode::Anytime
+        && parameters.tree_search_guides != std::vector<GuideId>({2, 3});
+}
+
+/**
+ * Post-process for BinPackingWithLeftovers in a not-anytime mode: if the
+ * tree search didn't already use guides {2, 3}, re-optimize just the last
+ * bin of 'solution_best' (as its own single-bin sub-instance) with the tree
+ * search with guides {2, 3}, in case that guide combination packs it into
+ * less leftover space: the used area of the last bin doesn't have to span
+ * the whole width or the whole height of the bin, whichever algorithm found
+ * the solution.
+ *
+ * It is applied to the best solution of each algorithm, not only to the
+ * best solution overall: the re-optimized last bin of a solution which isn't
+ * the best one may make it better than the best one.
+ */
+void optimize_last_bin_post_process(
+        const Instance& instance,
+        const OptimizeParameters& parameters,
+        const Solution& solution_best,
+        AlgorithmFormatter& algorithm_formatter)
+{
+    if (last_bin_post_process_applies(instance, parameters)
+            && solution_best.number_of_bins() > 0
+            && solution_best.bin(solution_best.number_of_different_bins() - 1).copies == 1) {
+
+        InstanceBuilder last_bin_instance_builder;
+        last_bin_instance_builder.set_objective(Objective::BinPackingWithLeftovers);
+        last_bin_instance_builder.set_parameters(instance.parameters());
+
+        // Add bin types.
+        const SolutionBin& last_bin = solution_best.bin(solution_best.number_of_different_bins() - 1);
+        BinTypeId last_bin_type_id = last_bin_instance_builder.add_bin_type(instance, last_bin.bin_type_id);
+        last_bin_instance_builder.set_bin_type_copies(last_bin_type_id, 1);
+        last_bin_instance_builder.set_bin_type_copies_min(last_bin_type_id, 0);
+
+        // Add item types.
+        std::vector<ItemPos> last_bin_item_copies(instance.number_of_item_types(), 0);
+        for (const SolutionItem& solution_item: last_bin.items)
+            last_bin_item_copies[solution_item.item_type_id]++;
+
+        std::vector<ItemTypeId> last_bin_to_orig;
+        for (ItemTypeId item_type_id = 0;
+                item_type_id < instance.number_of_item_types();
+                ++item_type_id) {
+            if (last_bin_item_copies[item_type_id] > 0) {
+                ItemTypeId sub_item_type_id = last_bin_instance_builder.add_item_type(instance, item_type_id);
+                last_bin_instance_builder.set_item_type_copies(sub_item_type_id, last_bin_item_copies[item_type_id]);
+                last_bin_to_orig.push_back(item_type_id);
+            }
+        }
+
+        // Build instance.
+        Instance last_bin_instance = last_bin_instance_builder.build();
+
+        // Solve instance. Only the tree search is run: the guides {2, 3}
+        // are specific to it.
+        OptimizeParameters last_bin_parameters;
+        last_bin_parameters.verbosity_level = 0;
+        last_bin_parameters.timer = parameters.timer;
+        last_bin_parameters.optimization_mode = parameters.optimization_mode;
+        last_bin_parameters.not_anytime_tree_search_queue_size = parameters.not_anytime_tree_search_queue_size;
+        last_bin_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
+        last_bin_parameters.tree_search_guides = {2, 3};
+        last_bin_parameters.use_tree_search = true;
+        auto last_bin_output = optimize(last_bin_instance, last_bin_parameters);
+
+        if (last_bin_output.solution_pool.best().feasible()) {
+
+            // Retrieve solution.
+            Solution solution(instance);
+            // Add the bins of the current best solution, except the last
+            // one, which is replaced by the optimized one.
+            for (BinPos bin_pos = 0;
+                    bin_pos < solution_best.number_of_different_bins() - 1;
+                    ++bin_pos) {
+                const SolutionBin& solution_bin = solution_best.bin(bin_pos);
+                solution.append_bin(solution_best, bin_pos, solution_bin.copies);
+            }
+            // Add last optimized bin.
+            solution.append_bin(
+                    last_bin_output.solution_pool.best(),
+                    0,
+                    last_bin.copies,
+                    {last_bin.bin_type_id},
+                    last_bin_to_orig);
+
+            // Update best solution.
+            std::stringstream ss;
+            ss << "post-process";
+            algorithm_formatter.update_solution(solution, ss.str());
+
+        }
+    }
+}
+
 void optimize_item_types_fit(
         const Instance& instance,
         AlgorithmFormatter& algorithm_formatter)
@@ -1049,7 +1151,8 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
     // its own solution is proven optimal against the bounds already known,
     // which only depends on its own progress.
     // These local formatters share 'local_parameters': silenced (no
-    // messages, no JSON output, no new solution callback), and whose timer
+    // messages, no JSON output, and no new solution callback, except the one
+    // forwarding to the shared formatter, see below), and whose timer
     // also stops on the shared formatter's end boolean (e.g. set by the
     // memory monitor), since the algorithms only add the end boolean of the
     // formatter they report to. A 'unique_ptr' is used since an
@@ -1063,15 +1166,31 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
     local_parameters.messages_streams.clear();
     local_parameters.write_json_output = false;
     local_parameters.new_solution_callback = [](const rectangle::Output&) { };
+    // The last bin post-process (see 'optimize_last_bin_post_process') is
+    // applied to the best solution of each algorithm, so in that case too,
+    // each algorithm reports to its own algorithm formatter. Outside of
+    // 'NotAnytimeDeterministic' mode, these local formatters forward every
+    // solution and bound to the shared 'algorithm_formatter' as soon as they
+    // get it, instead of only at the end.
+    bool local = deterministic || last_bin_post_process_applies(instance, parameters);
+    if (local && !deterministic) {
+        local_parameters.new_solution_callback = [&algorithm_formatter](const rectangle::Output& local_output)
+        {
+            algorithm_formatter.update_solution(
+                    local_output.solution_pool.best(),
+                    local_output.solution_pool.best_label());
+            algorithm_formatter.update_bounds(local_output);
+        };
+    }
     std::vector<std::unique_ptr<rectangle::Output>> local_outputs;
     std::vector<std::unique_ptr<AlgorithmFormatter>> local_algorithm_formatters;
     // Return the parameters and the algorithm formatter a new algorithm task
     // should use.
     auto task_context = [&instance, &parameters, &algorithm_formatter, &output,
-         deterministic, &local_parameters, &local_outputs, &local_algorithm_formatters]()
+         local, &local_parameters, &local_outputs, &local_algorithm_formatters]()
         -> std::pair<const OptimizeParameters*, AlgorithmFormatter*>
     {
-        if (!deterministic)
+        if (!local)
             return {&parameters, &algorithm_formatter};
         local_outputs.push_back(std::make_unique<rectangle::Output>(instance));
         local_outputs.back()->update_bounds(output);
@@ -1252,77 +1371,29 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
         }
     }
 
-    const Solution& solution_best = output.solution_pool.best();
-    if (instance.objective() == Objective::BinPackingWithLeftovers
-            && parameters.optimization_mode != OptimizationMode::Anytime
-            && parameters.tree_search_guides != std::vector<GuideId>({2, 3})
-            && solution_best.number_of_bins() > 0
-            && solution_best.bin(solution_best.number_of_different_bins() - 1).copies == 1) {
-
-        InstanceBuilder last_bin_instance_builder;
-        last_bin_instance_builder.set_objective(Objective::BinPackingWithLeftovers);
-        last_bin_instance_builder.set_parameters(instance.parameters());
-
-        // Add bin types.
-        const SolutionBin& last_bin = solution_best.bin(solution_best.number_of_different_bins() - 1);
-        BinTypeId last_bin_type_id = last_bin_instance_builder.add_bin_type(instance, last_bin.bin_type_id);
-        last_bin_instance_builder.set_bin_type_copies(last_bin_type_id, 1);
-        last_bin_instance_builder.set_bin_type_copies_min(last_bin_type_id, 0);
-
-        // Add item types.
-        std::vector<ItemPos> last_bin_item_copies(instance.number_of_item_types(), 0);
-        for (const SolutionItem& solution_item: last_bin.items)
-            last_bin_item_copies[solution_item.item_type_id]++;
-
-        std::vector<ItemTypeId> last_bin_to_orig;
-        for (ItemTypeId item_type_id = 0;
-                item_type_id < instance.number_of_item_types();
-                ++item_type_id) {
-            if (last_bin_item_copies[item_type_id] > 0) {
-                ItemTypeId sub_item_type_id = last_bin_instance_builder.add_item_type(instance, item_type_id);
-                last_bin_instance_builder.set_item_type_copies(sub_item_type_id, last_bin_item_copies[item_type_id]);
-                last_bin_to_orig.push_back(item_type_id);
-            }
+    // Last bin post-process, on the best solution of each algorithm, and on
+    // the best solution overall if it doesn't come from one of them (e.g.
+    // found before running them). The best solution is copied since the
+    // post-process may replace it.
+    if (last_bin_post_process_applies(instance, parameters)) {
+        Solution solution_best = output.solution_pool.best();
+        bool solution_best_found_by_an_algorithm = false;
+        for (const auto& local_output: local_outputs) {
+            const Solution& local_solution = local_output->solution_pool.best();
+            if (!(local_solution < solution_best))
+                solution_best_found_by_an_algorithm = true;
+            optimize_last_bin_post_process(
+                    instance,
+                    parameters,
+                    local_solution,
+                    algorithm_formatter);
         }
-
-        // Build instance.
-        Instance last_bin_instance = last_bin_instance_builder.build();
-
-        // Solve instance.
-        OptimizeParameters last_bin_parameters;
-        last_bin_parameters.verbosity_level = 0;
-        last_bin_parameters.timer = parameters.timer;
-        last_bin_parameters.optimization_mode = parameters.optimization_mode;
-        last_bin_parameters.not_anytime_tree_search_queue_size = parameters.not_anytime_tree_search_queue_size;
-        last_bin_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
-        last_bin_parameters.tree_search_guides = {2, 3};
-        auto last_bin_output = optimize(last_bin_instance, last_bin_parameters);
-
-        if (last_bin_output.solution_pool.best().feasible()) {
-
-            // Retrieve solution.
-            Solution solution(instance);
-            // Add the bins of the current best solution, except the last
-            // one, which is replaced by the optimized one.
-            for (BinPos bin_pos = 0;
-                    bin_pos < solution_best.number_of_different_bins() - 1;
-                    ++bin_pos) {
-                const SolutionBin& solution_bin = solution_best.bin(bin_pos);
-                solution.append_bin(solution_best, bin_pos, solution_bin.copies);
-            }
-            // Add last optimized bin.
-            solution.append_bin(
-                    last_bin_output.solution_pool.best(),
-                    0,
-                    last_bin.copies,
-                    {last_bin.bin_type_id},
-                    last_bin_to_orig);
-
-            // Update best solution.
-            std::stringstream ss;
-            ss << "post-process";
-            algorithm_formatter.update_solution(solution, ss.str());
-
+        if (!solution_best_found_by_an_algorithm) {
+            optimize_last_bin_post_process(
+                    instance,
+                    parameters,
+                    solution_best,
+                    algorithm_formatter);
         }
     }
 
