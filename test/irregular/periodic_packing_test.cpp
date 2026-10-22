@@ -546,3 +546,111 @@ TEST(ComputePeriodicPackingsInstanceTest, PeriodicPackingsCarriedOverToSubInstan
     Instance sub_instance_2 = sub_instance_builder_2.build();
     EXPECT_TRUE(sub_instance_2.periodic_packings().empty());
 }
+
+struct ComputeLargestEmptySideRectangleTestParams
+{
+    std::string name;
+
+    Shape shape;
+
+    BoundingBoxSide side;
+
+    /** Expected rectangle; empty if no rectangle is expected. */
+    AxisAlignedBoundingBox expected_rectangle;
+
+    /**
+     * If true, only check that the rectangle is non-empty and empty of the
+     * shape, not its exact position (circular arcs are approximated).
+     */
+    bool approximate = false;
+
+    friend std::ostream& operator<<(
+            std::ostream& os,
+            const ComputeLargestEmptySideRectangleTestParams& params)
+    {
+        return os << params.name;
+    }
+};
+
+class ComputeLargestEmptySideRectangleTest: public testing::TestWithParam<ComputeLargestEmptySideRectangleTestParams> { };
+
+TEST_P(ComputeLargestEmptySideRectangleTest, ComputeLargestEmptySideRectangle)
+{
+    ComputeLargestEmptySideRectangleTestParams params = GetParam();
+    ShapeWithHoles shape_with_holes;
+    shape_with_holes.shape = params.shape;
+    AxisAlignedBoundingBox rectangle = compute_largest_empty_side_rectangle(
+            shape_with_holes, params.side, 1.0);
+    std::cout << "rectangle " << rectangle.x_min << " " << rectangle.x_max
+        << " " << rectangle.y_min << " " << rectangle.y_max << std::endl;
+
+    bool expected_empty = params.expected_rectangle.x_min > params.expected_rectangle.x_max;
+    if (expected_empty) {
+        EXPECT_GT(rectangle.x_min, rectangle.x_max);
+        return;
+    }
+    ASSERT_LT(rectangle.x_min, rectangle.x_max);
+    ASSERT_LT(rectangle.y_min, rectangle.y_max);
+    // The rectangle is empty of the shape.
+    EXPECT_FALSE(shape::intersect(params.shape, shape::build_rectangle(rectangle), true));
+    if (params.approximate) {
+        EXPECT_FALSE(shape::strictly_lesser(rectangle.x_min, params.expected_rectangle.x_min));
+        EXPECT_FALSE(shape::strictly_greater(rectangle.x_max, params.expected_rectangle.x_max));
+        EXPECT_FALSE(shape::strictly_lesser(rectangle.y_min, params.expected_rectangle.y_min));
+        EXPECT_FALSE(shape::strictly_greater(rectangle.y_max, params.expected_rectangle.y_max));
+    } else {
+        EXPECT_TRUE(shape::equal(rectangle.x_min, params.expected_rectangle.x_min));
+        EXPECT_TRUE(shape::equal(rectangle.x_max, params.expected_rectangle.x_max));
+        EXPECT_TRUE(shape::equal(rectangle.y_min, params.expected_rectangle.y_min));
+        EXPECT_TRUE(shape::equal(rectangle.y_max, params.expected_rectangle.y_max));
+    }
+}
+
+namespace
+{
+
+// L-shape with arms of width 50 along the bottom and the left sides.
+Shape l_shape()
+{
+    return shape::build_shape({{0, 0}, {700, 0}, {700, 50}, {50, 50}, {50, 550}, {0, 550}});
+}
+
+// U-shape with arms of width 50, opening upwards.
+Shape u_shape()
+{
+    return shape::build_shape({{0, 0}, {300, 0}, {300, 200}, {250, 200}, {250, 50}, {50, 50}, {50, 200}, {0, 200}});
+}
+
+// Square with a quarter disk of radius 50 removed at its top-right corner.
+Shape notched_square()
+{
+    return shape::build_shape({{0, 0}, {100, 0}, {100, 50}, {100, 100, -1}, {50, 100}, {0, 100}});
+}
+
+AxisAlignedBoundingBox no_rectangle()
+{
+    return AxisAlignedBoundingBox();
+}
+
+}
+
+INSTANTIATE_TEST_SUITE_P(
+        Irregular,
+        ComputeLargestEmptySideRectangleTest,
+        testing::ValuesIn(std::vector<ComputeLargestEmptySideRectangleTestParams>{
+            {"LShapeTop", l_shape(), BoundingBoxSide::Top, {50, 700, 50, 550}},
+            {"LShapeRight", l_shape(), BoundingBoxSide::Right, {50, 700, 50, 550}},
+            {"LShapeBottom", l_shape(), BoundingBoxSide::Bottom, no_rectangle()},
+            {"LShapeLeft", l_shape(), BoundingBoxSide::Left, no_rectangle()},
+            {"UShapeTop", u_shape(), BoundingBoxSide::Top, {50, 250, 50, 200}},
+            {"UShapeBottom", u_shape(), BoundingBoxSide::Bottom, no_rectangle()},
+            {"UShapeLeft", u_shape(), BoundingBoxSide::Left, no_rectangle()},
+            {"UShapeRight", u_shape(), BoundingBoxSide::Right, no_rectangle()},
+            {"RectangleTop", shape::build_rectangle(300, 200), BoundingBoxSide::Top, no_rectangle()},
+            {"RectangleLeft", shape::build_rectangle(300, 200), BoundingBoxSide::Left, no_rectangle()},
+            {"TriangleTop", shape::build_shape({{0, 0}, {100, 0}, {0, 100}}), BoundingBoxSide::Top, no_rectangle()},
+            {"NotchedSquareTop", notched_square(), BoundingBoxSide::Top, {50, 100, 50, 100}, true},
+            {"NotchedSquareRight", notched_square(), BoundingBoxSide::Right, {50, 100, 50, 100}, true},
+            {"NotchedSquareBottom", notched_square(), BoundingBoxSide::Bottom, no_rectangle()},
+        }),
+        testing::PrintToStringParamName());
