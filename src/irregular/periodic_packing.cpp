@@ -6,6 +6,7 @@
 #include "shape/boolean_operations.hpp"
 #include "shape/shapes_intersections.hpp"
 #include "shape/offset.hpp"
+#include "shape/approximation.hpp"
 
 #include <limits>
 #include <algorithm>
@@ -399,13 +400,14 @@ bool check_periodic_packing(
 {
     int n_items = (int)item_shapes.size();
 
-    // Items within the same cell are NOT re-checked for overlap below: every
-    // current caller places them at a relative offset taken directly from
-    // the boundary of their own no_fit_polygon (item_positions is all-zero
-    // and the offset is already baked into item_shapes for the two-shape
-    // case; for the single-shape case there is only one item, so there is
-    // no pair to check regardless). A point on an NFP's boundary is, by
-    // definition, an exact-touching (zero-overlap) placement, so
+    // Items within the same cell of at most 2 items are NOT re-checked for
+    // overlap below: such callers place them at a relative offset taken
+    // directly from the boundary of their own no_fit_polygon
+    // (item_positions is all-zero and the offset is already baked into
+    // item_shapes for the two-shape case; for the single-shape case there
+    // is only one item, so there is no pair to check regardless). A point
+    // on an NFP's boundary is, by definition, an exact-touching
+    // (zero-overlap) placement, so
     // re-deriving that same fact via an independent intersect() call is not
     // just redundant but actively harmful: it is a second,
     // differently-rounded computation of a razor-thin tangency, which can
@@ -421,11 +423,9 @@ bool check_periodic_packing(
     // a shape paired with its own NFP-derived placement against a second
     // rotation). It does NOT automatically extend to n_items >= 3: nothing
     // here would guarantee every pairwise relative offset among 3+ items is
-    // itself an NFP boundary point. A future caller passing more items must
-    // either establish (and document) that same guarantee for every pair,
-    // or reinstate an explicit intra-cell overlap check for the pairs that
-    // aren't covered by it.
-    assert(n_items <= 2);
+    // itself an NFP boundary point. So for 3 or more items, the pairs of
+    // items within the cell are checked too, with a strict intersection
+    // test, so that items exactly touching are not rejected.
 
     // Build the base items (each shape shifted by its position in the cell)
     // and their bounding boxes.
@@ -452,6 +452,18 @@ bool check_periodic_packing(
             && !shape::strictly_greater(a.y_min, b.y_max)
             && !shape::strictly_greater(b.y_min, a.y_max);
     };
+
+    // Pairs of items within the cell (see above).
+    if (n_items >= 3) {
+        for (int item_idx_1 = 0; item_idx_1 < n_items; ++item_idx_1) {
+            for (int item_idx_2 = item_idx_1 + 1; item_idx_2 < n_items; ++item_idx_2) {
+                if (aabb_overlap(base_aabbs[item_idx_1], base_aabbs[item_idx_2])
+                        && shape::intersect(base_items[item_idx_1], base_items[item_idx_2], true)) {
+                    return false;
+                }
+            }
+        }
+    }
 
     // For each non-zero offset within the neighbourhood, check against base.
     // Most of this check_range neighbourhood is far enough away that a cheap
@@ -1076,4 +1088,138 @@ bool packingsolver::irregular::periodic_packing_has_single_item_type(
         if (item.item_type_id != packing.items[0].item_type_id)
             return false;
     return true;
+}
+
+AxisAlignedBoundingBox packingsolver::irregular::compute_largest_empty_side_rectangle(
+        const ShapeWithHoles& shape,
+        BoundingBoxSide side,
+        LengthDbl segment_length)
+{
+    // Outline as a polygon.
+    Shape outline = shape.shape;
+    for (const ShapeElement& element: outline.elements) {
+        if (element.type == ShapeElementType::CircularArc) {
+            outline = shape::approximate_shape_by_line_segments(
+                    shape.shape,
+                    segment_length,
+                    true).shape;
+            break;
+        }
+    }
+
+    // Change coordinates such that 'side' becomes the top side: (u, v) are
+    // the coordinates of a point in the new frame.
+    auto to_frame = [side](const Point& point)
+    {
+        switch (side) {
+        case BoundingBoxSide::Top:
+            return Point{point.x, point.y};
+        case BoundingBoxSide::Bottom:
+            return Point{point.x, -point.y};
+        case BoundingBoxSide::Right:
+            return Point{point.y, point.x};
+        case BoundingBoxSide::Left:
+            return Point{point.y, -point.x};
+        }
+        return point;
+    };
+    std::vector<Point> points;
+    for (const ShapeElement& element: outline.elements)
+        points.push_back(to_frame(element.start));
+    if (points.size() < 3)
+        return AxisAlignedBoundingBox();
+
+    // Breakpoints of the profile: the distinct abscissas of the vertices.
+    std::vector<LengthDbl> us;
+    LengthDbl v_max = -std::numeric_limits<LengthDbl>::infinity();
+    for (const Point& point: points) {
+        us.push_back(point.x);
+        v_max = (std::max)(v_max, point.y);
+    }
+    std::sort(us.begin(), us.end());
+    us.erase(std::unique(us.begin(), us.end()), us.end());
+    if (us.size() < 2)
+        return AxisAlignedBoundingBox();
+
+    // Highest point of the outline over each interval between consecutive
+    // breakpoints. Over an interval, the outline is made of the non-vertical
+    // edges spanning it; the highest one is the maximum of their linear
+    // functions, which is convex, so its maximum is at an end of the
+    // interval. The vertical edges don't matter: they are on the
+    // breakpoints, and their ends are also ends of non-vertical edges.
+    std::size_t number_of_intervals = us.size() - 1;
+    std::vector<LengthDbl> profile(number_of_intervals, -std::numeric_limits<LengthDbl>::infinity());
+    for (std::size_t point_pos = 0; point_pos < points.size(); ++point_pos) {
+        const Point& point_1 = points[point_pos];
+        const Point& point_2 = points[(point_pos + 1) % points.size()];
+        if (point_1.x == point_2.x)
+            continue;
+        LengthDbl u_min = (std::min)(point_1.x, point_2.x);
+        LengthDbl u_max = (std::max)(point_1.x, point_2.x);
+        auto value = [&point_1, &point_2](LengthDbl u)
+        {
+            return point_1.y + (point_2.y - point_1.y) * (u - point_1.x) / (point_2.x - point_1.x);
+        };
+        std::size_t first = std::lower_bound(us.begin(), us.end(), u_min) - us.begin();
+        std::size_t last = std::lower_bound(us.begin(), us.end(), u_max) - us.begin();
+        for (std::size_t interval_pos = first; interval_pos < last; ++interval_pos) {
+            profile[interval_pos] = (std::max)({
+                    profile[interval_pos],
+                    value(us[interval_pos]),
+                    value(us[interval_pos + 1])});
+        }
+    }
+
+    // Depth of each interval.
+    std::vector<LengthDbl> depths(number_of_intervals);
+    for (std::size_t interval_pos = 0; interval_pos < number_of_intervals; ++interval_pos)
+        depths[interval_pos] = v_max - profile[interval_pos];
+
+    // Largest rectangle under this histogram, with a stack of intervals of
+    // increasing depths.
+    LengthDbl best_area = 0.0;
+    LengthDbl best_u_1 = 0.0;
+    LengthDbl best_u_2 = 0.0;
+    LengthDbl best_depth = 0.0;
+    std::vector<std::size_t> stack;
+    for (std::size_t interval_pos = 0; interval_pos <= number_of_intervals; ++interval_pos) {
+        LengthDbl depth = (interval_pos < number_of_intervals)?
+            depths[interval_pos]: -1.0;
+        while (!stack.empty() && depths[stack.back()] >= depth) {
+            LengthDbl rectangle_depth = depths[stack.back()];
+            stack.pop_back();
+            LengthDbl u_1 = (stack.empty())? us[0]: us[stack.back() + 1];
+            LengthDbl u_2 = us[interval_pos];
+            LengthDbl area = (u_2 - u_1) * rectangle_depth;
+            if (area > best_area) {
+                best_area = area;
+                best_u_1 = u_1;
+                best_u_2 = u_2;
+                best_depth = rectangle_depth;
+            }
+        }
+        stack.push_back(interval_pos);
+    }
+    if (!shape::strictly_greater(best_area, 0.0))
+        return AxisAlignedBoundingBox();
+
+    // Back to the original coordinates.
+    LengthDbl v_1 = v_max - best_depth;
+    LengthDbl v_2 = v_max;
+    AxisAlignedBoundingBox rectangle;
+    switch (side) {
+    case BoundingBoxSide::Top:
+        rectangle = {best_u_1, best_u_2, v_1, v_2};
+        break;
+    case BoundingBoxSide::Bottom:
+        rectangle = {best_u_1, best_u_2, -v_2, -v_1};
+        break;
+    case BoundingBoxSide::Right:
+        rectangle = {v_1, v_2, best_u_1, best_u_2};
+        break;
+    case BoundingBoxSide::Left:
+        rectangle = {-v_2, -v_1, best_u_1, best_u_2};
+        break;
+    }
+    return rectangle;
 }

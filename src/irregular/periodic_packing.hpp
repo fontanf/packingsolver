@@ -63,6 +63,41 @@ std::vector<PeriodicItemPacking> compute_periodic_packings(
         const Instance& instance,
         const std::vector<std::vector<ItemTypeRotation>>& item_type_rotations);
 
+/** Side of an axis-aligned bounding box. */
+enum class BoundingBoxSide
+{
+    Bottom,
+    Top,
+    Left,
+    Right,
+};
+
+/**
+ * Compute the largest empty rectangle inside the axis-aligned bounding box
+ * of a shape, touching a given side of the bounding box.
+ *
+ * It measures how much a shape could wrap around other items: for an
+ * L-shape, the rectangle between its two arms touches the top and the right
+ * sides; for a U-shape, its cavity touches the side it opens on. For a
+ * convex shape, the rectangle is small.
+ *
+ * Only the outline of the shape is considered (its holes are not empty space
+ * touching a side of the bounding box). Circular arcs are approximated by
+ * line segments outside of the shape, with segments of length
+ * 'segment_length', so that the rectangle returned is always empty; the
+ * bounding box is the one of this approximation. Between two consecutive
+ * vertex abscissas (along the side), the profile of the shape is replaced by
+ * its farthest point from the side, so the rectangle returned may be
+ * slightly smaller than the largest one.
+ *
+ * Return an empty bounding box (x_min > x_max) if there is no such
+ * rectangle of positive area.
+ */
+AxisAlignedBoundingBox compute_largest_empty_side_rectangle(
+        const ShapeWithHoles& shape,
+        BoundingBoxSide side,
+        LengthDbl segment_length);
+
 /** Return true iff all the items of 'packing' have the same item type. */
 bool periodic_packing_has_single_item_type(
         const PeriodicItemPacking& packing);
