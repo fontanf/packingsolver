@@ -111,6 +111,19 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "rectangle" / "tests" / "bin_packing_large_dimensions" / "bins.csv",
                 fs::path("data") / "rectangle" / "tests" / "bin_packing_large_dimensions" / "parameters.csv",
                 fs::path("data") / "rectangle" / "tests" / "bin_packing_large_dimensions" / "solution.csv",
+            }, {
+                // 'BinPackingWithLeftovers' in a not-anytime mode: the
+                // post-process re-optimizes the last bin with guides
+                // {2, 3}. It used to rebuild the solution from all the bins
+                // but the last two (instead of the last one), so with
+                // several bins the rebuilt solution missed the items of the
+                // second-to-last bin and was never kept. Here, the
+                // re-optimized last bin increases the leftover value from
+                // 4083 to 4240.
+                fs::path("data") / "rectangle" / "tests" / "bin_packing_with_leftovers_last_bin_post_process" / "items.csv",
+                fs::path("data") / "rectangle" / "tests" / "bin_packing_with_leftovers_last_bin_post_process" / "bins.csv",
+                fs::path("data") / "rectangle" / "tests" / "bin_packing_with_leftovers_last_bin_post_process" / "parameters.csv",
+                fs::path("data") / "rectangle" / "tests" / "bin_packing_with_leftovers_last_bin_post_process" / "solution.csv",
             }}));
 
 TEST(Rectangle, ReadUnknownEnumValues)

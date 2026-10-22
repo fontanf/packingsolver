@@ -131,6 +131,31 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "irregular" / "tests" / "inconsistent_arc_centers_solution.json",
             }}));
 
+// 'BinPackingWithLeftovers' in a not-anytime mode: the tree search
+// re-optimizes the last bin with guides {2, 3} in a post-process. It used to
+// rebuild the solution from all the bins but the last two (instead of the
+// last one), so with several bins the rebuilt solution missed the items of
+// the second-to-last bin and was never kept. Here, the re-optimized last bin
+// increases the leftover value from about 3238 to about 3543.
+TEST(Irregular, BinPackingWithLeftoversLastBinPostProcess)
+{
+    InstanceBuilder instance_builder;
+    instance_builder.read((fs::path("data") / "irregular" / "tests" / "bin_packing_with_leftovers_last_bin_post_process.json").string());
+    Instance instance = instance_builder.build();
+
+    OptimizeParameters optimize_parameters;
+    optimize_parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytimeSequential;
+    optimize_parameters.use_tree_search = true;
+    Output output = optimize(instance, optimize_parameters);
+
+    SolutionBuilder solution_builder(instance);
+    solution_builder.read((fs::path("data") / "irregular" / "tests" / "bin_packing_with_leftovers_last_bin_post_process_solution.json").string());
+    Solution solution = solution_builder.build();
+    EXPECT_GE(solution.number_of_different_bins(), 2);
+    EXPECT_EQ(!(output.solution_pool.best() < solution), true);
+    EXPECT_EQ(!(solution < output.solution_pool.best()), true);
+}
+
 TEST(Irregular, QualityRules)
 {
     ItemShape item_shape;

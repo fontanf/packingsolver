@@ -1302,9 +1302,10 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
 
             // Retrieve solution.
             Solution solution(instance);
-            // Add first bins from current best solution.
+            // Add the bins of the current best solution, except the last
+            // one, which is replaced by the optimized one.
             for (BinPos bin_pos = 0;
-                    bin_pos < solution_best.number_of_different_bins() - 2;
+                    bin_pos < solution_best.number_of_different_bins() - 1;
                     ++bin_pos) {
                 const SolutionBin& solution_bin = solution_best.bin(bin_pos);
                 solution.append_bin(solution_best, bin_pos, solution_bin.copies);
