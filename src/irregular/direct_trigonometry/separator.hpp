@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "irregular/local_search_direct_trigonometry/polygon.hpp"
+#include "irregular/direct_trigonometry/polygon.hpp"
 
 #include "packingsolver/irregular/solution.hpp"
 
@@ -204,6 +204,25 @@ public:
             double reference_loss = std::numeric_limits<double>::infinity());
 
     /**
+     * Set the stopping criteria of the separation of the initial layout
+     * ('separate_initial'); -1 means the one of the parameters.
+     */
+    void set_initial_stopping_criteria(
+            Counter maximum_number_of_iterations_without_improvement,
+            Counter maximum_number_of_strikes)
+    {
+        initial_maximum_number_of_iterations_without_improvement_
+            = maximum_number_of_iterations_without_improvement;
+        initial_maximum_number_of_strikes_ = maximum_number_of_strikes;
+    }
+
+    /**
+     * Same as 'separate', with the stopping criteria of the separation of the
+     * initial layout.
+     */
+    bool separate_initial(const optimizationtools::Timer& timer);
+
+    /**
      * Set the stopping criteria of the next separations
      * ('SeparatorParameters::maximum_number_of_iterations_without_improvement'
      * and 'SeparatorParameters::maximum_number_of_strikes').
@@ -250,6 +269,9 @@ public:
         /** Position of the reference point of the item, in scaled coordinates. */
         Point position = {0.0, 0.0};
     };
+
+    /** Layout: the states of the items. */
+    using Layout = std::vector<ItemState>;
 
     /** Get the layout. */
     std::vector<ItemState> layout() const { return items_state_; }
@@ -501,6 +523,10 @@ private:
 
     /** Parameters. */
     SeparatorParameters parameters_;
+
+    /** Stopping criteria of the separation of the initial layout. */
+    Counter initial_maximum_number_of_iterations_without_improvement_ = -1;
+    Counter initial_maximum_number_of_strikes_ = -1;
 
     /** Random number generator. */
     std::mt19937_64 generator_;

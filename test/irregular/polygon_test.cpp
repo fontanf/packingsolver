@@ -1,4 +1,4 @@
-#include "irregular/local_search_direct_trigonometry/polygon.hpp"
+#include "irregular/direct_trigonometry/polygon.hpp"
 
 #include <gtest/gtest.h>
 

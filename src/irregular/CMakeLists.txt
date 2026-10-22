@@ -13,17 +13,19 @@ target_sources(PackingSolver_irregular PRIVATE
     periodic_packing.cpp
     tree_search.cpp
     tree_search_periodic_packing.cpp
-    linear_programming.cpp
+    linear_programming/anchor.cpp
+    linear_programming/separation_model.cpp
+    linear_programming/separator.cpp
     milp_raster.cpp
     trivial.cpp
-    local_search_direct_trigonometry/polygon.cpp
-    local_search_direct_trigonometry/separator.cpp
+    direct_trigonometry/polygon.cpp
+    direct_trigonometry/separator.cpp
     local_search.cpp
     sequential_feasibility.cpp
     reduction.cpp)
 # Let the compiler vectorize the square roots of the overlap computations.
 if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-    set_source_files_properties(local_search_direct_trigonometry/separator.cpp PROPERTIES COMPILE_OPTIONS "-fno-math-errno")
+    set_source_files_properties(direct_trigonometry/separator.cpp PROPERTIES COMPILE_OPTIONS "-fno-math-errno")
 endif()
 target_include_directories(PackingSolver_irregular PUBLIC
     ${PROJECT_SOURCE_DIR}/include)
