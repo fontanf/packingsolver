@@ -1,0 +1,67 @@
+{
+    "objective": "bin-packing-with-leftovers",
+    "bin_types": [
+        {
+            "type": "rectangle",
+            "width": 100,
+            "height": 100,
+            "copies": 20
+        }
+    ],
+    "item_types": [
+        {
+            "type": "polygon",
+            "vertices": [
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 11,
+                    "y": 0
+                },
+                {
+                    "x": 0,
+                    "y": 43
+                }
+            ],
+            "copies": 4
+        },
+        {
+            "type": "polygon",
+            "vertices": [
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 29,
+                    "y": 0
+                },
+                {
+                    "x": 0,
+                    "y": 44
+                }
+            ],
+            "copies": 2
+        },
+        {
+            "type": "polygon",
+            "vertices": [
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 53,
+                    "y": 0
+                },
+                {
+                    "x": 0,
+                    "y": 58
+                }
+            ],
+            "copies": 4
+        }
+    ]
+}
