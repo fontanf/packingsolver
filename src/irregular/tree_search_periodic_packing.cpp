@@ -330,7 +330,10 @@ static void add_periodic_blocks_for_packing(
         for (int ny = 1; ; ++ny) {
             // Compute the AABB of the (nx, ny) tiling iteratively.
             // Copy (i, j) is offset by i * v1 + j * v2 from the reference.
-            // Each copy's AABB is [offset_x, offset_x + unit_bx] × [offset_y, offset_y + unit_by].
+            // Each copy's AABB is the AABB of the unit cell shifted by the
+            // offset: the AABB of the unit cell doesn't necessarily start
+            // at (0, 0) (e.g. for the periodic packings of
+            // compute_wrapping_periodic_packings).
             LengthDbl tiling_x_min = +std::numeric_limits<LengthDbl>::infinity();
             LengthDbl tiling_x_max = -std::numeric_limits<LengthDbl>::infinity();
             LengthDbl tiling_y_min = +std::numeric_limits<LengthDbl>::infinity();
@@ -341,10 +344,10 @@ static void add_periodic_blocks_for_packing(
                 for (int j = 0; j < ny; ++j) {
                     LengthDbl cx = i * packing.vector_1.x + row_offset_x[j];
                     LengthDbl cy = i * packing.vector_1.y + row_offset_y[j];
-                    tiling_x_min = std::min(tiling_x_min, cx);
-                    tiling_x_max = std::max(tiling_x_max, cx + unit_bx);
-                    tiling_y_min = std::min(tiling_y_min, cy);
-                    tiling_y_max = std::max(tiling_y_max, cy + unit_by);
+                    tiling_x_min = std::min(tiling_x_min, cx + packing.aabb_scaled.x_min);
+                    tiling_x_max = std::max(tiling_x_max, cx + packing.aabb_scaled.x_max);
+                    tiling_y_min = std::min(tiling_y_min, cy + packing.aabb_scaled.y_min);
+                    tiling_y_max = std::max(tiling_y_max, cy + packing.aabb_scaled.y_max);
                 }
             }
             // The + item_spacing here is a trailing margin past the
@@ -418,10 +421,10 @@ static void add_periodic_blocks_for_packing(
             for (int i = 0; i < nx; ++i) {
                 LengthDbl cx = i * packing.vector_1.x;
                 LengthDbl cy = i * packing.vector_1.y;
-                col_x_min = std::min(col_x_min, cx);
-                col_x_max = std::max(col_x_max, cx + unit_bx);
-                col_y_min = std::min(col_y_min, cy);
-                col_y_max = std::max(col_y_max, cy + unit_by);
+                col_x_min = std::min(col_x_min, cx + packing.aabb_scaled.x_min);
+                col_x_max = std::max(col_x_max, cx + packing.aabb_scaled.x_max);
+                col_y_min = std::min(col_y_min, cy + packing.aabb_scaled.y_min);
+                col_y_max = std::max(col_y_max, cy + packing.aabb_scaled.y_max);
             }
             LengthDbl candidate_bx = col_x_max - col_x_min;
             LengthDbl candidate_by = col_y_max - col_y_min;

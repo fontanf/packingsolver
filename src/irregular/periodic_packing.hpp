@@ -98,6 +98,56 @@ AxisAlignedBoundingBox compute_largest_empty_side_rectangle(
         BoundingBoxSide side,
         LengthDbl segment_length);
 
+/**
+ * Item type for compute_wrapping_periodic_packings: its unrotated
+ * sub-shapes and its allowed rotations.
+ */
+struct PeriodicPackingItemType
+{
+    /** Id of the item type, given to the items of the periodic packings. */
+    ItemTypeId item_type_id = -1;
+
+    /** Unrotated sub-shapes. */
+    std::vector<ShapeWithHoles> shapes;
+
+    /** Allowed rotations. */
+    std::vector<ItemTypeRotation> rotations;
+
+    /**
+     * True iff the periodic packings involving this item type must be
+     * computed. Item types with this flag false only take part in periodic
+     * packings with item types with this flag true: their periodic packings
+     * together have already been computed otherwise.
+     */
+    bool compute = true;
+};
+
+/**
+ * Compute periodic packings made of a base and of two copies of another item
+ * type wrapping around it.
+ *
+ * A wrapper is an item type in a rotation r, such that rotation r + 180 is
+ * allowed too, with a large empty rectangle touching a side of its bounding
+ * box (see compute_largest_empty_side_rectangle), like an L-shape. A base is
+ * a single item of another item type, or the unit cell of one of the
+ * 'periodic_packings' of a single other item type, small enough to fit in
+ * that rectangle.
+ *
+ * The base is placed in the empty rectangle of the wrapper in rotation r,
+ * against the sides of the rectangle along the wrapper; then the wrapper in
+ * rotation r + 180 is placed the same way on the other side of the base,
+ * and moved away from the base if needed so that it doesn't overlap the
+ * first wrapper. The lattice of the resulting unit cell is then computed
+ * as for the other periodic packings.
+ *
+ * The returned PeriodicItemPacking::items have the item type ids of
+ * 'item_types'.
+ */
+std::vector<PeriodicItemPacking> compute_wrapping_periodic_packings(
+        const std::vector<PeriodicPackingItemType>& item_types,
+        const std::vector<PeriodicItemPacking>& periodic_packings,
+        LengthDbl item_item_minimum_spacing);
+
 /** Return true iff all the items of 'packing' have the same item type. */
 bool periodic_packing_has_single_item_type(
         const PeriodicItemPacking& packing);
