@@ -1,6 +1,6 @@
 #include "packingsolver/irregular/post_process.hpp"
 
-#include "irregular/linear_programming.hpp"
+#include "irregular/linear_programming/anchor.hpp"
 #include "irregular/solution_builder.hpp"
 
 using namespace packingsolver;

@@ -101,7 +101,6 @@ int main(int argc, char *argv[])
             ("not-anytime-tree-search-periodic-packing-queue-size,", po::value<Counter>(), "")
             ("not-anytime-sequential-single-knapsack-subproblem-tree-search-queue-size,", po::value<Counter>(), "")
             ("not-anytime-sequential-value-correction-number-of-iterations,", po::value<Counter>(), "")
-            ("not-anytime-local-search-maximum-number-of-iterations-without-improvement,", po::value<Counter>(), "")
             ("not-anytime-local-search-maximum-number-of-failed-separations,", po::value<Counter>(), "")
             ("not-anytime-dichotomic-search-subproblem-tree-search-queue-size,", po::value<Counter>(), "")
 
@@ -200,8 +199,6 @@ int main(int argc, char *argv[])
             parameters.not_anytime_sequential_single_knapsack_subproblem_tree_search_queue_size = vm["not-anytime-sequential-single-knapsack-subproblem-tree-search-queue-size"].as<Counter>();
         if (vm.count("not-anytime-sequential-value-correction-number-of-iterations"))
             parameters.not_anytime_sequential_value_correction_number_of_iterations = vm["not-anytime-sequential-value-correction-number-of-iterations"].as<Counter>();
-        if (vm.count("not-anytime-local-search-maximum-number-of-iterations-without-improvement"))
-            parameters.not_anytime_local_search_maximum_number_of_iterations_without_improvement = vm["not-anytime-local-search-maximum-number-of-iterations-without-improvement"].as<Counter>();
         if (vm.count("not-anytime-local-search-maximum-number-of-failed-separations"))
             parameters.not_anytime_local_search_maximum_number_of_failed_separations = vm["not-anytime-local-search-maximum-number-of-failed-separations"].as<Counter>();
         if (vm.count("not-anytime-dichotomic-search-subproblem-tree-search-queue-size"))

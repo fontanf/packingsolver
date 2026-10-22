@@ -1,4 +1,4 @@
-#include "irregular/local_search_direct_trigonometry/separator.hpp"
+#include "irregular/direct_trigonometry/separator.hpp"
 
 #include "irregular/rotations.hpp"
 #include "irregular/shape_simplification.hpp"
@@ -1557,6 +1557,20 @@ void Separator::move_items_workers(const optimizationtools::Timer& timer)
         }
     }
     copy_state(*workers_[best_worker_pos]);
+}
+
+bool Separator::separate_initial(const optimizationtools::Timer& timer)
+{
+    SeparatorParameters parameters = parameters_;
+    if (initial_maximum_number_of_iterations_without_improvement_ != -1) {
+        parameters_.maximum_number_of_iterations_without_improvement
+            = initial_maximum_number_of_iterations_without_improvement_;
+    }
+    if (initial_maximum_number_of_strikes_ != -1)
+        parameters_.maximum_number_of_strikes = initial_maximum_number_of_strikes_;
+    bool separated = separate(timer);
+    parameters_ = parameters;
+    return separated;
 }
 
 bool Separator::separate(

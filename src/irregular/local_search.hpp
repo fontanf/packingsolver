@@ -7,7 +7,8 @@
 
 #pragma once
 
-#include "irregular/local_search_direct_trigonometry/separator.hpp"
+#include "irregular/direct_trigonometry/separator.hpp"
+#include "irregular/linear_programming/separator.hpp"
 
 #include "packingsolver/irregular/optimize.hpp"
 
@@ -130,13 +131,8 @@ struct LocalSearchParameters: packingsolver::Parameters<Instance, Solution, Outp
      * Parameters of the linear programming engine.
      */
 
-    /**
-     * Maximum number of iterations without improvement when packing an
-     * item, after which the item is considered not to fit.
-     *
-     * -1 (the default) means no limit.
-     */
-    Counter maximum_number_of_iterations_without_improvement = -1;
+    /** Parameters of the separator. */
+    LinearProgrammingSeparatorParameters linear_programming_separator_parameters;
 };
 
 /**

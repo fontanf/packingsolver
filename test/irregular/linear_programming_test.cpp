@@ -1,5 +1,6 @@
 #include "packingsolver/irregular/instance_builder.hpp"
-#include "irregular/linear_programming.hpp"
+#include "irregular/linear_programming/anchor.hpp"
+#include "irregular/utils.hpp"
 #include "irregular/solution_builder.hpp"
 
 #include <gtest/gtest.h>

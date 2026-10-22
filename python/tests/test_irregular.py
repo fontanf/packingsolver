@@ -544,9 +544,6 @@ def test_parameters():
     parameters.use_tree_search = True
     parameters.not_anytime_tree_search_queue_size = 64
     assert parameters.not_anytime_tree_search_queue_size == 64
-    assert parameters.not_anytime_local_search_maximum_number_of_iterations_without_improvement == 100
-    parameters.not_anytime_local_search_maximum_number_of_iterations_without_improvement = 10
-    assert parameters.not_anytime_local_search_maximum_number_of_iterations_without_improvement == 10
     assert parameters.not_anytime_local_search_maximum_number_of_failed_separations == 10
     parameters.not_anytime_local_search_maximum_number_of_failed_separations = 5
     assert parameters.not_anytime_local_search_maximum_number_of_failed_separations == 5
