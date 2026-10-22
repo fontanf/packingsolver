@@ -637,11 +637,38 @@ void add_if_unique(
     packings.push_back(std::move(pp));
 }
 
-}  // namespace
-
-std::vector<PeriodicPacking> packingsolver::irregular::compute_periodic_packings(
-        const ShapeWithHoles& shape,
+/**
+ * Union of the no-fit polygon of two shapes, in their natural frame, inflated
+ * by the item-item minimum spacing.
+ *
+ * NFP(A, B) inflated by d == NFP(A inflated by d', B inflated by d'') for any
+ * split d' + d'' = d (Minkowski sum is associative and a disk is symmetric
+ * under negation), so it is equivalent -- and exact, no polygon approximation
+ * needed -- to compute the raw NFP and inflate its result by the full spacing
+ * amount instead of inflating the shapes beforehand.
+ */
+std::vector<ShapeWithHoles> compute_inflated_nfp_union(
+        const ShapeWithHoles& shape_1,
+        const ShapeWithHoles& shape_2,
         LengthDbl item_item_minimum_spacing)
+{
+    std::vector<ShapeWithHoles> result;
+    MultiShapeWithHoles nfp = shape::no_fit_polygon(shape_1, shape_2);
+    for (const ShapeWithHoles& swh: shape::compute_union(nfp.shapes_with_holes).shapes_with_holes) {
+        result.push_back(item_item_minimum_spacing > 0.0?
+                shape::inflate(swh, item_item_minimum_spacing):
+                swh);
+    }
+    return result;
+}
+
+/**
+ * Same as compute_periodic_packings(shape, ...), given the union of the
+ * self-NFP of the shape (see compute_inflated_nfp_union).
+ */
+std::vector<PeriodicPacking> compute_periodic_packings_from_nfp(
+        const ShapeWithHoles& shape,
+        const std::vector<ShapeWithHoles>& nfp_union)
 {
     AxisAlignedBoundingBox aabb = shape.compute_min_max();
     Point position = {-aabb.x_min, -aabb.y_min};
@@ -649,26 +676,38 @@ std::vector<PeriodicPacking> packingsolver::irregular::compute_periodic_packings
     shifted.shift(position.x, position.y);
 
     // The forbidden region for tiling a single shape against copies of
-    // itself is exactly its self-NFP: NFP(A, B) inflated by d ==
-    // NFP(A inflated by d', B inflated by d'') for any split d' + d'' = d
-    // (Minkowski sum is associative and a disk is symmetric under negation),
-    // so it is equivalent -- and exact, no polygon approximation needed --
-    // to compute the raw self-NFP and inflate its result by the full
-    // spacing amount instead of inflating the shape beforehand.
-    std::vector<ShapeWithHoles> combined_nfp;
-    MultiShapeWithHoles nfp = shape::no_fit_polygon(shifted, shifted);
-    for (const ShapeWithHoles& swh: shape::compute_union(nfp.shapes_with_holes).shapes_with_holes) {
-        combined_nfp.push_back(item_item_minimum_spacing > 0.0?
-                shape::inflate(swh, item_item_minimum_spacing):
-                swh);
-    }
-
+    // itself is exactly its self-NFP, which doesn't depend on the position of
+    // the shape.
     std::vector<PeriodicPacking> result;
-    for (PeriodicPacking pp: find_periodic_packing_lattice_from_combined_nfp({shifted}, combined_nfp)) {
+    for (PeriodicPacking pp: find_periodic_packing_lattice_from_combined_nfp({shifted}, nfp_union)) {
         pp.positions = {position};
         add_if_unique(result, std::move(pp));
     }
     return result;
+}
+
+/**
+ * Same as compute_periodic_packings(shape_0, shape_r, ...), given the unions
+ * of the four pairwise NFPs of the shapes, in their natural frame (see
+ * compute_inflated_nfp_union).
+ */
+std::vector<PeriodicPacking> compute_periodic_packings_from_nfps(
+        const ShapeWithHoles& shape_0,
+        const ShapeWithHoles& shape_r,
+        const std::vector<ShapeWithHoles>& nfp_00_union,
+        const std::vector<ShapeWithHoles>& nfp_0r_union_natural,
+        const std::vector<ShapeWithHoles>& nfp_r0_union,
+        const std::vector<ShapeWithHoles>& nfp_rr_union);
+
+}  // namespace
+
+std::vector<PeriodicPacking> packingsolver::irregular::compute_periodic_packings(
+        const ShapeWithHoles& shape,
+        LengthDbl item_item_minimum_spacing)
+{
+    return compute_periodic_packings_from_nfp(
+            shape,
+            compute_inflated_nfp_union(shape, shape, item_item_minimum_spacing));
 }
 
 /**
@@ -689,49 +728,40 @@ std::vector<PeriodicPacking> packingsolver::irregular::compute_periodic_packings
         const ShapeWithHoles& shape_r,
         LengthDbl item_item_minimum_spacing)
 {
+    return compute_periodic_packings_from_nfps(
+            shape_0,
+            shape_r,
+            compute_inflated_nfp_union(shape_0, shape_0, item_item_minimum_spacing),
+            compute_inflated_nfp_union(shape_0, shape_r, item_item_minimum_spacing),
+            compute_inflated_nfp_union(shape_r, shape_0, item_item_minimum_spacing),
+            compute_inflated_nfp_union(shape_r, shape_r, item_item_minimum_spacing));
+}
+
+namespace
+{
+
+std::vector<PeriodicPacking> compute_periodic_packings_from_nfps(
+        const ShapeWithHoles& shape_0,
+        const ShapeWithHoles& shape_r,
+        const std::vector<ShapeWithHoles>& nfp_00_union,
+        const std::vector<ShapeWithHoles>& nfp_0r_union_natural,
+        const std::vector<ShapeWithHoles>& nfp_r0_union,
+        const std::vector<ShapeWithHoles>& nfp_rr_union)
+{
     AxisAlignedBoundingBox aabb_0 = shape_0.compute_min_max();
     Point position_0 = {-aabb_0.x_min, -aabb_0.y_min};
 
     AxisAlignedBoundingBox aabb_r = shape_r.compute_min_max();
     Point min_position_r = {-aabb_r.x_min, -aabb_r.y_min};
 
-    // NFP(A, B) inflated by d == NFP(A inflated by d', B inflated by d'') for
-    // any split d' + d'' = d -- see the comment in
-    // compute_periodic_packings(shape, ...) above. So rather than inflating
-    // shape_0/shape_r before each NFP below (shape_0/shape_r themselves stay
-    // raw throughout, used for position bookkeeping and the final
-    // real-overlap check in check_periodic_packing), compute each raw NFP
-    // once and inflate its result by the full spacing amount instead.
-    auto inflated_union = [&](const MultiShapeWithHoles& nfp) {
-        std::vector<ShapeWithHoles> result;
-        for (const ShapeWithHoles& swh: shape::compute_union(nfp.shapes_with_holes).shapes_with_holes) {
-            result.push_back(item_item_minimum_spacing > 0.0?
-                    shape::inflate(swh, item_item_minimum_spacing):
-                    swh);
-        }
-        return result;
-    };
-
-    // NFP(shape_0, shape_r) shifted by position_0 gives translations t_r such
-    // that (shape_r + t_r) just touches (shape_0 shifted by position_0).
-    MultiShapeWithHoles nfp_0r = shape::no_fit_polygon(shape_0, shape_r);
-    if (nfp_0r.shapes_with_holes.empty())
+    if (nfp_0r_union_natural.empty())
         return {};
-    // Natural (position-independent) frame, reused below for every candidate
-    // instead of recomputing no_fit_polygon(shape_0, shape_r) once per
-    // candidate: NFP(A + a, B + b) = NFP(A, B) + (a - b), so only the
-    // relative offset changes, never the NFP shape itself.
-    std::vector<ShapeWithHoles> nfp_0r_union_natural = inflated_union(nfp_0r);
+    // NFP(shape_0, shape_r) shifted by position_0 gives translations t_r such
+    // that (shape_r + t_r) just touches (shape_0 shifted by position_0):
+    // NFP(A + a, B + b) = NFP(A, B) + (a - b), so only the relative offset
+    // changes, never the NFP shape itself.
     std::vector<ShapeWithHoles> nfp_0r_union = nfp_0r_union_natural;
     for (ShapeWithHoles& swh: nfp_0r_union) swh.shift(position_0.x, position_0.y);
-
-    // The other three pairwise NFPs needed by
-    // find_periodic_packing_lattice_two_shapes_cached for a two-shape
-    // placement are likewise position-independent, so compute each once
-    // here rather than once per candidate below.
-    std::vector<ShapeWithHoles> nfp_00_union = inflated_union(shape::no_fit_polygon(shape_0, shape_0));
-    std::vector<ShapeWithHoles> nfp_r0_union = inflated_union(shape::no_fit_polygon(shape_r, shape_0));
-    std::vector<ShapeWithHoles> nfp_rr_union = inflated_union(shape::no_fit_polygon(shape_r, shape_r));
 
     // Collect all boundary vertices as candidate placements for shape_r.
     std::vector<Point> candidates;
@@ -848,6 +878,8 @@ std::vector<PeriodicPacking> packingsolver::irregular::compute_periodic_packings
     return result;
 }
 
+}  // namespace
+
 std::vector<PeriodicItemPacking> packingsolver::irregular::compute_periodic_packings_for_item_type(
         const std::vector<ShapeWithHoles>& item_shapes,
         const std::vector<ItemTypeRotation>& rotations,
@@ -855,13 +887,69 @@ std::vector<PeriodicItemPacking> packingsolver::irregular::compute_periodic_pack
 {
     std::vector<PeriodicItemPacking> output;
 
+    // The NFPs are the dominant cost, and most of them are rotations of each
+    // other: the combined shape in rotation (angle, mirror) is the combined
+    // shape in rotation (0, mirror) rotated by 'angle', and
+    // NFP(R(A), R(B)) = R(NFP(A, B)) for a rotation R (inflation commutes
+    // with rotations too). So the NFP of the combined shapes in rotations
+    // (a, m1) and (b, m2) is the NFP of the combined shapes in rotations
+    // (0, m1) and (b - a, m2), rotated by a: it is only computed once for
+    // each (m1, m2, b - a).
+    struct CachedNfp
+    {
+        bool mirror_1;
+        bool mirror_2;
+        Angle angle;
+        std::vector<ShapeWithHoles> nfp_union;
+    };
+    std::vector<CachedNfp> cached_nfps;
+    auto nfp_union = [&item_shapes, item_item_minimum_spacing, &cached_nfps](
+            const ItemTypeRotation& rotation_1,
+            const ItemTypeRotation& rotation_2)
+    {
+        Angle angle = rotation_2.angle - rotation_1.angle;
+        while (angle < 0)
+            angle += 360;
+        while (angle >= 360)
+            angle -= 360;
+        const CachedNfp* cached_nfp = nullptr;
+        for (const CachedNfp& cached_nfp_cur: cached_nfps) {
+            if (cached_nfp_cur.mirror_1 == rotation_1.mirror
+                    && cached_nfp_cur.mirror_2 == rotation_2.mirror
+                    && shape::equal(cached_nfp_cur.angle, angle)) {
+                cached_nfp = &cached_nfp_cur;
+                break;
+            }
+        }
+        if (cached_nfp == nullptr) {
+            CachedNfp cached_nfp_new;
+            cached_nfp_new.mirror_1 = rotation_1.mirror;
+            cached_nfp_new.mirror_2 = rotation_2.mirror;
+            cached_nfp_new.angle = angle;
+            cached_nfp_new.nfp_union = compute_inflated_nfp_union(
+                    compute_combined_shape(item_shapes, {0.0, rotation_1.mirror}),
+                    compute_combined_shape(item_shapes, {angle, rotation_2.mirror}),
+                    item_item_minimum_spacing);
+            cached_nfps.push_back(std::move(cached_nfp_new));
+            cached_nfp = &cached_nfps.back();
+        }
+        if (rotation_1.angle == 0.0)
+            return cached_nfp->nfp_union;
+        std::vector<ShapeWithHoles> result;
+        for (const ShapeWithHoles& swh: cached_nfp->nfp_union)
+            result.push_back(swh.rotate(rotation_1.angle));
+        return result;
+    };
+
     for (int rot_0_pos = 0;
             rot_0_pos < (int)rotations.size();
             ++rot_0_pos) {
         const ItemTypeRotation& rot_0 = rotations[rot_0_pos];
         ShapeWithHoles shape_0 = compute_combined_shape(item_shapes, rot_0);
 
-        for (const PeriodicPacking& pp_same: compute_periodic_packings(shape_0, item_item_minimum_spacing)) {
+        for (const PeriodicPacking& pp_same: compute_periodic_packings_from_nfp(
+                    shape_0,
+                    nfp_union(rot_0, rot_0))) {
             PeriodicItemPacking item_packing;
             item_packing.vector_1 = pp_same.vector_1;
             item_packing.vector_2 = pp_same.vector_2;
@@ -905,8 +993,13 @@ std::vector<PeriodicItemPacking> packingsolver::irregular::compute_periodic_pack
                     const ItemTypeRotation& rotation_second,
                     const ShapeWithHoles& shape_second)
             {
-                for (const PeriodicPacking& pp_two:
-                        compute_periodic_packings(shape_first, shape_second, item_item_minimum_spacing)) {
+                for (const PeriodicPacking& pp_two: compute_periodic_packings_from_nfps(
+                            shape_first,
+                            shape_second,
+                            nfp_union(rotation_first, rotation_first),
+                            nfp_union(rotation_first, rotation_second),
+                            nfp_union(rotation_second, rotation_first),
+                            nfp_union(rotation_second, rotation_second))) {
                     PeriodicItemPacking item_packing;
                     item_packing.vector_1 = pp_two.vector_1;
                     item_packing.vector_2 = pp_two.vector_2;
