@@ -55,6 +55,13 @@ struct SeparationModelItem
 
     /** Weight of the scale in the objective. */
     double weight = 1.0;
+
+    /**
+     * Range of the rotation of the item allowed in a step, relatively to its
+     * current angle, in degrees (only used by 'BinNonlinearSeparationModel').
+     */
+    Angle minimum_rotation = 0.0;
+    Angle maximum_rotation = 0.0;
 };
 
 class BinSeparationModel

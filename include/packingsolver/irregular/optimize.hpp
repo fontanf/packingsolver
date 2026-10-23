@@ -182,6 +182,13 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
     bool use_local_search_linear_programming = false;
 
     /**
+     * Use local search algorithm with the nonlinear programming engine (the
+     * items are shrunk to remove the overlaps, and may rotate within their
+     * allowed rotation ranges). Requires Knitro.
+     */
+    bool use_local_search_nonlinear_programming = false;
+
+    /**
      * Use local search algorithm with the direct trigonometry engine (the
      * overlap between the items is minimized).
      */

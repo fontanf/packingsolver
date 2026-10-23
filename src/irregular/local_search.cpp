@@ -159,6 +159,28 @@ void local_search_linear_programming(
     run_iterated_local_search(separator, generator, parameters, algorithm_formatter);
 }
 
+/** Local search with the nonlinear programming engine, for objective Feasibility. */
+void local_search_nonlinear_programming(
+        const Instance& instance,
+        std::mt19937_64& generator,
+        const Solution* initial_solution,
+        const LocalSearchParameters& parameters,
+        AlgorithmFormatter& algorithm_formatter)
+{
+    NonlinearProgrammingSeparator separator(
+            instance,
+            parameters.nonlinear_programming_separator_parameters,
+            generator);
+    if (initial_solution != nullptr) {
+        separator.set_solution(
+                convert_initial_solution(instance, *initial_solution),
+                parameters.timer);
+    } else {
+        separator.set_solution(Solution(instance), parameters.timer);
+    }
+    run_iterated_local_search(separator, generator, parameters, algorithm_formatter);
+}
+
 }  // namespace
 
 Solution packingsolver::irregular::convert_initial_solution(
@@ -268,6 +290,8 @@ LocalSearchOutput packingsolver::irregular::local_search(
             inner_parameters.separator_parameters = parameters.separator_parameters;
             inner_parameters.linear_programming_separator_parameters
                 = parameters.linear_programming_separator_parameters;
+            inner_parameters.nonlinear_programming_separator_parameters
+                = parameters.nonlinear_programming_separator_parameters;
             inner_parameters.separator_item_types = separator_item_types;
             inner_parameters.initial_separation_maximum_number_of_iterations_without_improvement
                 = parameters.initial_separation_maximum_number_of_iterations_without_improvement;
@@ -317,6 +341,8 @@ LocalSearchOutput packingsolver::irregular::local_search(
 
     if (parameters.engine == LocalSearchEngine::LinearProgramming) {
         local_search_linear_programming(instance, generator, initial_solution, parameters, algorithm_formatter);
+    } else if (parameters.engine == LocalSearchEngine::NonlinearProgramming) {
+        local_search_nonlinear_programming(instance, generator, initial_solution, parameters, algorithm_formatter);
     } else {
         local_search_direct_trigonometry(instance, generator, initial_solution, parameters, algorithm_formatter);
     }

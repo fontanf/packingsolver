@@ -9,6 +9,7 @@
 
 #include "irregular/direct_trigonometry/separator.hpp"
 #include "irregular/linear_programming/separator.hpp"
+#include "irregular/nonlinear_programming/separator.hpp"
 
 #include "packingsolver/irregular/optimize.hpp"
 
@@ -30,11 +31,19 @@ enum class LocalSearchEngine
     DirectTrigonometry,
 
     /**
-     * Shrinkage minimization: the items are packed one by one; the items of a
-     * bin are shrunk to remove the overlap, and a linear program minimizes the
-     * shrinkage.
+     * Linear programming: the items may be shrunk instead of overlapping, and
+     * the separator solves linear programs maximizing their weighted scales
+     * (see 'linear_programming/separator.hpp').
      */
     LinearProgramming,
+
+    /**
+     * Nonlinear programming: as the linear programming engine, but the
+     * separator solves nonlinear programs, in which the items may also rotate
+     * within their allowed rotation ranges (see
+     * 'nonlinear_programming/separator.hpp'). Requires Knitro.
+     */
+    NonlinearProgramming,
 };
 
 struct LocalSearchOutput: Output
@@ -133,6 +142,13 @@ struct LocalSearchParameters: packingsolver::Parameters<Instance, Solution, Outp
 
     /** Parameters of the separator. */
     LinearProgrammingSeparatorParameters linear_programming_separator_parameters;
+
+    /*
+     * Parameters of the nonlinear programming engine.
+     */
+
+    /** Parameters of the separator. */
+    NonlinearProgrammingSeparatorParameters nonlinear_programming_separator_parameters;
 };
 
 /**

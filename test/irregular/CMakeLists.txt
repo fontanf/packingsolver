@@ -4,6 +4,7 @@ target_sources(PackingSolver_irregular_test PRIVATE
     local_search_test.cpp
     polygon_test.cpp
     reduction_test.cpp
+    separating_line_test.cpp
     sequential_feasibility_test.cpp
     tree_search_test.cpp
     trivial_test.cpp)
