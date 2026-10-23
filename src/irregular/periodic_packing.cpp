@@ -514,6 +514,84 @@ bool check_periodic_packing(
 }
 
 /**
+ * Find the shortest vector_2 perpendicular to an axis-aligned vector_1 such
+ * that the lattice (vector_1, vector_2) is valid, given the union of the
+ * combined NFP: for a horizontal vector_1, the lowest (0, y), y > 0, and for
+ * a vertical vector_1, the leftmost (x, 0), x > 0.
+ *
+ * Unlike the constrained vector_2 of
+ * find_periodic_packing_lattice_from_combined_nfp, which may have any offset
+ * along vector_1 and gives the densest lattice, this one gives a rectangular
+ * lattice: its rows (or columns) are aligned, which may fit a bin better.
+ *
+ * Returns a null vector if no such vector is found.
+ */
+Point find_perpendicular_vector(
+        const std::vector<ShapeWithHoles>& shapes,
+        const std::vector<ShapeWithHoles>& nfp_union,
+        const Point& vector_1)
+{
+    bool horizontal = (vector_1.y == 0.0);
+    LengthDbl step = (horizontal)? vector_1.x: vector_1.y;
+    if (!shape::strictly_greater(step, 0.0))
+        return {0.0, 0.0};
+    // Repeat the NFP along vector_1, over the extent of the NFP.
+    AxisAlignedBoundingBox aabb;
+    for (const ShapeWithHoles& swh: nfp_union)
+        aabb = shape::merge(aabb, swh.compute_min_max());
+    LengthDbl extent = (horizontal)?
+        (std::max)(std::abs(aabb.x_min), std::abs(aabb.x_max)):
+        (std::max)(std::abs(aabb.y_min), std::abs(aabb.y_max));
+    int number_of_repetitions = (int)std::ceil(extent / step) + 1;
+    // The union of the copies isn't computed, since it is expensive for
+    // complex shapes: the candidates are the intersections of the boundary
+    // of each copy with the perpendicular line, and a candidate is rejected
+    // if it is strictly inside one of the copies.
+    std::vector<ShapeWithHoles> ext_nfp;
+    for (int k = -number_of_repetitions; k <= number_of_repetitions; ++k) {
+        for (ShapeWithHoles swh: nfp_union) {
+            swh.shift(k * vector_1.x, k * vector_1.y);
+            ext_nfp.push_back(std::move(swh));
+        }
+    }
+    std::vector<Point> candidates;
+    if (horizontal) {
+        collect_x0_candidates(ext_nfp, candidates);
+    } else {
+        collect_y0_candidates(ext_nfp, candidates);
+    }
+    std::vector<LengthDbl> lengths;
+    for (const Point& point: candidates) {
+        LengthDbl length = (horizontal)? point.y: point.x;
+        if (shape::strictly_greater(length, 0.0))
+            lengths.push_back(length);
+    }
+    std::sort(lengths.begin(), lengths.end());
+    std::vector<Point> zero_positions(shapes.size(), {0.0, 0.0});
+    for (LengthDbl length: lengths) {
+        Point vector_2 = (horizontal)? Point{0.0, length}: Point{length, 0.0};
+        bool inside = false;
+        for (const ShapeWithHoles& swh: ext_nfp) {
+            if (swh.contains(vector_2, true)) {
+                inside = true;
+                break;
+            }
+        }
+        if (inside)
+            continue;
+        if (check_periodic_packing(
+                    shapes,
+                    zero_positions,
+                    vector_1,
+                    vector_2,
+                    (std::max)(3, number_of_repetitions + 1))) {
+            return vector_2;
+        }
+    }
+    return {0.0, 0.0};
+}
+
+/**
  * Given a set of shapes already placed at their positions in the unit cell,
  * find lattice vectors v1, v2 to tile them periodically without overlap.
  *
@@ -564,6 +642,15 @@ std::vector<PeriodicPacking> find_periodic_packing_lattice_from_combined_nfp(
                     && check_periodic_packing(shapes, zero_positions, vector_1, vector_2, 3)) {
                 result.push_back({zero_positions, vector_1, vector_2});
             }
+            // Rectangular lattice.
+            Point vector_2_perpendicular = find_perpendicular_vector(
+                    shapes,
+                    combined_nfp_union.shapes_with_holes,
+                    vector_1);
+            if (shape::strictly_greater(vector_2_perpendicular.y, 0.0)
+                    && !shape::equal(vector_2_perpendicular, vector_2)) {
+                result.push_back({zero_positions, vector_1, vector_2_perpendicular});
+            }
         }
     }
 
@@ -582,6 +669,15 @@ std::vector<PeriodicPacking> find_periodic_packing_lattice_from_combined_nfp(
             if (shape::strictly_greater(vector_2.x, 0.0)
                     && check_periodic_packing(shapes, zero_positions, vector_1, vector_2, 3)) {
                 result.push_back({zero_positions, vector_1, vector_2});
+            }
+            // Rectangular lattice.
+            Point vector_2_perpendicular = find_perpendicular_vector(
+                    shapes,
+                    combined_nfp_union.shapes_with_holes,
+                    vector_1);
+            if (shape::strictly_greater(vector_2_perpendicular.x, 0.0)
+                    && !shape::equal(vector_2_perpendicular, vector_2)) {
+                result.push_back({zero_positions, vector_1, vector_2_perpendicular});
             }
         }
     }
@@ -727,11 +823,14 @@ std::vector<PeriodicPacking> packingsolver::irregular::compute_periodic_packings
 /**
  * Compute periodic packings for two shapes with different rotations.
  *
- * shape_0 is pre-shifted to have its BL corner at the origin. For each
- * boundary vertex of NFP(shape_0, shape_r) that places shape_r with a
- * non-negative AABB (x_min >= 0 and y_min >= 0), the two shapes are passed
- * to find_periodic_packing_lattice_two_shapes_cached to search for horizontal
- * and vertical lattice vectors.
+ * shape_0 is pre-shifted to have its BL corner at the origin. The boundary
+ * vertices of NFP(shape_0, shape_r) are candidate placements of shape_r. The
+ * ones passed to find_periodic_packing_lattice_two_shapes_cached to search
+ * for horizontal and vertical lattice vectors are: among the placements of
+ * shape_r with a non-negative AABB, the ones minimizing the width, the
+ * height and the area of the combined AABB; then, among all the placements,
+ * the ones whose combined AABB is on the Pareto front of its width and
+ * height, and not almost the same as a placement already selected.
  *
  * Returns all valid PeriodicPackings found across all candidate placements,
  * each with positions = {position_0, t_r} where t_r is the translation
@@ -849,11 +948,6 @@ std::vector<PeriodicPacking> compute_periodic_packings_from_nfps(
     };
     std::vector<Candidate> valid_candidates;
     for (const Point& t_r: unique_candidates) {
-        // Skip placements where shape_r's AABB goes below x=0 or y=0.
-        if (shape::strictly_lesser(t_r.x, min_position_r.x)
-                || shape::strictly_lesser(t_r.y, min_position_r.y))
-            continue;
-
         AxisAlignedBoundingBox aabb_r_here = aabb_r;
         aabb_r_here.shift(t_r.x, t_r.y);
         AxisAlignedBoundingBox combined = merge(aabb_0, aabb_r_here);
@@ -862,20 +956,98 @@ std::vector<PeriodicPacking> compute_periodic_packings_from_nfps(
         valid_candidates.push_back({t_r, dx, dy, dx * dy});
     }
 
+    // First, among the placements where the AABB of shape_r doesn't go
+    // below or to the left of the one of shape_0, the ones minimizing the
+    // width, the height and the area of the combined AABB.
     std::vector<int> selected_candidates;
-    if (!valid_candidates.empty()) {
+    {
         auto add_argmin = [&](auto metric) {
-            int best = 0;
-            for (int i = 1; i < (int)valid_candidates.size(); ++i)
-                if (metric(valid_candidates[i]) < metric(valid_candidates[best]))
+            int best = -1;
+            for (int i = 0; i < (int)valid_candidates.size(); ++i) {
+                const Point& t_r = valid_candidates[i].t_r;
+                if (shape::strictly_lesser(t_r.x, min_position_r.x)
+                        || shape::strictly_lesser(t_r.y, min_position_r.y)) {
+                    continue;
+                }
+                if (best == -1 || metric(valid_candidates[i]) < metric(valid_candidates[best]))
                     best = i;
-            if (std::find(selected_candidates.begin(), selected_candidates.end(), best)
-                    == selected_candidates.end())
+            }
+            if (best != -1
+                    && std::find(selected_candidates.begin(), selected_candidates.end(), best)
+                    == selected_candidates.end()) {
                 selected_candidates.push_back(best);
+            }
         };
         add_argmin([](const Candidate& c) { return c.dx; });
         add_argmin([](const Candidate& c) { return c.dy; });
         add_argmin([](const Candidate& c) { return c.area; });
+    }
+
+    // Then, among the placements on every side of shape_0, the ones whose
+    // combined AABB is on the Pareto front of its width and height, the ones
+    // with the smallest area first, up to
+    // 'maximum_number_of_pareto_candidates': a placement which is neither
+    // the narrowest, the lowest nor the smallest may still give the best
+    // periodic packing (e.g. a pair whose rows are aligned), and with both
+    // orders of the two shapes, only keeping the placements where the AABB
+    // of shape_r doesn't go below or to the left of the one of shape_0
+    // misses the pairs where a shape is above and to the left of the other
+    // one.
+    const int maximum_number_of_pareto_candidates = 6;
+    std::vector<int> pareto_candidates;
+    for (int i = 0; i < (int)valid_candidates.size(); ++i) {
+        bool dominated = false;
+        for (int j = 0; j < (int)valid_candidates.size() && !dominated; ++j) {
+            if (i == j)
+                continue;
+            const Candidate& c_i = valid_candidates[i];
+            const Candidate& c_j = valid_candidates[j];
+            bool not_worse = !shape::strictly_greater(c_j.dx, c_i.dx)
+                && !shape::strictly_greater(c_j.dy, c_i.dy);
+            bool better = shape::strictly_lesser(c_j.dx, c_i.dx)
+                || shape::strictly_lesser(c_j.dy, c_i.dy);
+            // Among candidates with the same dimensions, keep the first one.
+            if (not_worse && (better || j < i))
+                dominated = true;
+        }
+        if (!dominated)
+            pareto_candidates.push_back(i);
+    }
+    std::sort(pareto_candidates.begin(), pareto_candidates.end(),
+            [&valid_candidates](int i, int j)
+            {
+                return valid_candidates[i].area < valid_candidates[j].area;
+            });
+    // Skip the candidates whose combined AABB has almost the same dimensions
+    // as the one of a candidate already selected: consecutive vertices of
+    // the NFP often give almost the same pair.
+    {
+        const double relative_tolerance = 0.05;
+        std::vector<int> distinct_candidates = selected_candidates;
+        int number_of_pareto_candidates = 0;
+        for (int i: pareto_candidates) {
+            if (number_of_pareto_candidates >= maximum_number_of_pareto_candidates)
+                break;
+            if (std::find(distinct_candidates.begin(), distinct_candidates.end(), i)
+                    != distinct_candidates.end()) {
+                continue;
+            }
+            const Candidate& c_i = valid_candidates[i];
+            bool close = false;
+            for (int j: distinct_candidates) {
+                const Candidate& c_j = valid_candidates[j];
+                if (std::abs(c_i.dx - c_j.dx) <= relative_tolerance * (std::max)(c_i.dx, c_j.dx)
+                        && std::abs(c_i.dy - c_j.dy) <= relative_tolerance * (std::max)(c_i.dy, c_j.dy)) {
+                    close = true;
+                    break;
+                }
+            }
+            if (!close) {
+                distinct_candidates.push_back(i);
+                number_of_pareto_candidates++;
+            }
+        }
+        selected_candidates.swap(distinct_candidates);
     }
 
     std::vector<PeriodicPacking> result;

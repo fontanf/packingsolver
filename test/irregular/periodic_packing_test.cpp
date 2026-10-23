@@ -1029,3 +1029,27 @@ TEST(ComputePeriodicBlocksTest, FramedBlocks)
     std::cout << "framed blocks " << number_of_framed_blocks << " / " << blocks.size() << std::endl;
     EXPECT_GT(number_of_framed_blocks, 0);
 }
+
+// alma_02 (fontanf/packingsolver data/irregular/alma2025), item type 4: the
+// pair of an item and of an item rotated by 180 degrees, above and to the
+// left of it, stacked in columns aligned horizontally, has a density of about
+// 0.786. It used to be missed: only the pairs where the second item is not
+// below or to the left of the first one were considered, and the lattices
+// with a vector_2 perpendicular to vector_1 were not computed (the best one
+// had a density of about 0.700).
+TEST(ComputePeriodicPackingsInstanceTest, RectangularLattice)
+{
+    InstanceBuilder instance_builder;
+    instance_builder.read("data/irregular/tests/periodic_blocks_lowered_items.json");
+    Instance instance = instance_builder.build();
+
+    double best_density = 0.0;
+    for (const PeriodicItemPacking& packing: instance.periodic_packings()) {
+        bool rectangular = (packing.vector_1.x == 0.0 && packing.vector_2.y == 0.0)
+            || (packing.vector_1.y == 0.0 && packing.vector_2.x == 0.0);
+        if (rectangular)
+            best_density = (std::max)(best_density, periodic_packing_density(instance, packing));
+    }
+    std::cout << "best rectangular density " << best_density << std::endl;
+    EXPECT_GT(best_density, 0.78);
+}
