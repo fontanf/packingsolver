@@ -65,6 +65,22 @@ static bool dominates(
 }
 
 /**
+ * Return true iff 'block' is dominated by a block of 'blocks' (see
+ * 'add_block_if_not_dominated'), without needing its items.
+ */
+static bool is_dominated(
+        const std::vector<PeriodicBlock>& blocks,
+        const PeriodicBlock& block)
+{
+    if (block.number_of_items == 1)
+        return false;
+    for (const PeriodicBlock& existing: blocks)
+        if (dominates(existing, block))
+            return true;
+    return false;
+}
+
+/**
  * Add 'block' to 'blocks' unless it is dominated by a block already present,
  * pruning greedily as candidates are generated rather than collecting every
  * candidate and filtering the whole list afterwards.
@@ -247,6 +263,286 @@ static void add_aabb_grid_blocks_for_item_type(
 }
 
 /**
+ * Add the periodic blocks of a periodic packing, built from the periodic
+ * packing clipped to the bin.
+ *
+ * The bin is filled with the periodic packing: every copy of an item of the
+ * unit cell, translated by a lattice vector, which fits in the bin. Then a
+ * block is made, for each pair (H, W) of the top of an item and of the
+ * right of an item, of the items whose top is at most H and whose right is
+ * at most W: these are the blocks obtained by removing repeatedly the
+ * highest or the most right items. Unlike tilings of whole unit cells, these
+ * blocks may contain partial unit cells, and no row of unit cells sticks out
+ * of the others when vector_2 is not perpendicular to vector_1. Any set of
+ * copies of the items translated by lattice vectors is part of the periodic
+ * packing, so the blocks are valid.
+ *
+ * The number of items fitting in the bin depends on the position of the
+ * lattice, so the bin is filled for several positions, each one with an
+ * item of the unit cell against the left side of the bin and an item
+ * against its bottom side.
+ *
+ * Return false, without adding any block, if the bin holds too many copies
+ * of the items: the blocks are then built from whole unit cells instead
+ * (see 'add_periodic_blocks_for_packing').
+ */
+static bool add_clipped_lattice_blocks(
+        const Instance& instance,
+        int packing_id,
+        const PeriodicItemPacking& packing,
+        std::vector<PeriodicBlock>& blocks)
+{
+    // Maximum number of copies of the items in the bin.
+    const ItemPos maximum_number_of_items = 500;
+
+    BinTypeId bin_type_id = instance.bin_type_id(0);
+    LengthDbl item_spacing = instance.item_spacing_scaled();
+    // Dimensions available for the items: the dimensions of a block include
+    // a trailing item-item spacing (see 'add_periodic_blocks_for_packing').
+    LengthDbl width = usable_bin_bx(instance, bin_type_id) - item_spacing;
+    LengthDbl height = usable_bin_by(instance, bin_type_id) - item_spacing;
+
+    const Point& vector_1 = packing.vector_1;
+    const Point& vector_2 = packing.vector_2;
+    LengthDbl determinant = vector_1.x * vector_2.y - vector_1.y * vector_2.x;
+    if (shape::equal(determinant, 0.0))
+        return false;
+
+    // Bounding boxes of the items of the unit cell.
+    ItemPos number_of_cell_items = packing.items.size();
+    std::vector<AxisAlignedBoundingBox> item_aabbs;
+    for (const SolutionItem& item: packing.items) {
+        ShapeWithHoles shape = get_item_combined_shape(
+                instance,
+                item.item_type_id,
+                {item.angle, item.mirror});
+        AxisAlignedBoundingBox aabb = shape.compute_min_max();
+        aabb.shift(item.bl_corner);
+        item_aabbs.push_back(aabb);
+    }
+    LengthDbl cell_size = (std::max)(
+            packing.aabb_scaled.x_max - packing.aabb_scaled.x_min,
+            packing.aabb_scaled.y_max - packing.aabb_scaled.y_min);
+
+    // A copy of an item of the unit cell: the position of the item in the
+    // unit cell and the lattice vector it is translated by.
+    struct LatticeItem
+    {
+        ItemPos item_pos;
+        Point translation;
+        AxisAlignedBoundingBox aabb;
+    };
+
+    // Copies of the items of the unit cell, for a given position of the
+    // lattice, inside [x_min, x_max] x [y_min, y_max].
+    auto lattice_items = [&](
+            const Point& lattice_position,
+            LengthDbl x_min,
+            LengthDbl x_max,
+            LengthDbl y_min,
+            LengthDbl y_max,
+            std::vector<LatticeItem>& output)
+    {
+        output.clear();
+        // Range of the lattice coordinates (n, m) of the translations n *
+        // vector_1 + m * vector_2 to consider.
+        LengthDbl n_min = +std::numeric_limits<LengthDbl>::infinity();
+        LengthDbl n_max = -std::numeric_limits<LengthDbl>::infinity();
+        LengthDbl m_min = +std::numeric_limits<LengthDbl>::infinity();
+        LengthDbl m_max = -std::numeric_limits<LengthDbl>::infinity();
+        for (LengthDbl x: {x_min - 2 * cell_size, x_max + 2 * cell_size}) {
+            for (LengthDbl y: {y_min - 2 * cell_size, y_max + 2 * cell_size}) {
+                LengthDbl dx = x - lattice_position.x;
+                LengthDbl dy = y - lattice_position.y;
+                LengthDbl n = (dx * vector_2.y - dy * vector_2.x) / determinant;
+                LengthDbl m = (vector_1.x * dy - vector_1.y * dx) / determinant;
+                n_min = (std::min)(n_min, n);
+                n_max = (std::max)(n_max, n);
+                m_min = (std::min)(m_min, m);
+                m_max = (std::max)(m_max, m);
+            }
+        }
+        for (long long n = (long long)std::floor(n_min); n <= (long long)std::ceil(n_max); ++n) {
+            for (long long m = (long long)std::floor(m_min); m <= (long long)std::ceil(m_max); ++m) {
+                Point translation = {
+                    lattice_position.x + n * vector_1.x + m * vector_2.x,
+                    lattice_position.y + n * vector_1.y + m * vector_2.y};
+                for (ItemPos item_pos = 0; item_pos < number_of_cell_items; ++item_pos) {
+                    AxisAlignedBoundingBox aabb = item_aabbs[item_pos];
+                    aabb.shift(translation);
+                    if (shape::strictly_lesser(aabb.x_min, x_min)
+                            || shape::strictly_greater(aabb.x_max, x_max)
+                            || shape::strictly_lesser(aabb.y_min, y_min)
+                            || shape::strictly_greater(aabb.y_max, y_max)) {
+                        continue;
+                    }
+                    output.push_back({item_pos, translation, aabb});
+                    if ((ItemPos)output.size() > maximum_number_of_items)
+                        return false;
+                }
+            }
+        }
+        return true;
+    };
+
+    // Positions of the lattice.
+    std::vector<Point> lattice_positions;
+    std::vector<LatticeItem> items;
+    for (ItemPos item_pos_left = 0; item_pos_left < number_of_cell_items; ++item_pos_left) {
+        for (ItemPos item_pos_bottom = 0; item_pos_bottom < number_of_cell_items; ++item_pos_bottom) {
+            // The copy of 'item_pos_left' at the origin of the lattice
+            // against the left side of the bin, and the lowest copy of
+            // 'item_pos_bottom' in the bin against its bottom side.
+            Point lattice_position = {-item_aabbs[item_pos_left].x_min, 0.0};
+            // Lowest copy of 'item_pos_bottom' above the origin, among those
+            // between the left and the right sides of the bin.
+            LengthDbl lowest = +std::numeric_limits<LengthDbl>::infinity();
+            std::vector<LatticeItem> strip_items;
+            if (!lattice_items(
+                        lattice_position,
+                        0.0, width,
+                        0.0, height,
+                        strip_items)) {
+                return false;
+            }
+            for (const LatticeItem& lattice_item: strip_items) {
+                if (lattice_item.item_pos == item_pos_bottom
+                        && lattice_item.aabb.y_min < lowest) {
+                    lowest = lattice_item.aabb.y_min;
+                }
+            }
+            if (lowest == std::numeric_limits<LengthDbl>::infinity())
+                continue;
+            lattice_position.y -= lowest;
+            bool duplicate = false;
+            for (const Point& previous_position: lattice_positions) {
+                // Same lattice, up to a lattice vector.
+                LengthDbl dx = lattice_position.x - previous_position.x;
+                LengthDbl dy = lattice_position.y - previous_position.y;
+                LengthDbl n = (dx * vector_2.y - dy * vector_2.x) / determinant;
+                LengthDbl m = (vector_1.x * dy - vector_1.y * dx) / determinant;
+                if (shape::equal(n, std::round(n)) && shape::equal(m, std::round(m)))
+                    duplicate = true;
+            }
+            if (!duplicate)
+                lattice_positions.push_back(lattice_position);
+        }
+    }
+    if (lattice_positions.empty())
+        return false;
+
+    // Fill the bin for each position of the lattice, then move the items
+    // against the bottom and the left sides of the bin, which may make room
+    // for more items. All the fillings are computed before adding any block,
+    // so that no block is added if there are too many items.
+    std::vector<std::vector<LatticeItem>> fillings;
+    for (Point lattice_position: lattice_positions) {
+        for (int iteration = 0; iteration < 3; ++iteration) {
+            if (!lattice_items(lattice_position, 0.0, width, 0.0, height, items))
+                return false;
+            if (items.empty())
+                break;
+            LengthDbl items_x_min = std::numeric_limits<LengthDbl>::infinity();
+            LengthDbl items_y_min = std::numeric_limits<LengthDbl>::infinity();
+            for (const LatticeItem& lattice_item: items) {
+                items_x_min = (std::min)(items_x_min, lattice_item.aabb.x_min);
+                items_y_min = (std::min)(items_y_min, lattice_item.aabb.y_min);
+            }
+            if (!shape::strictly_greater(items_x_min, 0.0)
+                    && !shape::strictly_greater(items_y_min, 0.0)) {
+                break;
+            }
+            lattice_position.x -= items_x_min;
+            lattice_position.y -= items_y_min;
+        }
+        if (!items.empty())
+            fillings.push_back(items);
+    }
+
+    for (const std::vector<LatticeItem>& items: fillings) {
+
+        // Blocks: for each top H, the items whose top is at most H, sorted
+        // by right; then for each right W, those whose right is at most W.
+        std::vector<LengthDbl> tops;
+        for (const LatticeItem& lattice_item: items)
+            tops.push_back(lattice_item.aabb.y_max);
+        std::sort(tops.begin(), tops.end());
+        tops.erase(std::unique(tops.begin(), tops.end(),
+                    [](LengthDbl a, LengthDbl b) { return shape::equal(a, b); }),
+                tops.end());
+        std::vector<ItemPos> sorted_items(items.size());
+        for (ItemPos pos = 0; pos < (ItemPos)items.size(); ++pos)
+            sorted_items[pos] = pos;
+        std::sort(sorted_items.begin(), sorted_items.end(),
+                [&items](ItemPos pos_1, ItemPos pos_2)
+                {
+                    return items[pos_1].aabb.x_max < items[pos_2].aabb.x_max;
+                });
+        for (LengthDbl top: tops) {
+            optimizationtools::IndexedMap<ItemPos> copies_map(
+                    instance.number_of_item_types(), 0);
+            AxisAlignedBoundingBox block_aabb;
+            std::vector<ItemPos> block_items;
+            AreaDbl item_area = 0.0;
+            Profit item_profit = 0;
+            bool too_many_copies = false;
+            // Items whose top is at most 'top', sorted by right.
+            std::vector<ItemPos> top_items;
+            for (ItemPos pos: sorted_items)
+                if (!shape::strictly_greater(items[pos].aabb.y_max, top))
+                    top_items.push_back(pos);
+            for (ItemPos sorted_pos = 0; sorted_pos < (ItemPos)top_items.size(); ++sorted_pos) {
+                const LatticeItem& lattice_item = items[top_items[sorted_pos]];
+                const SolutionItem& item = packing.items[lattice_item.item_pos];
+                const ItemType& item_type = instance.item_type(item.item_type_id);
+                copies_map.set(item.item_type_id, copies_map[item.item_type_id] + 1);
+                if (copies_map[item.item_type_id] > item_type.copies) {
+                    too_many_copies = true;
+                    break;
+                }
+                block_items.push_back(top_items[sorted_pos]);
+                block_aabb = shape::merge(block_aabb, lattice_item.aabb);
+                item_area += item_type.area_scaled;
+                item_profit += item_type.profit;
+                // Only build a block once all the items with the same right
+                // have been added.
+                if (sorted_pos + 1 < (ItemPos)top_items.size()
+                        && shape::equal(
+                            items[top_items[sorted_pos + 1]].aabb.x_max,
+                            lattice_item.aabb.x_max)) {
+                    continue;
+                }
+
+                PeriodicBlock block;
+                block.packing_id = packing_id;
+                block.bx = block_aabb.x_max - block_aabb.x_min + item_spacing;
+                block.by = block_aabb.y_max - block_aabb.y_min + item_spacing;
+                block.number_of_items = block_items.size();
+                block.item_area = item_area;
+                block.item_profit = item_profit;
+                block.item_copies = std::vector<std::pair<ItemTypeId, ItemPos>>(
+                        copies_map.begin(),
+                        copies_map.end());
+                if (is_dominated(blocks, block))
+                    continue;
+                block.items.reserve(block_items.size());
+                for (ItemPos pos: block_items) {
+                    const LatticeItem& block_item = items[pos];
+                    SolutionItem placed_item = packing.items[block_item.item_pos];
+                    placed_item.bl_corner.x += block_item.translation.x - block_aabb.x_min;
+                    placed_item.bl_corner.y += block_item.translation.y - block_aabb.y_min;
+                    block.items.push_back(placed_item);
+                }
+                add_block_if_not_dominated(blocks, std::move(block));
+            }
+            if (too_many_copies)
+                continue;
+        }
+    }
+    return true;
+}
+
+/**
  * Add the periodic blocks of a periodic packing: nx × ny tilings of its unit
  * cell, bounded both by the available copies of its item types and by the
  * bin dimensions.
@@ -293,6 +589,9 @@ static void add_periodic_blocks_for_packing(
         max_total_cells = std::min(max_total_cells, (int)(limit / kv.second));
     }
     if (max_total_cells < 1)
+        return;
+
+    if (add_clipped_lattice_blocks(instance, packing_id, packing, blocks))
         return;
 
     // Row (index j, stepped by vector_2) offset, with drift along

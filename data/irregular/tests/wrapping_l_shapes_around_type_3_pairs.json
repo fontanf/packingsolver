@@ -1,0 +1,153 @@
+{
+    "objective": "bin-packing-with-leftovers",
+    "parameters": {
+        "item_item_minimum_spacing": 10.0
+    },
+    "bin_types": [
+        {
+            "type": "rectangle",
+            "width": 3000.0,
+            "height": 1500.0,
+            "copies": 100,
+            "item_bin_minimum_spacing": 20.0
+        }
+    ],
+    "item_types": [
+        {
+            "type": "polygon",
+            "vertices": [
+                {
+                    "x": 50.0,
+                    "y": 550.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 550.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0
+                },
+                {
+                    "x": 700.0,
+                    "y": 0.0
+                },
+                {
+                    "x": 700.0,
+                    "y": 50.0
+                },
+                {
+                    "x": 50.0,
+                    "y": 50.0
+                },
+                {
+                    "x": 50.0,
+                    "y": 550.0
+                }
+            ],
+            "copies": 100,
+            "allowed_rotations": [
+                {
+                    "start": 0.0,
+                    "end": 0.0,
+                    "mirror": false
+                },
+                {
+                    "start": 180.0,
+                    "end": 180.0,
+                    "mirror": false
+                },
+                {
+                    "start": 0.0,
+                    "end": 0.0,
+                    "mirror": true
+                },
+                {
+                    "start": 180.0,
+                    "end": 180.0,
+                    "mirror": true
+                }
+            ]
+        },
+        {
+            "type": "polygon",
+            "vertices": [
+                {
+                    "x": 100.0,
+                    "y": 150.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 150.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0
+                },
+                {
+                    "x": 700.0,
+                    "y": 0.0
+                },
+                {
+                    "x": 700.0,
+                    "y": 150.0
+                },
+                {
+                    "x": 600.0,
+                    "y": 150.0
+                },
+                {
+                    "x": 600.0,
+                    "y": 50.0
+                },
+                {
+                    "x": 400.0,
+                    "y": 50.0
+                },
+                {
+                    "x": 400.0,
+                    "y": 150.0
+                },
+                {
+                    "x": 300.0,
+                    "y": 150.0
+                },
+                {
+                    "x": 300.0,
+                    "y": 50.0
+                },
+                {
+                    "x": 100.0,
+                    "y": 50.0
+                },
+                {
+                    "x": 100.0,
+                    "y": 150.0
+                }
+            ],
+            "copies": 100,
+            "allowed_rotations": [
+                {
+                    "start": 0.0,
+                    "end": 0.0,
+                    "mirror": false
+                },
+                {
+                    "start": 180.0,
+                    "end": 180.0,
+                    "mirror": false
+                },
+                {
+                    "start": 0.0,
+                    "end": 0.0,
+                    "mirror": true
+                },
+                {
+                    "start": 180.0,
+                    "end": 180.0,
+                    "mirror": true
+                }
+            ]
+        }
+    ]
+}
