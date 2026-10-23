@@ -976,3 +976,56 @@ TEST(ComputePeriodicBlocksTest, WrappingBlockExactRectangle)
     EXPECT_NEAR(smallest_block->bx / scale_value, 820 + 10, 1e-3);
     EXPECT_NEAR(smallest_block->by / scale_value, 550 + 10, 1e-3);
 }
+
+// Blocks framed by L-shapes (alma_02, item types 0 and 3): the framed blocks
+// are built from the bounding boxes of the blocks and the empty rectangles
+// of the L-shapes only, so their items must be checked: they must be inside
+// the blocks, and must not be closer than the item-item minimum spacing.
+TEST(ComputePeriodicBlocksTest, FramedBlocks)
+{
+    InstanceBuilder instance_builder;
+    instance_builder.read("data/irregular/tests/wrapping_l_shapes_around_type_3_pairs.json");
+    Instance instance = instance_builder.build();
+    auto all_item_type_rotations = compute_item_type_rotations(instance);
+    std::vector<PeriodicBlock> blocks = compute_periodic_blocks(
+            instance,
+            instance.periodic_packings(),
+            all_item_type_rotations[instance.bin_type_id(0)]);
+
+    LengthDbl spacing_scaled = instance.item_spacing_scaled();
+    ItemPos number_of_framed_blocks = 0;
+    for (const PeriodicBlock& block: blocks) {
+        if (block.packing_id != -1 || block.item_copies.size() < 2)
+            continue;
+        number_of_framed_blocks++;
+        if (block.number_of_items > 12)
+            continue;
+        std::vector<ShapeWithHoles> inflated_shapes;
+        std::vector<AxisAlignedBoundingBox> aabbs;
+        for (const SolutionItem& item: block.items) {
+            ShapeWithHoles item_shape = instance.item_shape_scaled(
+                    item.item_type_id, 0, item.angle, item.mirror);
+            item_shape.shift(item.bl_corner.x, item.bl_corner.y);
+            AxisAlignedBoundingBox aabb = item_shape.compute_min_max();
+            EXPECT_FALSE(shape::strictly_lesser(aabb.x_min, 0.0));
+            EXPECT_FALSE(shape::strictly_lesser(aabb.y_min, 0.0));
+            EXPECT_FALSE(shape::strictly_greater(aabb.x_max, block.bx));
+            EXPECT_FALSE(shape::strictly_greater(aabb.y_max, block.by));
+            inflated_shapes.push_back(shape::inflate(item_shape, spacing_scaled / 2 * 0.999));
+            aabbs.push_back(inflated_shapes.back().compute_min_max());
+        }
+        for (std::size_t pos_1 = 0; pos_1 < inflated_shapes.size(); ++pos_1) {
+            for (std::size_t pos_2 = pos_1 + 1; pos_2 < inflated_shapes.size(); ++pos_2) {
+                if (aabbs[pos_1].x_max <= aabbs[pos_2].x_min
+                        || aabbs[pos_2].x_max <= aabbs[pos_1].x_min
+                        || aabbs[pos_1].y_max <= aabbs[pos_2].y_min
+                        || aabbs[pos_2].y_max <= aabbs[pos_1].y_min) {
+                    continue;
+                }
+                EXPECT_FALSE(shape::intersect(inflated_shapes[pos_1], inflated_shapes[pos_2], true));
+            }
+        }
+    }
+    std::cout << "framed blocks " << number_of_framed_blocks << " / " << blocks.size() << std::endl;
+    EXPECT_GT(number_of_framed_blocks, 0);
+}
