@@ -1608,9 +1608,9 @@ std::vector<PeriodicItemPacking> packingsolver::irregular::compute_wrapping_peri
     // Minimum ratio between the area of the empty side rectangle of a
     // wrapper and the area of its bounding box.
     const double minimum_wrapper_ratio = 0.5;
-    // Maximum number of bases tried for each wrapper rectangle, those filling
-    // the rectangle the most.
-    const int maximum_number_of_bases = 3;
+    // Maximum number of bases of each item type tried for each wrapper
+    // rectangle, those filling the rectangle the most.
+    const int maximum_number_of_bases = 1;
     // Maximum number of periodic packings returned for each pair of item
     // types (wrapper, base), the densest ones.
     const int maximum_number_of_packings = 4;
@@ -1759,8 +1759,22 @@ std::vector<PeriodicItemPacking> packingsolver::irregular::compute_wrapping_peri
                     sorted_bases.push_back({{-fill, rectangle_area(base.aabb)}, base_pos});
                 }
                 std::sort(sorted_bases.begin(), sorted_bases.end());
-                if ((int)sorted_bases.size() > maximum_number_of_bases)
-                    sorted_bases.resize(maximum_number_of_bases);
+                // Keep the best bases of each item type: the bases of an item
+                // type filling the rectangle less than the bases of another
+                // item type are still useful, e.g. when there aren't enough
+                // copies of the other item type.
+                {
+                    std::vector<int> number_of_bases(item_types.size(), 0);
+                    std::vector<std::pair<std::pair<double, double>, int>> kept_bases;
+                    for (const auto& sorted_base: sorted_bases) {
+                        ItemTypeId item_type_pos = bases[sorted_base.second].item_type_pos;
+                        if (number_of_bases[item_type_pos] >= maximum_number_of_bases)
+                            continue;
+                        number_of_bases[item_type_pos]++;
+                        kept_bases.push_back(sorted_base);
+                    }
+                    sorted_bases.swap(kept_bases);
+                }
 
                 for (const auto& sorted_base: sorted_bases) {
                     const WrappingBase& base = bases[sorted_base.second];
@@ -1893,9 +1907,24 @@ std::vector<PeriodicItemPacking> packingsolver::irregular::compute_wrapping_peri
                                     + 2 * item_type_areas[wrapper_pos]) / cell_area;
                             std::vector<std::pair<double, PeriodicItemPacking>>& pair_packings
                                 = packings[{wrapper_pos, base.item_type_pos}];
+                            // Periodic packings with the same density and the
+                            // same unit cell dimensions (e.g. mirrored ones)
+                            // give the same periodic blocks: only one of them
+                            // is kept, so that they don't take the place of
+                            // different periodic packings among the ones kept
+                            // (e.g. a less dense periodic packing whose unit
+                            // cell is an exact rectangle).
                             bool duplicate = false;
                             for (const auto& previous: pair_packings) {
-                                if (equal_up_to_translation(previous.second, item_packing)) {
+                                const AxisAlignedBoundingBox& previous_aabb = previous.second.aabb_scaled;
+                                if (equal_up_to_translation(previous.second, item_packing)
+                                        || (shape::equal(previous.first, density)
+                                            && shape::equal(
+                                                previous_aabb.x_max - previous_aabb.x_min,
+                                                item_packing.aabb_scaled.x_max - item_packing.aabb_scaled.x_min)
+                                            && shape::equal(
+                                                previous_aabb.y_max - previous_aabb.y_min,
+                                                item_packing.aabb_scaled.y_max - item_packing.aabb_scaled.y_min))) {
                                     duplicate = true;
                                     break;
                                 }
