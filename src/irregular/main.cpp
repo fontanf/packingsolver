@@ -86,6 +86,7 @@ int main(int argc, char *argv[])
             ("use-tree-search-periodic-packing,", po::value<bool>(), "enable tree search periodic packing algorithm")
             ("use-milp-raster,", po::value<bool>(), "enable MILP raster algorithm")
             ("use-local-search-linear-programming,", po::value<bool>(), "enable local search algorithm with the linear programming engine")
+            ("use-local-search-nonlinear-programming,", po::value<bool>(), "enable local search algorithm with the nonlinear programming engine (requires Knitro)")
             ("use-local-search-direct-trigonometry,", po::value<bool>(), "enable local search algorithm with the direct trigonometry engine")
             ("use-sequential-single-knapsack,", po::value<bool>(), "enable sequential-single-knapsack")
             ("use-sequential-value-correction,", po::value<bool>(), "enable sequential-value-correction")
@@ -168,6 +169,8 @@ int main(int argc, char *argv[])
             parameters.use_milp_raster = vm["use-milp-raster"].as<bool>();
         if (vm.count("use-local-search-linear-programming"))
             parameters.use_local_search_linear_programming = vm["use-local-search-linear-programming"].as<bool>();
+        if (vm.count("use-local-search-nonlinear-programming"))
+            parameters.use_local_search_nonlinear_programming = vm["use-local-search-nonlinear-programming"].as<bool>();
         if (vm.count("use-local-search-direct-trigonometry"))
             parameters.use_local_search_direct_trigonometry = vm["use-local-search-direct-trigonometry"].as<bool>();
         if (vm.count("use-sequential-single-knapsack"))

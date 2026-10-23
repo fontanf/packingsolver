@@ -16,6 +16,9 @@ target_sources(PackingSolver_irregular PRIVATE
     linear_programming/anchor.cpp
     linear_programming/separation_model.cpp
     linear_programming/separator.cpp
+    nonlinear_programming/separating_line.cpp
+    nonlinear_programming/separation_model.cpp
+    nonlinear_programming/separator.cpp
     milp_raster.cpp
     trivial.cpp
     direct_trigonometry/polygon.cpp

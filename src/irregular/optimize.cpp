@@ -386,7 +386,9 @@ void optimize_local_search(
             const irregular::Output& ps_output)
     {
         std::stringstream ss;
-        ss << ((engine == LocalSearchEngine::LinearProgramming)? "LS-LP": "LS-DT");
+        ss << ((engine == LocalSearchEngine::LinearProgramming)? "LS-LP":
+                (engine == LocalSearchEngine::NonlinearProgramming)? "LS-NLP":
+                "LS-DT");
         if (!ps_output.solution_pool.best_label().empty())
             ss << " " << ps_output.solution_pool.best_label();
         algorithm_formatter.update_solution(ps_output.solution_pool.best(), ss.str());
@@ -405,6 +407,18 @@ void optimize_local_search_linear_programming(
             parameters,
             algorithm_formatter,
             LocalSearchEngine::LinearProgramming);
+}
+
+void optimize_local_search_nonlinear_programming(
+        const Instance& instance,
+        const OptimizeParameters& parameters,
+        AlgorithmFormatter& algorithm_formatter)
+{
+    optimize_local_search(
+            instance,
+            parameters,
+            algorithm_formatter,
+            LocalSearchEngine::NonlinearProgramming);
 }
 
 void optimize_local_search_direct_trigonometry(
@@ -887,6 +901,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
     bool use_tree_search = parameters.use_tree_search;
     bool use_tree_search_periodic_packing = parameters.use_tree_search_periodic_packing;
     bool use_local_search_linear_programming = parameters.use_local_search_linear_programming;
+    bool use_local_search_nonlinear_programming = parameters.use_local_search_nonlinear_programming;
     bool use_local_search_direct_trigonometry = parameters.use_local_search_direct_trigonometry;
     bool use_sequential_single_knapsack = parameters.use_sequential_single_knapsack;
     bool use_sequential_value_correction = parameters.use_sequential_value_correction;
@@ -905,12 +920,14 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         }
         if (instance.objective() == Objective::Knapsack) {
             use_local_search_linear_programming = false;
+            use_local_search_nonlinear_programming = false;
             use_local_search_direct_trigonometry = false;
         }
         // Automatic selection.
         if (!use_tree_search
                 && !use_tree_search_periodic_packing
                 && !use_local_search_linear_programming
+                && !use_local_search_nonlinear_programming
                 && !use_local_search_direct_trigonometry
                 && !use_milp_raster) {
             // tree_search_periodic_packing is worth running when the
@@ -948,6 +965,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
     } else if (instance.objective() == Objective::Feasibility) {
         // Disable algorithms which are not available for this objective.
         use_local_search_linear_programming = false;
+        use_local_search_nonlinear_programming = false;
         use_dichotomic_search = false;
         use_tree_search_periodic_packing = false;
         // Automatic selection.
@@ -976,6 +994,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
     } else if (instance.objective() == Objective::Knapsack) {
         // Disable algorithms which are not available for this objective.
         use_local_search_linear_programming = false;
+        use_local_search_nonlinear_programming = false;
         use_local_search_direct_trigonometry = false;
         use_dichotomic_search = false;
         use_tree_search_periodic_packing = false;
@@ -1025,6 +1044,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         if (!use_tree_search
                 && !use_tree_search_periodic_packing
                 && !use_local_search_linear_programming
+                && !use_local_search_nonlinear_programming
                 && !use_local_search_direct_trigonometry
                 && !use_milp_raster
                 && !use_sequential_single_knapsack
@@ -1058,6 +1078,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         // Disable algorithms which are not available for this objective.
         use_milp_raster = false;
         use_local_search_linear_programming = false;
+        use_local_search_nonlinear_programming = false;
         use_local_search_direct_trigonometry = false;
         use_tree_search_periodic_packing = false;
         if (instance.number_of_bin_types() == 1) {
@@ -1069,6 +1090,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         // Automatic selection.
         if (!use_tree_search
                 && !use_local_search_linear_programming
+                && !use_local_search_nonlinear_programming
                 && !use_local_search_direct_trigonometry
                 && !use_sequential_single_knapsack
                 && !use_sequential_value_correction
@@ -1208,6 +1230,19 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         auto context = task_context();
         tasks.push_back([&exception_ptr, &instance, context]() {
             wrapper<decltype(&optimize_local_search_linear_programming), optimize_local_search_linear_programming>(
+                    exception_ptr,
+                    instance,
+                    *context.first,
+                    *context.second);
+        });
+    }
+    // Local search (nonlinear programming engine).
+    if (use_local_search_nonlinear_programming) {
+        exception_ptr_list.push_front(std::exception_ptr());
+        std::exception_ptr& exception_ptr = exception_ptr_list.front();
+        auto context = task_context();
+        tasks.push_back([&exception_ptr, &instance, context]() {
+            wrapper<decltype(&optimize_local_search_nonlinear_programming), optimize_local_search_nonlinear_programming>(
                     exception_ptr,
                     instance,
                     *context.first,

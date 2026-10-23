@@ -542,6 +542,10 @@ def test_parameters():
     parameters.tree_search_guides = [0, 1]
     assert parameters.tree_search_guides == [0, 1]
     parameters.use_tree_search = True
+    assert not parameters.use_local_search_nonlinear_programming
+    parameters.use_local_search_nonlinear_programming = True
+    assert parameters.use_local_search_nonlinear_programming
+    parameters.use_local_search_nonlinear_programming = False
     parameters.not_anytime_tree_search_queue_size = 64
     assert parameters.not_anytime_tree_search_queue_size == 64
     assert parameters.not_anytime_local_search_maximum_number_of_failed_separations == 10
