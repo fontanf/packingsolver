@@ -468,6 +468,7 @@ void optimize_sequential_single_knapsack(
                 kp_parameters.not_anytime_tree_search_queue_size = queue_size;
                 kp_parameters.not_anytime_tree_search_periodic_packing_queue_size = queue_size;
                 kp_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
+                kp_parameters.automatic_local_search_direct_trigonometry = false;
                 auto kp_output = optimize(kp_instance, kp_parameters);
                 return kp_output.solution_pool;
             };
@@ -960,7 +961,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
                 || max_number_of_items_in_bin(instance)
                     < parameters.periodic_packing_max_items_threshold;
             if (instance.objective() != Objective::Knapsack)
-                use_local_search_direct_trigonometry = true;
+                use_local_search_direct_trigonometry = parameters.automatic_local_search_direct_trigonometry;
         }
     } else if (instance.objective() == Objective::Feasibility) {
         // Disable algorithms which are not available for this objective.
@@ -988,7 +989,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
             } else {
                 use_tree_search = true;
                 use_column_generation = true;
-                use_local_search_direct_trigonometry = true;
+                use_local_search_direct_trigonometry = parameters.automatic_local_search_direct_trigonometry;
             }
         }
     } else if (instance.objective() == Objective::Knapsack) {
@@ -1063,7 +1064,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
                 }
             } else {
                 use_tree_search = true;
-                use_local_search_direct_trigonometry = true;
+                use_local_search_direct_trigonometry = parameters.automatic_local_search_direct_trigonometry;
                 if (mean_number_of_items_in_bins
                         > parameters.many_items_in_bins_threshold) {
                     use_sequential_single_knapsack = true;

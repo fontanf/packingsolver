@@ -194,6 +194,18 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
      */
     bool use_local_search_direct_trigonometry = false;
 
+    /**
+     * If false, the automatic selection of the algorithms (when no algorithm
+     * is selected explicitly) never selects the local search with the direct
+     * trigonometry engine.
+     *
+     * Its effort in a not-anytime mode can dominate the running time, for
+     * example on the single bin re-optimized at the end of the sequential
+     * single knapsack algorithm, so this algorithm sets it to false for its
+     * sub-problems.
+     */
+    bool automatic_local_search_direct_trigonometry = true;
+
     /** Use MILP raster algorithm. */
     bool use_milp_raster = false;
 
