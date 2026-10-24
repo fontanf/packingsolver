@@ -66,6 +66,23 @@ struct LocalSearchParameters: packingsolver::Parameters<Instance, Solution, Outp
     /** Shrink ratio (see 'SequentialFeasibilityParameters'). */
     double shrink_ratio = 0.001;
 
+    /**
+     * Maximum number of item moves per worker of the separator (see
+     * 'Separator::MovesLimit'), over the whole local search, including all
+     * the sub-problems of the sequential feasibility algorithm. When it is
+     * reached, the local search stops as at the end of the time limit,
+     * keeping the best solution found.
+     *
+     * Only used by the direct trigonometry engine. -1 means no limit.
+     */
+    Counter maximum_number_of_moves = -1;
+
+    /**
+     * Limit on the number of moves shared with the sub-problems; set by the
+     * local search itself from 'maximum_number_of_moves'.
+     */
+    std::shared_ptr<Separator::MovesLimit> moves_limit;
+
     /*
      * Parameters of the direct trigonometry engine.
      */

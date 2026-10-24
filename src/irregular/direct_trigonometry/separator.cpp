@@ -1639,6 +1639,7 @@ bool Separator::separate(
                 move_items_workers(timer);
             }
             number_of_iterations_++;
+            count_moves();
             double loss = total_loss();
             if (loss == 0) {
                 return true;
@@ -1784,3 +1785,17 @@ void Separator::disrupt()
     set_layout(layout);
 }
 
+
+void Separator::count_moves()
+{
+    if (moves_limit_ == nullptr)
+        return;
+    moves_limit_->number_of_moves += number_of_moves_ - number_of_moves_counted_;
+    number_of_moves_counted_ = number_of_moves_;
+    Counter number_of_workers = (std::max)((Counter)1, parameters_.number_of_workers);
+    if (moves_limit_->maximum_number_of_moves >= 0
+            && moves_limit_->number_of_moves
+            >= moves_limit_->maximum_number_of_moves * number_of_workers) {
+        moves_limit_->reached = true;
+    }
+}
