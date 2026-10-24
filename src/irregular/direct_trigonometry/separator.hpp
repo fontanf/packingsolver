@@ -257,6 +257,39 @@ public:
      */
     void disrupt();
 
+    /**
+     * Limit on the number of item moves, shared by the separators of a local
+     * search (e.g. the ones of the sub-problems of the sequential
+     * feasibility algorithm).
+     */
+    struct MovesLimit
+    {
+        /**
+         * Maximum number of moves per worker: with several workers, the moves
+         * of all the workers are counted, and the limit is multiplied by the
+         * number of workers.
+         */
+        Counter maximum_number_of_moves = -1;
+
+        /** Number of moves so far. */
+        Counter number_of_moves = 0;
+
+        /**
+         * True iff the limit is reached. It is added as an end boolean to the
+         * timer of the local search, so that the separations, the local
+         * search and the sequential feasibility algorithm stop as at the end
+         * of the time limit.
+         */
+        bool reached = false;
+    };
+
+    /** Set the limit on the number of moves of the separations. */
+    void set_moves_limit(const std::shared_ptr<MovesLimit>& moves_limit)
+    {
+        moves_limit_ = moves_limit;
+        number_of_moves_counted_ = number_of_moves_;
+    }
+
     /** Layout. */
     struct ItemState
     {
@@ -576,6 +609,15 @@ private:
 
     /** Number of item moves. */
     Counter number_of_moves_ = 0;
+
+    /** Limit on the number of moves (see 'MovesLimit'). */
+    std::shared_ptr<MovesLimit> moves_limit_;
+
+    /** Number of moves already added to 'moves_limit_'. */
+    Counter number_of_moves_counted_ = 0;
+
+    /** Add the new moves to 'moves_limit_' and check the limit. */
+    void count_moves();
 
     /** Number of iterations of the separations. */
     Counter number_of_iterations_ = 0;

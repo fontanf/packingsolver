@@ -379,6 +379,11 @@ void optimize_local_search(
     } else {
         ls_parameters.maximum_number_of_failed_separations
             = parameters.not_anytime_local_search_maximum_number_of_failed_separations;
+        if (parameters.not_anytime_local_search_maximum_number_of_moves_factor >= 0) {
+            ls_parameters.maximum_number_of_moves
+                = parameters.not_anytime_local_search_maximum_number_of_moves_factor
+                * instance.number_of_items();
+        }
     }
     if (parameters.optimization_mode == OptimizationMode::NotAnytimeSequential)
         ls_parameters.separator_parameters.number_of_workers = 1;
@@ -440,20 +445,40 @@ void optimize_sequential_single_knapsack(
         Counter queue_size_max)
 {
     double maximum_approximation_ratio = parameters.initial_maximum_approximation_ratio;
-    for (Counter queue_size = 1;;) {
-
+    for (Counter growth_factor = 1;;) {
+        // The effort of each algorithm of the subproblems grows from its own
+        // initial value, see
+        // 'anytime_sequential_single_knapsack_subproblem_tree_search_initial_queue_size'.
+        NodeId tree_search_queue_size
+            = parameters.anytime_sequential_single_knapsack_subproblem_tree_search_initial_queue_size
+            * growth_factor;
+        NodeId tree_search_periodic_packing_queue_size
+            = parameters.anytime_sequential_single_knapsack_subproblem_tree_search_periodic_packing_initial_queue_size
+            * growth_factor;
+        Counter local_search_maximum_number_of_moves_factor
+            = parameters.anytime_sequential_single_knapsack_subproblem_local_search_initial_maximum_number_of_moves_factor
+            * growth_factor;
         if (parameters.optimization_mode != OptimizationMode::Anytime) {
-            queue_size = parameters.not_anytime_sequential_single_knapsack_subproblem_tree_search_queue_size;
+            tree_search_queue_size = parameters
+                .not_anytime_sequential_single_knapsack_subproblem_tree_search_queue_size;
+            tree_search_periodic_packing_queue_size = parameters
+                .not_anytime_sequential_single_knapsack_subproblem_tree_search_periodic_packing_queue_size;
+            local_search_maximum_number_of_moves_factor = parameters
+                .not_anytime_sequential_single_knapsack_subproblem_local_search_maximum_number_of_moves_factor;
             maximum_approximation_ratio = parameters.not_anytime_maximum_approximation_ratio;
         }
 
         if (queue_size_max != -1
-                && queue_size > queue_size_max) {
+                && tree_search_queue_size > queue_size_max) {
             break;
         }
 
         SequentialValueCorrectionFunction<Instance, Solution> kp_solve
-            = [&algorithm_formatter, &parameters, queue_size, maximum_approximation_ratio](const Instance& kp_instance)
+            = [&algorithm_formatter, &parameters,
+            tree_search_queue_size,
+            tree_search_periodic_packing_queue_size,
+            local_search_maximum_number_of_moves_factor,
+            maximum_approximation_ratio](const Instance& kp_instance)
             {
                 OptimizeParameters kp_parameters;
                 kp_parameters.seed = parameters.seed;
@@ -465,10 +490,12 @@ void optimize_sequential_single_knapsack(
                     OptimizationMode::NotAnytimeSequential:
                     OptimizationMode::NotAnytimeDeterministic;
                 kp_parameters.not_anytime_maximum_approximation_ratio = maximum_approximation_ratio;
-                kp_parameters.not_anytime_tree_search_queue_size = queue_size;
-                kp_parameters.not_anytime_tree_search_periodic_packing_queue_size = queue_size;
+                kp_parameters.not_anytime_tree_search_queue_size = tree_search_queue_size;
+                kp_parameters.not_anytime_tree_search_periodic_packing_queue_size
+                    = tree_search_periodic_packing_queue_size;
+                kp_parameters.not_anytime_local_search_maximum_number_of_moves_factor
+                    = local_search_maximum_number_of_moves_factor;
                 kp_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
-                kp_parameters.automatic_local_search_direct_trigonometry = false;
                 auto kp_output = optimize(kp_instance, kp_parameters);
                 return kp_output.solution_pool;
             };
@@ -482,13 +509,13 @@ void optimize_sequential_single_knapsack(
         // initial_profit_exponent''s own doc comment.
         svc_parameters.initial_profit_exponent = 1.0;
         svc_parameters.new_solution_callback = [
-            &algorithm_formatter, &queue_size](
+            &algorithm_formatter, &growth_factor](
                     const irregular::Output& ps_output)
             {
                 const SequentialValueCorrectionOutput<Instance, Solution, irregular::Output>& pssvc_output
                     = static_cast<const SequentialValueCorrectionOutput<Instance, Solution, irregular::Output>&>(ps_output);
                 std::stringstream ss;
-                ss << "SSK q " << queue_size;
+                ss << "SSK g " << growth_factor;
                 algorithm_formatter.update_solution(pssvc_output.solution_pool.best(), ss.str());
             };
         sequential_value_correction<Instance, InstanceBuilder, Solution, AlgorithmFormatter, irregular::Output>(instance, kp_solve, svc_parameters);
@@ -502,10 +529,10 @@ void optimize_sequential_single_knapsack(
         if (parameters.optimization_mode != OptimizationMode::Anytime)
             break;
 
-        // Update beam size.
-        queue_size = std::max(
-                queue_size + 1,
-                (NodeId)(queue_size * 2));
+        // Update growth factor.
+        growth_factor = std::max(
+                growth_factor + 1,
+                (Counter)(growth_factor * 2));
         // Update maximum approximation ratio.
         maximum_approximation_ratio *= parameters.maximum_approximation_ratio_factor;
     }
@@ -961,7 +988,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
                 || max_number_of_items_in_bin(instance)
                     < parameters.periodic_packing_max_items_threshold;
             if (instance.objective() != Objective::Knapsack)
-                use_local_search_direct_trigonometry = parameters.automatic_local_search_direct_trigonometry;
+                use_local_search_direct_trigonometry = true;
         }
     } else if (instance.objective() == Objective::Feasibility) {
         // Disable algorithms which are not available for this objective.
@@ -989,7 +1016,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
             } else {
                 use_tree_search = true;
                 use_column_generation = true;
-                use_local_search_direct_trigonometry = parameters.automatic_local_search_direct_trigonometry;
+                use_local_search_direct_trigonometry = true;
             }
         }
     } else if (instance.objective() == Objective::Knapsack) {
@@ -1064,7 +1091,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
                 }
             } else {
                 use_tree_search = true;
-                use_local_search_direct_trigonometry = parameters.automatic_local_search_direct_trigonometry;
+                use_local_search_direct_trigonometry = true;
                 if (mean_number_of_items_in_bins
                         > parameters.many_items_in_bins_threshold) {
                     use_sequential_single_knapsack = true;

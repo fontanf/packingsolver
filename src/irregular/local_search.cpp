@@ -124,6 +124,8 @@ void local_search_direct_trigonometry(
             parameters.separator_parameters,
             generator,
             parameters.separator_item_types);
+    if (parameters.moves_limit != nullptr)
+        separator.set_moves_limit(parameters.moves_limit);
     separator.set_initial_stopping_criteria(
             parameters.initial_separation_maximum_number_of_iterations_without_improvement,
             parameters.initial_separation_maximum_number_of_strikes);
@@ -258,8 +260,19 @@ LocalSearchOutput packingsolver::irregular::local_search(
         const Instance& instance,
         std::mt19937_64& generator,
         const Solution* initial_solution,
-        const LocalSearchParameters& parameters)
+        const LocalSearchParameters& input_parameters)
 {
+    // Limit on the number of moves, shared with the sub-problems, and added
+    // as an end boolean to the timer.
+    LocalSearchParameters parameters = input_parameters;
+    if (parameters.engine == LocalSearchEngine::DirectTrigonometry
+            && parameters.maximum_number_of_moves >= 0
+            && parameters.moves_limit == nullptr) {
+        parameters.moves_limit = std::make_shared<Separator::MovesLimit>();
+        parameters.moves_limit->maximum_number_of_moves = parameters.maximum_number_of_moves;
+        parameters.timer.add_end_boolean(&parameters.moves_limit->reached);
+    }
+
     if (instance.objective() != Objective::Feasibility) {
         LocalSearchOutput output(instance);
         AlgorithmFormatter algorithm_formatter(instance, parameters, output);
@@ -293,6 +306,7 @@ LocalSearchOutput packingsolver::irregular::local_search(
             inner_parameters.nonlinear_programming_separator_parameters
                 = parameters.nonlinear_programming_separator_parameters;
             inner_parameters.separator_item_types = separator_item_types;
+            inner_parameters.moves_limit = parameters.moves_limit;
             inner_parameters.initial_separation_maximum_number_of_iterations_without_improvement
                 = parameters.initial_separation_maximum_number_of_iterations_without_improvement;
             inner_parameters.initial_separation_maximum_number_of_strikes

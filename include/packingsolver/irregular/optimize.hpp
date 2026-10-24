@@ -194,18 +194,6 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
      */
     bool use_local_search_direct_trigonometry = false;
 
-    /**
-     * If false, the automatic selection of the algorithms (when no algorithm
-     * is selected explicitly) never selects the local search with the direct
-     * trigonometry engine.
-     *
-     * Its effort in a not-anytime mode can dominate the running time, for
-     * example on the single bin re-optimized at the end of the sequential
-     * single knapsack algorithm, so this algorithm sets it to false for its
-     * sub-problems.
-     */
-    bool automatic_local_search_direct_trigonometry = true;
-
     /** Use MILP raster algorithm. */
     bool use_milp_raster = false;
 
@@ -262,6 +250,40 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
     NodeId column_generation_subproblem_tree_search_queue_size = 128;
 
     /*
+     * Parameters for anytime mode
+     */
+
+    /**
+     * Initial size of the queue of the tree search in the single knapsack
+     * subproblem of the sequential single knapsack algorithm.
+     *
+     * At each iteration of the sequential single knapsack algorithm, the
+     * effort of each algorithm of the subproblems is its own initial effort
+     * multiplied by a growth factor, doubled at each iteration. The initial
+     * efforts are chosen such that, in an iteration, the algorithms of a
+     * subproblem take comparable times, so that an algorithm which doesn't
+     * find the best solution of a subproblem doesn't slow down the
+     * iteration.
+     */
+    NodeId anytime_sequential_single_knapsack_subproblem_tree_search_initial_queue_size = 1;
+
+    /**
+     * Initial size of the queue of the tree search periodic packing in the
+     * single knapsack subproblem of the sequential single knapsack algorithm
+     * (see 'anytime_sequential_single_knapsack_subproblem_tree_search_initial_queue_size').
+     */
+    NodeId anytime_sequential_single_knapsack_subproblem_tree_search_periodic_packing_initial_queue_size = 4;
+
+    /**
+     * Initial factor of the maximum number of moves of the local search with
+     * the direct trigonometry engine (see
+     * 'not_anytime_local_search_maximum_number_of_moves_factor') in the
+     * single knapsack subproblem of the sequential single knapsack algorithm
+     * (see 'anytime_sequential_single_knapsack_subproblem_tree_search_initial_queue_size').
+     */
+    Counter anytime_sequential_single_knapsack_subproblem_local_search_initial_maximum_number_of_moves_factor = 4;
+
+    /*
      * Parameters for non-anytime mode
      */
 
@@ -278,7 +300,22 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
      * Size of the queue in the single knapsack subproblem of the sequential
      * single knapsack algorithm.
      */
-    NodeId not_anytime_sequential_single_knapsack_subproblem_tree_search_queue_size = 512;
+    NodeId not_anytime_sequential_single_knapsack_subproblem_tree_search_queue_size = 16;
+
+    /**
+     * Size of the queue of the tree search periodic packing in the single
+     * knapsack subproblem of the sequential single knapsack algorithm.
+     */
+    NodeId not_anytime_sequential_single_knapsack_subproblem_tree_search_periodic_packing_queue_size = 64;
+
+    /**
+     * Factor of the maximum number of moves of the local search with the
+     * direct trigonometry engine (see
+     * 'not_anytime_local_search_maximum_number_of_moves_factor') in the
+     * single knapsack subproblem of the sequential single knapsack
+     * algorithm.
+     */
+    Counter not_anytime_sequential_single_knapsack_subproblem_local_search_maximum_number_of_moves_factor = 64;
 
     /** Number of iterations of the sequential value correction algorithm. */
     Counter not_anytime_sequential_value_correction_number_of_iterations = 32;
@@ -291,6 +328,17 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
      * the timer.
      */
     Counter not_anytime_local_search_maximum_number_of_failed_separations = 10;
+
+    /**
+     * Maximum number of item moves per worker of the local search with the
+     * direct trigonometry engine (see
+     * 'LocalSearchParameters::maximum_number_of_moves'), divided by the
+     * number of items: like the effort of a tree search with a given queue
+     * size, the effort of the local search grows with the number of items.
+     *
+     * In 'Anytime' mode, there is no limit. -1 means no limit.
+     */
+    Counter not_anytime_local_search_maximum_number_of_moves_factor = -1;
 
     /**
      * Size of the queue in the bin packing subproblem of the dichotomic search
