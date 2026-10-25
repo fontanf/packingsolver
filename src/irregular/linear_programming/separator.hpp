@@ -1,8 +1,9 @@
 /**
  * Separator of the local search with the linear programming engine
  *
- * The items may be shrunk instead of overlapping: an item with scale 'lambda'
- * is its shape scaled by 'lambda' around its reference point. A separation
+ * The items may be shrunk instead of overlapping: in an item with scale
+ * 'lambda', each convex part is scaled by 'lambda' around its center (see
+ * 'BinSeparationModel'). A separation
  * solves linear programs (see 'BinSeparationModel') which move the items
  * slightly and maximize their weighted scales; the weights of the items which
  * stay shrunk increase, as in guided local search. It succeeds when all the

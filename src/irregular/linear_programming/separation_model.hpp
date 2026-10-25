@@ -1,22 +1,35 @@
 /**
  * Separation model of the items of a bin, solved by linear programming.
  *
- * The items are decomposed into convex parts, and may be shrunk: an item
- * with scale 'lambda' is its shape scaled by 'lambda' around its reference
- * point.
+ * The items are decomposed into convex parts, and may be shrunk: in an item
+ * with scale 'lambda', each convex part is scaled by 'lambda' around its
+ * center (the average of its vertices). A scaled part is in the part, so a
+ * shrunk item is in the item.
  *
- * For each pair of convex parts close to each other, the edge of one of them
- * which separates them the best in the current state is selected; the
- * constraint is that the signed distance from the line through this edge to
- * the vertex of the other part the closest to it is at least eta (plus the
- * minimum spacing). For a fixed edge, this vertex doesn't depend on the
- * translations and the scales of the parts, so the constraint is linear in
- * the positions and the scales, and a non-negative value proves that the two
- * parts don't overlap.
+ * For each pair of convex parts close to each other, an edge of one of them
+ * is selected; the constraint is that the signed distance from the line
+ * through this edge to the vertex of the other part the closest to it is at
+ * least the minimum spacing. For a fixed edge, this vertex doesn't depend on
+ * the translations and the scales of the parts, so the constraint is linear
+ * in the positions and the scales, and it proves that the two parts don't
+ * overlap. This is the separating line of the nonlinear separation model
+ * (see 'nonlinear_programming/separation_model.hpp') with its direction fixed
+ * during a step.
  *
- * A step solves the linear program maximizing eta first, then the weighted
- * sum of the scales (if the items may be shrunk), the items staying in a
- * small box around their current positions.
+ * A step solves the linear program maximizing the weighted sum of the scales,
+ * the items staying in a small box around their current positions.
+ *
+ * As in the nonlinear separation model, the linear program is always
+ * feasible: the current positions with null scales are a solution. With null
+ * scales, the parts are reduced to their centers, which stay in the bin; and
+ * the edge of each pair is selected, among the edges which separate the
+ * centers of the two parts (by at least the spacing), as the one which
+ * separates the two parts the best in the current state. Since the centers
+ * are in the parts, the edge which separates two parts the best is always
+ * selected when the parts don't overlap. The exceptions are a center inside
+ * an obstacle (or outside the bin), and two centers closer than the spacing
+ * in every direction of the edges: then, the edge which separates the two
+ * parts the best is selected, and the linear program may be infeasible.
  */
 
 #pragma once
@@ -70,19 +83,6 @@ public:
          * largest side of its bounding box.
          */
         double movement_ratio = 0.05;
-
-        /** True iff the scales of the items are variables. */
-        bool shrink = false;
-
-        /**
-         * Upper bound of eta, in scaled coordinates: a small positive value,
-         * so that the solution stays feasible despite the tolerances of the
-         * solver.
-         */
-        LengthDbl target_separation = 1e-5;
-
-        /** Weight of eta in the objective. */
-        double eta_weight = 1.0;
     };
 
     /**
@@ -143,6 +143,12 @@ private:
         AxisAlignedBoundingBox aabb;
 
         /**
+         * Center of the scaling of the part (average of its vertices), in the
+         * same frame as the vertices; {0, 0} for the parts of the obstacles.
+         */
+        Point center = {0, 0};
+
+        /**
          * Minimum spacing between this part and the parts of the items (for
          * an obstacle).
          */
@@ -152,7 +158,8 @@ private:
     /**
      * Separation constraint of two parts:
      * normal . (p_support - p_edge)
-     * + support_coefficient * lambda_support - edge_coefficient * lambda_edge
+     * + support_constant + support_coefficient * lambda_support
+     * - edge_constant - edge_coefficient * lambda_edge
      * >= spacing.
      */
     struct Constraint
@@ -163,7 +170,11 @@ private:
 
         Point normal = {0, 0};
 
+        LengthDbl edge_constant = 0.0;
+
         LengthDbl edge_coefficient = 0.0;
+
+        LengthDbl support_constant = 0.0;
 
         LengthDbl support_coefficient = 0.0;
 
@@ -176,8 +187,12 @@ private:
             Counter part_pos) const;
 
     /**
-     * Constraint of the edge which separates two parts the best in a state;
-     * 'best_value' is set to its value.
+     * Constraint of the edge selected for two parts in a state: among the
+     * edges whose constraints are satisfied with null scales (see the
+     * description of the model), the one which separates the two parts the
+     * best; if there is none, the one which separates them the best.
+     * 'best_value' is set to the largest value of the constraints of all
+     * the edges, so that it measures the separation of the two parts.
      */
     Constraint best_constraint(
             const std::vector<SeparationModelItem>& items,
@@ -187,6 +202,14 @@ private:
 
     /** Value of a constraint in a state (minus its spacing). */
     LengthDbl value(
+            const std::vector<SeparationModelItem>& items,
+            const Constraint& constraint) const;
+
+    /**
+     * Value of a constraint in a state where the scales of the items are
+     * null (minus its spacing).
+     */
+    LengthDbl null_scales_value(
             const std::vector<SeparationModelItem>& items,
             const Constraint& constraint) const;
 
@@ -211,6 +234,12 @@ private:
 
     /** Bounding boxes of the items, at full scale, relatively to their reference points. */
     std::vector<AxisAlignedBoundingBox> items_aabbs_;
+
+    /**
+     * Bounding boxes of the centers of the parts of the items, relatively to
+     * their reference points.
+     */
+    std::vector<AxisAlignedBoundingBox> items_centers_aabbs_;
 
     /** Item-item minimum spacing. */
     LengthDbl item_spacing_ = 0.0;

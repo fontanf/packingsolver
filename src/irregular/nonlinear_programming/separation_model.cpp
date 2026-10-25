@@ -55,9 +55,12 @@ std::vector<Point> convex_hull_of_points(std::vector<Point> points)
 }
 
 /**
- * Projection of a vertex of an item on the normal of a separating line:
+ * Projection of a vertex of a part of an item on the normal of a separating
+ * line, the part being scaled around its center:
  * cos(alpha) * x + sin(alpha) * y
- * + lambda * (vertex_x * cos(alpha - theta) + vertex_y * sin(alpha - theta)).
+ * + center_x * cos(alpha - theta) + center_y * sin(alpha - theta)
+ * + lambda * ((vertex_x - center_x) * cos(alpha - theta)
+ *     + (vertex_y - center_y) * sin(alpha - theta)).
  */
 NonlinearExpression item_vertex_projection(
         int alpha,
@@ -65,6 +68,7 @@ NonlinearExpression item_vertex_projection(
         int y_variable,
         int theta,
         int lambda,
+        const Point& center,
         const Point& vertex)
 {
     NonlinearExpression angle = nonlinear_subtract(
@@ -73,11 +77,13 @@ NonlinearExpression item_vertex_projection(
     return nonlinear_sum({
             nonlinear_product({nonlinear_cos(nonlinear_variable(alpha)), nonlinear_variable(x_variable)}),
             nonlinear_product({nonlinear_sin(nonlinear_variable(alpha)), nonlinear_variable(y_variable)}),
+            nonlinear_product({nonlinear_constant(center.x), nonlinear_cos(angle)}),
+            nonlinear_product({nonlinear_constant(center.y), nonlinear_sin(angle)}),
             nonlinear_product({
                 nonlinear_variable(lambda),
                 nonlinear_sum({
-                    nonlinear_product({nonlinear_constant(vertex.x), nonlinear_cos(angle)}),
-                    nonlinear_product({nonlinear_constant(vertex.y), nonlinear_sin(angle)})})})});
+                    nonlinear_product({nonlinear_constant(vertex.x - center.x), nonlinear_cos(angle)}),
+                    nonlinear_product({nonlinear_constant(vertex.y - center.y), nonlinear_sin(angle)})})})});
 }
 
 /** Projection of a fixed vertex on the normal of a separating line. */
@@ -117,11 +123,18 @@ BinNonlinearSeparationModel::BinNonlinearSeparationModel(
         part.spacing = spacing;
         for (const ShapeElement& element: shape.elements)
             part.vertices.push_back({element.start.x + shift.x, element.start.y + shift.y});
+        if (item_pos != -1) {
+            for (const Point& vertex: part.vertices) {
+                part.center.x += vertex.x / part.vertices.size();
+                part.center.y += vertex.y / part.vertices.size();
+            }
+        }
         parts_.push_back(part);
     };
 
     const Point origin = {0.0, 0.0};
     items_hulls_.resize(items.size());
+    items_centers_aabbs_.resize(items.size());
     for (ItemPos item_pos = 0; item_pos < (ItemPos)items.size(); ++item_pos) {
         const NonlinearSeparationModelItem& item = items[item_pos];
         const ItemType& item_type = instance.item_type(item.item_type_id);
@@ -142,6 +155,12 @@ BinNonlinearSeparationModel::BinNonlinearSeparationModel(
                     add_part(item_pos, placed_shape.shape, origin, 0.0);
                     for (const ShapeElement& element: placed_shape.shape.elements)
                         item_vertices.push_back(element.start);
+                    const Point& center = parts_.back().center;
+                    AxisAlignedBoundingBox& centers_aabb = items_centers_aabbs_[item_pos];
+                    centers_aabb.x_min = (std::min)(centers_aabb.x_min, center.x);
+                    centers_aabb.x_max = (std::max)(centers_aabb.x_max, center.x);
+                    centers_aabb.y_min = (std::min)(centers_aabb.y_min, center.y);
+                    centers_aabb.y_max = (std::max)(centers_aabb.y_max, center.y);
                 }
             }
         }
@@ -179,8 +198,8 @@ std::vector<Point> BinNonlinearSeparationModel::world_vertices(
     std::vector<Point> vertices;
     for (const Point& vertex: part.vertices) {
         vertices.push_back({
-                item.position.x + item.lambda * vertex.x,
-                item.position.y + item.lambda * vertex.y});
+                item.position.x + part.center.x + item.lambda * (vertex.x - part.center.x),
+                item.position.y + part.center.y + item.lambda * (vertex.y - part.center.y)});
     }
     return vertices;
 }
@@ -218,8 +237,8 @@ bool BinNonlinearSeparationModel::step(
     }
 
     // Boxes of the parts: for the parts of the items, the boxes containing
-    // them at any scale, expanded by the maximum moves of their vertices and
-    // the spacing.
+    // them at any scale (a scaled part is in the part), expanded by the
+    // maximum moves of their vertices and the spacing.
     std::vector<AxisAlignedBoundingBox> boxes(parts_.size());
     for (Counter part_pos = 0; part_pos < (Counter)parts_.size(); ++part_pos) {
         const Part& part = parts_[part_pos];
@@ -233,8 +252,6 @@ bool BinNonlinearSeparationModel::step(
             }
         } else {
             const NonlinearSeparationModelItem& item = items[part.item_pos];
-            box.x_min = box.x_max = item.position.x;
-            box.y_min = box.y_max = item.position.y;
             for (const Point& vertex: part.vertices) {
                 box.x_min = (std::min)(box.x_min, item.position.x + vertex.x);
                 box.x_max = (std::max)(box.x_max, item.position.x + vertex.x);
@@ -275,20 +292,21 @@ bool BinNonlinearSeparationModel::step(
         const NonlinearSeparationModelItem& item = items[item_pos];
         if (item.is_fixed)
             continue;
-        // The reference point stays in the bin, so that a null scale is
+        // The centers of the parts stay in the bin, so that a null scale is
         // always feasible.
+        const AxisAlignedBoundingBox& centers_aabb = items_centers_aabbs_[item_pos];
         LengthDbl x_lower_bound = (std::min)(item.position.x, (std::max)(
                     item.position.x - movements[item_pos],
-                    bin_type.aabb_scaled.x_min + bin_spacing_));
+                    bin_type.aabb_scaled.x_min + bin_spacing_ - centers_aabb.x_min));
         LengthDbl x_upper_bound = (std::max)(item.position.x, (std::min)(
                     item.position.x + movements[item_pos],
-                    bin_type.aabb_scaled.x_max - bin_spacing_));
+                    bin_type.aabb_scaled.x_max - bin_spacing_ - centers_aabb.x_max));
         LengthDbl y_lower_bound = (std::min)(item.position.y, (std::max)(
                     item.position.y - movements[item_pos],
-                    bin_type.aabb_scaled.y_min + bin_spacing_));
+                    bin_type.aabb_scaled.y_min + bin_spacing_ - centers_aabb.y_min));
         LengthDbl y_upper_bound = (std::max)(item.position.y, (std::min)(
                     item.position.y + movements[item_pos],
-                    bin_type.aabb_scaled.y_max - bin_spacing_));
+                    bin_type.aabb_scaled.y_max - bin_spacing_ - centers_aabb.y_max));
         x_variables[item_pos] = add_variable(x_lower_bound, x_upper_bound, 0.0, item.position.x);
         y_variables[item_pos] = add_variable(y_lower_bound, y_upper_bound, 0.0, item.position.y);
         theta_variables[item_pos] = add_variable(
@@ -357,6 +375,7 @@ bool BinNonlinearSeparationModel::step(
                                 y_variables[part.item_pos],
                                 theta_variables[part.item_pos],
                                 lambda_variables[part.item_pos],
+                                part.center,
                                 vertex);
                     if (side == 0)
                         projection = nonlinear_negate(projection);
@@ -366,39 +385,47 @@ bool BinNonlinearSeparationModel::step(
         }
     }
 
-    // Containment: the vertices of the convex hull of each item which may
-    // reach the borders of the bounding box of the bin; their coordinates
-    // are x + lambda * (v_x * cos(theta) - v_y * sin(theta)) and
-    // y + lambda * (v_x * sin(theta) + v_y * cos(theta)).
-    for (ItemPos item_pos = 0; item_pos < number_of_items; ++item_pos) {
-        const NonlinearSeparationModelItem& item = items[item_pos];
-        if (item.is_fixed)
+    // Containment: the vertices of the parts of the items which may reach the
+    // borders of the bounding box of the bin; with u = center + lambda *
+    // (vertex - center), their coordinates are
+    // x + u_x * cos(theta) - u_y * sin(theta) and
+    // y + u_x * sin(theta) + u_y * cos(theta).
+    for (const Part& part: parts_) {
+        if (part.item_pos == -1)
             continue;
+        ItemPos item_pos = part.item_pos;
+        const NonlinearSeparationModelItem& item = items[item_pos];
         LengthDbl reach = reaches[item_pos] + maximum_spacing_;
-        for (const Point& vertex: items_hulls_[item_pos]) {
+        for (const Point& vertex: part.vertices) {
             NonlinearExpression cos_theta = nonlinear_cos(nonlinear_variable(theta_variables[item_pos]));
             NonlinearExpression sin_theta = nonlinear_sin(nonlinear_variable(theta_variables[item_pos]));
-            NonlinearExpression offset_x = nonlinear_product({
-                    nonlinear_variable(lambda_variables[item_pos]),
-                    nonlinear_subtract(
-                        nonlinear_product({nonlinear_constant(vertex.x), cos_theta}),
-                        nonlinear_product({nonlinear_constant(vertex.y), sin_theta}))});
-            NonlinearExpression offset_y = nonlinear_product({
-                    nonlinear_variable(lambda_variables[item_pos]),
-                    nonlinear_sum({
-                        nonlinear_product({nonlinear_constant(vertex.x), sin_theta}),
-                        nonlinear_product({nonlinear_constant(vertex.y), cos_theta})})});
+            NonlinearExpression u_x = nonlinear_sum({
+                    nonlinear_constant(part.center.x),
+                    nonlinear_product({
+                        nonlinear_variable(lambda_variables[item_pos]),
+                        nonlinear_constant(vertex.x - part.center.x)})});
+            NonlinearExpression u_y = nonlinear_sum({
+                    nonlinear_constant(part.center.y),
+                    nonlinear_product({
+                        nonlinear_variable(lambda_variables[item_pos]),
+                        nonlinear_constant(vertex.y - part.center.y)})});
+            NonlinearExpression offset_x = nonlinear_subtract(
+                    nonlinear_product({u_x, cos_theta}),
+                    nonlinear_product({u_y, sin_theta}));
+            NonlinearExpression offset_y = nonlinear_sum({
+                    nonlinear_product({u_x, sin_theta}),
+                    nonlinear_product({u_y, cos_theta})});
             LengthDbl lower_x = bin_type.aabb_scaled.x_min + bin_spacing_;
             LengthDbl upper_x = bin_type.aabb_scaled.x_max - bin_spacing_;
             LengthDbl lower_y = bin_type.aabb_scaled.y_min + bin_spacing_;
             LengthDbl upper_y = bin_type.aabb_scaled.y_max - bin_spacing_;
-            if ((std::min)(item.position.x, item.position.x + vertex.x) - reach <= lower_x)
+            if (item.position.x + vertex.x - reach <= lower_x)
                 add_row({x_variables[item_pos]}, {1.0}, offset_x, lower_x);
-            if ((std::max)(item.position.x, item.position.x + vertex.x) + reach >= upper_x)
+            if (item.position.x + vertex.x + reach >= upper_x)
                 add_row({x_variables[item_pos]}, {-1.0}, nonlinear_negate(offset_x), -upper_x);
-            if ((std::min)(item.position.y, item.position.y + vertex.y) - reach <= lower_y)
+            if (item.position.y + vertex.y - reach <= lower_y)
                 add_row({y_variables[item_pos]}, {1.0}, offset_y, lower_y);
-            if ((std::max)(item.position.y, item.position.y + vertex.y) + reach >= upper_y)
+            if (item.position.y + vertex.y + reach >= upper_y)
                 add_row({y_variables[item_pos]}, {-1.0}, nonlinear_negate(offset_y), -upper_y);
         }
     }

@@ -45,12 +45,19 @@ BinSeparationModel::BinSeparationModel(
             part.aabb.y_min = (std::min)(part.aabb.y_min, vertex.y);
             part.aabb.y_max = (std::max)(part.aabb.y_max, vertex.y);
         }
+        if (item_pos != -1) {
+            for (const Point& vertex: part.vertices) {
+                part.center.x += vertex.x / part.vertices.size();
+                part.center.y += vertex.y / part.vertices.size();
+            }
+        }
         parts_.push_back(part);
         return part.aabb;
     };
 
     const Point origin = {0.0, 0.0};
     items_aabbs_.resize(items.size());
+    items_centers_aabbs_.resize(items.size());
     for (ItemPos item_pos = 0; item_pos < (ItemPos)items.size(); ++item_pos) {
         const SeparationModelItem& item = items[item_pos];
         const ItemType& item_type = instance.item_type(item.item_type_id);
@@ -70,6 +77,12 @@ BinSeparationModel::BinSeparationModel(
                     items_aabbs_[item_pos] = merge(
                             items_aabbs_[item_pos],
                             add_part(item_pos, placed_shape.shape, origin, 0.0));
+                    const Point& center = parts_.back().center;
+                    AxisAlignedBoundingBox& centers_aabb = items_centers_aabbs_[item_pos];
+                    centers_aabb.x_min = (std::min)(centers_aabb.x_min, center.x);
+                    centers_aabb.x_max = (std::max)(centers_aabb.x_max, center.x);
+                    centers_aabb.y_min = (std::min)(centers_aabb.y_min, center.y);
+                    centers_aabb.y_max = (std::max)(centers_aabb.y_max, center.y);
                 }
             }
         }
@@ -105,10 +118,10 @@ AxisAlignedBoundingBox BinSeparationModel::part_aabb(
         return part.aabb;
     const SeparationModelItem& item = items[part.item_pos];
     AxisAlignedBoundingBox aabb;
-    aabb.x_min = item.position.x + item.lambda * part.aabb.x_min;
-    aabb.x_max = item.position.x + item.lambda * part.aabb.x_max;
-    aabb.y_min = item.position.y + item.lambda * part.aabb.y_min;
-    aabb.y_max = item.position.y + item.lambda * part.aabb.y_max;
+    aabb.x_min = item.position.x + part.center.x + item.lambda * (part.aabb.x_min - part.center.x);
+    aabb.x_max = item.position.x + part.center.x + item.lambda * (part.aabb.x_max - part.center.x);
+    aabb.y_min = item.position.y + part.center.y + item.lambda * (part.aabb.y_min - part.center.y);
+    aabb.y_max = item.position.y + part.center.y + item.lambda * (part.aabb.y_max - part.center.y);
     return aabb;
 }
 
@@ -132,8 +145,34 @@ LengthDbl BinSeparationModel::value(
     }
     return constraint.normal.x * (support_position.x - edge_position.x)
         + constraint.normal.y * (support_position.y - edge_position.y)
-        + constraint.support_coefficient * support_lambda
-        - constraint.edge_coefficient * edge_lambda
+        + constraint.support_constant + constraint.support_coefficient * support_lambda
+        - constraint.edge_constant - constraint.edge_coefficient * edge_lambda
+        - constraint.spacing;
+}
+
+LengthDbl BinSeparationModel::null_scales_value(
+        const std::vector<SeparationModelItem>& items,
+        const Constraint& constraint) const
+{
+    // The parts of the obstacles keep their full scale.
+    ItemPos edge_item_pos = parts_[constraint.edge_part_pos].item_pos;
+    ItemPos support_item_pos = parts_[constraint.support_part_pos].item_pos;
+    Point edge_position = {0.0, 0.0};
+    Point support_position = {0.0, 0.0};
+    double edge_lambda = 1.0;
+    double support_lambda = 1.0;
+    if (edge_item_pos != -1) {
+        edge_position = items[edge_item_pos].position;
+        edge_lambda = 0.0;
+    }
+    if (support_item_pos != -1) {
+        support_position = items[support_item_pos].position;
+        support_lambda = 0.0;
+    }
+    return constraint.normal.x * (support_position.x - edge_position.x)
+        + constraint.normal.y * (support_position.y - edge_position.y)
+        + constraint.support_constant + constraint.support_coefficient * support_lambda
+        - constraint.edge_constant - constraint.edge_coefficient * edge_lambda
         - constraint.spacing;
 }
 
@@ -147,9 +186,13 @@ BinSeparationModel::Constraint BinSeparationModel::best_constraint(
     const Part& part_1 = parts_[part_pos_1];
     const Part& part_2 = parts_[part_pos_2];
 
-    // Best separating edge, among the edges of both parts.
+    // Best separating edge, among the edges of both parts whose constraints
+    // are satisfied with null scales, and among all the edges of both parts.
     Constraint best_constraint;
     best_value = -infinity;
+    Constraint best_feasible_constraint;
+    LengthDbl best_feasible_value = -infinity;
+    bool feasible_constraint_found = false;
     for (int side = 0; side < 2; ++side) {
         Counter edge_part_pos = (side == 0)? part_pos_1: part_pos_2;
         Counter support_part_pos = (side == 0)? part_pos_2: part_pos_1;
@@ -170,14 +213,20 @@ BinSeparationModel::Constraint BinSeparationModel::best_constraint(
             // The parts are anticlockwise: the outward normal is on the right
             // of the edge.
             constraint.normal = {delta_y / length, -delta_x / length};
+            constraint.edge_constant = constraint.normal.x * edge_part.center.x
+                + constraint.normal.y * edge_part.center.y;
             constraint.edge_coefficient = constraint.normal.x * edge_start.x
-                + constraint.normal.y * edge_start.y;
+                + constraint.normal.y * edge_start.y
+                - constraint.edge_constant;
+            constraint.support_constant = constraint.normal.x * support_part.center.x
+                + constraint.normal.y * support_part.center.y;
             constraint.support_coefficient = infinity;
             for (const Point& vertex: support_part.vertices) {
                 constraint.support_coefficient = (std::min)(
                         constraint.support_coefficient,
                         constraint.normal.x * vertex.x + constraint.normal.y * vertex.y);
             }
+            constraint.support_coefficient -= constraint.support_constant;
             constraint.spacing = (part_1.item_pos == -1)? part_1.spacing:
                 (part_2.item_pos == -1)? part_2.spacing: item_spacing_;
             LengthDbl value_cur = value(items, constraint);
@@ -185,9 +234,15 @@ BinSeparationModel::Constraint BinSeparationModel::best_constraint(
                 best_value = value_cur;
                 best_constraint = constraint;
             }
+            if (null_scales_value(items, constraint) >= 0.0
+                    && value_cur > best_feasible_value) {
+                best_feasible_value = value_cur;
+                best_feasible_constraint = constraint;
+                feasible_constraint_found = true;
+            }
         }
     }
-    return best_constraint;
+    return (feasible_constraint_found)? best_feasible_constraint: best_constraint;
 }
 
 LengthDbl BinSeparationModel::compute_constraints(
@@ -208,10 +263,10 @@ LengthDbl BinSeparationModel::compute_constraints(
         if (part.item_pos != -1) {
             const SeparationModelItem& item = items[part.item_pos];
             LengthDbl expansion = movements[part.item_pos] + maximum_spacing_;
-            box.x_min = item.position.x + (std::min)(0.0, part.aabb.x_min) - expansion;
-            box.x_max = item.position.x + (std::max)(0.0, part.aabb.x_max) + expansion;
-            box.y_min = item.position.y + (std::min)(0.0, part.aabb.y_min) - expansion;
-            box.y_max = item.position.y + (std::max)(0.0, part.aabb.y_max) + expansion;
+            box.x_min = item.position.x + part.aabb.x_min - expansion;
+            box.x_max = item.position.x + part.aabb.x_max + expansion;
+            box.y_min = item.position.y + part.aabb.y_min - expansion;
+            box.y_max = item.position.y + part.aabb.y_max + expansion;
         }
         boxes[part_pos] = box;
         sorted_parts[part_pos] = part_pos;
@@ -251,19 +306,18 @@ LengthDbl BinSeparationModel::compute_constraints(
 
     // Containment in the bounding box of the bin.
     const BinType& bin_type = instance_.bin_type(bin_type_id_);
-    for (ItemPos item_pos = 0; item_pos < (ItemPos)items.size(); ++item_pos) {
-        const SeparationModelItem& item = items[item_pos];
-        if (item.is_fixed)
+    for (Counter part_pos = 0; part_pos < (Counter)parts_.size(); ++part_pos) {
+        if (parts_[part_pos].item_pos == -1)
             continue;
-        const AxisAlignedBoundingBox& aabb = items_aabbs_[item_pos];
+        AxisAlignedBoundingBox aabb = part_aabb(items, part_pos);
         separation = (std::min)(separation,
-                item.position.x + item.lambda * aabb.x_min - (bin_type.aabb_scaled.x_min + bin_spacing_));
+                aabb.x_min - (bin_type.aabb_scaled.x_min + bin_spacing_));
         separation = (std::min)(separation,
-                bin_type.aabb_scaled.x_max - bin_spacing_ - (item.position.x + item.lambda * aabb.x_max));
+                bin_type.aabb_scaled.x_max - bin_spacing_ - aabb.x_max);
         separation = (std::min)(separation,
-                item.position.y + item.lambda * aabb.y_min - (bin_type.aabb_scaled.y_min + bin_spacing_));
+                aabb.y_min - (bin_type.aabb_scaled.y_min + bin_spacing_));
         separation = (std::min)(separation,
-                bin_type.aabb_scaled.y_max - bin_spacing_ - (item.position.y + item.lambda * aabb.y_max));
+                bin_type.aabb_scaled.y_max - bin_spacing_ - aabb.y_max);
     }
     return separation;
 }
@@ -281,7 +335,6 @@ bool BinSeparationModel::step(
         const StepParameters& parameters,
         const optimizationtools::Timer& timer) const
 {
-    const LengthDbl infinity = std::numeric_limits<LengthDbl>::infinity();
     const BinType& bin_type = instance_.bin_type(bin_type_id_);
     ItemPos number_of_items = items.size();
 
@@ -316,50 +369,57 @@ bool BinSeparationModel::step(
         const SeparationModelItem& item = items[item_pos];
         if (item.is_fixed)
             continue;
+        // The centers of the parts stay in the bin, so that null scales are
+        // always feasible.
+        const AxisAlignedBoundingBox& centers_aabb = items_centers_aabbs_[item_pos];
         x[item_pos] = add_variable(
-                item.position.x - movements[item_pos],
-                item.position.x + movements[item_pos],
+                (std::min)(item.position.x, (std::max)(
+                        item.position.x - movements[item_pos],
+                        bin_type.aabb_scaled.x_min + bin_spacing_ - centers_aabb.x_min)),
+                (std::max)(item.position.x, (std::min)(
+                        item.position.x + movements[item_pos],
+                        bin_type.aabb_scaled.x_max - bin_spacing_ - centers_aabb.x_max)),
                 0.0);
         y[item_pos] = add_variable(
-                item.position.y - movements[item_pos],
-                item.position.y + movements[item_pos],
+                (std::min)(item.position.y, (std::max)(
+                        item.position.y - movements[item_pos],
+                        bin_type.aabb_scaled.y_min + bin_spacing_ - centers_aabb.y_min)),
+                (std::max)(item.position.y, (std::min)(
+                        item.position.y + movements[item_pos],
+                        bin_type.aabb_scaled.y_max - bin_spacing_ - centers_aabb.y_max)),
                 0.0);
-        if (parameters.shrink)
-            lambda[item_pos] = add_variable(0.0, 1.0, item.weight);
+        lambda[item_pos] = add_variable(0.0, 1.0, item.weight);
     }
-    int eta = add_variable(-infinity, parameters.target_separation, parameters.eta_weight);
 
-    // Terms of an item in a row: position and, if variable, scale; the
-    // constant part of the scale goes to the lower bound.
+    // Terms of an item in a row: position and scale; the terms of an
+    // obstacle are constant and go to the lower bound.
     struct Row
     {
         std::vector<int> variables;
         std::vector<double> coefficients;
         double lower_bound = 0.0;
     };
-    auto add_item_terms = [&items, &x, &y, &lambda](
+    auto add_item_terms = [&x, &y, &lambda](
             Row& row,
             ItemPos item_pos,
             const Point& normal,
+            double constant,
             double lambda_coefficient,
             double sign)
     {
         if (item_pos == -1) {
-            row.lower_bound -= sign * lambda_coefficient;
+            row.lower_bound -= sign * (constant + lambda_coefficient);
             return;
         }
+        row.lower_bound -= sign * constant;
         row.variables.push_back(x[item_pos]);
         row.coefficients.push_back(sign * normal.x);
         row.variables.push_back(y[item_pos]);
         row.coefficients.push_back(sign * normal.y);
-        if (lambda[item_pos] != -1) {
-            row.variables.push_back(lambda[item_pos]);
-            row.coefficients.push_back(sign * lambda_coefficient);
-        } else {
-            row.lower_bound -= sign * lambda_coefficient * items[item_pos].lambda;
-        }
+        row.variables.push_back(lambda[item_pos]);
+        row.coefficients.push_back(sign * lambda_coefficient);
     };
-    auto add_row = [&model, eta](Row& row)
+    auto add_row = [&model](const Row& row)
     {
         model.constraints_starts.push_back(model.elements_variables.size());
         model.constraints_lower_bounds.push_back(row.lower_bound);
@@ -368,12 +428,11 @@ bool BinSeparationModel::step(
             model.elements_variables.push_back(row.variables[pos]);
             model.elements_coefficients.push_back(row.coefficients[pos]);
         }
-        model.elements_variables.push_back(eta);
-        model.elements_coefficients.push_back(-1.0);
     };
 
-    // normal . (p_support - p_edge) + support_coefficient * lambda_support
-    // - edge_coefficient * lambda_edge - eta >= spacing.
+    // normal . (p_support - p_edge)
+    // + support_constant + support_coefficient * lambda_support
+    // - edge_constant - edge_coefficient * lambda_edge >= spacing.
     for (const Constraint& constraint: constraints) {
         Row row;
         row.lower_bound = constraint.spacing;
@@ -381,26 +440,30 @@ bool BinSeparationModel::step(
                 row,
                 parts_[constraint.support_part_pos].item_pos,
                 constraint.normal,
+                constraint.support_constant,
                 constraint.support_coefficient,
                 1.0);
         add_item_terms(
                 row,
                 parts_[constraint.edge_part_pos].item_pos,
                 constraint.normal,
+                constraint.edge_constant,
                 constraint.edge_coefficient,
                 -1.0);
         add_row(row);
     }
 
-    // Containment: x + lambda * x_min - eta >= bin_x_min + spacing, etc.
-    for (ItemPos item_pos = 0; item_pos < number_of_items; ++item_pos) {
-        const SeparationModelItem& item = items[item_pos];
-        if (item.is_fixed)
+    // Containment of each part:
+    // x + center_x + lambda * (x_min - center_x) >= bin_x_min + spacing, etc.
+    for (Counter part_pos = 0; part_pos < (Counter)parts_.size(); ++part_pos) {
+        const Part& part = parts_[part_pos];
+        if (part.item_pos == -1)
             continue;
-        const AxisAlignedBoundingBox& aabb = items_aabbs_[item_pos];
+        ItemPos item_pos = part.item_pos;
         const int position_variables[4] = {x[item_pos], x[item_pos], y[item_pos], y[item_pos]};
         const double signs[4] = {1.0, -1.0, 1.0, -1.0};
-        const double extents[4] = {aabb.x_min, aabb.x_max, aabb.y_min, aabb.y_max};
+        const double centers[4] = {part.center.x, part.center.x, part.center.y, part.center.y};
+        const double extents[4] = {part.aabb.x_min, part.aabb.x_max, part.aabb.y_min, part.aabb.y_max};
         const double limits[4] = {
             bin_type.aabb_scaled.x_min + bin_spacing_,
             -(bin_type.aabb_scaled.x_max - bin_spacing_),
@@ -408,15 +471,11 @@ bool BinSeparationModel::step(
             -(bin_type.aabb_scaled.y_max - bin_spacing_)};
         for (int side = 0; side < 4; ++side) {
             Row row;
-            row.lower_bound = limits[side];
+            row.lower_bound = limits[side] - signs[side] * centers[side];
             row.variables.push_back(position_variables[side]);
             row.coefficients.push_back(signs[side]);
-            if (lambda[item_pos] != -1) {
-                row.variables.push_back(lambda[item_pos]);
-                row.coefficients.push_back(signs[side] * extents[side]);
-            } else {
-                row.lower_bound -= signs[side] * extents[side] * item.lambda;
-            }
+            row.variables.push_back(lambda[item_pos]);
+            row.coefficients.push_back(signs[side] * (extents[side] - centers[side]));
             add_row(row);
         }
     }
@@ -449,8 +508,7 @@ bool BinSeparationModel::step(
                 (std::min)(item.position.x + movements[item_pos], solution[x[item_pos]]));
         item.position.y = (std::max)(item.position.y - movements[item_pos],
                 (std::min)(item.position.y + movements[item_pos], solution[y[item_pos]]));
-        if (lambda[item_pos] != -1)
-            item.lambda = (std::max)(0.0, (std::min)(1.0, solution[lambda[item_pos]]));
+        item.lambda = (std::max)(0.0, (std::min)(1.0, solution[lambda[item_pos]]));
     }
     return true;
 }
