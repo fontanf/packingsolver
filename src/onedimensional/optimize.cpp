@@ -335,7 +335,7 @@ void optimize_sequential_single_knapsack(
         const OptimizeParameters& parameters,
         AlgorithmFormatter& algorithm_formatter)
 {
-    for (Counter queue_size = 1;;) {
+    for (Counter iteration = 0, queue_size = 1;; ++iteration) {
 
         if (parameters.optimization_mode != OptimizationMode::Anytime)
             queue_size = parameters.not_anytime_sequential_single_knapsack_subproblem_tree_search_queue_size;
@@ -366,13 +366,13 @@ void optimize_sequential_single_knapsack(
         // initial_profit_exponent''s own doc comment.
         svc_parameters.initial_profit_exponent = 1.0;
         svc_parameters.new_solution_callback = [
-            &algorithm_formatter, &queue_size](
+            &algorithm_formatter, iteration](
                     const onedimensional::Output& ps_output)
             {
                 const SequentialValueCorrectionOutput<Instance, Solution, onedimensional::Output>& pssvc_output
                     = static_cast<const SequentialValueCorrectionOutput<Instance, Solution, onedimensional::Output>&>(ps_output);
                 std::stringstream ss;
-                ss << "SSK q " << queue_size;
+                ss << "SSK it " << iteration;
                 algorithm_formatter.update_solution(pssvc_output.solution_pool.best(), ss.str());
             };
         sequential_value_correction<Instance, InstanceBuilder, Solution, AlgorithmFormatter, onedimensional::Output>(instance, kp_solve, svc_parameters);

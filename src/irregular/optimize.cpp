@@ -445,7 +445,7 @@ void optimize_sequential_single_knapsack(
         Counter queue_size_max)
 {
     double maximum_approximation_ratio = parameters.initial_maximum_approximation_ratio;
-    for (Counter growth_factor = 1;;) {
+    for (Counter iteration = 0, growth_factor = 1;; ++iteration) {
         // The effort of each algorithm of the subproblems grows from its own
         // initial value, see
         // 'anytime_sequential_single_knapsack_subproblem_tree_search_initial_queue_size'.
@@ -509,13 +509,13 @@ void optimize_sequential_single_knapsack(
         // initial_profit_exponent''s own doc comment.
         svc_parameters.initial_profit_exponent = 1.0;
         svc_parameters.new_solution_callback = [
-            &algorithm_formatter, &growth_factor](
+            &algorithm_formatter, iteration](
                     const irregular::Output& ps_output)
             {
                 const SequentialValueCorrectionOutput<Instance, Solution, irregular::Output>& pssvc_output
                     = static_cast<const SequentialValueCorrectionOutput<Instance, Solution, irregular::Output>&>(ps_output);
                 std::stringstream ss;
-                ss << "SSK g " << growth_factor;
+                ss << "SSK it " << iteration;
                 algorithm_formatter.update_solution(pssvc_output.solution_pool.best(), ss.str());
             };
         sequential_value_correction<Instance, InstanceBuilder, Solution, AlgorithmFormatter, irregular::Output>(instance, kp_solve, svc_parameters);

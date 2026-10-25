@@ -35,7 +35,7 @@ Largest bin cost:             19200
        0.002           2       14400                  TS g 1 d 0 q 1
        0.005           2       16000                  TS g 0 d 0 q 2
        0.007           2       17600                  TS g 0 d 0 q 3
-       0.147           1           0                        SSK q 16
+       0.147           1           0                        SSK it 4
 
 Final statistics
 ----------------
