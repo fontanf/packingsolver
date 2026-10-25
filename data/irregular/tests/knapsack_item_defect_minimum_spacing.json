@@ -1,0 +1,14 @@
+{
+    "objective": "Knapsack",
+    "bin_types": [
+        {
+            "type": "rectangle", "width": 10, "height": 4, "copies": 1,
+            "defects": [
+                {"type": "rectangle", "x": 4, "y": 0, "width": 2, "height": 4, "item_defect_minimum_spacing": 1}
+            ]
+        }
+    ],
+    "item_types": [
+        {"type": "rectangle", "width": 4, "height": 4, "copies": 2}
+    ]
+}

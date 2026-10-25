@@ -5,6 +5,7 @@
 #include "packingsolver/irregular/algorithm_formatter.hpp"
 
 #include "shape/rasterization.hpp"
+#include "shape/offset.hpp"
 //#include "shape/writer.hpp"
 
 #ifdef CBC_FOUND
@@ -109,11 +110,29 @@ Solution solve_milp_raster_for_cell_size(
         data.num_rows = data.row_max - data.row_shift + 1;
 
         data.available.assign(data.num_cols, std::vector<bool>(data.num_rows, true));
+        // Item-bin spacing along the sides of the bounding box of the bin (the
+        // borders only cover the parts of the bounding box outside the bin).
+        LengthDbl bin_spacing = instance.bin_spacing_scaled(bin_type_id);
+        if (bin_spacing > 0) {
+            for (shape::ColumnId c = 0; c < data.num_cols; ++c) {
+                for (shape::RowId r = 0; r < data.num_rows; ++r) {
+                    LengthDbl x_start = (c + data.col_shift) * cell_size;
+                    LengthDbl y_start = (r + data.row_shift) * cell_size;
+                    if (shape::strictly_lesser(x_start, bin_type.aabb_scaled.x_min + bin_spacing)
+                            || shape::strictly_greater(x_start + cell_size, bin_type.aabb_scaled.x_max - bin_spacing)
+                            || shape::strictly_lesser(y_start, bin_type.aabb_scaled.y_min + bin_spacing)
+                            || shape::strictly_greater(y_start + cell_size, bin_type.aabb_scaled.y_max - bin_spacing)) {
+                        data.available[c][r] = false;
+                    }
+                }
+            }
+        }
 
         for (Counter border_pos = 0;
                 border_pos < (Counter)bin_type.borders.size();
                 ++border_pos) {
-            const ShapeWithHoles& border_shape = bin_type.borders[border_pos].shape_scaled;
+            // Inflated by the item-bin spacing.
+            const ShapeWithHoles& border_shape = bin_type.borders[border_pos].shape_inflated;
             shape::RasterizedGrid border_grid = shape::rasterization(border_shape, cell_size, cell_size);
             //writer.add_shape_with_holes(border_shape, "Border " + std::to_string(border_pos));
             for (shape::ColumnId column = border_grid.column_offset;
@@ -135,7 +154,8 @@ Solution solve_milp_raster_for_cell_size(
         for (Counter defect_pos = 0;
                 defect_pos < (Counter)bin_type.defects.size();
                 ++defect_pos) {
-            const ShapeWithHoles& defect_shape = bin_type.defects[defect_pos].shape_scaled;
+            // Inflated by the item-defect spacing.
+            const ShapeWithHoles& defect_shape = bin_type.defects[defect_pos].shape_inflated;
             shape::RasterizedGrid defect_grid = shape::rasterization(defect_shape, cell_size, cell_size);
             //writer.add_shape_with_holes(defect_shape, "Defect " + std::to_string(defect_pos));
             for (shape::ColumnId column = defect_grid.column_offset;
@@ -161,7 +181,11 @@ Solution solve_milp_raster_for_cell_size(
             for (ItemShapePos item_shape_pos = 0;
                     item_shape_pos < (ItemShapePos)item_type.shapes.size();
                     ++item_shape_pos) {
-                ShapeWithHoles transformed = instance.item_shape_scaled(fixed_item.item_type_id, item_shape_pos, fixed_item.angle, fixed_item.mirror);
+                // Inflated by half the item-item spacing, as the placements
+                // (see below).
+                ShapeWithHoles transformed = shape::inflate(
+                        instance.item_shape_scaled(fixed_item.item_type_id, item_shape_pos, fixed_item.angle, fixed_item.mirror),
+                        instance.item_spacing_scaled() / 2);
                 transformed.shift(
                         fixed_item.bl_corner.x * scale,
                         fixed_item.bl_corner.y * scale);
@@ -205,14 +229,23 @@ Solution solve_milp_raster_for_cell_size(
                     combined_aabb = merge(combined_aabb, shape_aabb);
                 }
 
-                // Rasterize each item shape (shifted to origin) and collect cells.
+                // Rasterize each item shape (shifted to origin) and collect cells:
+                // - the cells of the item itself, which must be available
+                //   (outside of the borders and the defects, inflated by
+                //   their spacings);
+                // - the cells of the item inflated by half the item-item
+                //   spacing, which can't be covered by another placement
+                //   (whose cells are inflated the same way) or by a fixed
+                //   item (inflated the same way too), so that the items are
+                //   at least the item-item spacing apart.
+                LengthDbl half_item_spacing = instance.item_spacing_scaled() / 2;
                 std::vector<std::pair<shape::ColumnId, shape::RowId>> placement_cells;
-                for (ItemShapePos item_shape_pos = 0;
-                        item_shape_pos < (ItemShapePos)item_type.shapes.size();
-                        ++item_shape_pos) {
-                    ShapeWithHoles transformed = instance.item_shape_scaled(item_type_id, item_shape_pos, rotation.angle, rotation.mirror);
-                    transformed.shift(-combined_aabb.x_min, -combined_aabb.y_min);
-                    shape::RasterizedGrid raster_grid = shape::rasterization(transformed, cell_size, cell_size);
+                std::vector<std::pair<shape::ColumnId, shape::RowId>> conflict_cells;
+                auto collect_cells = [cell_size](
+                        const ShapeWithHoles& shape,
+                        std::vector<std::pair<shape::ColumnId, shape::RowId>>& cells)
+                {
+                    shape::RasterizedGrid raster_grid = shape::rasterization(shape, cell_size, cell_size);
                     for (shape::ColumnId column = raster_grid.column_offset;
                             column < raster_grid.column_offset + raster_grid.number_of_columns;
                             ++column) {
@@ -220,9 +253,18 @@ Solution solve_milp_raster_for_cell_size(
                                 row < raster_grid.row_offset + raster_grid.number_of_rows;
                                 ++row) {
                             if (shape::strictly_greater(raster_grid.at(column, row).coverage, 0.0))
-                                placement_cells.push_back(std::make_pair(column, row));
+                                cells.push_back(std::make_pair(column, row));
                         }
                     }
+                };
+                for (ItemShapePos item_shape_pos = 0;
+                        item_shape_pos < (ItemShapePos)item_type.shapes.size();
+                        ++item_shape_pos) {
+                    ShapeWithHoles transformed = instance.item_shape_scaled(item_type_id, item_shape_pos, rotation.angle, rotation.mirror);
+                    transformed.shift(-combined_aabb.x_min, -combined_aabb.y_min);
+                    collect_cells(transformed, placement_cells);
+                    if (half_item_spacing > 0)
+                        collect_cells(shape::inflate(transformed, half_item_spacing), conflict_cells);
                 }
 
                 if (placement_cells.empty())
@@ -230,6 +272,12 @@ Solution solve_milp_raster_for_cell_size(
 
                 std::sort(placement_cells.begin(), placement_cells.end());
                 placement_cells.erase(std::unique(placement_cells.begin(), placement_cells.end()), placement_cells.end());
+                if (half_item_spacing > 0) {
+                    std::sort(conflict_cells.begin(), conflict_cells.end());
+                    conflict_cells.erase(std::unique(conflict_cells.begin(), conflict_cells.end()), conflict_cells.end());
+                } else {
+                    conflict_cells = placement_cells;
+                }
 
                 shape::ColumnId item_min_col = placement_cells[0].first;
                 shape::ColumnId item_max_col = placement_cells[0].first;
@@ -273,9 +321,16 @@ Solution solve_milp_raster_for_cell_size(
                         data.base_placements.push_back(bp);
                         data.base_item_placements[item_type_id].push_back(placement_id);
 
-                        for (const std::pair<shape::ColumnId, shape::RowId>& cr: placement_cells) {
+                        // The conflict cells outside of the grid are not
+                        // needed: if two items in the grid are closer than
+                        // the spacing, their inflated shapes overlap around
+                        // the middle of their closest points, which is in the
+                        // grid.
+                        for (const std::pair<shape::ColumnId, shape::RowId>& cr: conflict_cells) {
                             shape::ColumnId bc = col + cr.first - data.col_shift;
                             shape::RowId br = row + cr.second - data.row_shift;
+                            if (bc < 0 || bc >= data.num_cols || br < 0 || br >= data.num_rows)
+                                continue;
                             data.base_cell_placements[bc][br].push_back(placement_id);
                         }
                     }
@@ -415,6 +470,8 @@ Solution solve_milp_raster_for_cell_size(
         Highs highs;
         mathoptsolverscmake::reduce_printout(highs);
         mathoptsolverscmake::set_time_limit(highs, parameters.timer.remaining_time());
+        if (parameters.maximum_number_of_nodes >= 0)
+            mathoptsolverscmake::set_node_limit(highs, parameters.maximum_number_of_nodes);
         mathoptsolverscmake::load(highs, model);
         highs.setCallback([
                 &instance,
@@ -534,9 +591,13 @@ MilpRasterOutput packingsolver::irregular::milp_raster(
 
     const std::vector<std::vector<std::vector<ItemTypeRotation>>> item_type_rotations = compute_item_type_rotations(instance);
 
-    for (; ; cell_size /= 2) {
+    for (Counter number_of_cell_sizes = 0; ; ++number_of_cell_sizes, cell_size /= 2) {
         if (parameters.timer.needs_to_end())
             break;
+        if (parameters.maximum_number_of_cell_sizes != -1
+                && number_of_cell_sizes >= parameters.maximum_number_of_cell_sizes) {
+            break;
+        }
         Solution solution = solve_milp_raster_for_cell_size(
                 instance,
                 item_type_rotations,

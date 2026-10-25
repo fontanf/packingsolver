@@ -1,6 +1,7 @@
 add_executable(PackingSolver_irregular_test)
 target_sources(PackingSolver_irregular_test PRIVATE
     irregular_test.cpp
+    milp_raster_test.cpp
     local_search_test.cpp
     reduction_test.cpp
     sequential_feasibility_test.cpp
