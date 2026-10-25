@@ -1,0 +1,12 @@
+{
+    "objective": "Knapsack",
+    "parameters": {
+        "item_item_minimum_spacing": 1
+    },
+    "bin_types": [
+        {"type": "rectangle", "width": 10, "height": 10, "copies": 1}
+    ],
+    "item_types": [
+        {"type": "rectangle", "width": 3, "height": 3, "copies": 9}
+    ]
+}

@@ -23,9 +23,15 @@ Rasterization
 The rasterization is conservative, so that the solutions of the program are feasible packings:
 
 * a cell is *covered* by an item as soon as the item covers a part of it, however small;
-* a cell is *unavailable* in a bin as soon as a border of the bin, a defect or a fixed item covers a part of it, and the cells covered by fixed items are left to them.
+* a cell is *unavailable* in a bin as soon as a border of the bin or a defect covers a part of it, and the cells covered by fixed items are left to them.
 
 For each item type and each of its orientations (the allowed angles, or a finite set of angles for the item types with continuous rotations), the item is rasterized once. Its *placements* are all the translations of this pattern by whole cells such that all its cells are available.
+
+**Minimum spacings.** They are taken into account by inflating the shapes before rasterizing them:
+
+* item-defect spacing: the defects are inflated by their spacing;
+* item-bin spacing: the borders of the bin (the parts of its bounding box outside of it) are inflated by the spacing, and the cells within the spacing of the sides of the bounding box are unavailable too. This is how the spacing is enforced for a rectangular bin, which has no borders;
+* item-item spacing: each placement also has the cells of the item inflated by half the spacing, which are the ones used in the cell conflict constraints below; the fixed items are inflated by half the spacing too. Two placements whose inflated cells don't overlap are at least the spacing apart.
 
 Model
 -----
@@ -33,7 +39,7 @@ Model
 **Input**:
 
 * the cells :math:`G` of the grids of the bins
-* the placements :math:`P`; for each placement :math:`p`, its item type :math:`j(p)` and the set of cells :math:`C_p \subseteq G` it covers
+* the placements :math:`P`; for each placement :math:`p`, its item type :math:`j(p)` and the set of cells :math:`C_p \subseteq G` it covers (with the item inflated by half the item-item spacing)
 * the item types :math:`j = 1, \ldots, n`; for each item type :math:`j`, its profit :math:`v_j`, and its minimum and maximum numbers of copies :math:`q^{\min}_j` and :math:`q_j` (without its fixed copies)
 
 **Variables**:

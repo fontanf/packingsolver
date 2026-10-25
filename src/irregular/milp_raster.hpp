@@ -28,6 +28,23 @@ struct MilpRasterParameters: packingsolver::Parameters<Instance, Solution, Outpu
     /** MILP solver. */
     mathoptsolverscmake::SolverName solver
         = mathoptsolverscmake::SolverName::Highs;
+
+    /**
+     * Maximum number of cell sizes: the algorithm solves the MILP of a cell
+     * size, then halves it, until the timer ends or this number of cell sizes
+     * is reached.
+     *
+     * -1 means no limit.
+     */
+    Counter maximum_number_of_cell_sizes = -1;
+
+    /**
+     * Maximum number of nodes of the branch-and-bound of the MILP solver,
+     * for each cell size.
+     *
+     * -1 means no limit.
+     */
+    Counter maximum_number_of_nodes = -1;
 };
 
 MilpRasterOutput milp_raster(
