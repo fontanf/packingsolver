@@ -1,9 +1,11 @@
 /**
  * Separation model of the items of a bin, solved by nonlinear programming.
  *
- * The items are decomposed into convex parts, and may be shrunk (scale
- * 'lambda' around their reference point) and rotated (angle 'theta' around
- * their reference point, relatively to their current angle).
+ * The items are decomposed into convex parts, and may be shrunk and rotated:
+ * in an item with scale 'lambda', each convex part is scaled by 'lambda'
+ * around its center (the average of its vertices), as in the linear
+ * separation model; the item is rotated by the angle 'theta' around its
+ * reference point, relatively to its current angle.
  *
  * For each pair of convex parts close to each other, a separating line, of
  * normal (cos alpha, sin alpha) and offset c, is a variable of the model: the
@@ -16,9 +18,12 @@
  *
  * A step solves the nonlinear program maximizing the weighted sum of the
  * scales, the items staying in a small box around their current positions
- * and in their rotation ranges. The reference points of the items stay in
- * the bin, so that the scales can always reach 0: the program is always
- * feasible, except when a reference point is inside an obstacle.
+ * and in their rotation ranges. The centers of the parts stay in the bin, so
+ * that the scales can always reach 0: the program is always feasible, except
+ * when a center is inside an obstacle, or when two centers are closer than
+ * the spacing. The linear separation model (see
+ * 'linear_programming/separation_model.hpp') follows the same principle, with
+ * the directions of the separating lines fixed during a step.
  *
  * The program is solved with Knitro.
  */
@@ -113,6 +118,12 @@ private:
         std::vector<Point> vertices;
 
         /**
+         * Center of the scaling of the part (average of its vertices), in the
+         * same frame as the vertices; {0, 0} for the parts of the obstacles.
+         */
+        Point center = {0, 0};
+
+        /**
          * Minimum spacing between this part and the parts of the items (for
          * an obstacle).
          */
@@ -138,6 +149,12 @@ private:
      * reference points, at full scale and at their current angles.
      */
     std::vector<std::vector<Point>> items_hulls_;
+
+    /**
+     * Bounding boxes of the centers of the parts of the items, relatively to
+     * their reference points, at their current angles.
+     */
+    std::vector<AxisAlignedBoundingBox> items_centers_aabbs_;
 
     /** Item-item minimum spacing. */
     LengthDbl item_spacing_ = 0.0;

@@ -61,12 +61,23 @@ void LinearProgrammingSeparator::random_placement(
     item_state.bin_pos = bin_distribution(generator_);
     random_orientation(items_item_type_id_[item_pos], item_state.angle, item_state.mirror);
     const BinType& bin_type = instance_.bin_type(instance_.bin_type_id(item_state.bin_pos));
-    std::uniform_real_distribution<LengthDbl> distribution_x(
-            bin_type.aabb_scaled.x_min,
-            bin_type.aabb_scaled.x_max);
-    std::uniform_real_distribution<LengthDbl> distribution_y(
-            bin_type.aabb_scaled.y_min,
-            bin_type.aabb_scaled.y_max);
+    // The item at full scale is in the bin, so that the centers of its parts
+    // are in the bin.
+    const ItemType& item_type = instance_.item_type(items_item_type_id_[item_pos]);
+    AxisAlignedBoundingBox item_aabb = item_type.compute_min_max(
+            item_state.angle,
+            item_state.mirror,
+            1);
+    LengthDbl x_min = bin_type.aabb_scaled.x_min - item_aabb.x_min;
+    LengthDbl x_max = bin_type.aabb_scaled.x_max - item_aabb.x_max;
+    LengthDbl y_min = bin_type.aabb_scaled.y_min - item_aabb.y_min;
+    LengthDbl y_max = bin_type.aabb_scaled.y_max - item_aabb.y_max;
+    if (x_min > x_max)
+        x_min = x_max = (x_min + x_max) / 2;
+    if (y_min > y_max)
+        y_min = y_max = (y_min + y_max) / 2;
+    std::uniform_real_distribution<LengthDbl> distribution_x(x_min, x_max);
+    std::uniform_real_distribution<LengthDbl> distribution_y(y_min, y_max);
     item_state.position = {distribution_x(generator_), distribution_y(generator_)};
     item_state.lambda = 0.0;
 }
@@ -253,14 +264,6 @@ bool LinearProgrammingSeparator::step(
         }
         BinSeparationModel::StepParameters step_parameters;
         step_parameters.movement_ratio = movement_ratio;
-        step_parameters.shrink = true;
-        step_parameters.target_separation = 0.0;
-        // Eta first: its weight is larger than the largest possible gain on
-        // the scales.
-        double weights_sum = 0.0;
-        for (const SeparationModelItem& item: items)
-            weights_sum += item.weight;
-        step_parameters.eta_weight = 1e6 * (1.0 + weights_sum);
         if (!model.step(items, step_parameters, timer))
             return false;
         for (Counter pos = 0; pos < (Counter)items.size(); ++pos) {
