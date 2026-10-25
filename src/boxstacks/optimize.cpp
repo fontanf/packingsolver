@@ -260,7 +260,7 @@ void optimize_sequential_single_knapsack(
         AlgorithmFormatter& algorithm_formatter,
         boxstacks::Output& output)
 {
-    for (Counter growth_factor = 1;;) {
+    for (Counter iteration = 0, growth_factor = 1;; ++iteration) {
         // Each subproblem call recurses into a single-bin 'optimize()',
         // which goes through 'optimize_sequential_onedimensional_rectangle()'
         // - so, like that function's own loop, this grows both the
@@ -320,14 +320,13 @@ void optimize_sequential_single_knapsack(
         // value - see 'SequentialValueCorrectionParameters::
         // initial_profit_exponent''s own doc comment.
         svc_parameters.initial_profit_exponent = 1.0;
-        svc_parameters.new_solution_callback = [&algorithm_formatter, &growth_factor](
+        svc_parameters.new_solution_callback = [&algorithm_formatter, iteration](
                 const boxstacks::Output& ps_output)
             {
                 const SequentialValueCorrectionOutput<Instance, Solution, boxstacks::Output>& pssvc_output
                     = static_cast<const SequentialValueCorrectionOutput<Instance, Solution, boxstacks::Output>&>(ps_output);
                 std::stringstream ss;
-                ss << "SSK it " << pssvc_output.number_of_iterations
-                    << " g " << growth_factor;
+                ss << "SSK it " << iteration;
                 algorithm_formatter.update_solution(pssvc_output.solution_pool.best(), ss.str());
             };
         sequential_value_correction<Instance, InstanceBuilder, Solution, AlgorithmFormatter, boxstacks::Output>(

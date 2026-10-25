@@ -94,7 +94,7 @@ The optimization mode is a parameter of the solver:
            ----      ------    --------                         -------
           0.005           2      166300                  TS g 1 d X q 1
           0.005           2      189800                  TS g 1 d X q 1
-          0.018           2      212864                         SSK q 1
+          0.018           2      212864                        SSK it 0
           0.070           2      216608                  TS g 0 d X q 6
           0.229           2      218000                 TS g 0 d X q 19
           0.229           2      221384                 TS g 0 d X q 19
@@ -102,8 +102,8 @@ The optimization mode is a parameter of the solver:
           0.808           2      224000                 TS g 0 d X q 63
           0.808           2      225000                 TS g 0 d X q 63
           0.815           2      226500                 TS g 0 d X q 63
-          1.666           2      230500                        SSK q 64
-         12.251           2      241518                       SSK q 512
+          1.666           2      230500                        SSK it 6
+         12.251           2      241518                        SSK it 9
          14.221           2      243015               TS g 1 d X q 1066
    
    Final statistics
@@ -191,7 +191,7 @@ Same input as above. The solver terminates after 35 seconds.
            ----      ------    --------                         -------
          17.920           2      234000                      TS g 0 d X
          17.921           2      241518                      TS g 1 d X
-         28.537           2      246020                      SSK q 2048
+         28.537           2      246020                       SSK it 11
    
    Final statistics
    ----------------
