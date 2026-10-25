@@ -5,8 +5,6 @@
 
 See :ref:`rectangle<rectangle>` for the input/output format and CLI usage of this solver.
 
-.. _internals_rectangle_tree_search:
-
 Tree search
 ------------
 
@@ -20,7 +18,7 @@ The possible insertions for an unpacked item are the ones where the new item is 
    :scale: 100%
    :align: center
 
-.. _internals_rectangle_tree_search_maximal_spaces:
+See :doc:`the detailed description <rectangle/tree_search>`.
 
 Tree search with maximal spaces
 ----------------------------------
@@ -28,162 +26,75 @@ Tree search with maximal spaces
 This algorithm solves the :code:`feasibility` and :code:`knapsack` objectives with a single bin.
 It doesn't support unloading constraints.
 
-It is a tree search algorithm where multiple items are packed at each stage.
-
-In a first step, some blocks of items are generated. Blocks may contain a single item, multiple items of the same type, or multiple items of different types. Here is an example of block generation from 4 items:
-
-.. image:: ../img/rectangle_tree_search_maximal_spaces_1.png
-   :scale: 100%
-   :align: center
-
-In a node of the branching scheme, all maximal empty rectangles are stored. To generate the children of a node, a maximal empty rectangle is first selected, then one child is generated for each remaining block that fits inside the considered space.
-
-At the root node, the only maximal empty rectangle is the bin itself, so one child is generated per candidate block, placed in its bottom-left corner:
-
-.. image:: ../img/rectangle_tree_search_maximal_spaces_2.png
-   :scale: 100%
-   :align: center
-
-Placing a block can leave more than one maximal empty rectangle: after placing the block containing item ``1`` in the bottom-left corner, both the strip above it and the strip to its right are maximal empty rectangles, and both are stored in the node:
+It is a tree search algorithm where a block of items is packed at each stage. The blocks (grids of copies of an item type, and their combinations) are generated first. A node stores the maximal empty rectangles of the bin; its children place each block fitting in the empty rectangle closest to a corner of the bin.
 
 .. image:: ../img/rectangle_tree_search_maximal_spaces_3.png
    :scale: 100%
    :align: center
 
-When generating the children of this node, one of these maximal empty rectangles is selected, and one child is generated per remaining block that fits inside:
-
-.. image:: ../img/rectangle_tree_search_maximal_spaces_4.png
-   :scale: 100%
-   :align: center
-
-References:
-
-* "A beam search algorithm for the biobjective container loading problem" (Araya, Moyano and Sanchez, 2020)
-
-  * https://doi.org/10.1016/j.ejor.2020.03.040
-
-* "A tree search-based heuristic for the three-dimensional single container loading problem" (Guesser, Alves De Queiroz and Miyazawa, 2026)
-
-  * https://doi.org/10.1016/j.ejor.2026.01.039
+See :doc:`the detailed description <rectangle/tree_search_maximal_spaces>`.
 
 Benders decomposition
 ------------------------
 
-This algorithm solves the :code:`knapsack` objective.
+This algorithm solves the :code:`knapsack`, :code:`bin-packing` and :code:`variable-sized-bin-packing` objectives exactly.
 
-It solves the mixed-integer linear programming model where the geometrical constraints have been removed, only keeping the constraint that the selected items must fit in the bin area.
-
-**Input**:
-
-* item types :math:`j = 1, \ldots, n`; for each item type :math:`j`:
-
-  * a profit :math:`p_j`
-  * an area :math:`a_j`
-  * a maximum number of copies :math:`q_j` that could possibly fit in the bin
-
-* a bin area :math:`A`
-* a set :math:`\mathcal{C}` of previously rejected item selections (the no-good cuts found so far, initially empty)
-
-**Variables**:
-
-* :math:`x_{j,c} \in \{0, 1\}`, :math:`j = 1, \ldots, n`, :math:`c = 1, \ldots, q_j`: :math:`x_{j,c} = 1` iff the :math:`c`-th copy of item type :math:`j` is selected, otherwise :math:`0`.
-
-**Objective**: maximize the total profit of the selected items
-
-.. math::
-
-   \max \sum_{j} \sum_{c} p_j \, x_{j,c}
-
-**Constraints**:
-
-* Bin area: the selected items must fit in the bin area
-
-.. math::
-
-   \sum_{j} \sum_{c} a_j \, x_{j,c} \le A
-
-* Ordered copies: the copies of an item type are selected in order
-
-.. math::
-
-   \forall j \quad \forall c = 1, \ldots, q_j - 1 \qquad x_{j,c+1} \le x_{j,c}
-
-* No-good cuts: one per previously rejected selection :math:`S \in \mathcal{C}`, forbidding that exact same combination of items from being selected again
-
-.. math::
-
-   \forall S \in \mathcal{C} \qquad \sum_{(j,c) \, \in \, S} x_{j,c} \le |S| - 1
-
-At each iteration, the model above is solved, giving a candidate item selection. A :code:`feasibility` subproblem is then solved to check whether there exists a packing with the same items that satisfies the geometrical constraints ignored in the model. If yes, the algorithm stops: the candidate selection is an optimal solution. Otherwise, the candidate selection is added to :math:`\mathcal{C}` as a new no-good cut, and the model is solved again.
-
-In the example below, the bin has an area of 15 and items ``1``, ``2`` and ``3`` have an area of 6, 6 and 3 respectively -- exactly matching the bin area when all three are selected. At iteration 1, with no cuts yet, the model selects all three items (the only selection reaching the maximum possible area, 15). This selection turns out to be infeasible: items ``1`` and ``2`` already leave no room for item ``3``. A no-good cut excluding this exact combination is then added, and at iteration 2 the model selects items ``1`` and ``2`` only (area 12), which is feasible:
+Its master problem assigns the items to the bins considering only their areas, as a one-dimensional problem. For each bin of its solution, a subproblem checks whether the items actually fit; if not, cuts forbidding this selection of items are added to the master problem, which is solved again.
 
 .. image:: ../img/rectangle_benders_decomposition.png
    :scale: 100%
    :align: center
 
-References:
+See :doc:`the detailed description <rectangle/benders_decomposition>`.
 
-* "On the Two-Dimensional Knapsack Problem" (Caprara and Monaci, 2004)
+Benders decomposition with contiguity
+----------------------------------------
 
-  * https://doi.org/10.1016/S0167-6377(03)00057-9
+This algorithm solves the :code:`knapsack` and :code:`feasibility` objectives exactly, for a single bin.
 
-* "A Cutting-Plane Approach for the Two-Dimensional Orthogonal Non-Guillotine Cutting Problem" (Baldacci and Boschetti, 2007)
+Its master problem also decides the x-positions of the items (contiguous relaxation), and its subproblem only searches y-positions consistent with them.
 
-  * https://doi.org/10.1016/j.ejor.2005.11.060
-
-* "Combinatorial Benders Decomposition for the Two-Dimensional Bin Packing Problem" (Côté, Haouari and Iori, 2021)
-
-  * https://doi.org/10.1287/ijoc.2020.1014
-
-* "Optimisation de plans de palettisation hétérogène" (Le Jean, 2021, PhD thesis, Université Grenoble Alpes)
-
-  * https://theses.fr/2021GRALM032
-
-.. _internals_rectangle_dual_feasible_functions:
+See :doc:`the detailed description <rectangle/benders_decomposition_contiguity>`.
 
 Dual feasible functions
 -------------------------
 
-This algorithm computes a bound for the :code:`bin-packing` objective.
+This algorithm computes a bound for the :code:`bin-packing`, :code:`feasibility` and :code:`knapsack` objectives, for instances with a single bin type.
 
-It builds dominated instances in the sense that every feasible solution of the original instance is also feasible for the equivalent instances; however, computing the classical bound on these instances may lead to different values, sometimes better, which remain valid bounds for the original instance.
-
-In the example below, the bin is 10x6 and there are two copies each of items ``1`` (6x4), ``2`` (4x6) and ``3`` (4x3). Every pair of these items fits together in the bin, so the naive bound based on the total item area (2x(24+24+12) = 120, divided by the bin area 60, rounded up) is only 2:
-
-.. image:: ../img/rectangle_dual_feasible_functions_1.png
-   :scale: 100%
-   :align: center
-
-We apply the following transformation:
-
-* For every item with height :math:`\geq 4`, change its height to :math:`6`
-* Remove every item with height :math:`\leq 2`
-
-Every feasible solution for the original instance is feasible for the modified instance: when the height of an item with height :math:`\geq 4` is increased, every item it might intersect necessarily has height :math:`\leq 2`, and is therefore among the removed items.
-
-Only item ``1`` is affected by the transformation: its height becomes 6. Here is the dominated instance:
+It builds dominated instances, in which every feasible solution of the original instance remains feasible, by transforming the dimensions of the items and of the bin; the area bound of the dominated instances is a valid bound, sometimes better than the one of the original instance.
 
 .. image:: ../img/rectangle_dual_feasible_functions_2.png
    :scale: 100%
    :align: center
 
-Here, the naive area bound computed on the dominated instance (2x(36+24+12) = 144, divided by 60, rounded up) is 3 -- which turns out to be tight: the original instance does require 3 bins.
+See :doc:`the detailed description <rectangle/dual_feasible_functions>`.
 
-References:
+Conservative scales
+----------------------
 
-* "New reduction procedures and lower bounds for the two-dimensional bin packing problem with fixed orientation" (Carlier, Clautiaux and Moukrim, 2007)
+This algorithm computes a bound for the :code:`bin-packing` and :code:`feasibility` objectives, for instances with a single bin type and without item rotation.
 
-  * https://doi.org/10.1016/j.cor.2005.08.012
+It optimizes new dimensions for the items with linear programs, such that the packings remain feasible, and computes the area bound with them.
 
-* "A new lower bound for the non-oriented two-dimensional bin-packing problem" (Clautiaux, Jouglet and El Hayek, 2007)
+See :doc:`the detailed description <rectangle/conservative_scales>`.
 
-  * https://doi.org/10.1016/j.orl.2006.07.001
+Bar relaxation
+-----------------
 
-* "Heuristic approaches for the two- and three-dimensional knapsack packing problem" (Egeblad and Pisinger, 2009)
+This algorithm computes a bound for the :code:`knapsack`, :code:`feasibility`, :code:`bin-packing` and :code:`variable-sized-bin-packing` objectives.
 
-  * https://doi.org/10.1016/j.cor.2007.12.004
+It slices the bins into unit rows and columns, and only requires that the items can be distributed among them; the resulting linear program is solved by column generation.
 
-* "A theoretical and experimental study of fast lower bounds for the two-dimensional bin packing problem" (Serairi and Haouari, 2018)
+See :doc:`the detailed description <rectangle/bar_relaxation>`.
 
-  * https://doi.org/10.1051/ro/2017019
+.. toctree::
+   :maxdepth: 1
+   :hidden:
+
+   rectangle/tree_search
+   rectangle/tree_search_maximal_spaces
+   rectangle/benders_decomposition
+   rectangle/benders_decomposition_contiguity
+   rectangle/dual_feasible_functions
+   rectangle/conservative_scales
+   rectangle/bar_relaxation

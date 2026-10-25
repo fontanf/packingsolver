@@ -17,9 +17,9 @@ It tries to place the item by aligning the center of its bounding box with the c
 Tree search
 ------------
 
-This algorithm solves the :code:`feasibility`, :code:`knapsack`, :code:`bin-packing`, :code:`bin-packing-with-leftovers`, :code:`open-dimension-x`, :code:`open-dimension-y` objectives.
+This algorithm solves the :code:`feasibility`, :code:`knapsack`, :code:`bin-packing`, :code:`bin-packing-with-leftovers`, :code:`open-dimension-x`, :code:`open-dimension-y` objectives, and the :code:`open-dimension-xy` objective through sequential feasibility.
 
-It is a tree search algorithm where a single item is packed at each stage. The root node is an empty partial solution (no item packed). Given a node, a child node is generated for each feasible insertion of each unpacked item.
+It is a tree search algorithm where a single item is packed at each stage. The root node is an empty partial solution (no item packed). Given a node, a child node is generated for each feasible insertion of each unpacked item: the new item rests on the last inserted item, and is pushed to the right until it doesn't overlap the items already packed.
 
 It is a generalization of the tree search algorithm for :code:`rectangle`.
 
@@ -27,60 +27,46 @@ It is a generalization of the tree search algorithm for :code:`rectangle`.
    :scale: 100%
    :align: center
 
-MILP raster
---------------
+See :doc:`the detailed description <irregular/tree_search>`.
 
-This algorithm solves the :code:`feasibility` and :code:`knapsack` objectives.
+Tree search with periodic packings
+-------------------------------------
 
-It rasterizes the bin and items onto a grid and solves the resulting placement problem as a mixed-integer linear program.
+This algorithm solves the :code:`knapsack` and :code:`feasibility` objectives with a single bin, and the other objectives with a single bin through sequential feasibility.
 
-.. image:: ../img/irregular_milp_raster.png
-   :scale: 100%
-   :align: center
+It is designed for instances with many copies of a few item types. The periodic packings of the item types (lattice packings of one or two items) are computed first; blocks of items are built from them, and a tree search with maximal empty spaces packs a block at each stage.
 
-**Input**:
-
-* a set :math:`G` of grid cells
-* a set :math:`P` of candidate placements; for each placement :math:`p`, an item type :math:`j(p)`, a profit :math:`p_{j(p)}` and the set of cells :math:`C_p \subseteq G` it covers
-* item types :math:`j = 1, \ldots, n`; for each item type :math:`j`, a number of copies :math:`q_j`
-
-**Variables**:
-
-* :math:`x_p \in \{0, 1\}`, :math:`p \in P`: :math:`x_p = 1` iff placement :math:`p` is selected
-
-**Objective**: maximize the total profit of the placed items
-
-.. math::
-
-   \max \sum_{p} p_{j(p)} \, x_p
-
-**Constraints**:
-
-* Item copies: each item type is placed at most (:code:`knapsack`) or exactly (:code:`feasibility`) its number of copies
-
-.. math::
-
-   \forall j \qquad \sum_{p \,:\, j(p) = j} x_p \le q_j
-
-* Cell conflict: each grid cell is covered by at most one placement
-
-.. math::
-
-   \forall c \in G \qquad \sum_{p \,:\, c \, \in \, C_p} x_p \le 1
-
-The algorithm starts with a coarse grid and iteratively halves the cell size, re-solving the model each time, until the time limit is reached.
+See :doc:`the detailed description <irregular/tree_search_periodic_packing>`.
 
 Local search
 --------------
 
-This algorithm solves the :code:`feasibility` objective.
+This algorithm solves the :code:`feasibility` objective, and the :code:`bin-packing`, :code:`bin-packing-with-leftovers` and :code:`open-dimension-*` objectives through sequential feasibility.
 
-It works on a solution where all items are packed with overlap. At each iteration, it tries to reduce the overlap until no items overlap anymore and the solution becomes feasible.
+It works on complete layouts which are allowed to be infeasible, and tries to make them feasible. When it fails, it starts again from a disruption of a failed layout, drawn from a population (iterated local search). Three engines are available:
+
+* direct trigonometry: the items may overlap, and the overlap is minimized by moving the items one by one to the best of many sampled positions;
+* linear programming: the items may be shrunk instead of overlapping, and linear programs move them slightly while maximizing their sizes;
+* nonlinear programming: the same with nonlinear programs, in which the items may also rotate (requires Knitro).
 
 .. image:: ../img/irregular_local_search.png
    :scale: 100%
    :align: center
 
+See :doc:`the detailed description <irregular/local_search>`.
+
+MILP raster
+--------------
+
+This algorithm solves the :code:`feasibility` and :code:`knapsack` objectives.
+
+It rasterizes the bins and the items onto a grid and solves the resulting placement problem as a mixed-integer linear program, refining the grid iteratively.
+
+.. image:: ../img/irregular_milp_raster.png
+   :scale: 100%
+   :align: center
+
+See :doc:`the detailed description <irregular/milp_raster>`.
 
 One-dimensional bound
 ------------------------
@@ -88,3 +74,12 @@ One-dimensional bound
 This algorithm computes a bound for the :code:`bin-packing`, :code:`knapsack` and :code:`variable-sized-bin-packing` objectives.
 
 Relaxes the instance to a one-dimensional problem (each bin and item type keeps only its area) and solves it, which is much cheaper than solving the irregular problem itself. The resulting bin-packing / knapsack / variable-sized-bin-packing bound is a valid bound for the original instance, since no irregular packing can use less total area than this relaxation requires.
+
+.. toctree::
+   :maxdepth: 1
+   :hidden:
+
+   irregular/tree_search
+   irregular/tree_search_periodic_packing
+   irregular/local_search
+   irregular/milp_raster
