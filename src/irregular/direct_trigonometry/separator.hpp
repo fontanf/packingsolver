@@ -17,7 +17,6 @@
  *   coordinate descent.
  * - There is no spatial index: an evaluation goes through the items of the
  *   bin, filtered by their bounding boxes.
- * - A single worker moves the items at each iteration.
  */
 
 #pragma once

@@ -186,8 +186,7 @@ struct LocalSearchParameters: packingsolver::Parameters<Instance, Solution, Outp
  *
  * For the other objectives than Feasibility, it is the warm start of the first
  * sub-problem of the sequential feasibility algorithm; the next sub-problems
- * are warm-started from the previous solution found. The linear programming
- * engine doesn't use it.
+ * are warm-started from the previous solution found.
  */
 LocalSearchOutput local_search(
         const Instance& instance,
