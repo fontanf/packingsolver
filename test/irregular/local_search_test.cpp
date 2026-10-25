@@ -216,6 +216,46 @@ TEST(IrregularLocalSearch, NonlinearProgrammingFeasibility)
         EXPECT_TRUE(overlapping_items.items_outside_bin.empty());
     }
 }
+
+TEST(IrregularLocalSearch, BlackBoxOptimizationFeasibility)
+{
+    // Bin 45x25; four 10x10 squares and four 10x10 right triangles, with
+    // spacing. The initial solution has all the items at the same position.
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(Objective::Feasibility);
+    instance_builder.set_item_item_minimum_spacing(0.5);
+    instance_builder.add_bin_type(rectangle_shape(45, 25));
+    ItemTypeId square_id = instance_builder.add_item_type(rectangle_item_shape(10, 10));
+    instance_builder.set_item_type_copies(square_id, 4);
+    ItemShape triangle_shape;
+    triangle_shape.shape_orig.shape = shape::build_triangle({0, 0}, {10, 0}, {0, 10});
+    ItemTypeId triangle_id = instance_builder.add_item_type({triangle_shape});
+    instance_builder.set_item_type_copies(triangle_id, 4);
+    Instance instance = instance_builder.build();
+
+    SolutionBuilder solution_builder(instance);
+    BinPos bin_pos = solution_builder.add_bin(0, 1);
+    for (ItemPos copy = 0; copy < 4; ++copy) {
+        solution_builder.add_item(bin_pos, square_id, {0, 0}, 0, false);
+        solution_builder.add_item(bin_pos, triangle_id, {0, 0}, 0, false);
+    }
+    Solution initial_solution = solution_builder.build();
+
+    LocalSearchParameters parameters;
+    parameters.verbosity_level = 0;
+    parameters.engine = LocalSearchEngine::BlackBoxOptimization;
+    parameters.timer.set_time_limit(60);
+    std::mt19937_64 generator(0);
+    LocalSearchOutput output = local_search(instance, generator, &initial_solution, parameters);
+    const Solution& solution = output.solution_pool.best();
+    EXPECT_TRUE(solution.full());
+    EXPECT_TRUE(solution.feasible());
+    for (BinPos bin_pos = 0; bin_pos < solution.number_of_different_bins(); ++bin_pos) {
+        Solution::OverlappingItems overlapping_items = solution.compute_overlapping_items(bin_pos);
+        EXPECT_TRUE(overlapping_items.item_item_pairs.empty());
+        EXPECT_TRUE(overlapping_items.items_outside_bin.empty());
+    }
+}
 #endif
 
 namespace

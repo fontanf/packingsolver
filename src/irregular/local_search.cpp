@@ -183,6 +183,33 @@ void local_search_nonlinear_programming(
     run_iterated_local_search(separator, generator, parameters, algorithm_formatter);
 }
 
+/** Local search with the black-box optimization engine, for objective Feasibility. */
+void local_search_black_box_optimization(
+        const Instance& instance,
+        std::mt19937_64& generator,
+        const Solution* initial_solution,
+        const LocalSearchParameters& parameters,
+        AlgorithmFormatter& algorithm_formatter)
+{
+    BlackBoxOptimizationSeparator separator(
+            instance,
+            parameters.black_box_optimization_separator_parameters,
+            generator,
+            parameters.separator_item_types,
+            parameters.black_box_optimization_no_fit_polygons);
+    separator.set_initial_stopping_criteria(
+            parameters.initial_separation_maximum_number_of_iterations_without_improvement,
+            parameters.initial_separation_maximum_number_of_strikes);
+    if (initial_solution != nullptr) {
+        separator.set_solution(
+                convert_initial_solution(instance, *initial_solution),
+                parameters.timer);
+    } else {
+        separator.set_solution(Solution(instance), parameters.timer);
+    }
+    run_iterated_local_search(separator, generator, parameters, algorithm_formatter);
+}
+
 }  // namespace
 
 Solution packingsolver::irregular::convert_initial_solution(
@@ -289,8 +316,25 @@ LocalSearchOutput packingsolver::irregular::local_search(
                     instance,
                     parameters.separator_parameters);
         }
+        std::shared_ptr<ItemNoFitPolygons> no_fit_polygons
+            = parameters.black_box_optimization_no_fit_polygons;
+        if (parameters.engine == LocalSearchEngine::BlackBoxOptimization) {
+            const SeparatorParameters& direct_trigonometry_parameters
+                = parameters.black_box_optimization_separator_parameters.direct_trigonometry_parameters;
+            if (separator_item_types == nullptr) {
+                separator_item_types = Separator::build_item_types(
+                        instance,
+                        direct_trigonometry_parameters);
+            }
+            if (no_fit_polygons == nullptr) {
+                no_fit_polygons = std::make_shared<ItemNoFitPolygons>(
+                        instance,
+                        separator_item_types,
+                        direct_trigonometry_parameters.maximum_approximation_ratio);
+            }
+        }
 
-        SequentialFeasibilitySolver solver = [&parameters, &algorithm_formatter, &generator, initial_solution, separator_item_types](
+        SequentialFeasibilitySolver solver = [&parameters, &algorithm_formatter, &generator, initial_solution, separator_item_types, no_fit_polygons](
                 const Instance& sub_instance,
                 const Solution* previous_solution)
         {
@@ -305,6 +349,9 @@ LocalSearchOutput packingsolver::irregular::local_search(
                 = parameters.linear_programming_separator_parameters;
             inner_parameters.nonlinear_programming_separator_parameters
                 = parameters.nonlinear_programming_separator_parameters;
+            inner_parameters.black_box_optimization_separator_parameters
+                = parameters.black_box_optimization_separator_parameters;
+            inner_parameters.black_box_optimization_no_fit_polygons = no_fit_polygons;
             inner_parameters.separator_item_types = separator_item_types;
             inner_parameters.moves_limit = parameters.moves_limit;
             inner_parameters.initial_separation_maximum_number_of_iterations_without_improvement
@@ -357,6 +404,8 @@ LocalSearchOutput packingsolver::irregular::local_search(
         local_search_linear_programming(instance, generator, initial_solution, parameters, algorithm_formatter);
     } else if (parameters.engine == LocalSearchEngine::NonlinearProgramming) {
         local_search_nonlinear_programming(instance, generator, initial_solution, parameters, algorithm_formatter);
+    } else if (parameters.engine == LocalSearchEngine::BlackBoxOptimization) {
+        local_search_black_box_optimization(instance, generator, initial_solution, parameters, algorithm_formatter);
     } else {
         local_search_direct_trigonometry(instance, generator, initial_solution, parameters, algorithm_formatter);
     }

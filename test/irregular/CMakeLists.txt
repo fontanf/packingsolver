@@ -7,6 +7,7 @@ target_sources(PackingSolver_irregular_test PRIVATE
     tree_search_test.cpp
     trivial_test.cpp
     utils_test.cpp
+    black_box_optimization/no_fit_polygon_test.cpp
     direct_trigonometry/polygon_test.cpp
     nonlinear_programming/separating_line_test.cpp)
 target_include_directories(PackingSolver_irregular_test PRIVATE

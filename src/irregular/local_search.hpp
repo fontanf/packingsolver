@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include "irregular/black_box_optimization/separator.hpp"
 #include "irregular/direct_trigonometry/separator.hpp"
 #include "irregular/linear_programming/separator.hpp"
 #include "irregular/nonlinear_programming/separator.hpp"
@@ -44,6 +45,14 @@ enum class LocalSearchEngine
      * 'nonlinear_programming/separator.hpp'). Requires Knitro.
      */
     NonlinearProgramming,
+
+    /**
+     * Black-box optimization: the items may overlap, and the separator solves
+     * nonlinear programs minimizing their squared penetration depths,
+     * computed from their no-fit polygons (see
+     * 'black_box_optimization/separator.hpp'). Requires Knitro.
+     */
+    BlackBoxOptimization,
 };
 
 struct LocalSearchOutput: Output
@@ -166,6 +175,28 @@ struct LocalSearchParameters: packingsolver::Parameters<Instance, Solution, Outp
 
     /** Parameters of the separator. */
     NonlinearProgrammingSeparatorParameters nonlinear_programming_separator_parameters;
+
+    /*
+     * Parameters of the black-box optimization engine.
+     */
+
+    /**
+     * Parameters of the separator.
+     *
+     * The item types of its direct trigonometry separator are
+     * 'separator_item_types', and its stopping criteria of the separation of
+     * the initial layout are the ones above.
+     */
+    BlackBoxOptimizationSeparatorParameters black_box_optimization_separator_parameters;
+
+    /**
+     * No-fit polygons of the separator, if already built; built from the
+     * instance otherwise.
+     *
+     * For the other objectives than Feasibility, they are shared by the
+     * sub-problems of the sequential feasibility algorithm.
+     */
+    std::shared_ptr<ItemNoFitPolygons> black_box_optimization_no_fit_polygons;
 };
 
 /**
