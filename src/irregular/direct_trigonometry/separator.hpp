@@ -23,6 +23,7 @@
 
 #include "irregular/direct_trigonometry/polygon.hpp"
 
+#include "packingsolver/irregular/optimize.hpp"
 #include "packingsolver/irregular/solution.hpp"
 
 #include "optimizationtools/utils/timer.hpp"
@@ -81,6 +82,9 @@ struct SeparatorParameters
 
     /** Number of samples in the whole bins, to insert an item. */
     Counter number_of_insertion_samples = 1000;
+
+    /** Weighting scheme of the guided local search weights. */
+    LocalSearchWeightingScheme weighting_scheme = LocalSearchWeightingScheme::Multiplicative;
 };
 
 class Separator

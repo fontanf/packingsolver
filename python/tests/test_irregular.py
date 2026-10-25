@@ -546,11 +546,18 @@ def test_parameters():
     parameters.use_local_search_nonlinear_programming = True
     assert parameters.use_local_search_nonlinear_programming
     parameters.use_local_search_nonlinear_programming = False
+    assert not parameters.use_local_search_black_box_optimization
+    parameters.use_local_search_black_box_optimization = True
+    assert parameters.use_local_search_black_box_optimization
+    parameters.use_local_search_black_box_optimization = False
     parameters.not_anytime_tree_search_queue_size = 64
     assert parameters.not_anytime_tree_search_queue_size == 64
     assert parameters.not_anytime_local_search_maximum_number_of_failed_separations == 10
     parameters.not_anytime_local_search_maximum_number_of_failed_separations = 5
     assert parameters.not_anytime_local_search_maximum_number_of_failed_separations == 5
+    assert parameters.local_search_weighting_scheme == psi.LocalSearchWeightingScheme.Multiplicative
+    parameters.local_search_weighting_scheme = psi.LocalSearchWeightingScheme.Additive
+    assert parameters.local_search_weighting_scheme == psi.LocalSearchWeightingScheme.Additive
     parameters.initial_maximum_approximation_ratio = 0.1
     assert parameters.initial_maximum_approximation_ratio == pytest.approx(0.1)
     parameters.reduction_parameters.reduce = False

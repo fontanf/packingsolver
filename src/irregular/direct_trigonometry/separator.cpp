@@ -813,14 +813,21 @@ double Separator::total_loss() const
 
 void Separator::update_weights()
 {
-    // Algorithm 8 of the Sparrow paper.
     double maximum_loss = 0.0;
     for (const Entry& entry: pair_entries_)
         maximum_loss = (std::max)(maximum_loss, entry.loss);
     for (const Entry& entry: hazard_entries_)
         maximum_loss = (std::max)(maximum_loss, entry.loss);
-    auto update = [maximum_loss](Entry& entry)
+    const LocalSearchWeightingScheme weighting_scheme = parameters_.weighting_scheme;
+    auto update = [maximum_loss, weighting_scheme](Entry& entry)
     {
+        if (weighting_scheme == LocalSearchWeightingScheme::Additive) {
+            // Equation (29) of Umetani et al. (2009).
+            if (entry.loss > 0.0)
+                entry.weight += entry.loss / maximum_loss;
+            return;
+        }
+        // Algorithm 8 of the Sparrow paper.
         double multiplier = (entry.loss == 0.0)?
             weight_decay:
             weight_minimum_increase_ratio

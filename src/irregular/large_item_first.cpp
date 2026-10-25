@@ -87,10 +87,12 @@ LargeItemFirstOutput packingsolver::irregular::large_item_first(
         sub_parameters.not_anytime_tree_search_queue_size
             = parameters.not_anytime_tree_search_queue_size;
         sub_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
+        sub_parameters.local_search_weighting_scheme = parameters.local_search_weighting_scheme;
         sub_parameters.use_tree_search = parameters.use_tree_search;
         sub_parameters.use_local_search_linear_programming = parameters.use_local_search_linear_programming;
         sub_parameters.use_local_search_nonlinear_programming = parameters.use_local_search_nonlinear_programming;
         sub_parameters.use_local_search_direct_trigonometry = parameters.use_local_search_direct_trigonometry;
+        sub_parameters.use_local_search_black_box_optimization = parameters.use_local_search_black_box_optimization;
         sub_parameters.use_milp_raster = parameters.use_milp_raster;
         sub_parameters.use_sequential_single_knapsack = parameters.use_sequential_single_knapsack;
         sub_parameters.use_sequential_value_correction = parameters.use_sequential_value_correction;

@@ -263,6 +263,10 @@ void bind_irregular(nb::module_& m)
      * Enums
      */
 
+    nb::enum_<LocalSearchWeightingScheme>(m, "LocalSearchWeightingScheme")
+        .value("Multiplicative", LocalSearchWeightingScheme::Multiplicative)
+        .value("Additive", LocalSearchWeightingScheme::Additive);
+
     nb::enum_<LeftoverMode>(m, "LeftoverMode")
         .value("BottomLeft", LeftoverMode::BottomLeft)
         .value("BottomRight", LeftoverMode::BottomRight)
@@ -658,6 +662,7 @@ void bind_irregular(nb::module_& m)
         .def_rw("use_local_search_linear_programming", &OptimizeParameters::use_local_search_linear_programming)
         .def_rw("use_local_search_nonlinear_programming", &OptimizeParameters::use_local_search_nonlinear_programming)
         .def_rw("use_local_search_direct_trigonometry", &OptimizeParameters::use_local_search_direct_trigonometry)
+        .def_rw("use_local_search_black_box_optimization", &OptimizeParameters::use_local_search_black_box_optimization)
         .def_rw("use_milp_raster", &OptimizeParameters::use_milp_raster)
         .def_rw("use_sequential_single_knapsack", &OptimizeParameters::use_sequential_single_knapsack)
         .def_rw("use_sequential_value_correction", &OptimizeParameters::use_sequential_value_correction)
@@ -678,6 +683,7 @@ void bind_irregular(nb::module_& m)
         .def_rw("not_anytime_sequential_single_knapsack_subproblem_tree_search_queue_size", &OptimizeParameters::not_anytime_sequential_single_knapsack_subproblem_tree_search_queue_size)
         .def_rw("not_anytime_sequential_value_correction_number_of_iterations", &OptimizeParameters::not_anytime_sequential_value_correction_number_of_iterations)
         .def_rw("not_anytime_local_search_maximum_number_of_failed_separations", &OptimizeParameters::not_anytime_local_search_maximum_number_of_failed_separations)
+        .def_rw("local_search_weighting_scheme", &OptimizeParameters::local_search_weighting_scheme)
         .def_rw("not_anytime_local_search_maximum_number_of_moves_factor", &OptimizeParameters::not_anytime_local_search_maximum_number_of_moves_factor)
         .def_rw("anytime_sequential_single_knapsack_subproblem_tree_search_initial_queue_size", &OptimizeParameters::anytime_sequential_single_knapsack_subproblem_tree_search_initial_queue_size)
         .def_rw("anytime_sequential_single_knapsack_subproblem_tree_search_periodic_packing_initial_queue_size", &OptimizeParameters::anytime_sequential_single_knapsack_subproblem_tree_search_periodic_packing_initial_queue_size)

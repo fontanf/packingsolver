@@ -23,6 +23,8 @@ target_sources(PackingSolver_irregular PRIVATE
     trivial.cpp
     direct_trigonometry/polygon.cpp
     direct_trigonometry/separator.cpp
+    black_box_optimization/no_fit_polygon.cpp
+    black_box_optimization/separator.cpp
     local_search.cpp
     sequential_feasibility.cpp
     reduction.cpp)

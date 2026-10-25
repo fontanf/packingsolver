@@ -16,6 +16,41 @@ namespace packingsolver
 namespace irregular
 {
 
+/**
+ * Update rule of the guided local search weights of the overlap minimization
+ * engines of the local search (direct trigonometry and black-box
+ * optimization), applied after each iteration of a separation.
+ */
+enum class LocalSearchWeightingScheme
+{
+    /**
+     * The weights of the colliding pairs are multiplied by a factor between
+     * 1.2 and 2, proportional to their loss divided by the largest loss; the
+     * other ones are multiplied by 0.95, without going below 1.
+     *
+     * "An open-source heuristic to reboot 2D nesting research" (Gardeyn and
+     * Vanden Berghe, 2025), Algorithm 8.
+     */
+    Multiplicative,
+
+    /**
+     * The weights of the colliding pairs are increased by their loss divided
+     * by the largest loss; the other ones are kept.
+     *
+     * "Solving the irregular strip packing problem via guided local search
+     * for overlap minimization" (Umetani et al., 2009), equation (29).
+     */
+    Additive,
+};
+
+std::istream& operator>>(
+        std::istream& in,
+        LocalSearchWeightingScheme& weighting_scheme);
+
+std::ostream& operator<<(
+        std::ostream& os,
+        LocalSearchWeightingScheme weighting_scheme);
+
 struct Output: packingsolver::Output<Instance, Solution>
 {
     Output(const Instance& instance):
@@ -194,6 +229,13 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
      */
     bool use_local_search_direct_trigonometry = false;
 
+    /**
+     * Use local search algorithm with the black-box optimization engine (the
+     * penetration depths between the items, computed from their no-fit
+     * polygons, are minimized). Requires Knitro.
+     */
+    bool use_local_search_black_box_optimization = false;
+
     /** Use MILP raster algorithm. */
     bool use_milp_raster = false;
 
@@ -328,6 +370,12 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
      * the timer.
      */
     Counter not_anytime_local_search_maximum_number_of_failed_separations = 10;
+
+    /**
+     * Weighting scheme of the local search with the direct trigonometry and
+     * black-box optimization engines.
+     */
+    LocalSearchWeightingScheme local_search_weighting_scheme = LocalSearchWeightingScheme::Multiplicative;
 
     /**
      * Maximum number of item moves per worker of the local search with the

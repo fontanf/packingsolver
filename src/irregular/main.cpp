@@ -88,6 +88,8 @@ int main(int argc, char *argv[])
             ("use-local-search-linear-programming,", po::value<bool>(), "enable local search algorithm with the linear programming engine")
             ("use-local-search-nonlinear-programming,", po::value<bool>(), "enable local search algorithm with the nonlinear programming engine (requires Knitro)")
             ("use-local-search-direct-trigonometry,", po::value<bool>(), "enable local search algorithm with the direct trigonometry engine")
+            ("use-local-search-black-box-optimization,", po::value<bool>(), "enable local search algorithm with the black-box optimization engine (requires Knitro)")
+            ("local-search-weighting-scheme,", po::value<LocalSearchWeightingScheme>(), "set the weighting scheme of the local search: multiplicative, additive")
             ("use-sequential-single-knapsack,", po::value<bool>(), "enable sequential-single-knapsack")
             ("use-sequential-value-correction,", po::value<bool>(), "enable sequential-value-correction")
             ("use-column-generation,", po::value<bool>(), "enable column-generation")
@@ -179,6 +181,8 @@ int main(int argc, char *argv[])
             parameters.use_local_search_nonlinear_programming = vm["use-local-search-nonlinear-programming"].as<bool>();
         if (vm.count("use-local-search-direct-trigonometry"))
             parameters.use_local_search_direct_trigonometry = vm["use-local-search-direct-trigonometry"].as<bool>();
+        if (vm.count("use-local-search-black-box-optimization"))
+            parameters.use_local_search_black_box_optimization = vm["use-local-search-black-box-optimization"].as<bool>();
         if (vm.count("use-sequential-single-knapsack"))
             parameters.use_sequential_single_knapsack = vm["use-sequential-single-knapsack"].as<bool>();
         if (vm.count("use-sequential-value-correction"))
@@ -208,6 +212,8 @@ int main(int argc, char *argv[])
             parameters.not_anytime_sequential_single_knapsack_subproblem_tree_search_queue_size = vm["not-anytime-sequential-single-knapsack-subproblem-tree-search-queue-size"].as<Counter>();
         if (vm.count("not-anytime-sequential-value-correction-number-of-iterations"))
             parameters.not_anytime_sequential_value_correction_number_of_iterations = vm["not-anytime-sequential-value-correction-number-of-iterations"].as<Counter>();
+        if (vm.count("local-search-weighting-scheme"))
+            parameters.local_search_weighting_scheme = vm["local-search-weighting-scheme"].as<LocalSearchWeightingScheme>();
         if (vm.count("not-anytime-local-search-maximum-number-of-failed-separations"))
             parameters.not_anytime_local_search_maximum_number_of_failed_separations = vm["not-anytime-local-search-maximum-number-of-failed-separations"].as<Counter>();
         if (vm.count("not-anytime-local-search-maximum-number-of-moves-factor"))
