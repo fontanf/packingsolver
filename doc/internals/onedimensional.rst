@@ -31,3 +31,31 @@ It is a tree search algorithm where a single item is packed at each stage. The r
 .. image:: ../img/onedimensional_tree_search.png
    :scale: 100%
    :align: center
+
+See :doc:`the detailed description <onedimensional/tree_search>`.
+
+MILP assignment
+---------------
+
+This algorithm solves the :code:`feasibility`, :code:`knapsack`, :code:`bin-packing` and :code:`variable-sized-bin-packing` objectives.
+
+It solves the classical assignment mixed-integer linear program, where each item is assigned to a bin, with HiGHS. It doesn't model the nesting lengths, the maximum stackability and the maximum weight after constraints.
+
+See :doc:`the detailed description <onedimensional/milp_assignment>`.
+
+Dual feasible functions
+-----------------------
+
+This algorithm computes a bound for the :code:`bin-packing`, :code:`feasibility` and :code:`knapsack` objectives, for instances with a single bin type.
+
+It transforms the lengths of the items and of the bin with dual feasible functions, which round the long items up and the short items down while keeping the packings feasible, and computes the trivial bound of the transformed instance.
+
+See :doc:`the detailed description <onedimensional/dual_feasible_functions>`.
+
+.. toctree::
+   :maxdepth: 1
+   :hidden:
+
+   onedimensional/tree_search
+   onedimensional/milp_assignment
+   onedimensional/dual_feasible_functions

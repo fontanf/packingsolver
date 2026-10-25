@@ -8,28 +8,39 @@ See :ref:`box<box>` for the input/output format and CLI usage of this solver.
 Tree search
 ------------
 
-This algorithm solves the :code:`feasibility`, :code:`knapsack`, :code:`open-dimension-x`, :code:`open-dimension-y`, :code:`bin-packing` and :code:`bin-packing-with-leftovers` objectives.
+This algorithm solves the :code:`feasibility`, :code:`knapsack`, :code:`open-dimension-x`, :code:`open-dimension-y`, :code:`open-dimension-z`, :code:`bin-packing` and :code:`bin-packing-with-leftovers` objectives.
 
-This is a direct generalization of the algorithm for :code:`rectangle` problems.
+This is a direct generalization of the :ref:`tree search for rectangle <internals_rectangle_tree_search>` to three dimensions: a single item is packed at each stage, against the skyline of the items already packed.
 
-See :ref:`rectangle <internals_rectangle_tree_search>`
+See :doc:`the detailed description <box/tree_search>`.
 
 Tree search with maximal spaces
 ----------------------------------
 
 This algorithm solves the :code:`feasibility` and :code:`knapsack` objectives with a single bin.
-It doesn't support unloading constraints.
 
-This is a direct generalization of the algorithm for :code:`rectangle` problems.
+It is a tree search algorithm where a block of items is packed at each stage, in a corner of the maximal empty spaces of the bin. The :ref:`tree search with maximal spaces for rectangle <internals_rectangle_tree_search_maximal_spaces>` is its two-dimensional version.
 
-See :ref:`rectangle <internals_rectangle_tree_search_maximal_spaces>`
+See :doc:`the detailed description <box/tree_search_maximal_spaces>`.
 
-References:
+Dual feasible functions
+-------------------------
 
-* "A beam search algorithm for the biobjective container loading problem" (Araya, Moyano and Sanchez, 2020)
+This algorithm computes a bound for the :code:`bin-packing`, :code:`feasibility` and :code:`knapsack` objectives, for instances with a single bin type.
 
-  * https://doi.org/10.1016/j.ejor.2020.03.040
+It is the generalization to three dimensions of the :ref:`dual feasible functions for rectangle <internals_rectangle_dual_feasible_functions>`.
 
-* "A tree search-based heuristic for the three-dimensional single container loading problem" (Guesser, Alves De Queiroz and Miyazawa, 2026)
+See :doc:`the detailed description <box/dual_feasible_functions>`.
 
-  * https://doi.org/10.1016/j.ejor.2026.01.039
+Trivial bounds
+--------------
+
+Closed-form bounds, computed for every instance: a volume-based fractional bound for the :code:`knapsack` objective, a volume-based number of bins for the :code:`bin-packing` objective, and bounds from the volume and the dimensions of the items for the open dimension objectives.
+
+.. toctree::
+   :maxdepth: 1
+   :hidden:
+
+   box/tree_search
+   box/tree_search_maximal_spaces
+   box/dual_feasible_functions
