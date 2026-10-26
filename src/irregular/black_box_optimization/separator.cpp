@@ -772,6 +772,23 @@ void BlackBoxOptimizationSeparator::disrupt()
     compute_losses();
 }
 
+Profit BlackBoxOptimizationSeparator::profit() const
+{
+    Profit profit = 0;
+    for (ItemPos item_pos = 0; item_pos < (ItemPos)items_state_.size(); ++item_pos)
+        if (items_state_[item_pos].bin_pos != -1)
+            profit += instance_.item_type(items_item_type_id_[item_pos]).profit;
+    return profit;
+}
+
+bool BlackBoxOptimizationSeparator::insert_items_above_profit_threshold()
+{
+    direct_trigonometry_separator_.set_layout(items_state_);
+    bool inserted = direct_trigonometry_separator_.insert_items_above_profit_threshold();
+    set_layout(direct_trigonometry_separator_.layout());
+    return inserted;
+}
+
 Counter BlackBoxOptimizationSeparator::distance(
         const Layout& layout_1,
         const Layout& layout_2) const

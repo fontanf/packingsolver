@@ -28,6 +28,7 @@
 
 #include "optimizationtools/utils/timer.hpp"
 
+#include <functional>
 #include <limits>
 #include <memory>
 #include <random>
@@ -255,10 +256,57 @@ public:
     Solution solution() const;
 
     /**
-     * Disrupt the current layout by swapping two large items; the items
-     * covered by one of them after the swap are moved to the space it left.
+     * Disrupt the current layout.
+     *
+     * By default, swap two large items; the items covered by one of them
+     * after the swap are moved to the space it left.
+     *
+     * In knapsack mode (see 'set_profit_threshold'), apply a perturbation
+     * drawn at random among the ones which keep the profit of the layout
+     * strictly greater than the threshold:
+     * - the swap of two large items above;
+     * - move: an item is inserted again at the best of sampled positions;
+     * - insertion: an item which is not in the layout is inserted at the
+     *   best of sampled positions;
+     * - exchange: an item of the layout is removed, and an item which is
+     *   not in the layout is inserted around its position;
+     * - removal: an item of the layout is removed.
+     * The items inserted are drawn by binary tournament on their profit per
+     * unit area.
      */
     void disrupt();
+
+    /*
+     * Knapsack mode
+     */
+
+    /**
+     * Switch to knapsack mode and set the profit threshold: the layouts are
+     * meant to contain a set of items whose profit is strictly greater than
+     * it, and the perturbations change the set of items while keeping this
+     * property (see 'disrupt').
+     *
+     * In knapsack mode, 'set_solution' doesn't insert the items missing from
+     * the solution.
+     */
+    void set_profit_threshold(Profit profit_threshold)
+    {
+        knapsack_ = true;
+        profit_threshold_ = profit_threshold;
+    }
+
+    /** Get the profit of the items of the current layout. */
+    Profit profit() const;
+
+    /**
+     * Insert items which are not in the current layout, drawn by binary
+     * tournament on their profit per unit area, each one at the best of
+     * sampled positions, until the profit of the layout is strictly greater
+     * than the threshold.
+     *
+     * Return false if it isn't possible.
+     */
+    bool insert_items_above_profit_threshold();
 
     /**
      * Limit on the number of item moves, shared by the separators of a local
@@ -624,6 +672,34 @@ private:
 
     /** Number of iterations of the separations. */
     Counter number_of_iterations_ = 0;
+
+    /** True iff in knapsack mode (see 'set_profit_threshold'). */
+    bool knapsack_ = false;
+
+    /** Profit threshold (see 'set_profit_threshold'). */
+    Profit profit_threshold_ = 0;
+
+    /** Swap two large items (see 'disrupt'). */
+    void swap_large_items();
+
+    /**
+     * Draw an item which is not in the layout by binary tournament on the
+     * profit per unit area, among the ones satisfying 'filter'; return -1 if
+     * there is none.
+     */
+    ItemPos draw_missing_item(const std::function<bool(ItemPos)>& filter);
+
+    /**
+     * Insert an item which is not in the layout at the best of sampled
+     * positions; if 'around_aabb' isn't 'nullptr', the item is first placed
+     * in bin 'around_bin_pos' with the center of its bounding box at the
+     * center of 'around_aabb', and the samples are also drawn around it.
+     * Return false if no position has been found.
+     */
+    bool insert_item(
+            ItemPos item_pos,
+            BinPos around_bin_pos,
+            const AxisAlignedBoundingBox* around_aabb);
 
     /**
      * Workers (copies of the separator), created at the first iteration of a
