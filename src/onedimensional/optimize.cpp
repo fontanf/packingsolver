@@ -6,13 +6,11 @@
 #include "onedimensional/tree_search.hpp"
 #include "onedimensional/milp_assignment.hpp"
 #include "onedimensional/dual_feasible_functions.hpp"
+#include "onedimensional/dynamic_programming.hpp"
 #include "algorithms/dichotomic_search.hpp"
 #include "algorithms/sequential_value_correction.hpp"
 #include "algorithms/column_generation.hpp"
 #include "algorithms/thread_pool.hpp"
-
-#include "knapsacksolver/instance_builder.hpp"
-#include "knapsacksolver/algorithms/dynamic_programming_primal_dual.hpp"
 
 
 using namespace packingsolver;
@@ -203,6 +201,10 @@ void optimize_trivial_bound(
         kp_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
         kp_parameters.optimization_mode = OptimizationMode::NotAnytime;
         kp_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
+        kp_parameters.dynamic_programming_subset_sum_maximum_size
+            = parameters.dynamic_programming_subset_sum_maximum_size;
+        kp_parameters.dynamic_programming_knapsack_maximum_number_of_states
+            = parameters.dynamic_programming_knapsack_maximum_number_of_states;
         auto kp_output = optimize(kp_instance, kp_parameters);
 
         // The knapsack bound rather than the best solution, since the
@@ -235,77 +237,19 @@ void optimize_dynamic_programming(
         const OptimizeParameters& parameters,
         AlgorithmFormatter& algorithm_formatter)
 {
-    const BinType& bin_type = instance.bin_type(0);
-    knapsacksolver::InstanceFromFloatProfitsBuilder kp_instance_builder;
-    std::vector<std::pair<ItemTypeId, ItemPos>> kp2ps;
-    knapsacksolver::Weight kp_capacity = bin_type.length;
-    kp_instance_builder.set_capacity(kp_capacity);
-    for (ItemTypeId item_type_id: bin_type.item_type_ids) {
-        const ItemType& item_type = instance.item_type(item_type_id);
-        ItemPos total_copies = 0;
-        ItemPos copies = 1;
-        while (total_copies < item_type.copies) {
-            if (total_copies + copies > item_type.copies)
-                copies = item_type.copies - total_copies;
-            knapsacksolver::Weight kp_weight = copies * (
-                    item_type.length
-                    - (std::max)(item_type.nesting_length, (Length)0));
-            if (kp_weight > kp_capacity)
-                break;
-            kp2ps.push_back({item_type_id, copies});
-            kp_instance_builder.add_item(
-                    copies * item_type.profit,
-                    kp_weight);
-            total_copies += copies;
-            copies *= 2;
-        }
-    }
-    knapsacksolver::Instance kp_instance = kp_instance_builder.build();
-
-    knapsacksolver::DynamicProgrammingPrimalDualParameters kp_parameters;
-    kp_parameters.verbosity_level = 0;
-    kp_parameters.timer = parameters.timer;
-    kp_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
-    // The items here always come from a bounded-multiplicity item type
-    // encoded as 0/1 items via binary/geometric decomposition (see the
-    // 'copies *= 2' loop above): every chunk of one original item type
-    // shares the exact same profit/weight ratio, so none of their achievable
-    // partial sums dominate one another and the algorithm's live-state list
-    // can blow up to encompass nearly every combination instead of staying
-    // small. 'pairing' is an existing (off-by-default, no-op below its size
-    // thresholds) mechanism in knapsacksolver's own algorithm for pulling in
-    // a promising item from outside the current core to close the value/bound
-    // gap once the state list grows large - exactly this situation - so it's
-    // enabled unconditionally here rather than only for this instance shape,
-    // since it costs nothing when the list stays small.
-    kp_parameters.pairing = true;
-    auto kp_output = knapsacksolver::dynamic_programming_primal_dual(
-            kp_instance,
-            kp_parameters);
-
-    SolutionBuilder solution_builder(instance);
-    solution_builder.add_bin(0, 1);
-    for (knapsacksolver::ItemId kp_item_type_id = 0;
-            kp_item_type_id < kp_instance.number_of_items();
-            ++kp_item_type_id) {
-        if (kp_output.solution.contains(kp_item_type_id)) {
-            ItemTypeId item_type_id = kp2ps[kp_item_type_id].first;
-            ItemPos copies = kp2ps[kp_item_type_id].second;
-            for (ItemPos copy = 0; copy < copies; ++copy)
-                solution_builder.add_item(0, item_type_id);
-        }
-    }
-    Solution solution = solution_builder.build();
-
-    if (solution.feasible()) {
-        std::stringstream ss;
-        ss << "DP";
-        algorithm_formatter.update_solution(solution, ss.str());
-    }
-    // When interrupted, the dynamic programming returns its current best
-    // solution, which is not a bound.
-    if (kp_output.solution.profit() == kp_output.bound)
-        algorithm_formatter.update_knapsack_bound(solution.profit());
+    DynamicProgrammingParameters dp_parameters;
+    dp_parameters.verbosity_level = 0;
+    dp_parameters.timer = parameters.timer;
+    dp_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+    dp_parameters.subset_sum_maximum_size = parameters.dynamic_programming_subset_sum_maximum_size;
+    dp_parameters.knapsack_maximum_number_of_states = parameters.dynamic_programming_knapsack_maximum_number_of_states;
+    dp_parameters.new_solution_callback = [&algorithm_formatter](
+            const onedimensional::Output& dp_output)
+    {
+        algorithm_formatter.update_solution(dp_output.solution_pool.best(), "DP " + dp_output.solution_pool.best_label());
+        algorithm_formatter.update_bounds(dp_output);
+    };
+    dynamic_programming(instance, dp_parameters);
 }
 
 void optimize_tree_search(
@@ -353,6 +297,10 @@ void optimize_sequential_single_knapsack(
                     OptimizationMode::NotAnytimeDeterministic;
                 kp_parameters.not_anytime_tree_search_queue_size = queue_size;
                 kp_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
+                kp_parameters.dynamic_programming_subset_sum_maximum_size
+                    = parameters.dynamic_programming_subset_sum_maximum_size;
+                kp_parameters.dynamic_programming_knapsack_maximum_number_of_states
+                    = parameters.dynamic_programming_knapsack_maximum_number_of_states;
                 auto kp_output = optimize(kp_instance, kp_parameters);
                 return kp_output.solution_pool;
             };
@@ -411,6 +359,10 @@ void optimize_sequential_value_correction(
             kp_parameters.not_anytime_tree_search_queue_size
                 = parameters.sequential_value_correction_subproblem_tree_search_queue_size;
             kp_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
+            kp_parameters.dynamic_programming_subset_sum_maximum_size
+                = parameters.dynamic_programming_subset_sum_maximum_size;
+            kp_parameters.dynamic_programming_knapsack_maximum_number_of_states
+                = parameters.dynamic_programming_knapsack_maximum_number_of_states;
             auto kp_output = optimize(kp_instance, kp_parameters);
             return kp_output.solution_pool;
         };
@@ -458,6 +410,10 @@ void optimize_dichotomic_search(
                 bpp_parameters.use_tree_search = true;
                 bpp_parameters.not_anytime_tree_search_queue_size = queue_size;
                 bpp_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
+                bpp_parameters.dynamic_programming_subset_sum_maximum_size
+                    = parameters.dynamic_programming_subset_sum_maximum_size;
+                bpp_parameters.dynamic_programming_knapsack_maximum_number_of_states
+                    = parameters.dynamic_programming_knapsack_maximum_number_of_states;
                 auto bpp_output = optimize(bpp_instance, bpp_parameters);
                 return bpp_output.solution_pool;
             };
@@ -466,6 +422,7 @@ void optimize_dichotomic_search(
         ds_parameters.timer = parameters.timer;
         ds_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
         ds_parameters.initial_waste_percentage_upper_bound = waste_percentage_upper_bound;
+        ds_parameters.knapsack_maximum_number_of_states = parameters.dynamic_programming_knapsack_maximum_number_of_states;
         ds_parameters.new_solution_callback = [
             &algorithm_formatter, &queue_size](
                     const onedimensional::Output& ps_output)
@@ -514,6 +471,10 @@ void optimize_column_generation(
             kp_parameters.not_anytime_tree_search_queue_size
                 = parameters.column_generation_subproblem_tree_search_queue_size;
             kp_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
+            kp_parameters.dynamic_programming_subset_sum_maximum_size
+                = parameters.dynamic_programming_subset_sum_maximum_size;
+            kp_parameters.dynamic_programming_knapsack_maximum_number_of_states
+                = parameters.dynamic_programming_knapsack_maximum_number_of_states;
             return optimize(kp_instance, kp_parameters);
         };
 

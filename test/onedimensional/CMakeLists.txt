@@ -4,6 +4,7 @@ target_sources(PackingSolver_onedimensional_test PRIVATE
     milp_assignment_test.cpp
     tree_search_test.cpp
     dual_feasible_functions_test.cpp
+    dynamic_programming_test.cpp
     reduction_test.cpp)
 target_include_directories(PackingSolver_onedimensional_test PRIVATE
     ${PROJECT_SOURCE_DIR}/src)

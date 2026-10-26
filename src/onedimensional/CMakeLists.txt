@@ -8,6 +8,7 @@ target_sources(PackingSolver_onedimensional PRIVATE
     algorithm_formatter.cpp
     optimize.cpp
     dual_feasible_functions.cpp
+    dynamic_programming.cpp
     milp_assignment.cpp
     post_process.cpp
     reduction.cpp

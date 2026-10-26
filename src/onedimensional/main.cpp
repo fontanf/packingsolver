@@ -97,6 +97,8 @@ int main(int argc, char *argv[])
             ("use-milp-assignment,", po::value<bool>(), "enable MILP assignment algorithm")
             ("sequential-value-correction-number-of-iterations,", po::value<Counter>(), "set sequential value correction number of iterations")
             ("column-generation-subproblem-tree-search-queue-size,", po::value<NodeId>(), "set column generation subproblem queue size")
+            ("dynamic-programming-subset-sum-maximum-size,", po::value<Counter>(), "set the maximum size of the dynamic programming of subset sum problems")
+            ("dynamic-programming-knapsack-maximum-number-of-states,", po::value<Counter>(), "set the maximum number of states of the dynamic programming of knapsack problems")
             ("not-anytime-tree-search-queue-size,", po::value<Counter>(), "")
             ("not-anytime-sequential-single-knapsack-subproblem-tree-search-queue-size,", po::value<Counter>(), "")
             ("not-anytime-sequential-value-correction-number-of-iterations,", po::value<Counter>(), "")
@@ -204,6 +206,10 @@ int main(int argc, char *argv[])
             parameters.sequential_value_correction_subproblem_tree_search_queue_size = vm["sequential-value-correction-subproblem-tree-search-queue-size"].as<NodeId>();
         if (vm.count("column-generation-subproblem-tree-search-queue-size"))
             parameters.column_generation_subproblem_tree_search_queue_size = vm["column-generation-subproblem-tree-search-queue-size"].as<NodeId>();
+        if (vm.count("dynamic-programming-subset-sum-maximum-size"))
+            parameters.dynamic_programming_subset_sum_maximum_size = vm["dynamic-programming-subset-sum-maximum-size"].as<Counter>();
+        if (vm.count("dynamic-programming-knapsack-maximum-number-of-states"))
+            parameters.dynamic_programming_knapsack_maximum_number_of_states = vm["dynamic-programming-knapsack-maximum-number-of-states"].as<Counter>();
         if (vm.count("not-anytime-tree-search-queue-size"))
             parameters.not_anytime_tree_search_queue_size = vm["not-anytime-tree-search-queue-size"].as<Counter>();
         if (vm.count("not-anytime-sequential-single-knapsack-subproblem-tree-search-queue-size"))

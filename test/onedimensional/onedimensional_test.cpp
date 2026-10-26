@@ -355,6 +355,12 @@ struct OneDimensionalOptimizeTestParams
     fs::path bins_path;
     fs::path parameters_path;
     fs::path certificate_path;
+
+    /**
+     * Maximum size of the dynamic programming of the subset sum problems; if
+     * negative, the default one.
+     */
+    packingsolver::Counter dynamic_programming_subset_sum_maximum_size = -1;
 };
 
 inline std::ostream& operator<<(std::ostream& os, const OneDimensionalOptimizeTestParams& test_params)
@@ -376,6 +382,10 @@ TEST_P(OneDimensionalOptimizeTest, OneDimensionalOptimize)
 
     OptimizeParameters optimize_parameters;
     optimize_parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytimeSequential;
+    if (test_params.dynamic_programming_subset_sum_maximum_size >= 0) {
+        optimize_parameters.dynamic_programming_subset_sum_maximum_size
+            = test_params.dynamic_programming_subset_sum_maximum_size;
+    }
     Output output = optimize(instance, optimize_parameters);
 
     SolutionBuilder solution_builder(instance);
@@ -427,6 +437,23 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "onedimensional" / "tests" / "variable_sized_bin_packing_mandatory_bins" / "bins.csv",
                 fs::path("data") / "onedimensional" / "tests" / "variable_sized_bin_packing_mandatory_bins" / "parameters.csv",
                 fs::path("data") / "onedimensional" / "tests" / "variable_sized_bin_packing_mandatory_bins" / "solution.csv",
+            }, {
+                // Single bin and the profit of each item equal to its
+                // length: the knapsack problem is a subset sum problem,
+                // solved with the word RAM dynamic programming.
+                fs::path("data") / "onedimensional" / "tests" / "knapsack_subset_sum" / "items.csv",
+                fs::path("data") / "onedimensional" / "tests" / "knapsack_subset_sum" / "bins.csv",
+                fs::path("data") / "onedimensional" / "tests" / "knapsack_subset_sum" / "parameters.csv",
+                fs::path("data") / "onedimensional" / "tests" / "knapsack_subset_sum" / "solution.csv",
+            }, {
+                // Same instance, the word RAM dynamic programming being too
+                // large: it is solved with the primal-dual dynamic
+                // programming.
+                fs::path("data") / "onedimensional" / "tests" / "knapsack_subset_sum" / "items.csv",
+                fs::path("data") / "onedimensional" / "tests" / "knapsack_subset_sum" / "bins.csv",
+                fs::path("data") / "onedimensional" / "tests" / "knapsack_subset_sum" / "parameters.csv",
+                fs::path("data") / "onedimensional" / "tests" / "knapsack_subset_sum" / "solution.csv",
+                8,
             }}));
 
 TEST(OneDimensional, ItemTypeLengthMustBePositive)
