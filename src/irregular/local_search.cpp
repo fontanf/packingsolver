@@ -33,11 +33,12 @@ namespace
  * its loss doesn't get below the loss of this layout.
  */
 template <typename SeparatorType>
-void run_iterated_local_search(
+bool run_iterated_local_search(
         SeparatorType& separator,
         std::mt19937_64& generator,
         const LocalSearchParameters& parameters,
-        AlgorithmFormatter& algorithm_formatter)
+        AlgorithmFormatter& algorithm_formatter,
+        const std::string& label_prefix = "")
 {
     // Layouts of the failed separations.
     struct FailedLayout
@@ -68,13 +69,13 @@ void run_iterated_local_search(
 
     // If the last separation, of iteration 'iteration', succeeded, return true
     // and report the solution. Otherwise, add its layout to the population.
-    auto process_separation = [&separator, &algorithm_formatter, &population, &generator](
+    auto process_separation = [&separator, &algorithm_formatter, &population, &generator, &label_prefix](
             bool separated,
             Counter iteration)
     {
         if (separated) {
             std::stringstream ss;
-            ss << "it " << iteration;
+            ss << label_prefix << "it " << iteration;
             algorithm_formatter.update_solution(separator.solution(), ss.str());
             return true;
         }
@@ -85,17 +86,17 @@ void run_iterated_local_search(
 
     // Separation of the initial layout, with more effort.
     if (algorithm_formatter.end_boolean() || parameters.timer.needs_to_end())
-        return;
+        return false;
     bool separated = separator.separate_initial(parameters.timer);
     if (process_separation(separated, 0))
-        return;
+        return true;
 
     for (Counter number_of_failed_separations = 1;
             parameters.maximum_number_of_failed_separations == -1
             || number_of_failed_separations < parameters.maximum_number_of_failed_separations;
             ++number_of_failed_separations) {
         if (algorithm_formatter.end_boolean() || parameters.timer.needs_to_end())
-            return;
+            return false;
 
         // Draw a failed layout from the population (binary tournament) and
         // disrupt it.
@@ -107,7 +108,51 @@ void run_iterated_local_search(
         // get below the loss of the drawn layout.
         separated = separator.separate(parameters.timer, selected_layout.loss);
         if (process_separation(separated, number_of_failed_separations))
+            return true;
+    }
+    return false;
+}
+
+/**
+ * Local search for objective Knapsack, on top of a separator (direct
+ * trigonometry or black-box optimization engine).
+ *
+ * Each sub-problem consists in finding a solution whose profit is strictly
+ * greater than the one of the best solution found so far, with the iterated
+ * local search: the separator is in knapsack mode, so that the layouts
+ * contain a set of items whose profit is strictly greater than this
+ * threshold, and the perturbations change this set while keeping this
+ * property. The first sub-problem starts from an empty layout; each next one
+ * starts from the solution of the previous one, with items inserted until
+ * its profit is above the new threshold. The search stops when a sub-problem
+ * fails, or when all the items are packed.
+ */
+template <typename SeparatorType>
+void run_knapsack_local_search(
+        const Instance& instance,
+        SeparatorType& separator,
+        std::mt19937_64& generator,
+        const LocalSearchParameters& parameters,
+        AlgorithmFormatter& algorithm_formatter)
+{
+    separator.set_profit_threshold(0);
+    separator.set_solution(Solution(instance), parameters.timer);
+    for (Counter sub_problem = 0; ; ++sub_problem) {
+        if (algorithm_formatter.end_boolean() || parameters.timer.needs_to_end())
             return;
+        separator.set_profit_threshold(separator.profit());
+        if (!separator.insert_items_above_profit_threshold())
+            return;
+        std::stringstream ss;
+        ss << "KP it " << sub_problem << " ";
+        if (!run_iterated_local_search(
+                    separator,
+                    generator,
+                    parameters,
+                    algorithm_formatter,
+                    ss.str())) {
+            return;
+        }
     }
 }
 
@@ -129,6 +174,10 @@ void local_search_direct_trigonometry(
     separator.set_initial_stopping_criteria(
             parameters.initial_separation_maximum_number_of_iterations_without_improvement,
             parameters.initial_separation_maximum_number_of_strikes);
+    if (instance.objective() == Objective::Knapsack) {
+        run_knapsack_local_search(instance, separator, generator, parameters, algorithm_formatter);
+        return;
+    }
     if (initial_solution != nullptr) {
         separator.set_solution(
                 convert_initial_solution(instance, *initial_solution),
@@ -200,6 +249,10 @@ void local_search_black_box_optimization(
     separator.set_initial_stopping_criteria(
             parameters.initial_separation_maximum_number_of_iterations_without_improvement,
             parameters.initial_separation_maximum_number_of_strikes);
+    if (instance.objective() == Objective::Knapsack) {
+        run_knapsack_local_search(instance, separator, generator, parameters, algorithm_formatter);
+        return;
+    }
     if (initial_solution != nullptr) {
         separator.set_solution(
                 convert_initial_solution(instance, *initial_solution),
@@ -300,7 +353,17 @@ LocalSearchOutput packingsolver::irregular::local_search(
         parameters.timer.add_end_boolean(&parameters.moves_limit->reached);
     }
 
-    if (instance.objective() != Objective::Feasibility) {
+    if (instance.objective() == Objective::Knapsack
+            && parameters.engine != LocalSearchEngine::DirectTrigonometry
+            && parameters.engine != LocalSearchEngine::BlackBoxOptimization) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "objective Knapsack is only supported by the direct trigonometry "
+                "and black-box optimization engines.");
+    }
+
+    if (instance.objective() != Objective::Feasibility
+            && instance.objective() != Objective::Knapsack) {
         LocalSearchOutput output(instance);
         AlgorithmFormatter algorithm_formatter(instance, parameters, output);
         algorithm_formatter.start();

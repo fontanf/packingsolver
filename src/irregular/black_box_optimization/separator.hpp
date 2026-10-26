@@ -246,6 +246,25 @@ public:
     void disrupt();
 
     /**
+     * Switch to knapsack mode and set the profit threshold, as for the direct
+     * trigonometry separator (see 'Separator::set_profit_threshold').
+     */
+    void set_profit_threshold(Profit profit_threshold)
+    {
+        direct_trigonometry_separator_.set_profit_threshold(profit_threshold);
+    }
+
+    /** Get the profit of the items of the current layout. */
+    Profit profit() const;
+
+    /**
+     * Insert items until the profit of the layout is strictly greater than
+     * the threshold, as the direct trigonometry separator (see
+     * 'Separator::insert_items_above_profit_threshold').
+     */
+    bool insert_items_above_profit_threshold();
+
+    /**
      * Distance between two layouts, as for the direct trigonometry separator
      * (see 'Separator::distance').
      */

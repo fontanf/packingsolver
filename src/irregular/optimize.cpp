@@ -423,6 +423,16 @@ void optimize_local_search(
     if (parameters.optimization_mode == OptimizationMode::NotAnytimeSequential)
         ls_parameters.separator_parameters.number_of_workers = 1;
     ls_parameters.separator_parameters.weighting_scheme = parameters.local_search_weighting_scheme;
+    if (instance.objective() == Objective::Knapsack) {
+        // Each sub-problem of the knapsack local search consists in fitting
+        // a slightly more profitable set of items: short separations, and
+        // therefore more perturbations, work better.
+        ls_parameters.separator_parameters.maximum_number_of_iterations_without_improvement = 2;
+        ls_parameters.separator_parameters.maximum_number_of_strikes = 1;
+        ls_parameters.initial_separation_maximum_number_of_strikes = 1;
+        ls_parameters.black_box_optimization_separator_parameters.maximum_number_of_iterations_without_improvement = 2;
+        ls_parameters.black_box_optimization_separator_parameters.maximum_number_of_strikes = 1;
+    }
     ls_parameters.black_box_optimization_separator_parameters.weighting_scheme
         = parameters.local_search_weighting_scheme;
     ls_parameters.new_solution_callback = [&algorithm_formatter, engine](
@@ -1005,8 +1015,6 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         if (instance.objective() == Objective::Knapsack) {
             use_local_search_linear_programming = false;
             use_local_search_nonlinear_programming = false;
-            use_local_search_direct_trigonometry = false;
-            use_local_search_black_box_optimization = false;
         }
         // Automatic selection.
         if (!use_tree_search
@@ -1082,8 +1090,6 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         // Disable algorithms which are not available for this objective.
         use_local_search_linear_programming = false;
         use_local_search_nonlinear_programming = false;
-        use_local_search_direct_trigonometry = false;
-        use_local_search_black_box_optimization = false;
         use_dichotomic_search = false;
         use_tree_search_periodic_packing = false;
         // Automatic selection.

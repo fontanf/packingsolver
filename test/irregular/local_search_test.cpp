@@ -175,6 +175,31 @@ TEST(IrregularLocalSearch, DirectTrigonometryFeasibility)
     }
 }
 
+TEST(IrregularLocalSearch, DirectTrigonometryKnapsack)
+{
+    // Bin 10x10; six 5x5 squares: at most four of them fit.
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(Objective::Knapsack);
+    instance_builder.add_bin_type(rectangle_shape(10, 10));
+    ItemTypeId item_type_id = instance_builder.add_item_type(rectangle_item_shape(5, 5));
+    instance_builder.set_item_type_copies(item_type_id, 6);
+    Instance instance = instance_builder.build();
+
+    LocalSearchParameters parameters;
+    parameters.verbosity_level = 0;
+    parameters.engine = LocalSearchEngine::DirectTrigonometry;
+    std::mt19937_64 generator(0);
+    LocalSearchOutput output = local_search(instance, generator, nullptr, parameters);
+    const Solution& solution = output.solution_pool.best();
+    EXPECT_EQ(solution.number_of_items(), 4);
+    EXPECT_TRUE(solution.feasible());
+    for (BinPos bin_pos = 0; bin_pos < solution.number_of_different_bins(); ++bin_pos) {
+        Solution::OverlappingItems overlapping_items = solution.compute_overlapping_items(bin_pos);
+        EXPECT_TRUE(overlapping_items.item_item_pairs.empty());
+        EXPECT_TRUE(overlapping_items.items_outside_bin.empty());
+    }
+}
+
 #ifdef KNITRO_FOUND
 TEST(IrregularLocalSearch, NonlinearProgrammingFeasibility)
 {
