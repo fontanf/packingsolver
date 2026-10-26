@@ -213,6 +213,105 @@ bool BinNonlinearSeparationModel::step(
     const BinType& bin_type = instance_.bin_type(bin_type_id_);
     ItemPos number_of_items = items.size();
 
+    // Initial scales: the scales of the items sticking out of the bounding box
+    // of the bin are reduced so that their parts are in it; then, for each
+    // pair of parts closer than the spacing, the scales of their items are
+    // reduced by the largest common factor separating them, found by
+    // bisection, so that the initial point is feasible. A part scaled around
+    // its center being in the part, reducing a scale keeps the parts already
+    // processed separated and contained.
+    {
+        const LengthDbl lower_x = bin_type.aabb_scaled.x_min + bin_spacing_;
+        const LengthDbl upper_x = bin_type.aabb_scaled.x_max - bin_spacing_;
+        const LengthDbl lower_y = bin_type.aabb_scaled.y_min + bin_spacing_;
+        const LengthDbl upper_y = bin_type.aabb_scaled.y_max - bin_spacing_;
+        // Largest scale such that 'center + lambda * delta' is in
+        // [lower, upper].
+        auto maximum_scale = [](
+                LengthDbl center,
+                LengthDbl delta,
+                LengthDbl lower,
+                LengthDbl upper)
+        {
+            if (center < lower || center > upper)
+                return 0.0;
+            if (delta > 0)
+                return (upper - center) / delta;
+            if (delta < 0)
+                return (lower - center) / delta;
+            return 1.0;
+        };
+        for (const Part& part: parts_) {
+            if (part.item_pos == -1)
+                continue;
+            NonlinearSeparationModelItem& item = items[part.item_pos];
+            Point center = {item.position.x + part.center.x, item.position.y + part.center.y};
+            for (const Point& vertex: part.vertices) {
+                item.lambda = (std::min)(item.lambda, maximum_scale(
+                            center.x, vertex.x - part.center.x, lower_x, upper_x));
+                item.lambda = (std::min)(item.lambda, maximum_scale(
+                            center.y, vertex.y - part.center.y, lower_y, upper_y));
+            }
+        }
+
+        std::vector<AxisAlignedBoundingBox> part_boxes(parts_.size());
+        for (Counter part_pos = 0; part_pos < (Counter)parts_.size(); ++part_pos) {
+            for (const Point& vertex: world_vertices(items, part_pos)) {
+                part_boxes[part_pos].x_min = (std::min)(part_boxes[part_pos].x_min, vertex.x);
+                part_boxes[part_pos].x_max = (std::max)(part_boxes[part_pos].x_max, vertex.x);
+                part_boxes[part_pos].y_min = (std::min)(part_boxes[part_pos].y_min, vertex.y);
+                part_boxes[part_pos].y_max = (std::max)(part_boxes[part_pos].y_max, vertex.y);
+            }
+        }
+        for (Counter part_pos_1 = 0; part_pos_1 < (Counter)parts_.size(); ++part_pos_1) {
+            for (Counter part_pos_2 = part_pos_1 + 1; part_pos_2 < (Counter)parts_.size(); ++part_pos_2) {
+                const Part& part_1 = parts_[part_pos_1];
+                const Part& part_2 = parts_[part_pos_2];
+                if (part_1.item_pos == -1 && part_2.item_pos == -1)
+                    continue;
+                if (part_1.item_pos == part_2.item_pos)
+                    continue;
+                LengthDbl spacing = (part_1.item_pos == -1)? part_1.spacing:
+                    (part_2.item_pos == -1)? part_2.spacing: item_spacing_;
+                const AxisAlignedBoundingBox& box_1 = part_boxes[part_pos_1];
+                const AxisAlignedBoundingBox& box_2 = part_boxes[part_pos_2];
+                if (box_1.x_min - spacing > box_2.x_max || box_2.x_min - spacing > box_1.x_max
+                        || box_1.y_min - spacing > box_2.y_max || box_2.y_min - spacing > box_1.y_max) {
+                    continue;
+                }
+                auto gap = [this, &items, part_pos_1, part_pos_2]()
+                {
+                    return compute_separating_line(
+                            world_vertices(items, part_pos_1),
+                            world_vertices(items, part_pos_2)).gap;
+                };
+                if (gap() >= spacing)
+                    continue;
+                double lambda_1 = (part_1.item_pos == -1)? 0.0: items[part_1.item_pos].lambda;
+                double lambda_2 = (part_2.item_pos == -1)? 0.0: items[part_2.item_pos].lambda;
+                auto set_factor = [&items, &part_1, &part_2, lambda_1, lambda_2](double factor)
+                {
+                    if (part_1.item_pos != -1)
+                        items[part_1.item_pos].lambda = factor * lambda_1;
+                    if (part_2.item_pos != -1)
+                        items[part_2.item_pos].lambda = factor * lambda_2;
+                };
+                double factor_lower = 0.0;
+                double factor_upper = 1.0;
+                for (int iteration = 0; iteration < 40; ++iteration) {
+                    double factor = (factor_lower + factor_upper) / 2;
+                    set_factor(factor);
+                    if (gap() >= spacing) {
+                        factor_lower = factor;
+                    } else {
+                        factor_upper = factor;
+                    }
+                }
+                set_factor(factor_lower);
+            }
+        }
+    }
+
     // Maximum move of each item, and maximum move of its vertices (with the
     // rotation).
     std::vector<LengthDbl> movements(number_of_items, 0.0);
