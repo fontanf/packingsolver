@@ -181,7 +181,8 @@ void NonlinearProgrammingSeparator::set_solution(
     }
 
     // Items sticking out of their bin: remove a slice of the bin at a random
-    // position, and shift the items after it.
+    // position, and shift the items after it and the items sticking out. The
+    // items overlapping after the shift are shrunk by the steps.
     for (BinPos bin_pos = 0; bin_pos < instance_.number_of_bins(); ++bin_pos) {
         const BinType& bin_type = instance_.bin_type(instance_.bin_type_id(bin_pos));
         AxisAlignedBoundingBox items_aabb;
@@ -211,8 +212,10 @@ void NonlinearProgrammingSeparator::set_solution(
             for (ItemPos item_pos = 0; item_pos < (ItemPos)layout.size(); ++item_pos) {
                 if (layout[item_pos].bin_pos != bin_pos)
                     continue;
-                if ((aabbs[item_pos].x_min + aabbs[item_pos].x_max) / 2 > split)
+                if ((aabbs[item_pos].x_min + aabbs[item_pos].x_max) / 2 > split
+                        || aabbs[item_pos].x_max > bin_type.aabb_scaled.x_max) {
                     layout[item_pos].position.x -= overflow_x;
+                }
             }
         }
         LengthDbl overflow_y = items_aabb.y_max - bin_type.aabb_scaled.y_max;
@@ -224,8 +227,10 @@ void NonlinearProgrammingSeparator::set_solution(
             for (ItemPos item_pos = 0; item_pos < (ItemPos)layout.size(); ++item_pos) {
                 if (layout[item_pos].bin_pos != bin_pos)
                     continue;
-                if ((aabbs[item_pos].y_min + aabbs[item_pos].y_max) / 2 > split)
+                if ((aabbs[item_pos].y_min + aabbs[item_pos].y_max) / 2 > split
+                        || aabbs[item_pos].y_max > bin_type.aabb_scaled.y_max) {
                     layout[item_pos].position.y -= overflow_y;
+                }
             }
         }
     }
