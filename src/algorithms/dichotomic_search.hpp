@@ -77,6 +77,15 @@ struct DichotomicSearchParameters: Parameters<Instance, Solution, Output>
 
     /** Initial upper bound on the waste percentage. */
     double initial_waste_percentage_upper_bound = std::numeric_limits<double>::infinity();
+
+    /**
+     * Maximum number of states of the dynamic programming of the knapsack
+     * problems selecting the bins.
+     *
+     * Above it, the dynamic programming stops and its current solution, which
+     * is feasible, is used.
+     */
+    Counter knapsack_maximum_number_of_states = (1 << 20);
 };
 
 template <typename Instance, typename InstanceBuilder, typename Solution, typename AlgorithmFormatter, typename Output = packingsolver::Output<Instance, Solution>>
@@ -184,6 +193,7 @@ DichotomicSearchOutput<Instance, Solution, Output> dichotomic_search(
         // Solve knapsack instance.
         knapsacksolver::DynamicProgrammingPrimalDualParameters kp_parameters;
         kp_parameters.verbosity_level = 0;
+        kp_parameters.maximum_number_of_states = parameters.knapsack_maximum_number_of_states;
         auto kp_output = knapsacksolver::dynamic_programming_primal_dual(
                 kp_instance,
                 kp_parameters);

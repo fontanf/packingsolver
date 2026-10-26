@@ -75,7 +75,7 @@ set(KNAPSACKSOLVER_BUILD_TEST OFF)
 FetchContent_Declare(
     knapsacksolver
     GIT_REPOSITORY https://github.com/fontanf/knapsacksolver.git
-    GIT_TAG 605153f85b0781ae0c2b7548a18639ef77d25c09
+    GIT_TAG af3ed6894fe7235735ce98b69fc34dcebfbf6f23
     #SOURCE_DIR "${PROJECT_SOURCE_DIR}/../knapsacksolver/"
     EXCLUDE_FROM_ALL)
 FetchContent_MakeAvailable(knapsacksolver)
@@ -86,7 +86,7 @@ set(MULTIPLECHOICESUBSETSUMSOLVER_BUILD_TEST OFF)
 FetchContent_Declare(
     multiplechoicesubsetsumsolver
     GIT_REPOSITORY https://github.com/fontanf/multiplechoicesubsetsumsolver.git
-    GIT_TAG 83406f59044425aef1391030db0b29333c208d7f
+    GIT_TAG 68a23a3c66aeb935d31d0b67d2947f95b67628a8
     #SOURCE_DIR "${PROJECT_SOURCE_DIR}/../multiplechoicesubsetsumsolver/"
     EXCLUDE_FROM_ALL)
 FetchContent_MakeAvailable(multiplechoicesubsetsumsolver)
@@ -97,7 +97,7 @@ set(SUBSETSUMSOLVER_BUILD_TEST OFF)
 FetchContent_Declare(
     subsetsumsolver
     GIT_REPOSITORY https://github.com/fontanf/subsetsumsolver.git
-    GIT_TAG 2ba9d52e87cf01d0dd80df082db5539d5d5850b8
+    GIT_TAG 7c9576ac3f9ba7a34103f95943cef12b2d2945cb
     #SOURCE_DIR "${PROJECT_SOURCE_DIR}/../subsetsumsolver/"
     EXCLUDE_FROM_ALL)
 FetchContent_MakeAvailable(subsetsumsolver)

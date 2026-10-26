@@ -180,6 +180,29 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
      */
     NodeId column_generation_subproblem_tree_search_queue_size = 512;
 
+    /**
+     * Maximum size of the dynamic programming of a knapsack problem with a
+     * single bin and profits equal to the lengths of the items (a subset sum
+     * problem): number of items times number of 64-bit words of the length of
+     * the bin, divided by the greatest common divisor of the lengths of the
+     * items. It estimates the running time of the dynamic programming.
+     *
+     * Above it, the problem is solved as a regular knapsack problem (see
+     * 'dynamic_programming_knapsack_maximum_number_of_states').
+     */
+    Counter dynamic_programming_subset_sum_maximum_size = (1 << 23);
+
+    /**
+     * Maximum number of states of the primal-dual dynamic programming of
+     * knapsacksolver, used for the knapsack problems with a single bin which
+     * are not solved as subset sum problems, and for the knapsack problems of
+     * the dichotomic search algorithm.
+     *
+     * Above it, the dynamic programming stops: the solutions are still
+     * feasible, but may not be optimal.
+     */
+    Counter dynamic_programming_knapsack_maximum_number_of_states = (1 << 20);
+
     /*
      * Parameters for non-anytime mode
      */
