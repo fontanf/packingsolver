@@ -569,6 +569,8 @@ void InstanceBuilder::read(
                     "leftover_mode");
             set_leftover_mode(leftover_mode);
         }
+        if (json_parameters.contains("leftover_all_bins"))
+            set_leftover_all_bins(json_parameters["leftover_all_bins"]);
     }
 
     // Read bin types.

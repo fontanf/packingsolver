@@ -64,6 +64,7 @@ int main(int argc, char *argv[])
             ("item-bin-minimum-spacing", po::value<LengthDbl>(), "Item-bin minimum spacing")
             ("item-item-minimum-spacing", po::value<LengthDbl>(), "Item-item minimum spacing")
             ("leftover-mode", po::value<LeftoverMode>(), "set leftover mode")
+            ("leftover-all-bins", po::value<bool>(), "also compare the leftover values of all the bins")
             ("bin-unweighted", "")
             ("unweighted", "")
             ("continuous-rotations", "")
@@ -99,6 +100,7 @@ int main(int argc, char *argv[])
             ("maximum-approximation-ratio-factor,", po::value<double>(), "decrease factor for the maximum approximation ratio")
             ("sequential-value-correction-subproblem-tree-search-queue-size,", po::value<NodeId>(), "set sequential value correction subproblem queue size")
             ("column-generation-subproblem-tree-search-queue-size,", po::value<NodeId>(), "set column generation subproblem queue size")
+            ("post-process-last-bin-maximum-number-of-items,", po::value<ItemPos>(), "re-optimize the last bin in the post-process only if it contains fewer items")
             ("not-anytime-maximum-approximation-ratio,", po::value<double>(), "")
             ("not-anytime-tree-search-queue-size,", po::value<Counter>(), "")
             ("not-anytime-tree-search-periodic-packing-queue-size,", po::value<Counter>(), "")
@@ -142,6 +144,8 @@ int main(int argc, char *argv[])
             instance_builder.set_item_item_minimum_spacing(vm["item-item-minimum-spacing"].as<LengthDbl>());
         if (vm.count("leftover-mode"))
             instance_builder.set_leftover_mode(vm["leftover-mode"].as<LeftoverMode>());
+        if (vm.count("leftover-all-bins"))
+            instance_builder.set_leftover_all_bins(vm["leftover-all-bins"].as<bool>());
         if (vm.count("unweighted"))
             instance_builder.set_item_types_unweighted();
         if (vm.count("bin-unweighted"))
@@ -202,6 +206,8 @@ int main(int argc, char *argv[])
             parameters.sequential_value_correction_subproblem_tree_search_queue_size = vm["sequential-value-correction-subproblem-tree-search-queue-size"].as<NodeId>();
         if (vm.count("column-generation-subproblem-tree-search-queue-size"))
             parameters.column_generation_subproblem_tree_search_queue_size = vm["column-generation-subproblem-tree-search-queue-size"].as<NodeId>();
+        if (vm.count("post-process-last-bin-maximum-number-of-items"))
+            parameters.post_process_last_bin_maximum_number_of_items = vm["post-process-last-bin-maximum-number-of-items"].as<ItemPos>();
         if (vm.count("not-anytime-maximum-approximation-ratio"))
             parameters.not_anytime_maximum_approximation_ratio = vm["not-anytime-maximum-approximation-ratio"].as<double>();
         if (vm.count("not-anytime-tree-search-queue-size"))

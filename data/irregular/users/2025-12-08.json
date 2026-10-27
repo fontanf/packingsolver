@@ -1,4 +1,5 @@
 {
+  "parameters": {"leftover_all_bins": false},
   "objective": "bin-packing-with-leftovers",
   "bin_types": [
     {

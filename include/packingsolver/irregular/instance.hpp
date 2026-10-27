@@ -53,6 +53,14 @@ struct Parameters
     /** Reference corner/edge to compute the leftover value. */
     LeftoverMode leftover_mode = LeftoverMode::BottomLeft;
 
+    /**
+     * For the BinPackingWithLeftovers objective, also compare the solutions
+     * on the sum of the leftover values of the bins and on the sum of their
+     * staircase leftover values, after the leftover value and the staircase
+     * leftover value of the last bin.
+     */
+    bool leftover_all_bins = true;
+
     /** Scale value. */
     LengthDbl scale_value = std::numeric_limits<LengthDbl>::infinity();
 

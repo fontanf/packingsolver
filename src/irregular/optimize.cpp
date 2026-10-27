@@ -2,6 +2,7 @@
 
 #include "packingsolver/irregular/algorithm_formatter.hpp"
 #include "packingsolver/irregular/instance_builder.hpp"
+#include "packingsolver/irregular/post_process.hpp"
 #include "irregular/trivial.hpp"
 #include "irregular/tree_search.hpp"
 #include "irregular/tree_search_periodic_packing.hpp"
@@ -295,25 +296,35 @@ void optimize_tree_search(
 
 
 /**
- * Post-process for BinPackingWithLeftovers in a not-anytime mode: if the
- * tree search didn't already use guides {2, 3}, re-optimize just the last
- * bin of 'solution_best' (as its own single-bin sub-instance) with the tree
- * search with guides {2, 3}, in case that guide combination packs it into
- * less leftover space: the used area of the last bin doesn't have to span
- * the whole width or the whole height of the bin, whichever algorithm found
- * the solution.
+ * Post-processes for BinPackingWithLeftovers in a not-anytime mode.
+ *
+ * Last bin post-process: re-optimize just the last bin of 'solution_best'
+ * with the tree search with guides {2, 3} (see 'reoptimize_bin'), in case they
+ * pack it into less leftover space: the used area of the last bin doesn't
+ * have to span the whole width or the whole height of the bin, whichever
+ * algorithm found the solution. It is only applied if the last bin contains
+ * fewer items than 'post_process_last_bin_maximum_number_of_items': the tree
+ * search may take much longer than the algorithm which found the solution.
  *
  * It is applied to the best solution of each algorithm, not only to the
  * best solution overall: the re-optimized last bin of a solution which isn't
  * the best one may make it better than the best one.
+ *
+ * Other bins post-process: the leftover values of the other bins only come
+ * after the ones of the last bin in the objective, so the algorithms hardly
+ * try to keep the free space of the other bins in a single region.
+ * Re-optimize each other bin of the best solution, with the algorithms
+ * selected as for any instance (see 'reoptimize_non_last_bins'). It is only
+ * applied if 'leftover_all_bins' is enabled, since it can only improve the
+ * leftover values of the other bins.
  */
-bool last_bin_post_process_applies(
+bool post_process_applies(
         const Instance& instance,
         const OptimizeParameters& parameters)
 {
     return instance.objective() == Objective::BinPackingWithLeftovers
         && parameters.optimization_mode != OptimizationMode::Anytime
-        && parameters.tree_search_guides != std::vector<GuideId>({2, 3});
+        && parameters.post_process;
 }
 
 void optimize_last_bin_post_process(
@@ -322,44 +333,14 @@ void optimize_last_bin_post_process(
         const Solution& solution_best,
         AlgorithmFormatter& algorithm_formatter)
 {
-    if (last_bin_post_process_applies(instance, parameters)
+    if (post_process_applies(instance, parameters)
             && solution_best.number_of_bins() > 0
-            && solution_best.bin(solution_best.number_of_different_bins() - 1).copies == 1) {
-
-        InstanceBuilder last_bin_instance_builder;
-        last_bin_instance_builder.set_objective(Objective::BinPackingWithLeftovers);
-        last_bin_instance_builder.set_parameters(instance.parameters());
-
-        // Add bin types.
-        const SolutionBin& last_bin = solution_best.bin(solution_best.number_of_different_bins() - 1);
-        BinTypeId last_bin_type_id = last_bin_instance_builder.add_bin_type(instance, last_bin.bin_type_id);
-        last_bin_instance_builder.set_bin_type_copies(last_bin_type_id, 1);
-        last_bin_instance_builder.set_bin_type_copies_min(last_bin_type_id, 0);
-
-        // Add item types.
-        std::vector<ItemPos> last_bin_item_copies(instance.number_of_item_types(), 0);
-        for (const SolutionItem& solution_item: last_bin.items)
-            last_bin_item_copies[solution_item.item_type_id]++;
-
-        std::vector<ItemTypeId> last_bin_to_orig;
-        for (ItemTypeId item_type_id = 0;
-                item_type_id < instance.number_of_item_types();
-                ++item_type_id) {
-            if (last_bin_item_copies[item_type_id] > 0) {
-                ItemTypeId sub_item_type_id = last_bin_instance_builder.add_item_type(instance, item_type_id);
-                last_bin_instance_builder.set_item_type_copies(sub_item_type_id, last_bin_item_copies[item_type_id]);
-                last_bin_to_orig.push_back(item_type_id);
-            }
-        }
-
-        // Build instance.
-        Instance last_bin_instance = last_bin_instance_builder.build();
-
-        // Solve instance. Only the tree search is run: the guides {2, 3}
-        // are specific to it.
+            && solution_best.bin(solution_best.number_of_different_bins() - 1).copies == 1
+            && (ItemPos)solution_best.bin(solution_best.number_of_different_bins() - 1).items.size()
+            < parameters.post_process_last_bin_maximum_number_of_items) {
+        // Only the tree search is run: the guides {2, 3} are specific to it.
         OptimizeParameters last_bin_parameters;
         last_bin_parameters.seed = parameters.seed;
-        last_bin_parameters.verbosity_level = 0;
         last_bin_parameters.timer = parameters.timer;
         last_bin_parameters.optimization_mode = parameters.optimization_mode;
         last_bin_parameters.not_anytime_maximum_approximation_ratio = parameters.not_anytime_maximum_approximation_ratio;
@@ -368,34 +349,30 @@ void optimize_last_bin_post_process(
         last_bin_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
         last_bin_parameters.local_search_weighting_scheme = parameters.local_search_weighting_scheme;
         last_bin_parameters.use_tree_search = true;
-        auto last_bin_output = optimize(last_bin_instance, last_bin_parameters);
-
-        if (last_bin_output.solution_pool.best().feasible()) {
-
-            // Retrieve solution.
-            Solution solution(instance);
-            // Add the bins of the current best solution, except the last
-            // one, which is replaced by the optimized one.
-            for (BinPos bin_pos = 0;
-                    bin_pos < solution_best.number_of_different_bins() - 1;
-                    ++bin_pos) {
-                const SolutionBin& solution_bin = solution_best.bin(bin_pos);
-                solution.append_bin(solution_best, bin_pos, solution_bin.copies);
-            }
-            // Add last optimized bin.
-            solution.append_bin(
-                    last_bin_output.solution_pool.best(),
-                    0,
-                    last_bin.copies,
-                    {last_bin.bin_type_id},
-                    last_bin_to_orig);
-
-            // Update best solution.
-            std::stringstream ss;
-            ss << "post-process";
-            algorithm_formatter.update_solution(solution, ss.str());
-        }
+        Solution solution = reoptimize_bin(
+                solution_best,
+                solution_best.number_of_different_bins() - 1,
+                last_bin_parameters);
+        algorithm_formatter.update_solution(solution, "post-process");
     }
+}
+
+void optimize_other_bins_post_process(
+        const Instance& instance,
+        const OptimizeParameters& parameters,
+        const Solution& solution_best,
+        AlgorithmFormatter& algorithm_formatter)
+{
+    if (!post_process_applies(instance, parameters)
+            || !instance.parameters().leftover_all_bins) {
+        return;
+    }
+    OptimizeParameters post_process_parameters = parameters;
+    post_process_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+    Solution solution = reoptimize_non_last_bins(
+            solution_best,
+            post_process_parameters);
+    algorithm_formatter.update_solution(solution, "post-process");
 }
 
 void optimize_local_search(
@@ -1251,7 +1228,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
     // 'NotAnytimeDeterministic' mode, these local formatters forward every
     // solution and bound to the shared 'algorithm_formatter' as soon as they
     // get it, instead of only at the end.
-    bool local = deterministic || last_bin_post_process_applies(instance, parameters);
+    bool local = deterministic || post_process_applies(instance, parameters);
     if (local && !deterministic) {
         local_parameters.new_solution_callback = [&algorithm_formatter](const Output& local_output)
         {
@@ -1446,7 +1423,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
     // the best solution overall if it doesn't come from one of them (e.g.
     // found before running them). The best solution is copied since the
     // post-process may replace it.
-    if (last_bin_post_process_applies(instance, parameters)) {
+    if (post_process_applies(instance, parameters)) {
         Solution solution_best = output.solution_pool.best();
         bool solution_best_found_by_an_algorithm = false;
         for (const auto& local_output: local_outputs) {
@@ -1467,6 +1444,13 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
                     algorithm_formatter);
         }
     }
+
+    // Other bins post-process, on the best solution overall.
+    optimize_other_bins_post_process(
+            instance,
+            parameters,
+            output.solution_pool.best(),
+            algorithm_formatter);
 
     algorithm_formatter.end();
     return output;

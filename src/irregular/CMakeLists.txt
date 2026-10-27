@@ -8,6 +8,7 @@ target_sources(PackingSolver_irregular PRIVATE
     algorithm_formatter.cpp
     optimize.cpp
     post_process.cpp
+    leftover.cpp
     shape_simplification.cpp
     rotations.cpp
     periodic_packing.cpp

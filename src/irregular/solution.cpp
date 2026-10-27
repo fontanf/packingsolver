@@ -1,5 +1,7 @@
 #include "packingsolver/irregular/solution.hpp"
 
+#include "irregular/leftover.hpp"
+
 #include "shape/boolean_operations.hpp"
 #include "shape/intersection_tree.hpp"
 
@@ -43,6 +45,7 @@ void Solution::update_indicators(
     // far, at the point each item below is processed - needed to look up
     // the correct entry of a per-copy resource consumption schedule.
     std::vector<ItemPos> item_type_copies_in_bin(instance().number_of_item_types(), 0);
+    Staircase staircase;
     for (const SolutionItem& item: bin.items) {
         const ItemType& item_type = instance().item_type(item.item_type_id);
 
@@ -58,6 +61,16 @@ void Solution::update_indicators(
         bin.y_min = std::min(bin.y_min, item.bl_corner.y + aabb.y_min);
         bin.x_max = std::max(bin.x_max, item.bl_corner.x + aabb.x_max);
         bin.y_max = std::max(bin.y_max, item.bl_corner.y + aabb.y_max);
+
+        AxisAlignedBoundingBox item_aabb;
+        item_aabb.x_min = item.bl_corner.x + aabb.x_min;
+        item_aabb.y_min = item.bl_corner.y + aabb.y_min;
+        item_aabb.x_max = item.bl_corner.x + aabb.x_max;
+        item_aabb.y_max = item.bl_corner.y + aabb.y_max;
+        staircase.add_item(
+                instance().parameters().leftover_mode,
+                bin_type.aabb_orig,
+                item_aabb);
 
         // Update bin.resource_consumption.
         for (const ItemResourceConsumption& consumption: item_type.resources[bin.bin_type_id]) {
@@ -85,8 +98,27 @@ void Solution::update_indicators(
         ++item_type_copies_in_bin[item.item_type_id];
     }
 
+    if (bin.items.empty()) {
+        bin.leftover_value = (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min)
+            * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min);
+    } else {
+        AxisAlignedBoundingBox items_aabb;
+        items_aabb.x_min = bin.x_min;
+        items_aabb.y_min = bin.y_min;
+        items_aabb.x_max = bin.x_max;
+        items_aabb.y_max = bin.y_max;
+        bin.leftover_value = leftover_value(
+                instance().parameters().leftover_mode,
+                bin_type.aabb_orig,
+                items_aabb);
+    }
+    bin.staircase_leftover_value = staircase.leftover_value(bin_type.aabb_orig);
+    total_leftover_value_ += bin.copies * bin.leftover_value;
+    total_staircase_leftover_value_ += bin.copies * bin.staircase_leftover_value;
+
     // x_min_/y_min_/x_max_/y_max_ and the leftover value track the last bin only.
     if (bin_pos == (BinPos)bins_.size() - 1) {
+        staircase_leftover_value_ = bin.staircase_leftover_value;
         if (bin.items.empty()) {
             x_min_ = bin_aabb.x_max;
             y_min_ = bin_aabb.y_max;
@@ -97,41 +129,7 @@ void Solution::update_indicators(
             y_min_ = bin.y_min;
             x_max_ = bin.x_max;
             y_max_ = bin.y_max;
-            switch (instance().parameters().leftover_mode) {
-            case LeftoverMode::BottomLeft: {
-                leftover_value_orig_ = (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min)
-                    - (x_max_ - bin_type.aabb_orig.x_min) * (y_max_ - bin_type.aabb_orig.y_min);
-                break;
-            } case LeftoverMode::BottomRight: {
-                leftover_value_orig_ = (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min)
-                    - (bin_type.aabb_orig.x_max - x_min_) * (y_max_ - bin_type.aabb_orig.y_min);
-                break;
-            } case LeftoverMode::TopLeft: {
-                leftover_value_orig_ = (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min)
-                    - (x_max_ - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - y_min_);
-                break;
-            } case LeftoverMode::TopRight: {
-                leftover_value_orig_ = (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min)
-                    - (bin_type.aabb_orig.x_max - x_min_) * (bin_type.aabb_orig.y_max - y_min_);
-                break;
-            } case LeftoverMode::Left: {
-                leftover_value_orig_ = (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min)
-                    - (x_max_ - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min);
-                break;
-            } case LeftoverMode::Right: {
-                leftover_value_orig_ = (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min)
-                    - (bin_type.aabb_orig.x_max - x_min_) * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min);
-                break;
-            } case LeftoverMode::Bottom: {
-                leftover_value_orig_ = (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min)
-                    - (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min) * (y_max_ - bin_type.aabb_orig.y_min);
-                break;
-            } case LeftoverMode::Top: {
-                leftover_value_orig_ = (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min)
-                    - (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - y_min_);
-                break;
-            }
-            }
+            leftover_value_orig_ = bin.leftover_value;
             leftover_value_scaled_ = leftover_value_orig_ * instance().parameters().scale_value;
         }
     }
@@ -416,9 +414,44 @@ bool Solution::operator<(const Solution& solution) const
     } case Objective::BinPackingWithLeftovers: {
         if (solution.number_of_bins() != number_of_bins())
             return solution.number_of_bins() < number_of_bins();
+        if (shape::strictly_greater(
+                    std::sqrt(solution.leftover_value_scaled()),
+                    std::sqrt(leftover_value_scaled()))) {
+            return true;
+        }
+        if (shape::strictly_greater(
+                    std::sqrt(leftover_value_scaled()),
+                    std::sqrt(solution.leftover_value_scaled()))) {
+            return false;
+        }
+        // Tie-breaks: the staircase leftover value of the last bin, then, if
+        // 'leftover_all_bins', the leftover value and the staircase leftover
+        // value of all the bins.
+        if (shape::strictly_greater(
+                    std::sqrt(solution.staircase_leftover_value()),
+                    std::sqrt(staircase_leftover_value()))) {
+            return true;
+        }
+        if (shape::strictly_greater(
+                    std::sqrt(staircase_leftover_value()),
+                    std::sqrt(solution.staircase_leftover_value()))) {
+            return false;
+        }
+        if (!instance().parameters().leftover_all_bins)
+            return false;
+        if (shape::strictly_greater(
+                    std::sqrt(solution.total_leftover_value()),
+                    std::sqrt(total_leftover_value()))) {
+            return true;
+        }
+        if (shape::strictly_greater(
+                    std::sqrt(total_leftover_value()),
+                    std::sqrt(solution.total_leftover_value()))) {
+            return false;
+        }
         return shape::strictly_greater(
-                std::sqrt(solution.leftover_value_scaled()),
-                std::sqrt(leftover_value_scaled()));
+                std::sqrt(solution.total_staircase_leftover_value()),
+                std::sqrt(total_staircase_leftover_value()));
     } case Objective::OpenDimensionX: {
         return solution.x_max() < x_max();
     } case Objective::OpenDimensionY: {
@@ -703,6 +736,9 @@ nlohmann::json Solution::to_json() const
         {"DensityY", density_y()},
         {"OpenDimensionXYArea", open_dimension_xy_area()},
         {"LeftoverValue", leftover_value_orig()},
+        {"StaircaseLeftoverValue", staircase_leftover_value()},
+        {"TotalLeftoverValue", total_leftover_value()},
+        {"TotalStaircaseLeftoverValue", total_staircase_leftover_value()},
     };
 }
 
@@ -712,22 +748,25 @@ void Solution::format(
 {
     if (verbosity_level >= 1) {
         os
-            << "Number of items:  " << optimizationtools::Ratio<ItemPos>(number_of_items(), instance().number_of_items()) << std::endl
-            << "Item area:        " << optimizationtools::Ratio<Profit>(item_area(), instance().item_area()) << std::endl
-            << "Item profit:      " << optimizationtools::Ratio<Profit>(profit(), instance().item_profit()) << std::endl
-            << "Number of bins:   " << optimizationtools::Ratio<BinPos>(number_of_bins(), instance().number_of_bins()) << std::endl
-            << "Bin area:         " << optimizationtools::Ratio<BinPos>(bin_area(), instance().bin_area()) << std::endl
-            << "Bin cost:         " << cost() << std::endl
-            << "Full waste:       " << full_waste() << std::endl
-            << "Full waste (%):   " << 100 * full_waste_percentage() << std::endl
-            << "X min:            " << x_min() << std::endl
-            << "Y min:            " << y_min() << std::endl
-            << "X max:            " << x_max() << std::endl
-            << "Y max:            " << y_max() << std::endl
-            << "Density X:        " << density_x() << std::endl
-            << "Density Y:        " << density_y() << std::endl
-            << "ODXY area:        " << open_dimension_xy_area() << std::endl
-            << "Leftover value:   " << leftover_value_orig() << std::endl
+            << "Number of items:                 " << optimizationtools::Ratio<ItemPos>(number_of_items(), instance().number_of_items()) << std::endl
+            << "Item area:                       " << optimizationtools::Ratio<Profit>(item_area(), instance().item_area()) << std::endl
+            << "Item profit:                     " << optimizationtools::Ratio<Profit>(profit(), instance().item_profit()) << std::endl
+            << "Number of bins:                  " << optimizationtools::Ratio<BinPos>(number_of_bins(), instance().number_of_bins()) << std::endl
+            << "Bin area:                        " << optimizationtools::Ratio<BinPos>(bin_area(), instance().bin_area()) << std::endl
+            << "Bin cost:                        " << cost() << std::endl
+            << "Full waste:                      " << full_waste() << std::endl
+            << "Full waste (%):                  " << 100 * full_waste_percentage() << std::endl
+            << "X min:                           " << x_min() << std::endl
+            << "Y min:                           " << y_min() << std::endl
+            << "X max:                           " << x_max() << std::endl
+            << "Y max:                           " << y_max() << std::endl
+            << "Density X:                       " << density_x() << std::endl
+            << "Density Y:                       " << density_y() << std::endl
+            << "ODXY area:                       " << open_dimension_xy_area() << std::endl
+            << "Leftover value:                  " << leftover_value_orig() << std::endl
+            << "Staircase leftover value:        " << staircase_leftover_value() << std::endl
+            << "Total leftover value:            " << total_leftover_value() << std::endl
+            << "Total staircase leftover value:  " << total_staircase_leftover_value() << std::endl
             ;
     }
 

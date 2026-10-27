@@ -202,6 +202,21 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "irregular" / "users" / "2026-03-22.json",
                 fs::path("data") / "irregular" / "users" / "2026-03-22_solution.json"
             }, {
+                // Issue #740: with 'leftover_all_bins', the free space of the
+                // first bin is in a single region at the top right.
+                fs::path("data") / "irregular" / "users" / "2026-10-23.json",
+                fs::path("data") / "irregular" / "users" / "2026-10-23_solution.json"
+            }, {
+                // The tree search re-optimizes the last bin with guides
+                // {2, 3} in a post-process. It used to rebuild the solution
+                // from all the bins but the last two (instead of the last
+                // one), so with several bins the rebuilt solution missed the
+                // items of the second-to-last bin and was never kept. Here,
+                // the re-optimized last bin increases the leftover value from
+                // about 3238 to about 3543.
+                fs::path("data") / "irregular" / "tests" / "bin_packing_with_leftovers_last_bin_post_process.json",
+                fs::path("data") / "irregular" / "tests" / "bin_packing_with_leftovers_last_bin_post_process_solution.json"
+            }, {
                 fs::path("data") / "irregular" / "tests" / "free_rotation.json",
                 fs::path("data") / "irregular" / "tests" / "free_rotation_solution.json"
             }, {
