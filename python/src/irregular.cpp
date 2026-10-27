@@ -285,6 +285,7 @@ void bind_irregular(nb::module_& m)
         .def_ro("quality_rules", &irregular::Parameters::quality_rules)
         .def_ro("item_item_minimum_spacing", &irregular::Parameters::item_item_minimum_spacing)
         .def_ro("leftover_mode", &irregular::Parameters::leftover_mode)
+        .def_ro("leftover_all_bins", &irregular::Parameters::leftover_all_bins)
         .def_ro("scale_value", &irregular::Parameters::scale_value)
         .def_ro("open_dimension_xy_aspect_ratio", &irregular::Parameters::open_dimension_xy_aspect_ratio);
 
@@ -448,6 +449,7 @@ void bind_irregular(nb::module_& m)
         .def("set_open_dimension_xy_aspect_ratio", &InstanceBuilder::set_open_dimension_xy_aspect_ratio,
                 nb::arg("open_dimension_xy_aspect_ratio"))
         .def("set_leftover_mode", &InstanceBuilder::set_leftover_mode, nb::arg("leftover_mode"))
+        .def("set_leftover_all_bins", &InstanceBuilder::set_leftover_all_bins, nb::arg("leftover_all_bins"))
         // Bin types.
         .def("add_bin_type",
                 [](InstanceBuilder& instance_builder,

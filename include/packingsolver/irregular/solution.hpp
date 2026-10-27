@@ -33,6 +33,16 @@ struct SolutionBin
     /** Maximum y of the items in this bin. */
     LengthDbl y_max = -std::numeric_limits<LengthDbl>::infinity();
 
+    /** Leftover value of the bin (see 'LeftoverMode'). */
+    AreaDbl leftover_value = 0;
+
+    /**
+     * Area of the bin which is not dominated by an item, an item dominating
+     * the points of the rectangle between the corner of the leftover mode and
+     * the opposite corner of its bounding box.
+     */
+    AreaDbl staircase_leftover_value = 0;
+
     /** Resource consumption, indexed by resource_id. */
     std::vector<double> resource_consumption;
 };
@@ -179,6 +189,15 @@ public:
 
     inline Profit leftover_value_scaled() const { return leftover_value_scaled_; }
 
+    /** Get the staircase leftover value of the last bin of the solution. */
+    inline AreaDbl staircase_leftover_value() const { return staircase_leftover_value_; }
+
+    /** Get the sum of the leftover values of the bins. */
+    inline AreaDbl total_leftover_value() const { return total_leftover_value_; }
+
+    /** Get the sum of the staircase leftover values of the bins. */
+    inline AreaDbl total_staircase_leftover_value() const { return total_staircase_leftover_value_; }
+
     /** Get the waste of the solution including the residual. */
     inline AreaDbl full_waste() const { return bin_area() - item_area(); }
 
@@ -292,6 +311,15 @@ private:
 
     /** Value of the leftover in scaled coordinates. */
     Profit leftover_value_scaled_ = 0.0;
+
+    /** Staircase leftover value of the last bin. */
+    AreaDbl staircase_leftover_value_ = 0;
+
+    /** Sum of the leftover values of the bins. */
+    AreaDbl total_leftover_value_ = 0;
+
+    /** Sum of the staircase leftover values of the bins. */
+    AreaDbl total_staircase_leftover_value_ = 0;
 
     /** Total area of the bins of the solution. */
     AreaDbl bin_area_ = 0;

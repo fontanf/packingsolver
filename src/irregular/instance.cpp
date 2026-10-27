@@ -425,6 +425,7 @@ std::ostream& Instance::format(
         if (objective() == Objective::BinPackingWithLeftovers) {
             os
                 << "Leftover mode:                " << parameters().leftover_mode << std::endl
+                << "Leftover all bins:            " << parameters().leftover_all_bins << std::endl
                 ;
         }
         os
@@ -858,6 +859,7 @@ void Instance::write(
     std::stringstream leftover_mode_ss;
     leftover_mode_ss << parameters().leftover_mode;
     json["parameters"]["leftover_mode"] = leftover_mode_ss.str();
+    json["parameters"]["leftover_all_bins"] = parameters().leftover_all_bins;
 
     file << std::setw(4) << json << std::endl;
 }
