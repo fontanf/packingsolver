@@ -157,15 +157,22 @@ std::vector<AxisAlignedBoundingBox> BranchingSchemeMaximalSpaces::compute_rectan
         area += input_shape.shape.compute_area();
         shapes.push_back(input_shape);
     }
+    // Increase the maximum waste until there are few enough rectangles: the
+    // number of empty spaces grows quickly with the number of rectangles.
     std::vector<AxisAlignedBoundingBox> rectangles;
-    for (const std::vector<AxisAlignedBoundingBox>& shape_rectangles:
-            shape::outer_approximation_by_rectangles(
-                shapes,
-                parameters_.rectangle_approximation_ratio * area)) {
-        rectangles.insert(
-                rectangles.end(),
-                shape_rectangles.begin(),
-                shape_rectangles.end());
+    for (double ratio = parameters_.rectangle_approximation_ratio;; ratio *= 2) {
+        rectangles.clear();
+        for (const std::vector<AxisAlignedBoundingBox>& shape_rectangles:
+                shape::outer_approximation_by_rectangles(shapes, ratio * area)) {
+            rectangles.insert(
+                    rectangles.end(),
+                    shape_rectangles.begin(),
+                    shape_rectangles.end());
+        }
+        if ((ElementPos)rectangles.size() <= parameters_.maximum_number_of_rectangles
+                || (ElementPos)rectangles.size() <= (ElementPos)shapes.size()) {
+            break;
+        }
     }
     return rectangles;
 }
@@ -703,14 +710,24 @@ void BranchingSchemeMaximalSpaces::apply_insertion(
     node.number_of_blocks++;
     node.profit += block.profit;
 
-    // Update the empty spaces.
-    for (const AxisAlignedBoundingBox& rectangle: block.rectangles) {
-        cut_empty_spaces(
-                node.empty_spaces,
-                {insertion.x + rectangle.x_min, insertion.y + rectangle.y_min},
-                rectangle.x_max - rectangle.x_min,
-                rectangle.y_max - rectangle.y_min);
+    // Update the empty spaces. The new ones too small for all the valid
+    // blocks are discarded (see 'may_fit').
+    std::vector<AxisAlignedBoundingBox> rectangles = block.rectangles;
+    for (AxisAlignedBoundingBox& rectangle: rectangles)
+        rectangle.shift(insertion.x, insertion.y);
+    LengthDbl minimum_width = std::numeric_limits<LengthDbl>::infinity();
+    LengthDbl minimum_height = std::numeric_limits<LengthDbl>::infinity();
+    for (ItemPos block_id: node.valid_block_ids) {
+        const AxisAlignedBoundingBox& core_rectangle = blocks_[block_id].core_rectangle;
+        minimum_width = (std::min)(minimum_width, core_rectangle.x_max - core_rectangle.x_min);
+        minimum_height = (std::min)(minimum_height, core_rectangle.y_max - core_rectangle.y_min);
     }
+    double factor = 1.0 + parameters_.rectangle_approximation_ratio;
+    cut_empty_spaces(
+            node.empty_spaces,
+            rectangles,
+            minimum_width / factor,
+            minimum_height / factor);
     remove_unusable_spaces(node);
 }
 

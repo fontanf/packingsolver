@@ -65,5 +65,18 @@ void cut_empty_spaces(
         LengthDbl bx,
         LengthDbl by);
 
+/**
+ * Update a list of maximal empty spaces when a set of rectangles gets
+ * occupied.
+ *
+ * The new empty spaces narrower than 'minimum_width' or lower than
+ * 'minimum_height' are discarded.
+ */
+void cut_empty_spaces(
+        std::vector<EmptySpace>& spaces,
+        const std::vector<AxisAlignedBoundingBox>& rectangles,
+        LengthDbl minimum_width = 0.0,
+        LengthDbl minimum_height = 0.0);
+
 }
 }

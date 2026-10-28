@@ -207,6 +207,12 @@ public:
          */
         double rectangle_approximation_ratio = 0.1;
 
+        /**
+         * Maximum number of rectangles covering an item: the maximum waste
+         * is increased until it is reached.
+         */
+        ElementPos maximum_number_of_rectangles = 8;
+
         /** Use the periodic blocks, and not only the single items. */
         bool use_periodic_blocks = true;
 
