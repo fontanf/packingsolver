@@ -187,6 +187,18 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
     std::vector<GuideId> tree_search_guides;
 
     /**
+     * Re-optimize the bins of the best solution at the end, for the
+     * BinPackingWithLeftovers objective in a not-anytime mode.
+     */
+    bool post_process = true;
+
+    /**
+     * The last bin is re-optimized in the post-process only if it contains
+     * (strictly) fewer items than this threshold.
+     */
+    ItemPos post_process_last_bin_maximum_number_of_items = 32;
+
+    /**
      * Threshold to consider that a bin contains "many" items - see the
      * automatic selection between 'use_sequential_single_knapsack' and
      * 'use_sequential_value_correction' for multi-bin 'BinPacking' instances

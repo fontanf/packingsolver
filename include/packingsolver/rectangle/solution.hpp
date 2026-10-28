@@ -46,6 +46,18 @@ struct SolutionBin
 
     /** Resource consumption, indexed by resource_id. */
     std::vector<double> resource_consumption;
+
+    /** Leftover value of the bin (see 'LeftoverMode'). */
+    Area leftover_value = 0;
+
+    /**
+     * Staircase leftover value of the bin: the area of the bin which is not
+     * dominated by an item. An item dominates the points of the rectangle
+     * between the bottom-left corner of the bin and its top-right corner
+     * (see 'LeftoverMode' for the sides of the bin which are not
+     * considered).
+     */
+    Area staircase_leftover_value = 0;
 };
 
 bool operator==(const SolutionBin& solution_bin_1, const SolutionBin& solution_bin_2);
@@ -192,6 +204,18 @@ public:
      */
     inline Profit leftover_value() const { return leftover_value_; }
 
+    /** Get the staircase leftover value of the last bin of the solution. */
+    inline Area staircase_leftover_value() const { return staircase_leftover_value_; }
+
+    /** Get the sum of the leftover values of the bins of the solution. */
+    inline Area total_leftover_value() const { return total_leftover_value_; }
+
+    /**
+     * Get the sum of the staircase leftover values of the bins of the
+     * solution.
+     */
+    inline Area total_staircase_leftover_value() const { return total_staircase_leftover_value_; }
+
     /**
      * Get the area used by the solution: the area of the bins minus the
      * leftover.
@@ -292,6 +316,15 @@ private:
 
     /** Value of the leftover: an area (see 'LeftoverMode'). */
     Profit leftover_value_ = 0.0;
+
+    /** Staircase leftover value of the last bin. */
+    Area staircase_leftover_value_ = 0;
+
+    /** Sum of the leftover values of the bins. */
+    Area total_leftover_value_ = 0;
+
+    /** Sum of the staircase leftover values of the bins. */
+    Area total_staircase_leftover_value_ = 0;
 
     /** Total area of the bins of the solution. */
     Area bin_area_ = 0;

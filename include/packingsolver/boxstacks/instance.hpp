@@ -111,6 +111,23 @@ std::ostream& operator<<(
         std::ostream& os,
         Box box);
 
+/**
+ * Get the box used in a bin of dimensions 'bin' whose stacks end at 'x_max'
+ * and 'y_max', for a leftover mode (see 'LeftoverMode'): the leftover is the
+ * volume of the bin minus the volume of this box.
+ */
+inline Box leftover_mode_used_box(
+        LeftoverMode leftover_mode,
+        const Box& bin,
+        Length x_max,
+        Length y_max)
+{
+    return {
+        (leftover_mode == LeftoverMode::Y)? bin.x: x_max,
+        (leftover_mode == LeftoverMode::X)? bin.y: y_max,
+        bin.z};
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 ///////////////////////// Item type, Bin type, Defect //////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -356,6 +373,14 @@ struct Parameters
 
     /** Leftover mode (see 'LeftoverMode'). */
     LeftoverMode leftover_mode = LeftoverMode::XY;
+
+    /**
+     * For the BinPackingWithLeftovers objective, also compare the solutions
+     * on the sum of the leftover values of the bins and on the sum of their
+     * staircase leftover values, after the leftover value and the staircase
+     * leftover value of the last bin.
+     */
+    bool leftover_all_bins = true;
 
     /**
      * 'true' iff weight constraints must be satisfied for all items belonging

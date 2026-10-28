@@ -76,6 +76,7 @@ int main(int argc, char *argv[])
 
             ("objective,f", po::value<Objective>(), "Objective")
             ("leftover-mode,", po::value<boxstacks::LeftoverMode>(), "Leftover mode (bin-packing-with-leftovers): X, Y, XY")
+            ("leftover-all-bins", po::value<bool>(), "also compare the leftover values of all the bins")
 
             ("unloading-constraint,", po::value<rectangle::UnloadingConstraint>(), "")
 
@@ -103,6 +104,7 @@ int main(int argc, char *argv[])
             ("column-generation-subproblem-tree-search-queue-size,", po::value<NodeId>(), "set column generation subproblem queue size")
             ("anytime-tree-search-initial-queue-size,", po::value<NodeId>(), "")
             ("anytime-sequential-onedimensional-rectangle-rectangle-initial-queue-size,", po::value<NodeId>(), "")
+            ("post-process-last-bin-maximum-number-of-items,", po::value<ItemPos>(), "re-optimize the last bin in the post-process only if it contains fewer items")
             ("not-anytime-tree-search-queue-size,", po::value<NodeId>(), "")
             ("not-anytime-sequential-single-knapsack-subproblem-tree-search-queue-size,", po::value<NodeId>(), "")
             ("not-anytime-sequential-single-knapsack-subproblem-rectangle-tree-search-queue-size,", po::value<NodeId>(), "")
@@ -193,6 +195,8 @@ int main(int argc, char *argv[])
             instance_builder.set_objective(vm["objective"].as<Objective>());
         if (vm.count("leftover-mode"))
             instance_builder.set_leftover_mode(vm["leftover-mode"].as<boxstacks::LeftoverMode>());
+        if (vm.count("leftover-all-bins"))
+            instance_builder.set_leftover_all_bins(vm["leftover-all-bins"].as<bool>());
         if (vm.count("unloading-constraint"))
             instance_builder.set_unloading_constraint(vm["unloading-constraint"].as<rectangle::UnloadingConstraint>());
 
@@ -236,6 +240,8 @@ int main(int argc, char *argv[])
             parameters.anytime_tree_search_initial_queue_size = vm["anytime-tree-search-initial-queue-size"].as<NodeId>();
         if (vm.count("anytime-sequential-onedimensional-rectangle-rectangle-initial-queue-size"))
             parameters.anytime_sequential_onedimensional_rectangle_rectangle_initial_queue_size = vm["anytime-sequential-onedimensional-rectangle-rectangle-initial-queue-size"].as<NodeId>();
+        if (vm.count("post-process-last-bin-maximum-number-of-items"))
+            parameters.post_process_last_bin_maximum_number_of_items = vm["post-process-last-bin-maximum-number-of-items"].as<ItemPos>();
         if (vm.count("not-anytime-tree-search-queue-size"))
             parameters.not_anytime_tree_search_queue_size = vm["not-anytime-tree-search-queue-size"].as<NodeId>();
         if (vm.count("not-anytime-sequential-single-knapsack-subproblem-tree-search-queue-size"))

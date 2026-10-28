@@ -140,11 +140,11 @@ struct Box
 };
 
 /**
- * Get the volume used in a bin of dimensions 'bin' whose items end at
- * 'x_max', 'y_max', 'z_max', for a leftover mode (see 'LeftoverMode'): the
- * leftover is the volume of the bin minus this volume.
+ * Get the box used in a bin of dimensions 'bin' whose items end at 'x_max',
+ * 'y_max', 'z_max', for a leftover mode (see 'LeftoverMode'): the leftover is
+ * the volume of the bin minus the volume of this box.
  */
-inline Volume leftover_mode_used_volume(
+inline Box leftover_mode_used_box(
         LeftoverMode leftover_mode,
         const Box& bin,
         Length x_max,
@@ -163,9 +163,10 @@ inline Volume leftover_mode_used_volume(
             || leftover_mode == LeftoverMode::XZ
             || leftover_mode == LeftoverMode::YZ
             || leftover_mode == LeftoverMode::XYZ);
-    return (Volume)(along_x? x_max: bin.x)
-        * (along_y? y_max: bin.y)
-        * (along_z? z_max: bin.z);
+    return {
+        (along_x? x_max: bin.x),
+        (along_y? y_max: bin.y),
+        (along_z? z_max: bin.z)};
 }
 
 inline bool operator==(const Box& box_1, const Box& box_2) { return box_1.x == box_2.x && box_1.y == box_2.y && box_1.z == box_2.z; }
@@ -326,6 +327,14 @@ struct Parameters
 
     /** Leftover mode (see 'LeftoverMode'). */
     LeftoverMode leftover_mode = LeftoverMode::XYZ;
+
+    /**
+     * For the BinPackingWithLeftovers objective, also compare the solutions
+     * on the sum of the leftover values of the bins and on the sum of their
+     * staircase leftover values, after the leftover value and the staircase
+     * leftover value of the last bin.
+     */
+    bool leftover_all_bins = true;
 };
 
 ////////////////////////////////////////////////////////////////////////////////

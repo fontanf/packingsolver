@@ -214,11 +214,37 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
     /** Guides used in the tree search algorithm. */
     std::vector<GuideId> tree_search_guides;
 
+    /** Directions used in the tree search algorithm; see 'TreeSearchParameters::directions'. */
+    std::vector<Direction> tree_search_directions;
+
+    /**
+     * Re-optimize the bins of the best solution at the end, for the
+     * BinPackingWithLeftovers objective in a not-anytime mode.
+     */
+    bool post_process = true;
+
+    /**
+     * The last bin is re-optimized in the post-process only if it contains
+     * (strictly) fewer items than this threshold.
+     */
+    ItemPos post_process_last_bin_maximum_number_of_items = 32;
+
     /** Threshold to consider that a bin contains "many" items. */
     Counter many_items_in_bins_threshold = 16;
 
     /** Threshold to consider that a bin contains "many" items. */
     Counter many_items_in_bins_threshold_2 = 64;
+
+    /**
+     * Threshold to consider that a bin x (resp. y, z) section - a slice of
+     * the bin as long along x (resp. y, z) as the mean item - contains
+     * "many" items, i.e. mean bin y-z (resp. x-z, x-y) area / mean item y-z
+     * (resp. x-z, x-y) area. Used to choose between 'tree_search' (whose
+     * skyline branching factor grows with how many items pack into a single
+     * such section) and 'tree_search_maximal_spaces' (higher overhead per
+     * node, but does not degrade the same way).
+     */
+    Counter many_items_in_section_threshold = 8;
 
     /** Factor to consider that the number of copies of items is "high". */
     Counter many_item_type_copies_factor = 1;

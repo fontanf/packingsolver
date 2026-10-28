@@ -305,6 +305,7 @@ std::ostream& Instance::format(
         if (objective() == Objective::BinPackingWithLeftovers) {
             os
                 << "Leftover mode:         " << parameters().leftover_mode << std::endl
+                << "Leftover all bins:     " << parameters().leftover_all_bins << std::endl
                 ;
         }
         os
@@ -625,7 +626,8 @@ void Instance::write_csv(
     f_parameters << "NAME,VALUE" << std::endl
         << "objective," << objective() << std::endl
         << "unloading_constraint," << unloading_constraint() << std::endl
-        << "leftover_mode," << parameters().leftover_mode << std::endl;
+        << "leftover_mode," << parameters().leftover_mode << std::endl
+        << "leftover_all_bins," << parameters().leftover_all_bins << std::endl;
 
 }
 
@@ -649,6 +651,7 @@ void Instance::write_json(
         ss << parameters().leftover_mode;
         j["leftover_mode"] = ss.str();
     }
+    j["leftover_all_bins"] = parameters().leftover_all_bins;
 
     j["bin_types"] = nlohmann::json::array();
     for (BinTypeId bin_type_id = 0;

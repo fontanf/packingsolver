@@ -49,6 +49,33 @@ BinTypeId InstanceBuilder::add_bin_type(
     return instance_.bin_types_.size() - 1;
 }
 
+void InstanceBuilder::set_bin_type_box(
+        BinTypeId bin_type_id,
+        Length x,
+        Length y,
+        Length z)
+{
+    if (bin_type_id < 0 || bin_type_id >= (BinTypeId)instance_.bin_types_.size()) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "invalid 'bin_type_id'; "
+                "bin_type_id: " + std::to_string(bin_type_id) + "; "
+                "instance_.bin_types_.size(): " + std::to_string(instance_.bin_types_.size()) + ".");
+    }
+    if (x <= 0 || y <= 0 || z <= 0) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "bin dimensions must be > 0; "
+                "x: " + std::to_string(x) + "; "
+                "y: " + std::to_string(y) + "; "
+                "z: " + std::to_string(z) + ".");
+    }
+
+    instance_.bin_types_[bin_type_id].box.x = x;
+    instance_.bin_types_[bin_type_id].box.y = y;
+    instance_.bin_types_[bin_type_id].box.z = z;
+}
+
 void InstanceBuilder::set_bin_type_cost(
         BinTypeId bin_type_id,
         Profit cost)
@@ -595,6 +622,8 @@ void InstanceBuilder::read_parameters(
         } else if (name == "leftover_mode") {
             LeftoverMode leftover_mode = read_enum<LeftoverMode>(value, name);
             set_leftover_mode(leftover_mode);
+        } else if (name == "leftover_all_bins") {
+            set_leftover_all_bins(value == "1" || value == "true");
         }
     }
 }
@@ -809,6 +838,8 @@ void InstanceBuilder::read(
                 "leftover_mode");
         set_leftover_mode(leftover_mode);
     }
+    if (j.contains("leftover_all_bins"))
+        set_leftover_all_bins(j["leftover_all_bins"]);
 
     // Read bin types.
     for (const auto& json_bin_type: j["bin_types"]) {

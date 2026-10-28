@@ -79,6 +79,7 @@ int main(int argc, char *argv[])
 
             ("unloading-constraint,", po::value<rectangle::UnloadingConstraint>(), "")
             ("leftover-mode,", po::value<rectangle::LeftoverMode>(), "")
+            ("leftover-all-bins", po::value<bool>(), "also compare the leftover values of all the bins")
 
             ("output,o", po::value<std::string>(), "Output path")
             ("certificate,c", po::value<std::string>(), "Certificate path")
@@ -109,6 +110,7 @@ int main(int argc, char *argv[])
             ("sequential-value-correction-subproblem-tree-search-maximal-spaces-queue-size,", po::value<NodeId>(), "set sequential value correction subproblem maximal spaces queue size")
             ("column-generation-subproblem-tree-search-queue-size,", po::value<NodeId>(), "set column generation subproblem queue size")
             ("column-generation-subproblem-tree-search-maximal-spaces-queue-size,", po::value<NodeId>(), "set column generation subproblem maximal spaces queue size")
+            ("post-process-last-bin-maximum-number-of-items,", po::value<ItemPos>(), "re-optimize the last bin in the post-process only if it contains fewer items")
             ("not-anytime-tree-search-queue-size,", po::value<Counter>(), "")
             ("not-anytime-tree-search-maximal-spaces-queue-size,", po::value<Counter>(), "")
             ("not-anytime-sequential-single-knapsack-subproblem-tree-search-queue-size,", po::value<Counter>(), "")
@@ -203,6 +205,8 @@ int main(int argc, char *argv[])
             instance_builder.set_unloading_constraint(vm["unloading-constraint"].as<UnloadingConstraint>());
         if (vm.count("leftover-mode"))
             instance_builder.set_leftover_mode(vm["leftover-mode"].as<LeftoverMode>());
+        if (vm.count("leftover-all-bins"))
+            instance_builder.set_leftover_all_bins(vm["leftover-all-bins"].as<bool>());
 
         Instance instance = instance_builder.build();
 
@@ -248,6 +252,8 @@ int main(int argc, char *argv[])
             parameters.column_generation_subproblem_tree_search_queue_size = vm["column-generation-subproblem-tree-search-queue-size"].as<NodeId>();
         if (vm.count("column-generation-subproblem-tree-search-maximal-spaces-queue-size"))
             parameters.column_generation_subproblem_tree_search_maximal_spaces_queue_size = vm["column-generation-subproblem-tree-search-maximal-spaces-queue-size"].as<NodeId>();
+        if (vm.count("post-process-last-bin-maximum-number-of-items"))
+            parameters.post_process_last_bin_maximum_number_of_items = vm["post-process-last-bin-maximum-number-of-items"].as<ItemPos>();
         if (vm.count("not-anytime-tree-search-queue-size"))
             parameters.not_anytime_tree_search_queue_size = vm["not-anytime-tree-search-queue-size"].as<Counter>();
         if (vm.count("not-anytime-tree-search-maximal-spaces-queue-size"))

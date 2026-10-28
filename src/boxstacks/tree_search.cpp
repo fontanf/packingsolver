@@ -782,15 +782,44 @@ BranchingScheme::Node BranchingScheme::child_tmp(
         // In the frame of the original instance.
         Length x_max = node.last_bin_xe_max;
         Length y_max = node.last_bin_ye_max;
-        if (o == Direction::Y)
+        Length x_end = xe;
+        Length y_end = ye;
+        if (o == Direction::Y) {
             std::swap(x_max, y_max);
+            std::swap(x_end, y_end);
+        }
         const BinType& bin_type_orig = this->instance().bin_type(bin_type_id);
         LeftoverMode leftover_mode = this->instance().parameters().leftover_mode;
-        Volume last_bin_volume
-            = (Volume)((leftover_mode == LeftoverMode::Y)? bin_type_orig.box.x: x_max)
-            * ((leftover_mode == LeftoverMode::X)? bin_type_orig.box.y: y_max)
-            * bin_type_orig.box.z;
-        node.leftover_value = bin_type_orig.volume() - last_bin_volume;
+        node.leftover_value = bin_type_orig.volume() - leftover_mode_used_box(
+                leftover_mode,
+                bin_type_orig.box,
+                x_max,
+                y_max).volume();
+
+        // Update the staircase of the last bin.
+        if (insertion.new_bin > 0) {  // New bin.
+            if (parent.number_of_bins > 0) {
+                node.previous_bins_leftover_value
+                    = parent.previous_bins_leftover_value
+                    + parent.leftover_value;
+                node.previous_bins_staircase_leftover_value
+                    = parent.previous_bins_staircase_leftover_value
+                    + parent.last_bin_staircase_leftover_value;
+            }
+        } else {  // Same bin.
+            node.last_bin_staircase = parent.last_bin_staircase;
+            node.previous_bins_leftover_value = parent.previous_bins_leftover_value;
+            node.previous_bins_staircase_leftover_value = parent.previous_bins_staircase_leftover_value;
+        }
+        Box stack_used_box = leftover_mode_used_box(
+                leftover_mode,
+                bin_type_orig.box,
+                x_end,
+                y_end);
+        node.last_bin_staircase.add(stack_used_box.x, stack_used_box.y);
+        node.last_bin_staircase_leftover_value
+            = bin_type_orig.volume()
+            - node.last_bin_staircase.area() * bin_type_orig.box.z;
     }
 
     if (instance.unloading_constraint() == rectangle::UnloadingConstraint::IncreasingX) {
@@ -1501,7 +1530,25 @@ bool BranchingScheme::better(
             return true;
         if (node_2->number_of_bins != node_1->number_of_bins)
             return node_2->number_of_bins > node_1->number_of_bins;
-        return node_2->leftover_value < node_1->leftover_value;
+        // Same comparison as 'Solution::operator<'.
+        if (node_2->leftover_value != node_1->leftover_value)
+            return node_2->leftover_value < node_1->leftover_value;
+        if (node_2->last_bin_staircase_leftover_value
+                != node_1->last_bin_staircase_leftover_value) {
+            return node_2->last_bin_staircase_leftover_value
+                < node_1->last_bin_staircase_leftover_value;
+        }
+        if (!instance().parameters().leftover_all_bins)
+            return false;
+        if (node_2->previous_bins_leftover_value + node_2->leftover_value
+                != node_1->previous_bins_leftover_value + node_1->leftover_value) {
+            return node_2->previous_bins_leftover_value + node_2->leftover_value
+                < node_1->previous_bins_leftover_value + node_1->leftover_value;
+        }
+        return node_2->previous_bins_staircase_leftover_value
+            + node_2->last_bin_staircase_leftover_value
+            < node_1->previous_bins_staircase_leftover_value
+            + node_1->last_bin_staircase_leftover_value;
     } case Objective::OpenDimensionX: {
         if (!leaf(node_1))
             return false;
@@ -1552,10 +1599,28 @@ bool BranchingScheme::bound(
         if (!leaf(node_2))
             return false;
         // The number of bins of a node can only increase, and the leftover
-        // of its last bin can only decrease.
+        // values and the staircase leftover values of its last bin can only
+        // decrease.
         if (node_1->number_of_bins != node_2->number_of_bins)
             return node_1->number_of_bins > node_2->number_of_bins;
-        return node_1->leftover_value <= node_2->leftover_value;
+        if (node_1->leftover_value != node_2->leftover_value)
+            return node_1->leftover_value < node_2->leftover_value;
+        if (node_1->last_bin_staircase_leftover_value
+                != node_2->last_bin_staircase_leftover_value) {
+            return node_1->last_bin_staircase_leftover_value
+                < node_2->last_bin_staircase_leftover_value;
+        }
+        if (!instance().parameters().leftover_all_bins)
+            return true;
+        if (node_1->previous_bins_leftover_value + node_1->leftover_value
+                != node_2->previous_bins_leftover_value + node_2->leftover_value) {
+            return node_1->previous_bins_leftover_value + node_1->leftover_value
+                < node_2->previous_bins_leftover_value + node_2->leftover_value;
+        }
+        return node_1->previous_bins_staircase_leftover_value
+            + node_1->last_bin_staircase_leftover_value
+            <= node_2->previous_bins_staircase_leftover_value
+            + node_2->last_bin_staircase_leftover_value;
     } case Objective::Knapsack: {
         if (leaf(node_2))
             return true;

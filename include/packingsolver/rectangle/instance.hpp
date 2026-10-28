@@ -315,6 +315,14 @@ struct Parameters
     LeftoverMode leftover_mode = LeftoverMode::Area;
 
     /**
+     * For the BinPackingWithLeftovers objective, also compare the solutions
+     * on the sum of the leftover values of the bins and on the sum of their
+     * staircase leftover values, after the leftover value and the staircase
+     * leftover value of the last bin.
+     */
+    bool leftover_all_bins = true;
+
+    /**
      * 'true' iff weight constraints must be satisfied for all items belonging
      * to a larger or equal group.
      */

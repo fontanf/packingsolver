@@ -64,6 +64,9 @@ public:
     /** Set the leftover mode (see 'LeftoverMode'). */
     void set_leftover_mode(LeftoverMode leftover_mode) { instance_.parameters_.leftover_mode = leftover_mode; }
 
+    /** Set whether the leftover values of all the bins are compared. */
+    void set_leftover_all_bins(bool leftover_all_bins) { instance_.parameters_.leftover_all_bins = leftover_all_bins; }
+
     /** Set the feasibility callback. */
     void set_feasibility_callback(const FeasibilityCallback& feasibility_callback) { instance_.feasibility_callback_ = feasibility_callback; }
 
@@ -81,6 +84,16 @@ public:
     void set_bin_type_cost(
             BinTypeId bin_type_id,
             Profit cost);
+
+    /**
+     * Set the dimensions of a bin type, overriding whatever 'add_bin_type'
+     * gave it. Used by the sequential feasibility algorithm to shrink a bin.
+     */
+    void set_bin_type_box(
+            BinTypeId bin_type_id,
+            Length x,
+            Length y,
+            Length z);
 
     /** Set the maximum weight of a bin type. */
     void set_bin_type_maximum_weight(

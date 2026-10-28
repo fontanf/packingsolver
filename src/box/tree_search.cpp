@@ -412,18 +412,52 @@ BranchingScheme::Node BranchingScheme::child_tmp(
         Length x_max = node.last_bin_xe_max;
         Length y_max = node.last_bin_ye_max;
         Length z_max = node.last_bin_ze_max;
+        Length x_end = xe;
+        Length y_end = ye;
+        Length z_end = ze;
         if (o == Direction::Y) {
             std::swap(x_max, y_max);
+            std::swap(x_end, y_end);
         } else if (o == Direction::Z) {
             std::swap(x_max, z_max);
+            std::swap(x_end, z_end);
         }
         const BinType& bin_type_orig = this->instance().bin_type(bin_type_id);
-        node.leftover_value = bin_type_orig.volume() - leftover_mode_used_volume(
-                this->instance().parameters().leftover_mode,
+        LeftoverMode leftover_mode = this->instance().parameters().leftover_mode;
+        node.leftover_value = bin_type_orig.volume() - leftover_mode_used_box(
+                leftover_mode,
                 bin_type_orig.box,
                 x_max,
                 y_max,
-                z_max);
+                z_max).volume();
+
+        // Update the staircase of the last bin.
+        if (insertion.new_bin > 0) {  // New bin.
+            if (parent.number_of_bins > 0) {
+                node.previous_bins_leftover_value
+                    = parent.previous_bins_leftover_value
+                    + parent.leftover_value;
+                node.previous_bins_staircase_leftover_value
+                    = parent.previous_bins_staircase_leftover_value
+                    + parent.last_bin_staircase_leftover_value;
+            }
+        } else {  // Same bin.
+            node.last_bin_staircase = parent.last_bin_staircase;
+            node.previous_bins_leftover_value = parent.previous_bins_leftover_value;
+            node.previous_bins_staircase_leftover_value = parent.previous_bins_staircase_leftover_value;
+        }
+        Box item_used_box = leftover_mode_used_box(
+                leftover_mode,
+                bin_type_orig.box,
+                x_end,
+                y_end,
+                z_end);
+        node.last_bin_staircase.add(
+                item_used_box.x,
+                item_used_box.y,
+                item_used_box.z);
+        node.last_bin_staircase_leftover_value
+            = bin_type_orig.volume() - node.last_bin_staircase.volume();
     }
 
     node.id = node_id_++;
@@ -750,7 +784,25 @@ bool BranchingScheme::better(
             return true;
         if (node_2->number_of_bins != node_1->number_of_bins)
             return node_2->number_of_bins > node_1->number_of_bins;
-        return node_2->leftover_value < node_1->leftover_value;
+        // Same comparison as 'Solution::operator<'.
+        if (node_2->leftover_value != node_1->leftover_value)
+            return node_2->leftover_value < node_1->leftover_value;
+        if (node_2->last_bin_staircase_leftover_value
+                != node_1->last_bin_staircase_leftover_value) {
+            return node_2->last_bin_staircase_leftover_value
+                < node_1->last_bin_staircase_leftover_value;
+        }
+        if (!instance().parameters().leftover_all_bins)
+            return false;
+        if (node_2->previous_bins_leftover_value + node_2->leftover_value
+                != node_1->previous_bins_leftover_value + node_1->leftover_value) {
+            return node_2->previous_bins_leftover_value + node_2->leftover_value
+                < node_1->previous_bins_leftover_value + node_1->leftover_value;
+        }
+        return node_2->previous_bins_staircase_leftover_value
+            + node_2->last_bin_staircase_leftover_value
+            < node_1->previous_bins_staircase_leftover_value
+            + node_1->last_bin_staircase_leftover_value;
     } case Objective::OpenDimensionX: case Objective::OpenDimensionY: case Objective::OpenDimensionZ: {
         // The nodes are in the instance flipped along the open dimension:
         // 'xe_max' is the length used along it.
@@ -797,10 +849,28 @@ bool BranchingScheme::bound(
         if (!leaf(node_2))
             return false;
         // The number of bins of a node can only increase, and the leftover
-        // of its last bin can only decrease.
+        // values and the staircase leftover values of its last bin can only
+        // decrease.
         if (node_1->number_of_bins != node_2->number_of_bins)
             return node_1->number_of_bins > node_2->number_of_bins;
-        return node_1->leftover_value <= node_2->leftover_value;
+        if (node_1->leftover_value != node_2->leftover_value)
+            return node_1->leftover_value < node_2->leftover_value;
+        if (node_1->last_bin_staircase_leftover_value
+                != node_2->last_bin_staircase_leftover_value) {
+            return node_1->last_bin_staircase_leftover_value
+                < node_2->last_bin_staircase_leftover_value;
+        }
+        if (!instance().parameters().leftover_all_bins)
+            return true;
+        if (node_1->previous_bins_leftover_value + node_1->leftover_value
+                != node_2->previous_bins_leftover_value + node_2->leftover_value) {
+            return node_1->previous_bins_leftover_value + node_1->leftover_value
+                < node_2->previous_bins_leftover_value + node_2->leftover_value;
+        }
+        return node_1->previous_bins_staircase_leftover_value
+            + node_1->last_bin_staircase_leftover_value
+            <= node_2->previous_bins_staircase_leftover_value
+            + node_2->last_bin_staircase_leftover_value;
     } case Objective::Knapsack: {
         if (leaf(node_2))
             return true;
@@ -1098,7 +1168,10 @@ const packingsolver::box::TreeSearchOutput packingsolver::box::tree_search(
     }
 
     std::vector<Direction> directions;
-    if (instance.objective() == Objective::OpenDimensionX) {
+    if (!parameters.directions.empty()) {
+        // Caller-provided override (see 'TreeSearchParameters::directions').
+        directions = parameters.directions;
+    } else if (instance.objective() == Objective::OpenDimensionX) {
         directions = {Direction::X};
     } else if (instance.objective() == Objective::OpenDimensionY) {
         directions = {Direction::Y};

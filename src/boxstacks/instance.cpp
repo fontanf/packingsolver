@@ -145,6 +145,7 @@ std::ostream& Instance::format(
         if (objective() == Objective::BinPackingWithLeftovers) {
             os
                 << "Leftover mode:         " << parameters_.leftover_mode << std::endl
+                << "Leftover all bins:     " << parameters_.leftover_all_bins << std::endl
                 ;
         }
         os
@@ -367,6 +368,7 @@ void Instance::write_json(
         ss << parameters_.leftover_mode;
         j["leftover_mode"] = ss.str();
     }
+    j["leftover_all_bins"] = parameters_.leftover_all_bins;
     j["no_check_weight_constraints"] = nlohmann::json::array();
     for (GroupId group_id = 0;
             group_id < (GroupId)parameters_.check_weight_constraints.size();
@@ -577,6 +579,7 @@ void Instance::write_parameters(
         << "objective," << objective() << std::endl
         << "unloading-constraint," << parameters_.unloading_constraint << std::endl
         << "leftover-mode," << parameters_.leftover_mode << std::endl
+        << "leftover-all-bins," << parameters_.leftover_all_bins << std::endl
         ;
     for (GroupId group_id = 0;
             group_id < number_of_groups();

@@ -1,5 +1,7 @@
 #include "packingsolver/rectangle/solution.hpp"
 
+#include "algorithms/staircase.hpp"
+
 #include "optimizationtools/utils/utils.hpp"
 
 #include <fstream>
@@ -34,6 +36,9 @@ void Solution::update_indicators(
     this->bin_area_ += bin.copies * bin_type.area();
     this->x_max_ = 0;
     this->y_max_ = 0;
+    Length bin_x_max = 0;
+    Length bin_y_max = 0;
+    Staircase2D staircase;
 
     // Number of copies of each item type already placed in this bin, so
     // far, at the point each item below is processed - needed to look up
@@ -97,29 +102,47 @@ void Solution::update_indicators(
                 this->rear_axle_overweight_ += axle_weights.second - bin_type.semi_trailer_truck_data.rear_axle_maximum_weight;
         }
 
-        if (bin_pos == (BinPos)this->bins_.size() - 1) {
-            if (this->x_max_ < xe)
-                this->x_max_ = xe;
-            if (this->y_max_ < ye)
-                this->y_max_ = ye;
-            // The area used in the last bin, the rest of the bin being the
-            // leftover.
-            Area last_bin_area = 0;
-            switch (instance().parameters().leftover_mode) {
-            case LeftoverMode::Area: {
-                last_bin_area = this->x_max_ * this->y_max_;
-                break;
-            } case LeftoverMode::X: {
-                last_bin_area = this->x_max_ * bin_type.rect.y;
-                break;
-            } case LeftoverMode::Y: {
-                last_bin_area = bin_type.rect.x * this->y_max_;
-                break;
-            }
-            }
-            this->area_ = this->bin_area_ - bin_type.area() + last_bin_area;
-            this->leftover_value_ = this->bin_area_ - this->area_;
+        bin_x_max = std::max(bin_x_max, xe);
+        bin_y_max = std::max(bin_y_max, ye);
+        switch (instance().parameters().leftover_mode) {
+        case LeftoverMode::Area: {
+            staircase.add(xe, ye);
+            break;
+        } case LeftoverMode::X: {
+            staircase.add(xe, bin_type.rect.y);
+            break;
+        } case LeftoverMode::Y: {
+            staircase.add(bin_type.rect.x, ye);
+            break;
         }
+        }
+    }
+
+    // Update the leftover values. The area used in a bin is the rest of the
+    // bin being the leftover.
+    Area used_area = 0;
+    switch (instance().parameters().leftover_mode) {
+    case LeftoverMode::Area: {
+        used_area = bin_x_max * bin_y_max;
+        break;
+    } case LeftoverMode::X: {
+        used_area = bin_x_max * bin_type.rect.y;
+        break;
+    } case LeftoverMode::Y: {
+        used_area = bin_type.rect.x * bin_y_max;
+        break;
+    }
+    }
+    bin.leftover_value = bin_type.area() - used_area;
+    bin.staircase_leftover_value = bin_type.area() - staircase.area();
+    this->total_leftover_value_ += bin.copies * bin.leftover_value;
+    this->total_staircase_leftover_value_ += bin.copies * bin.staircase_leftover_value;
+    if (bin_pos == (BinPos)this->bins_.size() - 1) {
+        this->x_max_ = bin_x_max;
+        this->y_max_ = bin_y_max;
+        this->area_ = this->bin_area_ - bin.leftover_value;
+        this->leftover_value_ = bin.leftover_value;
+        this->staircase_leftover_value_ = bin.staircase_leftover_value;
     }
 
     // Update number_of_infeasible_item_copies_min_ and item_copies_feasible_.
@@ -220,7 +243,18 @@ bool Solution::operator<(const Solution& solution) const
     } case Objective::BinPackingWithLeftovers: {
         if (solution.number_of_bins() != number_of_bins())
             return solution.number_of_bins() < number_of_bins();
-        return strictly_greater(solution.leftover_value(), leftover_value());
+        if (solution.leftover_value() != leftover_value())
+            return solution.leftover_value() > leftover_value();
+        // Tie-breaks: the staircase leftover value of the last bin, then, if
+        // 'leftover_all_bins', the leftover value and the staircase leftover
+        // value of all the bins.
+        if (solution.staircase_leftover_value() != staircase_leftover_value())
+            return solution.staircase_leftover_value() > staircase_leftover_value();
+        if (!instance().parameters().leftover_all_bins)
+            return false;
+        if (solution.total_leftover_value() != total_leftover_value())
+            return solution.total_leftover_value() > total_leftover_value();
+        return solution.total_staircase_leftover_value() > total_staircase_leftover_value();
     } case Objective::OpenDimensionX: {
         return solution.x_max() < x_max();
     } case Objective::OpenDimensionY: {
@@ -334,6 +368,9 @@ nlohmann::json Solution::to_json() const
         {"XMax", x_max()},
         {"YMax", y_max()},
         {"LeftoverValue", leftover_value()},
+        {"StaircaseLeftoverValue", staircase_leftover_value()},
+        {"TotalLeftoverValue", total_leftover_value()},
+        {"TotalStaircaseLeftoverValue", total_staircase_leftover_value()},
     };
 }
 
@@ -343,23 +380,26 @@ void Solution::format(
 {
     if (verbosity_level >= 1) {
         os
-            << "Number of items:  " << optimizationtools::Ratio<ItemPos>(number_of_items(), instance().number_of_items()) << std::endl
-            << "Item area:        " << optimizationtools::Ratio<Area>(item_area(), instance().item_area()) << std::endl
-            << "Item weight:      " << optimizationtools::Ratio<Weight>(item_weight(), instance().item_weight()) << std::endl
-            << "Item profit:      " << optimizationtools::Ratio<Profit>(profit(), instance().item_profit()) << std::endl
-            << "Number of bins:   " << optimizationtools::Ratio<BinPos>(number_of_bins(), instance().number_of_bins()) << std::endl
-            << "Bin area:         " << optimizationtools::Ratio<Area>(bin_area(), instance().bin_area()) << std::endl
-            << "Bin weight:       " << optimizationtools::Ratio<Weight>(bin_weight(), instance().bin_weight()) << std::endl
-            << "Bin cost:         " << cost() << std::endl
-            << "Waste:            " << waste() << std::endl
-            << "Waste (%):        " << 100 * waste_percentage() << std::endl
-            << "Full waste:       " << full_waste() << std::endl
-            << "Full waste (%):   " << 100 * full_waste_percentage() << std::endl
-            << "Area load:        " << area_load() << std::endl
-            << "Weight load:      " << weight_load() << std::endl
-            << "X max:            " << x_max() << std::endl
-            << "Y max:            " << y_max() << std::endl
-            << "Leftover value:   " << leftover_value() << std::endl
+            << "Number of items:                 " << optimizationtools::Ratio<ItemPos>(number_of_items(), instance().number_of_items()) << std::endl
+            << "Item area:                       " << optimizationtools::Ratio<Area>(item_area(), instance().item_area()) << std::endl
+            << "Item weight:                     " << optimizationtools::Ratio<Weight>(item_weight(), instance().item_weight()) << std::endl
+            << "Item profit:                     " << optimizationtools::Ratio<Profit>(profit(), instance().item_profit()) << std::endl
+            << "Number of bins:                  " << optimizationtools::Ratio<BinPos>(number_of_bins(), instance().number_of_bins()) << std::endl
+            << "Bin area:                        " << optimizationtools::Ratio<Area>(bin_area(), instance().bin_area()) << std::endl
+            << "Bin weight:                      " << optimizationtools::Ratio<Weight>(bin_weight(), instance().bin_weight()) << std::endl
+            << "Bin cost:                        " << cost() << std::endl
+            << "Waste:                           " << waste() << std::endl
+            << "Waste (%):                       " << 100 * waste_percentage() << std::endl
+            << "Full waste:                      " << full_waste() << std::endl
+            << "Full waste (%):                  " << 100 * full_waste_percentage() << std::endl
+            << "Area load:                       " << area_load() << std::endl
+            << "Weight load:                     " << weight_load() << std::endl
+            << "X max:                           " << x_max() << std::endl
+            << "Y max:                           " << y_max() << std::endl
+            << "Leftover value:                  " << leftover_value() << std::endl
+            << "Staircase leftover value:        " << staircase_leftover_value() << std::endl
+            << "Total leftover value:            " << total_leftover_value() << std::endl
+            << "Total staircase leftover value:  " << total_staircase_leftover_value() << std::endl
             ;
     }
 

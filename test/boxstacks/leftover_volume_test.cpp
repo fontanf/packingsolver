@@ -1,5 +1,6 @@
 #include "packingsolver/boxstacks/instance_builder.hpp"
 #include "packingsolver/boxstacks/solution.hpp"
+#include "packingsolver/boxstacks/post_process.hpp"
 #include "boxstacks/solution_builder.hpp"
 
 #include <gtest/gtest.h>
@@ -135,4 +136,42 @@ TEST(BoxStacks, LeftoverModeRanksSolutions)
     EXPECT_EQ(along_x.leftover_value(), 100 * 90 * 100);
     EXPECT_EQ(along_y.leftover_value(), 100 * 80 * 100);
     EXPECT_TRUE(along_y < along_x);  // operator< means the right solution is better.
+}
+
+TEST(BoxStacks, ReoptimizeNonLastBins)
+{
+    // Two 10 x 10 x 10 bins and three 5 x 5 x 10 items. In the first bin of
+    // the solution, the two stacks are in opposite corners: the leftover
+    // value of the bin is 0. Re-optimized, they are next to each other.
+    InstanceBuilder ib;
+    ib.set_objective(Objective::BinPackingWithLeftovers);
+    BinTypeId bin_type_id = ib.add_bin_type(10, 10, 10);
+    ib.set_bin_type_copies(bin_type_id, 2);
+    ItemTypeId item_type_id = ib.add_item_type(5, 5, 10);
+    ib.set_item_type_copies(item_type_id, 3);
+    const Instance instance = ib.build();
+
+    SolutionBuilder sb(instance);
+    sb.add_bin(bin_type_id, 1);
+    sb.add_stack(0, 0, 5, 0, 5);
+    sb.add_item(0, 0, item_type_id, Rotation::XYZ);
+    sb.add_stack(0, 5, 10, 5, 10);
+    sb.add_item(0, 1, item_type_id, Rotation::XYZ);
+    sb.add_bin(bin_type_id, 1);
+    sb.add_stack(1, 0, 5, 0, 5);
+    sb.add_item(1, 0, item_type_id, Rotation::XYZ);
+    const Solution solution = sb.build();
+    ASSERT_TRUE(solution.feasible());
+    EXPECT_EQ(solution.bin(0).leftover_value, 0);
+    EXPECT_EQ(solution.bin(0).staircase_leftover_value, 0);
+
+    OptimizeParameters parameters;
+    parameters.optimization_mode = OptimizationMode::NotAnytimeSequential;
+    const Solution new_solution = reoptimize_non_last_bins(solution, parameters);
+    ASSERT_TRUE(new_solution.feasible());
+    EXPECT_EQ(new_solution.number_of_bins(), 2);
+    EXPECT_EQ(new_solution.bin(0).leftover_value, (100 - 50) * 10);
+    EXPECT_EQ(new_solution.bin(0).staircase_leftover_value, (100 - 50) * 10);
+    EXPECT_EQ(new_solution.leftover_value(), solution.leftover_value());
+    EXPECT_TRUE(solution < new_solution);
 }
