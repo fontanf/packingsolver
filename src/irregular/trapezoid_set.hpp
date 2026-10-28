@@ -177,6 +177,24 @@ struct TrapezoidBinType
 };
 
 /**
+ * Build the trapezoid set of an item type in a given orientation, in the
+ * frame of a given direction.
+ *
+ * Its supporting and supported parts are appended to 'supporting_parts' and
+ * 'supported_parts'; the positions stored in the trapezoid set refer to these
+ * vectors.
+ */
+TrapezoidSet build_trapezoid_set(
+        const Instance& instance,
+        const SimplifiedInstance& simplified_instance,
+        ItemTypeId item_type_id,
+        const ItemTypeRotation& rotation,
+        Direction direction,
+        TrapezoidSetId trapezoid_set_id,
+        std::vector<Support>& supporting_parts,
+        std::vector<Support>& supported_parts);
+
+/**
  * Build the trapezoid bin type of a bin type in the frame of a given
  * direction.
  *
