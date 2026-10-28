@@ -211,6 +211,12 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
     bool use_tree_search_periodic_packing = false;
 
     /**
+     * Use tree search maximal spaces algorithm (only for instances with a
+     * single bin; never selected automatically).
+     */
+    bool use_tree_search_maximal_spaces = false;
+
+    /**
      * Use local search algorithm with the linear programming engine (the
      * items are shrunk to remove the overlaps).
      */
@@ -349,6 +355,9 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
 
     /** Size of the queue in the tree search periodic packing algorithm. */
     NodeId not_anytime_tree_search_periodic_packing_queue_size = 16;
+
+    /** Size of the queue in the tree search maximal spaces algorithm. */
+    NodeId not_anytime_tree_search_maximal_spaces_queue_size = 4;
 
     /**
      * Size of the queue in the single knapsack subproblem of the sequential

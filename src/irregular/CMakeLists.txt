@@ -17,6 +17,7 @@ target_sources(PackingSolver_irregular PRIVATE
     trapezoid_slider.cpp
     tree_search.cpp
     tree_search_periodic_packing.cpp
+    tree_search_maximal_spaces.cpp
     linear_programming/anchor.cpp
     linear_programming/separation_model.cpp
     linear_programming/separator.cpp

@@ -6,6 +6,7 @@
 #include "irregular/trivial.hpp"
 #include "irregular/tree_search.hpp"
 #include "irregular/tree_search_periodic_packing.hpp"
+#include "irregular/tree_search_maximal_spaces.hpp"
 #include "irregular/milp_raster.hpp"
 #include "irregular/local_search.hpp"
 #include "algorithms/dichotomic_search.hpp"
@@ -765,6 +766,30 @@ void optimize_tree_search_periodic_packing(
     tree_search_periodic_packing(instance, ts_pp_parameters);
 }
 
+void optimize_tree_search_maximal_spaces(
+        const Instance& instance,
+        const OptimizeParameters& parameters,
+        AlgorithmFormatter& algorithm_formatter)
+{
+    TreeSearchMaximalSpacesParameters ts_ms_parameters;
+    ts_ms_parameters.verbosity_level = 0;
+    ts_ms_parameters.timer = parameters.timer;
+    ts_ms_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+    ts_ms_parameters.optimization_mode = parameters.optimization_mode;
+    ts_ms_parameters.not_anytime_tree_search_queue_size
+        = parameters.not_anytime_tree_search_maximal_spaces_queue_size;
+    ts_ms_parameters.maximum_approximation_ratio
+        = parameters.not_anytime_maximum_approximation_ratio;
+    ts_ms_parameters.new_solution_callback = [&algorithm_formatter](
+            const packingsolver::Output<Instance, Solution>& ts_output)
+    {
+        algorithm_formatter.update_solution(
+                ts_output.solution_pool.best(),
+                "TSMS " + ts_output.solution_pool.best_label());
+    };
+    tree_search_maximal_spaces(instance, ts_ms_parameters);
+}
+
 void optimize_milp_raster(
         const Instance& instance,
         const OptimizeParameters& parameters,
@@ -970,6 +995,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         = largest_bin_space(instance) / mean_item_space(instance);
     bool use_tree_search = parameters.use_tree_search;
     bool use_tree_search_periodic_packing = parameters.use_tree_search_periodic_packing;
+    bool use_tree_search_maximal_spaces = parameters.use_tree_search_maximal_spaces;
     bool use_local_search_linear_programming = parameters.use_local_search_linear_programming;
     bool use_local_search_nonlinear_programming = parameters.use_local_search_nonlinear_programming;
     bool use_local_search_direct_trigonometry = parameters.use_local_search_direct_trigonometry;
@@ -996,6 +1022,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         // Automatic selection.
         if (!use_tree_search
                 && !use_tree_search_periodic_packing
+                && !use_tree_search_maximal_spaces
                 && !use_local_search_linear_programming
                 && !use_local_search_nonlinear_programming
                 && !use_local_search_direct_trigonometry
@@ -1196,6 +1223,9 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
             }
         }
     }
+    // tree_search_maximal_spaces only supports a single bin.
+    if (instance.number_of_bins() > 1)
+        use_tree_search_maximal_spaces = false;
 
     // Run selected algorithms.
     // In 'NotAnytimeDeterministic' mode, algorithms still run in parallel, but
@@ -1265,6 +1295,19 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         auto context = task_context();
         tasks.push_back([&exception_ptr, &instance, context]() {
             wrapper<decltype(&optimize_tree_search), optimize_tree_search>(
+                    exception_ptr,
+                    instance,
+                    *context.first,
+                    *context.second);
+        });
+    }
+    // Tree search maximal spaces.
+    if (use_tree_search_maximal_spaces) {
+        exception_ptr_list.push_front(std::exception_ptr());
+        std::exception_ptr& exception_ptr = exception_ptr_list.front();
+        auto context = task_context();
+        tasks.push_back([&exception_ptr, &instance, context]() {
+            wrapper<decltype(&optimize_tree_search_maximal_spaces), optimize_tree_search_maximal_spaces>(
                     exception_ptr,
                     instance,
                     *context.first,
