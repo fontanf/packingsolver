@@ -12,6 +12,7 @@ target_sources(PackingSolver_irregular PRIVATE
     shape_simplification.cpp
     rotations.cpp
     periodic_packing.cpp
+    empty_spaces.cpp
     trapezoid_set.cpp
     trapezoid_slider.cpp
     tree_search.cpp
