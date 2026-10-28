@@ -1,0 +1,85 @@
+{
+    "objective": "knapsack",
+    "bin_types": [
+        {
+            "type": "rectangle",
+            "width": 60,
+            "height": 30,
+            "copies": 1
+        }
+    ],
+    "item_types": [
+        {
+            "type": "polygon",
+            "vertices": [
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 10,
+                    "y": 0
+                },
+                {
+                    "x": 10,
+                    "y": 4
+                },
+                {
+                    "x": 4,
+                    "y": 4
+                },
+                {
+                    "x": 4,
+                    "y": 10
+                },
+                {
+                    "x": 0,
+                    "y": 10
+                }
+            ],
+            "copies": 12,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0,
+                    "mirror": false
+                },
+                {
+                    "start": 180,
+                    "end": 180,
+                    "mirror": false
+                }
+            ]
+        },
+        {
+            "type": "polygon",
+            "vertices": [
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 8,
+                    "y": 0
+                },
+                {
+                    "x": 0,
+                    "y": 8
+                }
+            ],
+            "copies": 12,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0,
+                    "mirror": false
+                },
+                {
+                    "start": 180,
+                    "end": 180,
+                    "mirror": false
+                }
+            ]
+        }
+    ]
+}
