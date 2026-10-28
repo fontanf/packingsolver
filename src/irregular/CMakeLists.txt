@@ -12,6 +12,8 @@ target_sources(PackingSolver_irregular PRIVATE
     shape_simplification.cpp
     rotations.cpp
     periodic_packing.cpp
+    trapezoid_set.cpp
+    trapezoid_slider.cpp
     tree_search.cpp
     tree_search_periodic_packing.cpp
     linear_programming/anchor.cpp
