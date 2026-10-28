@@ -85,6 +85,7 @@ int main(int argc, char *argv[])
             ("optimization-mode,", po::value<OptimizationMode>(), "set optimization mode")
             ("use-tree-search,", po::value<bool>(), "enable tree search algorithm")
             ("use-tree-search-periodic-packing,", po::value<bool>(), "enable tree search periodic packing algorithm")
+            ("use-tree-search-maximal-spaces,", po::value<bool>(), "enable tree search maximal spaces algorithm")
             ("use-milp-raster,", po::value<bool>(), "enable MILP raster algorithm")
             ("use-local-search-linear-programming,", po::value<bool>(), "enable local search algorithm with the linear programming engine")
             ("use-local-search-nonlinear-programming,", po::value<bool>(), "enable local search algorithm with the nonlinear programming engine (requires Knitro)")
@@ -104,6 +105,7 @@ int main(int argc, char *argv[])
             ("not-anytime-maximum-approximation-ratio,", po::value<double>(), "")
             ("not-anytime-tree-search-queue-size,", po::value<Counter>(), "")
             ("not-anytime-tree-search-periodic-packing-queue-size,", po::value<Counter>(), "")
+            ("not-anytime-tree-search-maximal-spaces-queue-size,", po::value<Counter>(), "")
             ("not-anytime-sequential-single-knapsack-subproblem-tree-search-queue-size,", po::value<Counter>(), "")
             ("not-anytime-sequential-value-correction-number-of-iterations,", po::value<Counter>(), "")
             ("not-anytime-local-search-maximum-number-of-failed-separations,", po::value<Counter>(), "")
@@ -177,6 +179,8 @@ int main(int argc, char *argv[])
             parameters.use_tree_search = vm["use-tree-search"].as<bool>();
         if (vm.count("use-tree-search-periodic-packing"))
             parameters.use_tree_search_periodic_packing = vm["use-tree-search-periodic-packing"].as<bool>();
+        if (vm.count("use-tree-search-maximal-spaces"))
+            parameters.use_tree_search_maximal_spaces = vm["use-tree-search-maximal-spaces"].as<bool>();
         if (vm.count("use-milp-raster"))
             parameters.use_milp_raster = vm["use-milp-raster"].as<bool>();
         if (vm.count("use-local-search-linear-programming"))
@@ -214,6 +218,8 @@ int main(int argc, char *argv[])
             parameters.not_anytime_tree_search_queue_size = vm["not-anytime-tree-search-queue-size"].as<Counter>();
         if (vm.count("not-anytime-tree-search-periodic-packing-queue-size"))
             parameters.not_anytime_tree_search_periodic_packing_queue_size = vm["not-anytime-tree-search-periodic-packing-queue-size"].as<Counter>();
+        if (vm.count("not-anytime-tree-search-maximal-spaces-queue-size"))
+            parameters.not_anytime_tree_search_maximal_spaces_queue_size = vm["not-anytime-tree-search-maximal-spaces-queue-size"].as<Counter>();
         if (vm.count("not-anytime-sequential-single-knapsack-subproblem-tree-search-queue-size"))
             parameters.not_anytime_sequential_single_knapsack_subproblem_tree_search_queue_size = vm["not-anytime-sequential-single-knapsack-subproblem-tree-search-queue-size"].as<Counter>();
         if (vm.count("not-anytime-sequential-value-correction-number-of-iterations"))
