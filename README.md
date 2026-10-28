@@ -9,7 +9,8 @@
 </p>
 
 <p align="center">
-  <b>A state-of-the-art solver for cutting and packing problems.</b>
+  <b>A state-of-the-art solver for cutting and packing problems</b><br>
+  Nesting, cutting optimization, load planning etc
 </p>
 
 <p align="center">
@@ -18,45 +19,57 @@
   <a href="https://github.com/fontanf/packingsolver/discussions">Ask a question</a>
 </p>
 
-PackingSolver computes cutting and loading plans: given a set of pieces to cut or pack (the **items**) and a set of containers (the **bins**), it finds how to place the items in the bins. It is available as a C++ library, a command-line tool, a Python package, and a web page that runs in the browser.
+<p align="center">
+  <a href="https://fontanf.github.io/packingsolver/rectangleguillotine.html"><img src="https://raw.githubusercontent.com/fontanf/packingsolver/master/img/rectangleguillotine.png" width="32%" alt="Rectangles, guillotine cuts"></a>
+  <a href="https://fontanf.github.io/packingsolver/rectangle.html"><img src="https://raw.githubusercontent.com/fontanf/packingsolver/master/img/rectangle.png" width="32%" alt="Rectangles"></a>
+  <a href="https://fontanf.github.io/packingsolver/irregular.html"><img src="https://raw.githubusercontent.com/fontanf/packingsolver/master/img/irregular.png" width="32%" alt="Irregular shapes"></a>
+  <a href="https://fontanf.github.io/packingsolver/box.html"><img src="https://raw.githubusercontent.com/fontanf/packingsolver/master/img/box.png" width="32%" alt="Boxes"></a>
+  <a href="https://fontanf.github.io/packingsolver/boxstacks.html"><img src="https://raw.githubusercontent.com/fontanf/packingsolver/master/img/boxstacks.png" width="32%" alt="Box stacks"></a>
+  <a href="https://fontanf.github.io/packingsolver/onedimensional.html"><img src="https://raw.githubusercontent.com/fontanf/packingsolver/master/img/onedimensional.png" width="32%" alt="One-dimensional"></a>
+</p>
 
-## Problem types
+PackingSolver computes cutting and loading plans. Given the pieces to cut or to load (the **items**: parts, panels, bars, boxes...) and what they must go into (the **bins**: sheets, plates, stock bars, pallets, trucks, containers...), it finds how to place the items in the bins, for example to use as little material as possible.
 
-| Problem type | Example |
-|:--|:--|
-| [**Rectangles, guillotine cuts**](https://fontanf.github.io/packingsolver/rectangleguillotine.html)<br>`rectangleguillotine`<br>Two-dimensional rectangles cut with edge-to-edge (guillotine) cuts | <img src="https://raw.githubusercontent.com/fontanf/packingsolver/master/img/rectangleguillotine.png" width="480"> |
-| [**Rectangles**](https://fontanf.github.io/packingsolver/rectangle.html)<br>`rectangle`<br>Two-dimensional rectangles | <img src="https://raw.githubusercontent.com/fontanf/packingsolver/master/img/rectangle.png" width="480"> |
-| [**Boxes**](https://fontanf.github.io/packingsolver/box.html)<br>`box`<br>Three-dimensional boxes | <img src="https://raw.githubusercontent.com/fontanf/packingsolver/master/img/box.png" width="480"> |
-| [**Box stacks**](https://fontanf.github.io/packingsolver/boxstacks.html)<br>`boxstacks`<br>Three-dimensional boxes, packed in stacks of items with the same width and length | <img src="https://raw.githubusercontent.com/fontanf/packingsolver/master/img/boxstacks.png" width="480"> |
-| [**One-dimensional**](https://fontanf.github.io/packingsolver/onedimensional.html)<br>`onedimensional`<br>One-dimensional items | <img src="https://raw.githubusercontent.com/fontanf/packingsolver/master/img/onedimensional.png" width="480"> |
-| [**Irregular shapes**](https://fontanf.github.io/packingsolver/irregular.html)<br>`irregular`<br>Two-dimensional shapes: polygons, possibly with circular arcs and holes | <img src="https://raw.githubusercontent.com/fontanf/packingsolver/master/img/irregular.png" width="480"> |
+It is available as a C++ library, a command-line tool, a Python package, and a web page that runs in the browser.
+
+## Applications
+
+| Application | Typical use | Problem type |
+|:--|:--|:--|
+| **Panel saws**: wood panels, furniture and cabinet making, glass, stone, paper | Cutting plans with edge-to-edge cuts, taking into account the saw blade thickness, the trims and the defects of the panels | [Rectangles, guillotine cuts](https://fontanf.github.io/packingsolver/rectangleguillotine.html) |
+| **Nesting for CNC, laser, plasma and waterjet cutting**: sheet metal, wood, plastics, foam | Nesting of parts of any shape on sheets, with the spacing between the parts and to the edges, part rotations and mirroring, parts with holes, sheet defects and remnants | [Irregular shapes](https://fontanf.github.io/packingsolver/irregular.html), or [Rectangles](https://fontanf.github.io/packingsolver/rectangle.html) for rectangular parts |
+| **Textile, garment, leather and composite cutting** | Nesting of patterns on a roll, minimizing the length used, or on hides of irregular shapes with defects | [Irregular shapes](https://fontanf.github.io/packingsolver/irregular.html) |
+| **Cutting of bars, tubes, profiles, beams, cables, paper rolls**: window and door frames, steel construction... | Cutting lengths out of stock bars, minimizing the number of bars and keeping the offcuts as long as possible | [One-dimensional](https://fontanf.github.io/packingsolver/onedimensional.html) |
+| **Truck and trailer loading** | Loading stacks of pallets or boxes, with stackability rules, weight limits, the weight on the axles and the unloading order | [Box stacks](https://fontanf.github.io/packingsolver/boxstacks.html) |
+| **Container, pallet and parcel loading** | Placing boxes in containers, on pallets or in cartons, with weight limits | [Boxes](https://fontanf.github.io/packingsolver/box.html) |
+| **Palletizing, floor and warehouse planning** | Placing rectangles on a surface: pallet layers, pallets on a truck or warehouse floor | [Rectangles](https://fontanf.github.io/packingsolver/rectangle.html) |
 
 ## Features
 
+| Problem type | Example |
+|:--|:--|
+| [**Rectangles, guillotine cuts**](https://fontanf.github.io/packingsolver/rectangleguillotine.html) `rectangleguillotine`<br>Two-dimensional rectangles cut with edge-to-edge (guillotine) cuts<br><br>Maximum number of cutting stages · cut types · first stage orientation · item rotations · cut thickness · trims · defects · cuts through defects · cutting sequences (stacks) · minimum and maximum distances between cuts · maximum number of consecutive 1-cuts and 2-cuts | <img src="https://raw.githubusercontent.com/fontanf/packingsolver/master/img/rectangleguillotine.png" width="480"> |
+| [**Rectangles**](https://fontanf.github.io/packingsolver/rectangle.html) `rectangle`<br>Two-dimensional rectangles<br><br>Item rotations · defects · maximum weight of a bin · unloading constraints | <img src="https://raw.githubusercontent.com/fontanf/packingsolver/master/img/rectangle.png" width="480"> |
+| [**Boxes**](https://fontanf.github.io/packingsolver/box.html) `box`<br>Three-dimensional boxes<br><br>Item rotations · maximum weight of a bin | <img src="https://raw.githubusercontent.com/fontanf/packingsolver/master/img/box.png" width="480"> |
+| [**Box stacks**](https://fontanf.github.io/packingsolver/boxstacks.html) `boxstacks`<br>Three-dimensional boxes, packed in stacks of items with the same width and length<br><br>Item rotations · nesting height · maximum number of items in a stack · maximum weight above an item · maximum stack density · unloading constraints · maximum weight on the middle and rear axles | <img src="https://raw.githubusercontent.com/fontanf/packingsolver/master/img/boxstacks.png" width="480"> |
+| [**One-dimensional**](https://fontanf.github.io/packingsolver/onedimensional.html) `onedimensional`<br>One-dimensional items<br><br>Nesting length · maximum number of items in a bin · maximum weight of a bin · maximum weight after an item | <img src="https://raw.githubusercontent.com/fontanf/packingsolver/master/img/onedimensional.png" width="480"> |
+| [**Irregular shapes**](https://fontanf.github.io/packingsolver/irregular.html) `irregular`<br>Two-dimensional shapes: polygons, possibly with circular arcs and holes<br><br>Irregular bins · discrete and continuous item rotations · item mirroring · holes · defects · item-item, item-bin and item-defect spacing | <img src="https://raw.githubusercontent.com/fontanf/packingsolver/master/img/irregular.png" width="480"> |
+
+## Objectives
+
 PackingSolver supports the following [objectives](https://fontanf.github.io/packingsolver/objectives.html):
 
-* **Bin packing**: pack all the items in a minimum number of bins (optionally maximizing the value of the leftovers)
-* **Variable-sized bin packing**: pack all the items in bins of minimum total cost
-* **Open dimension** (all problem types except one-dimensional): pack all the items in a single bin of minimum length
-* **Knapsack**: pack a subset of the items of maximum total profit
-* **Feasibility**: pack all the items in the given bins
-
-Each problem type comes with its own constraints:
-
-| Problem type | Features |
-|:--|:--|
-| [Rectangles, guillotine cuts](https://fontanf.github.io/packingsolver/rectangleguillotine.html) | Guillotine or non-guillotine cuts · maximum number of cutting stages · cut types · first stage orientation · item rotations · cut thickness · trims · defects · cuts through defects · cutting sequences (stacks) · minimum and maximum distances between cuts · maximum number of consecutive 1-cuts and 2-cuts |
-| [Rectangles](https://fontanf.github.io/packingsolver/rectangle.html) | Item rotations · defects · maximum weight of a bin · unloading constraints |
-| [Boxes](https://fontanf.github.io/packingsolver/box.html) | Item rotations · maximum weight of a bin |
-| [Box stacks](https://fontanf.github.io/packingsolver/boxstacks.html) | Item rotations · nesting height · maximum number of items in a stack · maximum weight above an item · maximum stack density · unloading constraints · maximum weight on the middle and rear axles |
-| [One-dimensional](https://fontanf.github.io/packingsolver/onedimensional.html) | Nesting length · maximum number of items in a bin · maximum weight of a bin · maximum weight after an item |
-| [Irregular shapes](https://fontanf.github.io/packingsolver/irregular.html) | Irregular bins · discrete and continuous item rotations · item mirroring · holes · defects · item-item, item-bin and item-defect spacing |
+* **Bin packing**: pack all the items in a minimum number of bins, e.g. use as few sheets as possible (optionally keeping the leftover of the last sheet as large as possible, to reuse it as a remnant)
+* **Variable-sized bin packing**: pack all the items in bins of minimum total cost, e.g. choose the cheapest combination of sheet sizes or trucks
+* **Open dimension** (all problem types except one-dimensional): pack all the items in a single bin of minimum length, e.g. use as little fabric as possible from a roll
+* **Knapsack**: pack a subset of the items of maximum total profit, e.g. fit the most valuable orders in a truck
+* **Feasibility**: pack all the items in the given bins, e.g. check that a load fits in a container
 
 ## Getting started
 
 ### In the browser
 
-The [online solver](https://packingsolver.pages.dev/) runs PackingSolver in your browser. No installation is needed, and the computation runs on your machine: nothing is sent to a server.
+The [online solver](https://packingsolver.pages.dev/) runs PackingSolver in the browser. No installation is needed, and the computation runs locally: nothing is sent to a server.
 
 ### Python
 
