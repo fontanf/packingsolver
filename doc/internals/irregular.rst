@@ -38,6 +38,15 @@ It is designed for instances with many copies of a few item types. The periodic 
 
 See :doc:`the detailed description <irregular/tree_search_periodic_packing>`.
 
+Tree search with maximal spaces
+----------------------------------
+
+This algorithm solves the :code:`knapsack` and :code:`feasibility` objectives with a single bin, and the other objectives with a single bin through sequential feasibility.
+
+It lies between the two previous algorithms. Like the tree search with periodic packings, a node stores the maximal empty spaces of the bin and a block of items (a single item or a periodic block) is packed at each stage, in the empty space closest to the bottom-left corner of the bin. Like the tree search, the blocks are described by their actual shapes: they rest on the items already packed and slide until they don't overlap them, so they may fit in the gaps and in the concavities of the items already packed.
+
+See :doc:`the detailed description <irregular/tree_search_maximal_spaces>`.
+
 Local search
 --------------
 
@@ -81,5 +90,6 @@ Relaxes the instance to a one-dimensional problem (each bin and item type keeps 
 
    irregular/tree_search
    irregular/tree_search_periodic_packing
+   irregular/tree_search_maximal_spaces
    irregular/local_search
    irregular/milp_raster

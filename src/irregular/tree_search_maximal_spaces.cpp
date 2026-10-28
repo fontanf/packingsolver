@@ -621,7 +621,7 @@ std::vector<BranchingSchemeMaximalSpaces::Insertion> BranchingSchemeMaximalSpace
                     AreaDbl area = (bl_corner.x + block_width - x_min)
                         * (bl_corner.y + block_height - y_min);
                     double density = (std::min)(1.0, block.item_area / area);
-                    double guide = (block.profit + 1)
+                    double guide = block.profit
                         * std::pow(density, parameters_.beta)
                         * std::pow(block.number_of_items, -parameters_.gamma);
                     if (best_insertion.block_id == -1
