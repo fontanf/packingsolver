@@ -20,6 +20,7 @@ target_sources(PackingSolver_rectangle PRIVATE
     bar_relaxation.cpp
     reduction.cpp
     block.cpp
+    sequential_feasibility.cpp
     tree_search_maximal_spaces.cpp)
 target_include_directories(PackingSolver_rectangle PUBLIC
     ${PROJECT_SOURCE_DIR}/include)

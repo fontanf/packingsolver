@@ -225,6 +225,7 @@ std::ostream& Instance::format(
         if (this->objective() == Objective::BinPackingWithLeftovers) {
             os
                 << "Leftover mode:         " << this->parameters().leftover_mode << std::endl
+                << "Leftover all bins:     " << this->parameters().leftover_all_bins << std::endl
                 ;
         }
         os
@@ -377,6 +378,7 @@ void Instance::write_json(
         ss << parameters().leftover_mode;
         j["leftover_mode"] = ss.str();
     }
+    j["leftover_all_bins"] = parameters().leftover_all_bins;
 
     j["bin_types"] = nlohmann::json::array();
     for (BinTypeId bin_type_id = 0;

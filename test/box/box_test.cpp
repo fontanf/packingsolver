@@ -1,5 +1,6 @@
 #include "packingsolver/box/instance_builder.hpp"
 #include "packingsolver/box/optimize.hpp"
+#include "packingsolver/box/post_process.hpp"
 #include "box/solution_builder.hpp"
 
 #include <gtest/gtest.h>
@@ -136,6 +137,49 @@ TEST(Box, LeftoverModes)
         EXPECT_TRUE(solution.feasible());
         EXPECT_EQ(solution.leftover_value(), 100 * 50 * 40 - c.used) << c.leftover_mode;
         EXPECT_EQ(solution.waste(), c.used - 2 * 30 * 20 * 10) << c.leftover_mode;
+    }
+}
+
+TEST(Box, ReoptimizeNonLastBins)
+{
+    // Two 10 x 10 x 10 bins and three 5 x 5 x 5 items. In the first bin of
+    // the solution, the two items are in opposite corners: the leftover value
+    // of the bin is 0. Re-optimized, they are next to each other, with the
+    // tree search and with the tree search with maximal spaces, used by the
+    // post-process of 'optimize'.
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(packingsolver::Objective::BinPackingWithLeftovers);
+    packingsolver::BinTypeId bin_type_id = instance_builder.add_bin_type(10, 10, 10);
+    instance_builder.set_bin_type_copies(bin_type_id, 2);
+    packingsolver::ItemTypeId item_type_id = instance_builder.add_item_type(5, 5, 5);
+    instance_builder.set_item_type_copies(item_type_id, 3);
+    const Instance instance = instance_builder.build();
+
+    SolutionBuilder solution_builder(instance);
+    solution_builder.add_bin(bin_type_id, 1);
+    solution_builder.add_item(0, item_type_id, {0, 0, 0}, Rotation::XYZ);
+    solution_builder.add_item(0, item_type_id, {5, 5, 5}, Rotation::XYZ);
+    solution_builder.add_bin(bin_type_id, 1);
+    solution_builder.add_item(1, item_type_id, {0, 0, 0}, Rotation::XYZ);
+    const Solution solution = solution_builder.build();
+    ASSERT_TRUE(solution.feasible());
+    EXPECT_EQ(solution.bin(0).leftover_value, 0);
+    EXPECT_EQ(solution.bin(0).staircase_leftover_value, 0);
+
+    for (bool use_tree_search_maximal_spaces: {false, true}) {
+        OptimizeParameters parameters;
+        parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytimeSequential;
+        parameters.use_tree_search = !use_tree_search_maximal_spaces;
+        parameters.use_tree_search_maximal_spaces = use_tree_search_maximal_spaces;
+        const Solution new_solution = reoptimize_non_last_bins(solution, parameters);
+        ASSERT_TRUE(new_solution.feasible());
+        EXPECT_EQ(new_solution.number_of_bins(), 2);
+        EXPECT_EQ(new_solution.bin(0).leftover_value, 1000 - 250)
+            << "use_tree_search_maximal_spaces " << use_tree_search_maximal_spaces;
+        EXPECT_EQ(new_solution.bin(0).staircase_leftover_value, 1000 - 250)
+            << "use_tree_search_maximal_spaces " << use_tree_search_maximal_spaces;
+        EXPECT_EQ(new_solution.leftover_value(), solution.leftover_value());
+        EXPECT_TRUE(solution < new_solution);
     }
 }
 

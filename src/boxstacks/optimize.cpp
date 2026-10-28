@@ -2,6 +2,7 @@
 
 #include "packingsolver/boxstacks/algorithm_formatter.hpp"
 #include "packingsolver/boxstacks/instance_builder.hpp"
+#include "packingsolver/boxstacks/post_process.hpp"
 #include "boxstacks/tree_search.hpp"
 #include "boxstacks/sequential_onedimensional_rectangle.hpp"
 #include "packingsolver/box/instance_builder.hpp"
@@ -426,6 +427,81 @@ void optimize_item_types_fit(
     }
 }
 
+/**
+ * Post-processes for BinPackingWithLeftovers in a not-anytime mode.
+ *
+ * Last bin post-process: re-optimize just the last bin of 'solution_best'
+ * (see 'reoptimize_bin'), in case it packs it into less leftover space. It is
+ * only applied if the last bin contains fewer items than
+ * 'post_process_last_bin_maximum_number_of_items'.
+ *
+ * Other bins post-process: the leftover values of the other bins only come
+ * after the ones of the last bin in the objective, so the algorithms hardly
+ * try to keep the free space of the other bins in a single region.
+ * Re-optimize each other bin of the best solution, with the algorithms
+ * selected as for any instance (see 'reoptimize_non_last_bins'). It is only
+ * applied if 'leftover_all_bins' is enabled, since it can only improve the
+ * leftover values of the other bins.
+ */
+bool post_process_applies(
+        const Instance& instance,
+        const OptimizeParameters& parameters)
+{
+    return instance.objective() == Objective::BinPackingWithLeftovers
+        && parameters.optimization_mode != OptimizationMode::Anytime
+        && parameters.post_process;
+}
+
+void optimize_last_bin_post_process(
+        const Instance& instance,
+        const OptimizeParameters& parameters,
+        const Solution& solution_best,
+        AlgorithmFormatter& algorithm_formatter)
+{
+    if (!post_process_applies(instance, parameters)
+            || solution_best.number_of_bins() == 0) {
+        return;
+    }
+    const SolutionBin& last_bin = solution_best.bin(solution_best.number_of_different_bins() - 1);
+    ItemPos last_bin_number_of_items = 0;
+    for (const SolutionStack& solution_stack: last_bin.stacks)
+        last_bin_number_of_items += solution_stack.items.size();
+    if (last_bin.copies != 1
+            || last_bin_number_of_items
+            >= parameters.post_process_last_bin_maximum_number_of_items) {
+        return;
+    }
+    OptimizeParameters last_bin_parameters;
+    last_bin_parameters.timer = parameters.timer;
+    last_bin_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+    last_bin_parameters.optimization_mode = parameters.optimization_mode;
+    last_bin_parameters.not_anytime_tree_search_queue_size = parameters.not_anytime_tree_search_queue_size;
+    last_bin_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
+    Solution solution = reoptimize_bin(
+            solution_best,
+            solution_best.number_of_different_bins() - 1,
+            last_bin_parameters);
+    algorithm_formatter.update_solution(solution, "post-process");
+}
+
+void optimize_other_bins_post_process(
+        const Instance& instance,
+        const OptimizeParameters& parameters,
+        const Solution& solution_best,
+        AlgorithmFormatter& algorithm_formatter)
+{
+    if (!post_process_applies(instance, parameters)
+            || !instance.parameters().leftover_all_bins) {
+        return;
+    }
+    OptimizeParameters post_process_parameters = parameters;
+    post_process_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+    Solution solution = reoptimize_non_last_bins(
+            solution_best,
+            post_process_parameters);
+    algorithm_formatter.update_solution(solution, "post-process");
+}
+
 }
 
 packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
@@ -590,6 +666,21 @@ packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
         }
 
     }
+
+    // Last bin post-process, on the best solution. The best solution is
+    // copied since the post-process may replace it.
+    optimize_last_bin_post_process(
+            instance,
+            parameters,
+            Solution(output.solution_pool.best()),
+            algorithm_formatter);
+
+    // Other bins post-process, on the best solution.
+    optimize_other_bins_post_process(
+            instance,
+            parameters,
+            Solution(output.solution_pool.best()),
+            algorithm_formatter);
 
     algorithm_formatter.end();
     return output;

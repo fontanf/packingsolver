@@ -145,6 +145,7 @@ void bind_box(nb::module_& m)
         .def("read_item_types", &InstanceBuilder::read_item_types, nb::arg("items_path"))
         .def("set_weight_tolerance", &InstanceBuilder::set_weight_tolerance, nb::arg("weight_tolerance"))
         .def("set_leftover_mode", &InstanceBuilder::set_leftover_mode, nb::arg("leftover_mode"))
+        .def("set_leftover_all_bins", &InstanceBuilder::set_leftover_all_bins, nb::arg("leftover_all_bins"))
         // Bin types.
         .def("add_bin_type",
                 [](InstanceBuilder& instance_builder,

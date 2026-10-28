@@ -84,6 +84,18 @@ struct SolutionBin
 
     /** Profit. */
     Profit profit = 0.0;
+
+    /** Leftover value of the bin (see 'LeftoverMode'). */
+    Volume leftover_value = 0;
+
+    /**
+     * Staircase leftover value of the bin: the volume of the bin which is not
+     * dominated by a stack. A stack dominates the points of the box between
+     * the origin of the bin and its opposite corner, over the whole height
+     * of the bin (see 'LeftoverMode' for the dimensions of the bin which are
+     * not considered).
+     */
+    Volume staircase_leftover_value = 0;
 };
 
 bool operator==(const SolutionBin& solution_bin_1, const SolutionBin& solution_bin_2);
@@ -277,6 +289,18 @@ public:
      */
     inline Volume leftover_value() const { return bin_volume_ - volume_; }
 
+    /** Get the staircase leftover value of the last bin of the solution. */
+    inline Volume staircase_leftover_value() const { return staircase_leftover_value_; }
+
+    /** Get the sum of the leftover values of the bins of the solution. */
+    inline Volume total_leftover_value() const { return total_leftover_value_; }
+
+    /**
+     * Get the sum of the staircase leftover values of the bins of the
+     * solution.
+     */
+    inline Volume total_staircase_leftover_value() const { return total_staircase_leftover_value_; }
+
     /** Get the fraction of waste of the solution. */
     inline double waste_percentage() const { return (volume() == 0)? 0: (double)waste() / volume(); }
 
@@ -396,6 +420,15 @@ private:
 
     /** Total volume of the solution. */
     Volume volume_ = 0;
+
+    /** Staircase leftover value of the last bin. */
+    Volume staircase_leftover_value_ = 0;
+
+    /** Sum of the leftover values of the bins. */
+    Volume total_leftover_value_ = 0;
+
+    /** Sum of the staircase leftover values of the bins. */
+    Volume total_staircase_leftover_value_ = 0;
 
     /** Total volume of the bins of the solution. */
     Volume bin_volume_ = 0;

@@ -674,6 +674,8 @@ void InstanceBuilder::read_parameters(
                     value,
                     name);
             set_leftover_mode(leftover_mode);
+        } else if (name == "leftover_all_bins") {
+            set_leftover_all_bins(value == "1" || value == "true");
         }
     }
 }
@@ -950,6 +952,8 @@ void InstanceBuilder::read(
                 "leftover_mode");
         set_leftover_mode(leftover_mode);
     }
+    if (j.contains("leftover_all_bins"))
+        set_leftover_all_bins(j["leftover_all_bins"]);
 
     // Read bin types.
     for (const auto& json_bin_type: j["bin_types"]) {

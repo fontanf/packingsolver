@@ -226,6 +226,18 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
     /** Guides used in the tree search algorithm. */
     std::vector<GuideId> tree_search_guides;
 
+    /**
+     * Re-optimize the bins of the best solution at the end, for the
+     * BinPackingWithLeftovers objective in a not-anytime mode.
+     */
+    bool post_process = true;
+
+    /**
+     * The last bin is re-optimized with the tree search in the post-process
+     * only if it contains (strictly) fewer items than this threshold.
+     */
+    ItemPos post_process_last_bin_maximum_number_of_items = 32;
+
     /** Directions used in the tree search algorithm; see 'TreeSearchParameters::directions'. */
     std::vector<Direction> tree_search_directions;
 

@@ -2,6 +2,7 @@
 
 #include "packingsolver/box/algorithm_formatter.hpp"
 #include "packingsolver/box/instance_builder.hpp"
+#include "packingsolver/box/post_process.hpp"
 #include "box/tree_search.hpp"
 #include "box/tree_search_maximal_spaces.hpp"
 #include "box/dual_feasible_functions.hpp"
@@ -136,6 +137,7 @@ void optimize_tree_search(
     ts_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
     ts_parameters.optimization_mode = parameters.optimization_mode;
     ts_parameters.guides = parameters.tree_search_guides;
+    ts_parameters.directions = parameters.tree_search_directions;
     ts_parameters.not_anytime_tree_search_queue_size = parameters.not_anytime_tree_search_queue_size;
     ts_parameters.json_search_tree_path = parameters.json_search_tree_path;
     ts_parameters.new_solution_callback = [&algorithm_formatter](
@@ -399,6 +401,84 @@ void optimize_item_types_fit(
     }
 }
 
+/**
+ * Post-processes for BinPackingWithLeftovers in a not-anytime mode.
+ *
+ * Last bin post-process: re-optimize just the last bin of 'solution_best'
+ * with the tree search (see 'reoptimize_bin'), in case it packs it into less
+ * leftover space, whichever algorithm found the solution. It is only applied
+ * if the last bin contains fewer items than
+ * 'post_process_last_bin_maximum_number_of_items': the tree search may take
+ * much longer than the algorithm which found the solution.
+ *
+ * It is applied to the best solution of each algorithm, not only to the
+ * best solution overall: the re-optimized last bin of a solution which isn't
+ * the best one may make it better than the best one.
+ *
+ * Other bins post-process: the leftover values of the other bins only come
+ * after the ones of the last bin in the objective, so the algorithms hardly
+ * try to keep the free space of the other bins in a single region.
+ * Re-optimize each other bin of the best solution, with the tree search with
+ * maximal spaces (see 'reoptimize_non_last_bins'). It is only
+ * applied if 'leftover_all_bins' is enabled, since it can only improve the
+ * leftover values of the other bins.
+ */
+bool post_process_applies(
+        const Instance& instance,
+        const OptimizeParameters& parameters)
+{
+    return instance.objective() == Objective::BinPackingWithLeftovers
+        && parameters.optimization_mode != OptimizationMode::Anytime
+        && parameters.post_process;
+}
+
+void optimize_last_bin_post_process(
+        const Instance& instance,
+        const OptimizeParameters& parameters,
+        const Solution& solution_best,
+        AlgorithmFormatter& algorithm_formatter)
+{
+    if (post_process_applies(instance, parameters)
+            && solution_best.number_of_bins() > 0
+            && solution_best.bin(solution_best.number_of_different_bins() - 1).copies == 1
+            && (ItemPos)solution_best.bin(solution_best.number_of_different_bins() - 1).items.size()
+            < parameters.post_process_last_bin_maximum_number_of_items) {
+        OptimizeParameters last_bin_parameters;
+        last_bin_parameters.timer = parameters.timer;
+        last_bin_parameters.optimization_mode = parameters.optimization_mode;
+        last_bin_parameters.not_anytime_tree_search_queue_size = parameters.not_anytime_tree_search_queue_size;
+        last_bin_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
+        last_bin_parameters.use_tree_search = true;
+        Solution solution = reoptimize_bin(
+                solution_best,
+                solution_best.number_of_different_bins() - 1,
+                last_bin_parameters);
+        algorithm_formatter.update_solution(solution, "post-process");
+    }
+}
+
+void optimize_other_bins_post_process(
+        const Instance& instance,
+        const OptimizeParameters& parameters,
+        const Solution& solution_best,
+        AlgorithmFormatter& algorithm_formatter)
+{
+    if (!post_process_applies(instance, parameters)
+            || !instance.parameters().leftover_all_bins) {
+        return;
+    }
+    OptimizeParameters post_process_parameters = parameters;
+    post_process_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+    // A bin may contain many items: the tree search would take much longer
+    // than the algorithm which found it.
+    post_process_parameters.use_tree_search = false;
+    post_process_parameters.use_tree_search_maximal_spaces = true;
+    Solution solution = reoptimize_non_last_bins(
+            solution_best,
+            post_process_parameters);
+    algorithm_formatter.update_solution(solution, "post-process");
+}
+
 }
 
 packingsolver::box::Output packingsolver::box::optimize(
@@ -511,6 +591,44 @@ packingsolver::box::Output packingsolver::box::optimize(
     // Select algorithms to run.
     ItemPos mean_number_of_items_in_bins
         = largest_bin_space(instance) / mean_item_space(instance);
+    double mean_item_x = 0;
+    double mean_item_y = 0;
+    double mean_item_z = 0;
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance.number_of_item_types();
+            ++item_type_id) {
+        const ItemType& item_type = instance.item_type(item_type_id);
+        mean_item_x += (double)item_type.copies * item_type.box.x;
+        mean_item_y += (double)item_type.copies * item_type.box.y;
+        mean_item_z += (double)item_type.copies * item_type.box.z;
+    }
+    mean_item_x /= instance.number_of_items();
+    mean_item_y /= instance.number_of_items();
+    mean_item_z /= instance.number_of_items();
+    double mean_bin_x = 0;
+    double mean_bin_y = 0;
+    double mean_bin_z = 0;
+    for (BinPos bin_pos = 0; bin_pos < instance.number_of_bins(); ++bin_pos) {
+        const BinType& bin_type = instance.bin_type(instance.bin_type_id(bin_pos));
+        mean_bin_x += bin_type.box.x;
+        mean_bin_y += bin_type.box.y;
+        mean_bin_z += bin_type.box.z;
+    }
+    mean_bin_x /= instance.number_of_bins();
+    mean_bin_y /= instance.number_of_bins();
+    mean_bin_z /= instance.number_of_bins();
+    double mean_number_of_items_in_x_section
+        = (mean_bin_y * mean_bin_z) / (mean_item_y * mean_item_z);
+    double mean_number_of_items_in_y_section
+        = (mean_bin_x * mean_bin_z) / (mean_item_x * mean_item_z);
+    double mean_number_of_items_in_z_section
+        = (mean_bin_x * mean_bin_y) / (mean_item_x * mean_item_y);
+    // Directions 'tree_search' should run with, when the automatic
+    // selection below picks it over 'tree_search_maximal_spaces' by
+    // restricting to whichever of 'X'/'Y'/'Z' has few enough items per
+    // section (see 'many_items_in_section_threshold''s own doc comment).
+    // Empty means "no restriction" (let 'tree_search' decide on its own).
+    std::vector<Direction> tree_search_directions_override;
     bool use_tree_search = parameters.use_tree_search;
     bool use_tree_search_maximal_spaces = parameters.use_tree_search_maximal_spaces;
     bool use_sequential_single_knapsack = parameters.use_sequential_single_knapsack;
@@ -522,16 +640,34 @@ packingsolver::box::Output packingsolver::box::optimize(
         use_sequential_value_correction = false;
         use_dichotomic_search = false;
         use_column_generation = false;
-        if (instance.objective() != Objective::Knapsack
-                && instance.objective() != Objective::Feasibility)
+        // 'tree_search_maximal_spaces' supports all the objectives with a
+        // single bin but 'VariableSizedBinPacking' (through the sequential
+        // feasibility algorithm for the objectives other than 'Knapsack' and
+        // 'Feasibility').
+        if (instance.objective() == Objective::VariableSizedBinPacking)
             use_tree_search_maximal_spaces = false;
         // Automatic selection.
         if (!use_tree_search
                 && !use_tree_search_maximal_spaces) {
-            if ((instance.objective() == Objective::Knapsack
-                        || instance.objective() == Objective::Feasibility)
-                    && mean_number_of_items_in_bins > parameters.many_items_in_bins_threshold_2) {
-                use_tree_search_maximal_spaces = true;
+            if (instance.objective() == Objective::Knapsack
+                    || instance.objective() == Objective::Feasibility) {
+                // Restrict 'tree_search' to whichever direction(s) keep few
+                // enough items per section - its skyline branching factor
+                // stays manageable there - falling back to
+                // 'tree_search_maximal_spaces' only if no direction does.
+                std::vector<Direction> restricted_directions;
+                if (mean_number_of_items_in_x_section <= parameters.many_items_in_section_threshold)
+                    restricted_directions.push_back(Direction::X);
+                if (mean_number_of_items_in_y_section <= parameters.many_items_in_section_threshold)
+                    restricted_directions.push_back(Direction::Y);
+                if (mean_number_of_items_in_z_section <= parameters.many_items_in_section_threshold)
+                    restricted_directions.push_back(Direction::Z);
+                if (!restricted_directions.empty()) {
+                    use_tree_search = true;
+                    tree_search_directions_override = restricted_directions;
+                } else {
+                    use_tree_search_maximal_spaces = true;
+                }
             } else {
                 use_tree_search = true;
             }
@@ -713,15 +849,31 @@ packingsolver::box::Output packingsolver::box::optimize(
     local_parameters.messages_streams.clear();
     local_parameters.write_json_output = false;
     local_parameters.new_solution_callback = [](const Output&) { };
+    // The last bin post-process (see 'optimize_last_bin_post_process') is
+    // applied to the best solution of each algorithm, so in that case too,
+    // each algorithm reports to its own algorithm formatter. Outside of
+    // 'NotAnytimeDeterministic' mode, these local formatters forward every
+    // solution and bound to the shared 'algorithm_formatter' as soon as they
+    // get it, instead of only at the end.
+    bool local = deterministic || post_process_applies(instance, parameters);
+    if (local && !deterministic) {
+        local_parameters.new_solution_callback = [&algorithm_formatter](const Output& local_output)
+        {
+            algorithm_formatter.update_solution(
+                    local_output.solution_pool.best(),
+                    local_output.solution_pool.best_label());
+            algorithm_formatter.update_bounds(local_output);
+        };
+    }
     std::vector<std::unique_ptr<Output>> local_outputs;
     std::vector<std::unique_ptr<AlgorithmFormatter>> local_algorithm_formatters;
     // Return the parameters and the algorithm formatter a new algorithm task
     // should use.
     auto task_context = [&instance, &parameters, &algorithm_formatter, &output,
-         deterministic, &local_parameters, &local_outputs, &local_algorithm_formatters]()
+         local, &local_parameters, &local_outputs, &local_algorithm_formatters]()
         -> std::pair<const OptimizeParameters*, AlgorithmFormatter*>
     {
-        if (!deterministic)
+        if (!local)
             return {&parameters, &algorithm_formatter};
         local_outputs.push_back(std::make_unique<Output>(instance));
         local_outputs.back()->update_bounds(output);
@@ -738,12 +890,22 @@ packingsolver::box::Output packingsolver::box::optimize(
         exception_ptr_list.push_front(std::exception_ptr());
         std::exception_ptr& exception_ptr = exception_ptr_list.front();
         auto context = task_context();
-        tasks.push_back([&exception_ptr, &instance, context]() {
+        // 'tree_search_directions_override' (set by the automatic selection
+        // above) takes priority over any direction restriction the caller
+        // already set in 'parameters' - the automatic selection only ever
+        // runs when the caller left both 'use_tree_search' and
+        // 'use_tree_search_maximal_spaces' unset, so there is no explicit
+        // choice here to override.
+        OptimizeParameters tree_search_parameters = *context.first;
+        if (!tree_search_directions_override.empty())
+            tree_search_parameters.tree_search_directions = tree_search_directions_override;
+        AlgorithmFormatter* tree_search_algorithm_formatter = context.second;
+        tasks.push_back([&exception_ptr, &instance, tree_search_parameters, tree_search_algorithm_formatter]() {
             wrapper<decltype(&optimize_tree_search), optimize_tree_search>(
                     exception_ptr,
                     instance,
-                    *context.first,
-                    *context.second);
+                    tree_search_parameters,
+                    *tree_search_algorithm_formatter);
         });
     }
     // Tree search with maximal spaces.
@@ -827,6 +989,39 @@ packingsolver::box::Output packingsolver::box::optimize(
             algorithm_formatter.update_bounds(*local_output);
         }
     }
+
+    // Last bin post-process, on the best solution of each algorithm, and on
+    // the best solution overall if it doesn't come from one of them (e.g.
+    // found before running them). The best solution is copied since the
+    // post-process may replace it.
+    if (post_process_applies(instance, parameters)) {
+        Solution solution_best = output.solution_pool.best();
+        bool solution_best_found_by_an_algorithm = false;
+        for (const auto& local_output: local_outputs) {
+            const Solution& local_solution = local_output->solution_pool.best();
+            if (!(local_solution < solution_best))
+                solution_best_found_by_an_algorithm = true;
+            optimize_last_bin_post_process(
+                    instance,
+                    parameters,
+                    local_solution,
+                    algorithm_formatter);
+        }
+        if (!solution_best_found_by_an_algorithm) {
+            optimize_last_bin_post_process(
+                    instance,
+                    parameters,
+                    solution_best,
+                    algorithm_formatter);
+        }
+    }
+
+    // Other bins post-process, on the best solution overall.
+    optimize_other_bins_post_process(
+            instance,
+            parameters,
+            output.solution_pool.best(),
+            algorithm_formatter);
 
     algorithm_formatter.end();
     return output;

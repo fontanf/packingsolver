@@ -76,6 +76,9 @@ public:
 
     void set_leftover_mode(LeftoverMode leftover_mode) { instance_.parameters_.leftover_mode = leftover_mode; }
 
+    /** Set whether the leftover values of all the bins are compared. */
+    void set_leftover_all_bins(bool leftover_all_bins) { instance_.parameters_.leftover_all_bins = leftover_all_bins; }
+
     /*
      * Set bin types
      */

@@ -1,5 +1,6 @@
 #include "packingsolver/rectangle/instance_builder.hpp"
 #include "packingsolver/rectangle/optimize.hpp"
+#include "packingsolver/rectangle/post_process.hpp"
 #include "rectangle/solution_builder.hpp"
 
 #include <gtest/gtest.h>
@@ -7,6 +8,42 @@
 
 using namespace packingsolver::rectangle;
 namespace fs = boost::filesystem;
+
+TEST(Rectangle, ReoptimizeNonLastBins)
+{
+    // Two 10 x 10 bins and three 5 x 5 items. In the first bin of the
+    // solution, the two items are in opposite corners: the free space is
+    // split into two regions, and the leftover value of the bin is 0.
+    // Re-optimized, they are next to each other.
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(packingsolver::Objective::BinPackingWithLeftovers);
+    packingsolver::BinTypeId bin_type_id = instance_builder.add_bin_type(10, 10);
+    instance_builder.set_bin_type_copies(bin_type_id, 2);
+    packingsolver::ItemTypeId item_type_id = instance_builder.add_item_type(5, 5);
+    instance_builder.set_item_type_copies(item_type_id, 3);
+    const Instance instance = instance_builder.build();
+
+    SolutionBuilder solution_builder(instance);
+    solution_builder.add_bin(bin_type_id, 1);
+    solution_builder.add_item(0, item_type_id, {0, 0}, false);
+    solution_builder.add_item(0, item_type_id, {5, 5}, false);
+    solution_builder.add_bin(bin_type_id, 1);
+    solution_builder.add_item(1, item_type_id, {0, 0}, false);
+    const Solution solution = solution_builder.build();
+    ASSERT_TRUE(solution.feasible());
+    EXPECT_EQ(solution.bin(0).leftover_value, 0);
+    EXPECT_EQ(solution.bin(0).staircase_leftover_value, 0);
+
+    OptimizeParameters parameters;
+    parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytimeSequential;
+    const Solution new_solution = reoptimize_non_last_bins(solution, parameters);
+    ASSERT_TRUE(new_solution.feasible());
+    EXPECT_EQ(new_solution.number_of_bins(), 2);
+    EXPECT_EQ(new_solution.bin(0).leftover_value, 50);
+    EXPECT_EQ(new_solution.bin(0).staircase_leftover_value, 50);
+    EXPECT_EQ(new_solution.leftover_value(), solution.leftover_value());
+    EXPECT_TRUE(solution < new_solution);
+}
 
 TEST(Rectangle, BinCopies)
 {

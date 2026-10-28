@@ -3,6 +3,8 @@
 #include "packingsolver/boxstacks/optimize.hpp"
 #include "boxstacks/instance_flipper.hpp"
 
+#include "algorithms/staircase.hpp"
+
 #include "optimizationtools/utils/utils.hpp"
 
 #include <sstream>
@@ -235,6 +237,24 @@ public:
          */
         Volume leftover_value = 0;
 
+        /**
+         * Staircase of the stacks of the last bin, in the frame of the
+         * original instance.
+         */
+        Staircase2D last_bin_staircase;
+
+        /**
+         * Staircase leftover value of the last bin. It can only decrease when
+         * items are added to the last bin.
+         */
+        Volume last_bin_staircase_leftover_value = 0;
+
+        /** Sum of the leftover values of the bins but the last one. */
+        Volume previous_bins_leftover_value = 0;
+
+        /** Sum of the staircase leftover values of the bins but the last one. */
+        Volume previous_bins_staircase_leftover_value = 0;
+
         /** Maximum xs of all items in the last bin. */
         Length xs_max = 0;
 
@@ -379,6 +399,26 @@ public:
             return true;
         if (node_1->number_of_bins > node_2->number_of_bins)
             return false;
+
+        // Check leftover values.
+        if (instance().objective() == Objective::BinPackingWithLeftovers) {
+            if (node_2->leftover_value > node_1->leftover_value)
+                return false;
+            if (node_2->last_bin_staircase_leftover_value
+                    > node_1->last_bin_staircase_leftover_value) {
+                return false;
+            }
+            if (instance().parameters().leftover_all_bins) {
+                if (node_2->previous_bins_leftover_value
+                        > node_1->previous_bins_leftover_value) {
+                    return false;
+                }
+                if (node_2->previous_bins_staircase_leftover_value
+                        > node_1->previous_bins_staircase_leftover_value) {
+                    return false;
+                }
+            }
+        }
 
         if (node_1->last_bin_middle_axle_weight > node_2->last_bin_middle_axle_weight)
             return false;

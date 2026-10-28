@@ -3,6 +3,8 @@
 #include "packingsolver/rectangle/optimize.hpp"
 #include "rectangle/instance_flipper.hpp"
 
+#include "algorithms/staircase.hpp"
+
 #include "optimizationtools/utils/utils.hpp"
 
 #include <sstream>
@@ -198,6 +200,18 @@ public:
 
         /** Leftover value. */
         Profit leftover_value = 0;
+
+        /** Staircase of the items of the last bin. */
+        Staircase2D last_bin_staircase;
+
+        /** Staircase leftover value of the last bin. */
+        Area last_bin_staircase_leftover_value = 0;
+
+        /** Sum of the leftover values of the bins but the last one. */
+        Area previous_bins_leftover_value = 0;
+
+        /** Sum of the staircase leftover values of the bins but the last one. */
+        Area previous_bins_staircase_leftover_value = 0;
 
         /** Area used in the guides. */
         Area guide_area = 0;
@@ -412,6 +426,26 @@ public:
             return true;
         if (node_1->number_of_bins > node_2->number_of_bins)
             return false;
+
+        // Check leftover values.
+        if (instance().objective() == Objective::BinPackingWithLeftovers) {
+            if (node_2->leftover_value > node_1->leftover_value)
+                return false;
+            if (node_2->last_bin_staircase_leftover_value
+                    > node_1->last_bin_staircase_leftover_value) {
+                return false;
+            }
+            if (instance().parameters().leftover_all_bins) {
+                if (node_2->previous_bins_leftover_value
+                        > node_1->previous_bins_leftover_value) {
+                    return false;
+                }
+                if (node_2->previous_bins_staircase_leftover_value
+                        > node_1->previous_bins_staircase_leftover_value) {
+                    return false;
+                }
+            }
+        }
 
         // Same number of bins, so both nodes' last bin is of the same type
         // (see 'bin_type_ids_') and their 'last_bin_resource_consumption'
