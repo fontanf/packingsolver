@@ -67,7 +67,7 @@ MILP raster
 
 This algorithm solves the :code:`feasibility` and :code:`knapsack` objectives.
 
-It rasterizes the bins and the items onto a grid and solves the resulting placement problem as a mixed-integer linear program, refining the grid iteratively.
+It rasterizes the bins and the items onto a grid and solves the resulting placement problem as a mixed-integer linear program, refining the grid iteratively. In the :code:`exact` mode, it also solves a relaxation on the same grids, which gives a bound.
 
 .. image:: ../img/irregular_milp_raster.svg
    :align: center

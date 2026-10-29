@@ -6,6 +6,9 @@
 
 #include "shape/rasterization.hpp"
 #include "shape/offset.hpp"
+#include "shape/approximation.hpp"
+#include "shape/boolean_operations.hpp"
+#include "shape/convex_partition.hpp"
 //#include "shape/writer.hpp"
 
 #ifdef CBC_FOUND
@@ -20,6 +23,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <thread>
 
 using namespace packingsolver;
 using namespace packingsolver::irregular;
@@ -512,8 +516,10 @@ Solution solve_milp_raster_for_cell_size(
                     }
 
                     // Check end.
-                    if (parameters.timer.needs_to_end())
+                    if (parameters.timer.needs_to_end()
+                            || algorithm_formatter.end_boolean()) {
                         highs_input->user_interrupt = 1;
+                    }
                 },
                 nullptr);
         HighsStatus highs_status;
@@ -529,6 +535,456 @@ Solution solve_milp_raster_for_cell_size(
     }
 
     return retrieve_solution(milp_solution);
+}
+
+/**
+ * Partition a polygon contained in a shape into convex parts.
+ *
+ * If the shape has circular arcs, they are replaced by line segments inside
+ * the shape.
+ */
+std::vector<Shape> compute_inner_convex_parts(
+        const ShapeWithHoles& shape,
+        LengthDbl segment_length)
+{
+    if (shape.is_polygon())
+        return shape::compute_convex_partition(shape);
+
+    ShapeWithHoles outline = shape::approximate_shape_by_line_segments(
+            shape.shape,
+            segment_length,
+            false);
+    if (outline.shape.elements.empty())
+        return {};
+    shape::MultiShapeWithHoles polygons;
+    polygons.shapes_with_holes.push_back(outline);
+    if (!shape.holes.empty()) {
+        shape::MultiShapeWithHoles holes;
+        for (const Shape& hole: shape.holes) {
+            holes.shapes_with_holes.push_back(shape::approximate_shape_by_line_segments(
+                        hole,
+                        segment_length,
+                        true));
+        }
+        polygons = shape::compute_difference(polygons, holes);
+    }
+    std::vector<Shape> parts;
+    for (const ShapeWithHoles& polygon: polygons.shapes_with_holes)
+        for (const Shape& part: shape::compute_convex_partition(polygon))
+            parts.push_back(part);
+    return parts;
+}
+
+struct BoundCoefficient
+{
+    /** Column of the cell, relative to the cell of the placement. */
+    shape::ColumnId column;
+
+    /** Row of the cell, relative to the cell of the placement. */
+    shape::RowId row;
+
+    /** Lower bound on the fraction of the cell covered by the item. */
+    double value;
+};
+
+struct BoundItemTypeRotation
+{
+    ItemTypeId item_type_id;
+
+    ItemTypeRotation rotation;
+
+    /** Bounding box of the item in this rotation. */
+    AxisAlignedBoundingBox aabb;
+
+    /** Area of the item, as a fraction of the cell area. */
+    double area = 0.0;
+
+    /** Non-zero coefficients of the placements in the cells. */
+    std::vector<BoundCoefficient> coefficients;
+};
+
+/**
+ * Compute the coefficients of the placements of an item type in a rotation in
+ * the cells of the relaxation.
+ *
+ * With the bottom-left corner of the bounding box of the item at the origin,
+ * a convex part covers a fraction A(c, r) of each cell (c, r). When the item
+ * is moved to a corner (i * cell_size, j * cell_size), i, j in {0, 1}, it
+ * covers a fraction A(c - i, r - j) of cell (c, r). The minimum over the
+ * positions in the cell is reached at one of these corners.
+ */
+BoundItemTypeRotation compute_bound_item_type_rotation(
+        const Instance& instance,
+        ItemTypeId item_type_id,
+        const ItemTypeRotation& rotation,
+        LengthDbl cell_size)
+{
+    const ItemType& item_type = instance.item_type(item_type_id);
+
+    BoundItemTypeRotation bound_item_type_rotation;
+    bound_item_type_rotation.item_type_id = item_type_id;
+    bound_item_type_rotation.rotation = rotation;
+
+    std::vector<ShapeWithHoles> shapes;
+    for (ItemShapePos item_shape_pos = 0;
+            item_shape_pos < (ItemShapePos)item_type.shapes.size();
+            ++item_shape_pos) {
+        shapes.push_back(instance.item_shape_scaled(item_type_id, item_shape_pos, rotation.angle, rotation.mirror));
+        bound_item_type_rotation.aabb = merge(
+                bound_item_type_rotation.aabb,
+                shapes.back().compute_min_max());
+    }
+    const AxisAlignedBoundingBox& aabb = bound_item_type_rotation.aabb;
+
+    // Cells reached by the item, from column/row -1 to cover rounding errors.
+    shape::ColumnId number_of_columns = (shape::ColumnId)std::ceil((aabb.x_max - aabb.x_min) / cell_size) + 3;
+    shape::RowId number_of_rows = (shape::RowId)std::ceil((aabb.y_max - aabb.y_min) / cell_size) + 3;
+    std::vector<double> coefficients(number_of_columns * number_of_rows, 0.0);
+
+    for (ShapeWithHoles& shape: shapes) {
+        bound_item_type_rotation.area += shape.compute_area() / (cell_size * cell_size);
+        shape.shift(-aabb.x_min, -aabb.y_min);
+        for (const Shape& part: compute_inner_convex_parts(shape, cell_size / 4)) {
+            ShapeWithHoles part_with_holes;
+            part_with_holes.shape = part;
+            shape::RasterizedGrid grid = shape::rasterization(part_with_holes, cell_size, cell_size);
+            auto coverage = [&grid](shape::ColumnId column, shape::RowId row)
+            {
+                if (column < grid.column_offset
+                        || column >= grid.column_offset + grid.number_of_columns
+                        || row < grid.row_offset
+                        || row >= grid.row_offset + grid.number_of_rows) {
+                    return 0.0;
+                }
+                return grid.at(column, row).coverage;
+            };
+            for (shape::ColumnId column = grid.column_offset + 1;
+                    column < grid.column_offset + grid.number_of_columns;
+                    ++column) {
+                for (shape::RowId row = grid.row_offset + 1;
+                        row < grid.row_offset + grid.number_of_rows;
+                        ++row) {
+                    double value = (std::min)({
+                            coverage(column, row),
+                            coverage(column - 1, row),
+                            coverage(column, row - 1),
+                            coverage(column - 1, row - 1)});
+                    if (value <= 0.0)
+                        continue;
+                    // Dropping a coefficient keeps the relaxation valid.
+                    if (column + 1 < 0 || column + 1 >= number_of_columns
+                            || row + 1 < 0 || row + 1 >= number_of_rows) {
+                        continue;
+                    }
+                    coefficients[(column + 1) * number_of_rows + (row + 1)] += value;
+                }
+            }
+        }
+    }
+
+    for (shape::ColumnId column = 0; column < number_of_columns; ++column) {
+        for (shape::RowId row = 0; row < number_of_rows; ++row) {
+            double value = coefficients[column * number_of_rows + row];
+            if (value <= 0.0)
+                continue;
+            BoundCoefficient coefficient;
+            coefficient.column = column - 1;
+            coefficient.row = row - 1;
+            coefficient.value = value;
+            bound_item_type_rotation.coefficients.push_back(coefficient);
+        }
+    }
+    return bound_item_type_rotation;
+}
+
+/**
+ * Solve the relaxation for a given cell size.
+ *
+ * Update the knapsack bound (objective 'Knapsack') or mark the instance as
+ * infeasible if the relaxation is infeasible.
+ */
+void solve_milp_raster_bound_for_cell_size(
+        const Instance& instance,
+        const std::vector<std::vector<ItemTypeRotation>>& bound_rotations,
+        const MilpRasterParameters& parameters,
+        AlgorithmFormatter& algorithm_formatter,
+        LengthDbl cell_size)
+{
+    const LengthDbl scale = instance.parameters().scale_value;
+    // Slack on the capacities of the cells (fractions of the cell area), for
+    // the rounding errors of the areas.
+    const double capacity_slack = 1e-6;
+    // Tolerance on the placement domains, in cells.
+    const double domain_tolerance = 1e-6;
+
+    // The model may be large, so check the end while building it.
+    auto needs_to_end = [&parameters, &algorithm_formatter]()
+    {
+        return parameters.timer.needs_to_end()
+            || algorithm_formatter.end_boolean();
+    };
+
+    std::vector<BoundItemTypeRotation> bound_item_type_rotations;
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance.number_of_item_types();
+            ++item_type_id) {
+        const ItemType& item_type = instance.item_type(item_type_id);
+        if (item_type.copies - item_type.copies_fixed <= 0)
+            continue;
+        for (const ItemTypeRotation& rotation: bound_rotations[item_type_id]) {
+            if (needs_to_end())
+                return;
+            bound_item_type_rotations.push_back(compute_bound_item_type_rotation(
+                        instance,
+                        item_type_id,
+                        rotation,
+                        cell_size));
+        }
+    }
+
+    mathoptsolverscmake::MathOptModel model;
+    model.objective_direction = mathoptsolverscmake::ObjectiveDirection::Maximize;
+    std::vector<std::vector<PlacementId>> item_type_variables(instance.number_of_item_types());
+
+    for (BinPos bin_pos = 0; bin_pos < instance.number_of_bins(); ++bin_pos) {
+        BinTypeId bin_type_id = instance.bin_type_id(bin_pos);
+        const BinType& bin_type = instance.bin_type(bin_type_id);
+
+        // Capacities of the cells: area of the cell inside the bin minus the
+        // area of the fixed items in it.
+        ShapeWithHoles bin_shape;
+        bin_shape.shape = bin_type.shape_scaled;
+        shape::RasterizedGrid bin_grid = shape::rasterization(bin_shape, cell_size, cell_size);
+        std::vector<double> capacities(bin_grid.number_of_columns * bin_grid.number_of_rows);
+        for (shape::ColumnId column = 0; column < bin_grid.number_of_columns; ++column) {
+            for (shape::RowId row = 0; row < bin_grid.number_of_rows; ++row) {
+                capacities[column * bin_grid.number_of_rows + row] = bin_grid.at(
+                        bin_grid.column_offset + column,
+                        bin_grid.row_offset + row).coverage;
+            }
+        }
+        if (bin_pos <= instance.last_bin_with_fixed_items()) {
+            for (const FixedItem& fixed_item: bin_type.fixed_items) {
+                const ItemType& item_type = instance.item_type(fixed_item.item_type_id);
+                for (ItemShapePos item_shape_pos = 0;
+                        item_shape_pos < (ItemShapePos)item_type.shapes.size();
+                        ++item_shape_pos) {
+                    ShapeWithHoles transformed = instance.item_shape_scaled(
+                            fixed_item.item_type_id,
+                            item_shape_pos,
+                            fixed_item.angle,
+                            fixed_item.mirror);
+                    transformed.shift(
+                            fixed_item.bl_corner.x * scale,
+                            fixed_item.bl_corner.y * scale);
+                    shape::RasterizedGrid raster_grid = shape::rasterization(transformed, cell_size, cell_size);
+                    for (shape::ColumnId column = raster_grid.column_offset;
+                            column < raster_grid.column_offset + raster_grid.number_of_columns;
+                            ++column) {
+                        for (shape::RowId row = raster_grid.row_offset;
+                                row < raster_grid.row_offset + raster_grid.number_of_rows;
+                                ++row) {
+                            shape::ColumnId c = column - bin_grid.column_offset;
+                            shape::RowId r = row - bin_grid.row_offset;
+                            if (c < 0 || c >= bin_grid.number_of_columns
+                                    || r < 0 || r >= bin_grid.number_of_rows) {
+                                continue;
+                            }
+                            capacities[c * bin_grid.number_of_rows + r] -= raster_grid.at(column, row).coverage;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Placements.
+        std::vector<std::pair<PlacementId, double>> bin_variables;
+        std::vector<std::vector<std::pair<PlacementId, double>>> cell_variables(
+                bin_grid.number_of_columns * bin_grid.number_of_rows);
+        LengthDbl bin_spacing = instance.bin_spacing_scaled(bin_type_id);
+        for (const BoundItemTypeRotation& bound_item_type_rotation: bound_item_type_rotations) {
+            if (needs_to_end())
+                return;
+            const ItemType& item_type = instance.item_type(bound_item_type_rotation.item_type_id);
+            const AxisAlignedBoundingBox& aabb = bound_item_type_rotation.aabb;
+            LengthDbl x_min = bin_type.aabb_scaled.x_min + bin_spacing;
+            LengthDbl x_max = bin_type.aabb_scaled.x_max - bin_spacing - (aabb.x_max - aabb.x_min);
+            LengthDbl y_min = bin_type.aabb_scaled.y_min + bin_spacing;
+            LengthDbl y_max = bin_type.aabb_scaled.y_max - bin_spacing - (aabb.y_max - aabb.y_min);
+            if (x_max / cell_size < x_min / cell_size - domain_tolerance
+                    || y_max / cell_size < y_min / cell_size - domain_tolerance) {
+                continue;
+            }
+            shape::ColumnId column_start = (shape::ColumnId)std::floor(x_min / cell_size - domain_tolerance);
+            shape::ColumnId column_end = (shape::ColumnId)std::floor(x_max / cell_size + domain_tolerance);
+            shape::RowId row_start = (shape::RowId)std::floor(y_min / cell_size - domain_tolerance);
+            shape::RowId row_end = (shape::RowId)std::floor(y_max / cell_size + domain_tolerance);
+            for (shape::ColumnId column = column_start; column <= column_end; ++column) {
+                for (shape::RowId row = row_start; row <= row_end; ++row) {
+                    PlacementId variable_id = (PlacementId)model.variables_lower_bounds.size();
+                    model.variables_lower_bounds.push_back(0.0);
+                    model.variables_upper_bounds.push_back(
+                            (double)(item_type.copies - item_type.copies_fixed));
+                    model.variables_types.push_back(mathoptsolverscmake::VariableType::Integer);
+                    model.objective_coefficients.push_back(
+                            (instance.objective() == Objective::Knapsack)?
+                            item_type.profit: 0.0);
+                    item_type_variables[bound_item_type_rotation.item_type_id].push_back(variable_id);
+                    bin_variables.push_back({variable_id, bound_item_type_rotation.area});
+                    for (const BoundCoefficient& coefficient: bound_item_type_rotation.coefficients) {
+                        // The cells outside of the grid are outside of the
+                        // bin; dropping their constraints keeps the
+                        // relaxation valid.
+                        shape::ColumnId c = column + coefficient.column - bin_grid.column_offset;
+                        shape::RowId r = row + coefficient.row - bin_grid.row_offset;
+                        if (c < 0 || c >= bin_grid.number_of_columns
+                                || r < 0 || r >= bin_grid.number_of_rows) {
+                            continue;
+                        }
+                        cell_variables[c * bin_grid.number_of_rows + r].push_back({variable_id, coefficient.value});
+                    }
+                }
+            }
+        }
+
+        // Area constraint: the coefficients of the cell capacity constraints
+        // underestimate the areas of the items, so this one isn't implied by
+        // them.
+        double bin_capacity = capacity_slack;
+        for (double capacity: capacities)
+            bin_capacity += (std::max)(capacity, 0.0);
+        if (!bin_variables.empty()) {
+            model.constraints_starts.push_back(model.elements_variables.size());
+            model.constraints_lower_bounds.push_back(0.0);
+            model.constraints_upper_bounds.push_back(bin_capacity);
+            for (const auto& element: bin_variables) {
+                model.elements_variables.push_back(element.first);
+                model.elements_coefficients.push_back(element.second);
+            }
+        }
+
+        // Cell capacity constraints.
+        for (Counter cell_pos = 0; cell_pos < (Counter)cell_variables.size(); ++cell_pos) {
+            double capacity = (std::max)(capacities[cell_pos], 0.0) + capacity_slack;
+            double maximum_consumption = 0.0;
+            for (const auto& element: cell_variables[cell_pos])
+                maximum_consumption += element.second * model.variables_upper_bounds[element.first];
+            if (maximum_consumption <= capacity)
+                continue;
+            model.constraints_starts.push_back(model.elements_variables.size());
+            model.constraints_lower_bounds.push_back(0.0);
+            model.constraints_upper_bounds.push_back(capacity);
+            for (const auto& element: cell_variables[cell_pos]) {
+                model.elements_variables.push_back(element.first);
+                model.elements_coefficients.push_back(element.second);
+            }
+        }
+    }
+
+    // Copy constraints.
+    bool infeasible = false;
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance.number_of_item_types();
+            ++item_type_id) {
+        const ItemType& item_type = instance.item_type(item_type_id);
+        ItemPos remaining_copies = item_type.copies - item_type.copies_fixed;
+        ItemPos remaining_copies_min = (std::max)(
+                (ItemPos)0,
+                item_type.copies_min - item_type.copies_fixed);
+        if (item_type_variables[item_type_id].empty()) {
+            if (remaining_copies_min > 0)
+                infeasible = true;
+            continue;
+        }
+        model.constraints_starts.push_back(model.elements_variables.size());
+        model.constraints_lower_bounds.push_back((double)remaining_copies_min);
+        model.constraints_upper_bounds.push_back((double)remaining_copies);
+        for (PlacementId variable_id: item_type_variables[item_type_id]) {
+            model.elements_variables.push_back(variable_id);
+            model.elements_coefficients.push_back(1.0);
+        }
+    }
+
+    // Profit of the fixed items, and worst case of the 'penalize' resources
+    // with a negative penalty, which the relaxation doesn't consider.
+    Profit profit_offset = negative_penalty_sum(instance);
+    for (BinPos bin_pos = 0;
+            bin_pos <= instance.last_bin_with_fixed_items();
+            ++bin_pos) {
+        const BinType& bin_type = instance.bin_type(instance.bin_type_id(bin_pos));
+        for (const FixedItem& fixed_item: bin_type.fixed_items)
+            profit_offset += instance.item_type(fixed_item.item_type_id).profit;
+    }
+
+    if (infeasible) {
+        algorithm_formatter.update_is_proven_infeasible();
+        return;
+    }
+    if (needs_to_end())
+        return;
+    if (model.variables_lower_bounds.empty()) {
+        if (instance.objective() == Objective::Knapsack)
+            algorithm_formatter.update_knapsack_bound(profit_offset);
+        return;
+    }
+    if (parameters.solver == mathoptsolverscmake::SolverName::Highs) {
+#ifdef HIGHS_FOUND
+        Highs highs;
+        mathoptsolverscmake::reduce_printout(highs);
+        mathoptsolverscmake::set_time_limit(highs, parameters.timer.remaining_time());
+        if (parameters.maximum_number_of_nodes >= 0)
+            mathoptsolverscmake::set_node_limit(highs, parameters.maximum_number_of_nodes);
+        mathoptsolverscmake::load(highs, model);
+        highs.setCallback([
+                &instance,
+                &algorithm_formatter,
+                &needs_to_end,
+                profit_offset](
+                    const int callback_type,
+                    const std::string& message,
+                    const HighsCallbackOutput* highs_output,
+                    HighsCallbackInput* highs_input,
+                    void*)
+                {
+                    // The interrupt callbacks of the simplex and of the
+                    // interior point method are needed to stop while
+                    // solving the LP relaxation of a large model.
+                    if (callback_type != HighsCallbackType::kCallbackMipInterrupt
+                            && callback_type != HighsCallbackType::kCallbackSimplexInterrupt
+                            && callback_type != HighsCallbackType::kCallbackIpmInterrupt) {
+                        return;
+                    }
+
+                    if (callback_type == HighsCallbackType::kCallbackMipInterrupt
+                            && instance.objective() == Objective::Knapsack
+                            && std::isfinite(highs_output->mip_dual_bound)) {
+                        algorithm_formatter.update_knapsack_bound(
+                                highs_output->mip_dual_bound + profit_offset);
+                    }
+
+                    // Check end.
+                    if (needs_to_end())
+                        highs_input->user_interrupt = 1;
+                },
+                nullptr);
+        highs.startCallback(HighsCallbackType::kCallbackMipInterrupt);
+        highs.startCallback(HighsCallbackType::kCallbackSimplexInterrupt);
+        highs.startCallback(HighsCallbackType::kCallbackIpmInterrupt);
+        mathoptsolverscmake::solve(highs);
+        if (highs.getModelStatus() == HighsModelStatus::kInfeasible
+                || highs.getModelStatus() == HighsModelStatus::kUnboundedOrInfeasible) {
+            algorithm_formatter.update_is_proven_infeasible();
+        } else if (instance.objective() == Objective::Knapsack) {
+            double bound = mathoptsolverscmake::get_bound(highs);
+            if (std::isfinite(bound))
+                algorithm_formatter.update_knapsack_bound(bound + profit_offset);
+        }
+#else
+        throw std::invalid_argument(FUNC_SIGNATURE);
+#endif
+    } else {
+        throw std::invalid_argument(FUNC_SIGNATURE);
+    }
 }
 
 }
@@ -591,13 +1047,72 @@ MilpRasterOutput packingsolver::irregular::milp_raster(
 
     const std::vector<std::vector<std::vector<ItemTypeRotation>>> item_type_rotations = compute_item_type_rotations(instance);
 
-    for (Counter number_of_cell_sizes = 0; ; ++number_of_cell_sizes, cell_size /= 2) {
-        if (parameters.timer.needs_to_end())
-            break;
-        if (parameters.maximum_number_of_cell_sizes != -1
-                && number_of_cell_sizes >= parameters.maximum_number_of_cell_sizes) {
+    // Rotations of the relaxation: all the allowed rotations, so the
+    // relaxation can't be used if one of them is a range of angles.
+    bool use_bound = parameters.use_bound
+        && parameters.optimization_mode == OptimizationMode::Exact;
+    std::vector<std::vector<ItemTypeRotation>> bound_rotations(instance.number_of_item_types());
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance.number_of_item_types()
+            && use_bound;
+            ++item_type_id) {
+        const ItemType& item_type = instance.item_type(item_type_id);
+        if (item_type.copies - item_type.copies_fixed <= 0)
+            continue;
+        if (!item_type.has_only_discrete_rotations()) {
+            use_bound = false;
             break;
         }
+        for (const AllowedRotation& allowed_rotation: item_type.allowed_rotations) {
+            ItemTypeRotation rotation;
+            rotation.angle = allowed_rotation.start_angle;
+            rotation.mirror = allowed_rotation.mirror;
+            bound_rotations[item_type_id].push_back(rotation);
+        }
+    }
+
+    auto needs_to_end = [&parameters, &algorithm_formatter](
+            Counter number_of_cell_sizes)
+    {
+        return parameters.timer.needs_to_end()
+            || algorithm_formatter.end_boolean()
+            || (parameters.maximum_number_of_cell_sizes != -1
+                    && number_of_cell_sizes >= parameters.maximum_number_of_cell_sizes);
+    };
+
+    std::thread bound_thread;
+    std::exception_ptr bound_exception_ptr;
+    if (use_bound) {
+        bound_thread = std::thread([
+                &instance,
+                &parameters,
+                &algorithm_formatter,
+                &bound_rotations,
+                &bound_exception_ptr,
+                &needs_to_end,
+                cell_size]()
+        {
+            try {
+                LengthDbl bound_cell_size = cell_size;
+                for (Counter number_of_cell_sizes = 0;
+                        !needs_to_end(number_of_cell_sizes);
+                        ++number_of_cell_sizes, bound_cell_size /= 2) {
+                    solve_milp_raster_bound_for_cell_size(
+                            instance,
+                            bound_rotations,
+                            parameters,
+                            algorithm_formatter,
+                            bound_cell_size);
+                }
+            } catch (...) {
+                bound_exception_ptr = std::current_exception();
+            }
+        });
+    }
+
+    for (Counter number_of_cell_sizes = 0;
+            !needs_to_end(number_of_cell_sizes);
+            ++number_of_cell_sizes, cell_size /= 2) {
         Solution solution = solve_milp_raster_for_cell_size(
                 instance,
                 item_type_rotations,
@@ -607,10 +1122,15 @@ MilpRasterOutput packingsolver::irregular::milp_raster(
                 cell_size,
                 instance.number_of_bins());
         algorithm_formatter.update_solution(solution, "milp-raster cs=" + std::to_string(cell_size));
-        if (algorithm_formatter.end_boolean())
-            break;
     }
+
+    if (bound_thread.joinable())
+        bound_thread.join();
+    if (bound_exception_ptr)
+        std::rethrow_exception(bound_exception_ptr);
 
     algorithm_formatter.end();
     return output;
 }
+
+
