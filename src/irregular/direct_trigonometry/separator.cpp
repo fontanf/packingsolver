@@ -5,7 +5,9 @@
 #include "irregular/solution_builder.hpp"
 
 #include <algorithm>
+#include <atomic>
 #include <cmath>
+#include <exception>
 #include <thread>
 
 using namespace packingsolver;
@@ -346,9 +348,9 @@ std::shared_ptr<const Separator::ItemTypes> Separator::build_item_types(
 
     // Item types.
     ItemTypes item_types(instance.number_of_item_types());
-    for (ItemTypeId item_type_id = 0;
-            item_type_id < instance.number_of_item_types();
-            ++item_type_id) {
+    auto build_item_type = [&instance, &simplified_instance, &rotations, &item_types, item_spacing](
+            ItemTypeId item_type_id)
+    {
         const SimplifiedItemType& simplified_item_type = simplified_instance.item_types[item_type_id];
         SeparatorItemType& separator_item_type = item_types[item_type_id];
 
@@ -424,7 +426,40 @@ std::shared_ptr<const Separator::ItemTypes> Separator::build_item_types(
                 separator_item_type.bin_types_orientation_ids[bin_type_id].push_back(orientation_id);
             }
         }
-    }
+    };
+
+    // The item types are independent, and computing their poles is
+    // expensive: they are built in parallel by the workers, each one taking
+    // the next item type not built yet.
+    Counter number_of_threads = (std::max)((Counter)1, (std::min)(
+                parameters.number_of_workers,
+                (Counter)instance.number_of_item_types()));
+    std::atomic<ItemTypeId> next_item_type_id(0);
+    std::vector<std::exception_ptr> exceptions(number_of_threads);
+    auto build_item_types_worker = [&instance, &build_item_type, &next_item_type_id, &exceptions](
+            Counter thread_pos)
+    {
+        try {
+            for (;;) {
+                ItemTypeId item_type_id = next_item_type_id++;
+                if (item_type_id >= instance.number_of_item_types())
+                    break;
+                build_item_type(item_type_id);
+            }
+        } catch (...) {
+            exceptions[thread_pos] = std::current_exception();
+        }
+    };
+    std::vector<std::thread> threads;
+    for (Counter thread_pos = 1; thread_pos < number_of_threads; ++thread_pos)
+        threads.push_back(std::thread(build_item_types_worker, thread_pos));
+    build_item_types_worker(0);
+    for (std::thread& thread: threads)
+        thread.join();
+    for (const std::exception_ptr& exception: exceptions)
+        if (exception)
+            std::rethrow_exception(exception);
+
     return std::make_shared<const ItemTypes>(item_types);
 }
 

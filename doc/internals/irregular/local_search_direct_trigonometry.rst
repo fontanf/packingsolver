@@ -19,6 +19,8 @@ For each item type and each orientation, the shapes are simplified into polygons
 
 Each polygon is described by *poles*: disjoint circles inscribed in it. The first one is the largest inscribed circle (the pole of inaccessibility); each next one is the largest circle inscribed in the polygon minus the previous circles. Poles are generated until they cover 90% of the area with at least 8 poles, or 80% with at least 16 poles, with at most 64 poles.
 
+Each pole is found with a quadtree search inspired by Mapbox's polylabel algorithm: a square cell is only split if the distance of its center to the boundary of the region, plus its half-diagonal, can improve the best circle found. All the searches of a polygon use the same quadtree, so the distance of the center of a cell to the boundary of the polygon is computed only once and kept, together with its distance to the poles already considered: a next search only accounts for the poles added since. Computing the poles is the most expensive part of the preprocessing, so the item types are processed in parallel by the workers of the separator.
+
 The *hazards* of a bin are the obstacles an item may collide with: its borders, its defects (inflated by the spacings), its fixed items, and its exterior.
 
 Collision loss
