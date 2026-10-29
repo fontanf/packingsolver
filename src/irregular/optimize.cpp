@@ -829,6 +829,7 @@ void optimize_milp_raster(
     milp_raster_parameters.verbosity_level = 0;
     milp_raster_parameters.timer = parameters.timer;
     milp_raster_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+    milp_raster_parameters.optimization_mode = parameters.optimization_mode;
     milp_raster_parameters.new_solution_callback = [&algorithm_formatter](
             const irregular::Output& output) {
         algorithm_formatter.update_solution(
