@@ -19,6 +19,37 @@ using namespace packingsolver::onedimensional;
 namespace
 {
 
+/**
+ * Return true iff the instance has constraints other than the lengths: item
+ * weights, nesting lengths, maximum stackabilities, eligibilities or bin
+ * resources.
+ */
+bool has_extra_constraints(const Instance& instance)
+{
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < instance.number_of_bin_types();
+            ++bin_type_id) {
+        const BinType& bin_type = instance.bin_type(bin_type_id);
+        if (bin_type.maximum_weight != std::numeric_limits<Weight>::infinity()
+                || !bin_type.eligibility_ids.empty()
+                || bin_type.number_of_resources() > 0) {
+            return true;
+        }
+    }
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance.number_of_item_types();
+            ++item_type_id) {
+        const ItemType& item_type = instance.item_type(item_type_id);
+        if (item_type.nesting_length != 0
+                || item_type.maximum_stackability != std::numeric_limits<ItemPos>::max()
+                || item_type.maximum_weight_after != std::numeric_limits<Weight>::infinity()
+                || item_type.eligibility_id != -1) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void optimize_trivial_bound(
         const Instance& instance,
         const OptimizeParameters& parameters,
@@ -802,7 +833,12 @@ packingsolver::onedimensional::Output packingsolver::onedimensional::optimize(
                         use_column_generation = true;
                 }
             } else {
-                use_tree_search = true;
+                // Without extra constraints, the knapsack subproblems of
+                // the other algorithms are solved by dynamic programming,
+                // and the tree search is much more expensive for no
+                // better solutions.
+                if (has_extra_constraints(instance))
+                    use_tree_search = true;
                 if (mean_number_of_items_in_bins
                         > parameters.many_items_in_bins_threshold) {
                     use_sequential_single_knapsack = true;
