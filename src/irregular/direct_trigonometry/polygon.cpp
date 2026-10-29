@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <deque>
+#include <unordered_map>
 
 using namespace packingsolver;
 using namespace packingsolver::irregular;
@@ -289,33 +290,80 @@ bool boundary_enters(
 }
 
 /**
- * Signed distance from 'point' to the boundary of the region inside
- * 'polygon' and outside 'poles': positive inside the region, negative
- * outside.
+ * Distances of the center of a cell of the quadtree of 'compute_next_pole',
+ * kept from one pole to the next one.
+ *
+ * The quadtree is the same for all the poles of a polygon, and the distance
+ * to the polygon doesn't depend on the poles: it is computed only once, and
+ * only the poles added since the last evaluation of the cell are considered.
+ */
+struct PoleCellDistances
+{
+    /** Distance to the boundary of the polygon. */
+    LengthDbl polygon_distance;
+
+    /** True iff the center is inside the polygon. */
+    bool inside_polygon;
+
+    /** Distance to the boundary of the closest pole. */
+    LengthDbl poles_distance;
+
+    /** True iff the center is inside a pole. */
+    bool inside_pole;
+
+    /** Number of poles already considered in 'poles_distance'. */
+    Counter number_of_poles;
+};
+
+/**
+ * Signed distance from the center 'point' of the cell of key 'cell_key' to
+ * the boundary of the region inside 'polygon' and outside 'poles': positive
+ * inside the region, negative outside.
  */
 LengthDbl signed_distance_to_region(
         const Polygon& polygon,
         const std::vector<Pole>& poles,
+        std::unordered_map<uint64_t, PoleCellDistances>& cells_distances,
+        uint64_t cell_key,
         const Point& point)
 {
-    LengthDbl distance = std::numeric_limits<LengthDbl>::infinity();
-    ElementPos number_of_vertices = polygon.vertices.size();
-    for (ElementPos vertex_pos = 0; vertex_pos < number_of_vertices; ++vertex_pos) {
-        distance = (std::min)(distance, distance_to_segment(
-                    polygon.vertices[vertex_pos],
-                    polygon.vertices[(vertex_pos + 1) % number_of_vertices],
-                    point));
+    auto insertion = cells_distances.insert({cell_key, PoleCellDistances()});
+    PoleCellDistances& cell_distances = insertion.first->second;
+    if (insertion.second) {
+        cell_distances.polygon_distance = std::numeric_limits<LengthDbl>::infinity();
+        ElementPos number_of_vertices = polygon.vertices.size();
+        for (ElementPos vertex_pos = 0; vertex_pos < number_of_vertices; ++vertex_pos) {
+            cell_distances.polygon_distance = (std::min)(
+                    cell_distances.polygon_distance,
+                    distance_to_segment(
+                        polygon.vertices[vertex_pos],
+                        polygon.vertices[(vertex_pos + 1) % number_of_vertices],
+                        point));
+        }
+        cell_distances.inside_polygon = (locate_point(point, polygon) == PointLocation::Inside);
+        cell_distances.poles_distance = std::numeric_limits<LengthDbl>::infinity();
+        cell_distances.inside_pole = false;
+        cell_distances.number_of_poles = 0;
     }
-    bool inside = (locate_point(point, polygon) == PointLocation::Inside);
-    for (const Pole& pole: poles) {
+    for (Counter pole_pos = cell_distances.number_of_poles;
+            pole_pos < (Counter)poles.size();
+            ++pole_pos) {
+        const Pole& pole = poles[pole_pos];
         LengthDbl distance_to_center = std::sqrt(
                 (point.x - pole.center.x) * (point.x - pole.center.x)
                 + (point.y - pole.center.y) * (point.y - pole.center.y));
         LengthDbl distance_to_pole = distance_to_center - pole.radius;
         if (distance_to_pole < 0)
-            inside = false;
-        distance = (std::min)(distance, std::abs(distance_to_pole));
+            cell_distances.inside_pole = true;
+        cell_distances.poles_distance = (std::min)(
+                cell_distances.poles_distance,
+                std::abs(distance_to_pole));
     }
+    cell_distances.number_of_poles = poles.size();
+    LengthDbl distance = (std::min)(
+            cell_distances.polygon_distance,
+            cell_distances.poles_distance);
+    bool inside = cell_distances.inside_polygon && !cell_distances.inside_pole;
     return (inside)? distance: -distance;
 }
 
@@ -327,10 +375,14 @@ LengthDbl signed_distance_to_region(
  * square cell is only split if its center's distance plus its half-diagonal
  * (an upper bound of the distance of any point of the cell) can improve the
  * best distance found.
+ *
+ * 'cells_distances' keeps the distances of the cells evaluated by the
+ * previous calls for the same polygon.
  */
 Pole compute_next_pole(
         const Polygon& polygon,
-        const std::vector<Pole>& poles)
+        const std::vector<Pole>& poles,
+        std::unordered_map<uint64_t, PoleCellDistances>& cells_distances)
 {
     struct Cell
     {
@@ -338,9 +390,19 @@ Pole compute_next_pole(
         LengthDbl half_size;
         LengthDbl distance;
         Counter depth;
+
+        /** Position of the cell in the grid of the cells of its depth. */
+        uint64_t x_pos;
+        uint64_t y_pos;
     };
     const Counter maximum_depth = 10;
     const LengthDbl sqrt_2 = std::sqrt(2.0);
+    // Key of a cell: its depth and its position in the grid of the cells of
+    // its depth, each position fitting in 'maximum_depth' bits.
+    auto cell_key = [](Counter depth, uint64_t x_pos, uint64_t y_pos)
+    {
+        return ((uint64_t)depth << 40) | (x_pos << 20) | y_pos;
+    };
 
     LengthDbl size = (std::max)(
             polygon.aabb.x_max - polygon.aabb.x_min,
@@ -351,7 +413,18 @@ Pole compute_next_pole(
 
     Pole best;
     std::deque<Cell> queue;
-    queue.push_back({center, size / 2, signed_distance_to_region(polygon, poles, center), 0});
+    queue.push_back({
+            center,
+            size / 2,
+            signed_distance_to_region(
+                polygon,
+                poles,
+                cells_distances,
+                cell_key(0, 0, 0),
+                center),
+            0,
+            0,
+            0});
     while (!queue.empty()) {
         Cell cell = queue.front();
         queue.pop_front();
@@ -368,11 +441,20 @@ Pole compute_next_pole(
             Point center_child = {
                 cell.center.x + ((child_pos % 2 == 0)? -half_size_child: half_size_child),
                 cell.center.y + ((child_pos / 2 == 0)? -half_size_child: half_size_child)};
+            uint64_t x_pos_child = 2 * cell.x_pos + child_pos % 2;
+            uint64_t y_pos_child = 2 * cell.y_pos + child_pos / 2;
             queue.push_back({
                     center_child,
                     half_size_child,
-                    signed_distance_to_region(polygon, poles, center_child),
-                    cell.depth + 1});
+                    signed_distance_to_region(
+                        polygon,
+                        poles,
+                        cells_distances,
+                        cell_key(cell.depth + 1, x_pos_child, y_pos_child),
+                        center_child),
+                    cell.depth + 1,
+                    x_pos_child,
+                    y_pos_child});
         }
     }
     return best;
@@ -627,8 +709,9 @@ std::vector<Pole> packingsolver::irregular::compute_poles(
 
     std::vector<Pole> poles;
     AreaDbl poles_area = 0.0;
+    std::unordered_map<uint64_t, PoleCellDistances> cells_distances;
     while ((Counter)poles.size() < maximum_number_of_poles) {
-        Pole pole = compute_next_pole(polygon, poles);
+        Pole pole = compute_next_pole(polygon, poles, cells_distances);
         // Stop if the remaining region is too thin; keep at least one pole.
         if (!poles.empty() && pole.radius <= 1e-3 * size)
             break;
