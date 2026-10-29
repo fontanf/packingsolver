@@ -124,3 +124,102 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "irregular" / "tests" / "knapsack_item_defect_minimum_spacing.json",
                 fs::path("data") / "irregular" / "tests" / "knapsack_item_defect_minimum_spacing_solution.json"
             }}));
+
+class IrregularMilpRasterBoundTest: public testing::TestWithParam<IrregularMilpRasterTestParams> { };
+
+TEST_P(IrregularMilpRasterBoundTest, IrregularMilpRasterBound)
+{
+    IrregularMilpRasterTestParams test_params = GetParam();
+    std::cout << "Instance path: " << test_params.instance_path << std::endl;
+    std::cout << "Certificate path: " << test_params.certificate_path << std::endl;
+
+    InstanceBuilder instance_builder;
+    instance_builder.read(test_params.instance_path.string());
+    Instance instance = instance_builder.build();
+
+    SolutionBuilder solution_builder(instance);
+    solution_builder.read(test_params.certificate_path.string());
+    Solution solution = solution_builder.build();
+
+    MilpRasterParameters milp_raster_parameters;
+    milp_raster_parameters.verbosity_level = 0;
+    milp_raster_parameters.optimization_mode = OptimizationMode::NotAnytimeSequential;
+    milp_raster_parameters.maximum_number_of_cell_sizes = 3;
+    milp_raster_parameters.maximum_number_of_nodes = 1000;
+    MilpRasterOutput output = milp_raster(instance, milp_raster_parameters);
+    std::cout << "Knapsack bound: " << output.knapsack_bound << std::endl;
+    std::cout << "Certificate profit: " << solution.profit() << std::endl;
+
+    // The certificate is feasible, so the relaxation must not prove the
+    // instance infeasible, and its bound must not be below the profit of the
+    // certificate.
+    EXPECT_FALSE(output.is_proven_infeasible);
+    if (instance.objective() == Objective::Knapsack) {
+        EXPECT_FALSE(strictly_lesser_profit(output.knapsack_bound, solution.profit()));
+    }
+}
+
+INSTANTIATE_TEST_SUITE_P(
+        Irregular,
+        IrregularMilpRasterBoundTest,
+        testing::ValuesIn([]()
+        {
+            std::vector<IrregularMilpRasterTestParams> test_params;
+            for (const std::string& name: {
+                    "circle",
+                    "circular_bin",
+                    "feasibility_squares_triangles",
+                    "free_rotation",
+                    "inconsistent_arc_centers",
+                    "knapsack_bin_border",
+                    "knapsack_defect_blocks_middle",
+                    "knapsack_fixed_items_overlapping_aabbs",
+                    "knapsack_fixed_item_with_hole",
+                    "knapsack_fixed_item_with_hole_spacing",
+                    "knapsack_item_bin_minimum_spacing",
+                    "knapsack_item_defect_minimum_spacing",
+                    "knapsack_item_item_minimum_spacing",
+                    "mirror",
+                    "mirror_only_rotation",
+                    "non_rectangular_bin",
+                    "periodic_packing_item_bin_spacing",
+                    "periodic_packing_item_item_spacing",
+                    "periodic_packing_single_item_exact_fit_rectangle",
+                    "periodic_packing_single_item_exact_fit_triangle",
+                    "rectangles_non_guillotine",
+                    "rotations",
+                    "trapezoidal_insertions"}) {
+                test_params.push_back({
+                        fs::path("data") / "irregular" / "tests" / (name + ".json"),
+                        fs::path("data") / "irregular" / "tests" / (name + "_solution.json")});
+            }
+            return test_params;
+        }()));
+
+TEST(IrregularMilpRaster, BoundIncompatibleCrosses)
+{
+    // 100x100 bin, 3 crosses of span 70 and arm width 30, of profit 1000,
+    // and 10x10 squares of profit 10. Each placement of a cross covers the
+    // center of the bin, so a single cross fits, whereas the area bounds
+    // count 3 of them. The relaxation of the MILP raster sees it, and proves
+    // the optimality of the certificate.
+    fs::path instance_path = fs::path("data") / "irregular" / "tests" / "knapsack_incompatible_crosses.json";
+    fs::path certificate_path = fs::path("data") / "irregular" / "tests" / "knapsack_incompatible_crosses_solution.json";
+
+    InstanceBuilder instance_builder;
+    instance_builder.read(instance_path.string());
+    Instance instance = instance_builder.build();
+
+    SolutionBuilder solution_builder(instance);
+    solution_builder.read(certificate_path.string());
+    Solution solution = solution_builder.build();
+
+    MilpRasterParameters milp_raster_parameters;
+    milp_raster_parameters.verbosity_level = 0;
+    milp_raster_parameters.optimization_mode = OptimizationMode::NotAnytimeSequential;
+    milp_raster_parameters.maximum_number_of_cell_sizes = 3;
+    milp_raster_parameters.maximum_number_of_nodes = 1000;
+    MilpRasterOutput output = milp_raster(instance, milp_raster_parameters);
+
+    EXPECT_TRUE(equal_profit(output.knapsack_bound, solution.profit()));
+}
