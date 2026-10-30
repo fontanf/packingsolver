@@ -338,7 +338,8 @@ OnedimensionalContiguityResult packingsolver::rectangle::onedimentional_contigui
     treesearchsolver::IterativeBeamSearch2Parameters<BranchingScheme> ibs_parameters;
     ibs_parameters.verbosity_level = 0;
     ibs_parameters.timer = parameters.timer;
-    if (parameters.optimization_mode == OptimizationMode::Anytime) {
+    if (parameters.optimization_mode == OptimizationMode::Anytime
+            || parameters.optimization_mode == OptimizationMode::Exact) {
         ibs_parameters.growth_factor = 1.5;
     } else {
         ibs_parameters.minimum_size_of_the_queue = parameters.not_anytime_queue_size;

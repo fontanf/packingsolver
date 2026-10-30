@@ -1305,12 +1305,16 @@ BendersDecompositionContiguityOutput packingsolver::rectangle::benders_decomposi
         // iteration - always as a bounded inner-loop building block, never
         // as a standalone anytime search (see 'onedimentional_contiguity::
         // TreeSearchParameters::optimization_mode'), regardless of this
-        // algorithm's own 'optimization_mode'. Only the 'NotAnytimeSequential'
-        // case is preserved as such (matching 'benders_decomposition.cpp''s
-        // own sub-solves): everything else (including 'Anytime') maps to
+        // algorithm's own 'optimization_mode'. Only the 'Exact' and
+        // 'NotAnytimeSequential' cases are preserved as such (matching
+        // 'benders_decomposition.cpp''s own sub-solves): in 'Exact' mode, the
+        // master is solved until its search is exhaustive so that the bound
+        // is actually proven; everything else (including 'Anytime') maps to
         // 'NotAnytimeDeterministic'.
         OptimizationMode master_problem_optimization_mode
-            = (parameters.optimization_mode == OptimizationMode::NotAnytimeSequential)?
+            = (parameters.optimization_mode == OptimizationMode::Exact)?
+            OptimizationMode::Exact:
+            (parameters.optimization_mode == OptimizationMode::NotAnytimeSequential)?
             OptimizationMode::NotAnytimeSequential:
             OptimizationMode::NotAnytimeDeterministic;
 

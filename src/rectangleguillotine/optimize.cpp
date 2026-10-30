@@ -331,7 +331,8 @@ void optimize_tree_search_hypergraph_infinite_copies(
     TreeSearchHypergraphInfiniteCopiesParameters tsh_ic_parameters;
     tsh_ic_parameters.verbosity_level = 0;
     tsh_ic_parameters.timer = parameters.timer;
-    if (parameters.optimization_mode != OptimizationMode::Anytime) {
+    if (parameters.optimization_mode != OptimizationMode::Anytime
+            && parameters.optimization_mode != OptimizationMode::Exact) {
         tsh_ic_parameters.maximum_array_size
             = parameters.not_anytime_tree_search_hypergraph_infinite_copies_maximum_array_size;
     }
@@ -424,7 +425,8 @@ void optimize_sequential_single_knapsack(
 {
     for (Counter iteration = 0, queue_size = 1;; ++iteration) {
         NodeId queue_size_ms = queue_size;
-        if (parameters.optimization_mode != OptimizationMode::Anytime) {
+        if (parameters.optimization_mode != OptimizationMode::Anytime
+                && parameters.optimization_mode != OptimizationMode::Exact) {
             queue_size = parameters.not_anytime_sequential_single_knapsack_subproblem_tree_search_queue_size;
             queue_size_ms = parameters.not_anytime_sequential_single_knapsack_subproblem_tree_search_maximal_spaces_queue_size;
         }
@@ -473,7 +475,8 @@ void optimize_sequential_single_knapsack(
         if (parameters.timer.needs_to_end())
             break;
 
-        if (parameters.optimization_mode != OptimizationMode::Anytime)
+        if (parameters.optimization_mode != OptimizationMode::Anytime
+                && parameters.optimization_mode != OptimizationMode::Exact)
             break;
 
         queue_size = std::max(
@@ -511,7 +514,8 @@ void optimize_sequential_value_correction(
     svc_parameters.timer = parameters.timer;
     svc_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
     svc_parameters.initial_profit_exponent = 1.1;
-    if (parameters.optimization_mode != OptimizationMode::Anytime)
+    if (parameters.optimization_mode != OptimizationMode::Anytime
+            && parameters.optimization_mode != OptimizationMode::Exact)
         svc_parameters.maximum_number_of_iterations = parameters.not_anytime_sequential_value_correction_number_of_iterations;
     svc_parameters.new_solution_callback = [&algorithm_formatter](
             const rectangleguillotine::Output& ps_output)
@@ -533,7 +537,8 @@ void optimize_dichotomic_search(
     double waste_percentage_upper_bound = std::numeric_limits<double>::infinity();
     for (Counter queue_size = 1;;) {
 
-        if (parameters.optimization_mode != OptimizationMode::Anytime)
+        if (parameters.optimization_mode != OptimizationMode::Anytime
+                && parameters.optimization_mode != OptimizationMode::Exact)
             queue_size = parameters.not_anytime_dichotomic_search_subproblem_tree_search_queue_size;
 
         DichotomicSearchFunction<Instance, Solution> bpp_solve
@@ -577,7 +582,8 @@ void optimize_dichotomic_search(
         if (parameters.timer.needs_to_end())
             break;
 
-        if (parameters.optimization_mode != OptimizationMode::Anytime)
+        if (parameters.optimization_mode != OptimizationMode::Anytime
+                && parameters.optimization_mode != OptimizationMode::Exact)
             break;
 
         queue_size = std::max(

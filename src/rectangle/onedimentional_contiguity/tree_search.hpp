@@ -294,8 +294,8 @@ struct TreeSearchParameters: optimizationtools::Parameters
     /**
      * Optimization mode.
      *
-     * 'Anytime' (the default) progressively grows the search queue
-     * (beam width), same as every other tree search in this codebase.
+     * 'Anytime' (the default) and 'Exact' progressively grow the search
+     * queue (beam width), same as every other tree search in this codebase.
      * 'NotAnytimeSequential'/'NotAnytimeDeterministic' instead jump
      * straight to a fixed queue size ('not_anytime_queue_size') and run
      * it in a single pass - matching the fact that this algorithm is
@@ -308,7 +308,7 @@ struct TreeSearchParameters: optimizationtools::Parameters
     /**
      * Maximum size of the search queue (beam width) in
      * 'NotAnytimeSequential'/'NotAnytimeDeterministic' mode - see
-     * 'optimization_mode'. Not used in 'Anytime' mode.
+     * 'optimization_mode'. Not used in 'Anytime' and 'Exact' modes.
      */
     NodeId not_anytime_queue_size = 1024;
 };

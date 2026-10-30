@@ -1466,7 +1466,8 @@ SequentialOneDimensionalRectangleOutput sequential_onedimensional_rectangle_x(
         NodeId tree_search_queue_size
             = x_parameters.anytime_tree_search_initial_queue_size
             * growth_factor;
-        if (x_parameters.optimization_mode != OptimizationMode::Anytime) {
+        if (x_parameters.optimization_mode != OptimizationMode::Anytime
+                && x_parameters.optimization_mode != OptimizationMode::Exact) {
             rectangle_queue_size = x_parameters.not_anytime_rectangle_queue_size;
             tree_search_queue_size = x_parameters.not_anytime_tree_search_queue_size;
         }
@@ -1565,7 +1566,8 @@ SequentialOneDimensionalRectangleOutput sequential_onedimensional_rectangle_x(
             break;
         if (x_parameters.timer.needs_to_end())
             break;
-        if (x_parameters.optimization_mode != OptimizationMode::Anytime)
+        if (x_parameters.optimization_mode != OptimizationMode::Anytime
+                && x_parameters.optimization_mode != OptimizationMode::Exact)
             break;
         // A larger rectangle queue size is guaranteed not to change the
         // result of the rectangle subproblem (see

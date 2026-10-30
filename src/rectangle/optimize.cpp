@@ -334,7 +334,8 @@ void optimize_sequential_single_knapsack(
 {
     for (Counter iteration = 0, queue_size = 1;; ++iteration) {
         NodeId queue_size_ms = queue_size;
-        if (parameters.optimization_mode != OptimizationMode::Anytime) {
+        if (parameters.optimization_mode != OptimizationMode::Anytime
+                && parameters.optimization_mode != OptimizationMode::Exact) {
             queue_size = parameters.not_anytime_sequential_single_knapsack_subproblem_tree_search_queue_size;
             queue_size_ms = parameters.not_anytime_sequential_single_knapsack_subproblem_tree_search_maximal_spaces_queue_size;
         }
@@ -383,7 +384,8 @@ void optimize_sequential_single_knapsack(
         if (parameters.timer.needs_to_end())
             break;
 
-        if (parameters.optimization_mode != OptimizationMode::Anytime)
+        if (parameters.optimization_mode != OptimizationMode::Anytime
+                && parameters.optimization_mode != OptimizationMode::Exact)
             break;
 
         queue_size = std::max(
@@ -421,7 +423,8 @@ void optimize_sequential_value_correction(
     svc_parameters.timer = parameters.timer;
     svc_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
     svc_parameters.initial_profit_exponent = 1.1;
-    if (parameters.optimization_mode != OptimizationMode::Anytime)
+    if (parameters.optimization_mode != OptimizationMode::Anytime
+            && parameters.optimization_mode != OptimizationMode::Exact)
         svc_parameters.maximum_number_of_iterations = parameters.not_anytime_sequential_value_correction_number_of_iterations;
     svc_parameters.new_solution_callback = [&algorithm_formatter](
             const rectangle::Output& ps_output)
@@ -443,7 +446,8 @@ void optimize_dichotomic_search(
     double waste_percentage_upper_bound = std::numeric_limits<double>::infinity();
     for (Counter queue_size = 1;;) {
 
-        if (parameters.optimization_mode != OptimizationMode::Anytime)
+        if (parameters.optimization_mode != OptimizationMode::Anytime
+                && parameters.optimization_mode != OptimizationMode::Exact)
             queue_size = parameters.not_anytime_dichotomic_search_subproblem_tree_search_queue_size;
 
         DichotomicSearchFunction<Instance, Solution> bpp_solve
@@ -487,7 +491,8 @@ void optimize_dichotomic_search(
         if (parameters.timer.needs_to_end())
             break;
 
-        if (parameters.optimization_mode != OptimizationMode::Anytime)
+        if (parameters.optimization_mode != OptimizationMode::Anytime
+                && parameters.optimization_mode != OptimizationMode::Exact)
             break;
 
         queue_size = std::max(
@@ -527,8 +532,12 @@ void optimize_column_generation(
             // an incomplete search cut short by a queue size, so force it
             // alone, bypassing the regular (heuristic) automatic algorithm
             // selection entirely.
+            // In 'Exact' mode, also solved in 'Exact' mode so that the bound
+            // is actually proven.
             if (pricing_type == PricingType::Dual) {
                 //kp_parameters.verbosity_level = 1;
+                if (parameters.optimization_mode == OptimizationMode::Exact)
+                    kp_parameters.optimization_mode = OptimizationMode::Exact;
                 kp_parameters.use_benders_decomposition = true;
             }
             return optimize(kp_instance, kp_parameters);
@@ -610,7 +619,8 @@ void optimize_benders_decomposition_contiguity(
     bdc_parameters.timer = parameters.timer;
     bdc_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
     bdc_parameters.optimization_mode = parameters.optimization_mode;
-    if (parameters.optimization_mode != OptimizationMode::Anytime)
+    if (parameters.optimization_mode != OptimizationMode::Anytime
+            && parameters.optimization_mode != OptimizationMode::Exact)
         bdc_parameters.not_anytime_maximum_number_of_iterations = parameters.not_anytime_benders_decomposition_contiguity_number_of_iterations;
     bdc_parameters.new_solution_callback = [&algorithm_formatter](
             const rectangle::Output& ps_output)
@@ -654,6 +664,7 @@ bool post_process_applies(
 {
     return instance.objective() == Objective::BinPackingWithLeftovers
         && parameters.optimization_mode != OptimizationMode::Anytime
+        && parameters.optimization_mode != OptimizationMode::Exact
         && parameters.post_process;
 }
 
@@ -955,6 +966,19 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
                     && instance.bin_type(0).rect.x <= 100
                     && instance.bin_type(0).rect.y <= 100) {
                 use_bar_relaxation = true;
+            }
+            // In 'Exact' mode, also run the algorithms which can prove
+            // optimality.
+            if (parameters.optimization_mode == OptimizationMode::Exact) {
+                if (instance.objective() == Objective::Knapsack)
+                    use_benders_decomposition = true;
+                // 'benders_decomposition_contiguity' requires a single bin
+                // type used exactly once (see its own validation).
+                if (instance.objective() == Objective::Feasibility
+                        && instance.number_of_bin_types() == 1
+                        && instance.bin_type(0).copies == 1) {
+                    use_benders_decomposition_contiguity = true;
+                }
             }
         }
     } else if (instance.objective() == Objective::Feasibility) {

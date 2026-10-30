@@ -1677,7 +1677,8 @@ Output column_generation(
     cgslds_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
     cgslds_parameters.internal_diving = parameters.internal_diving;
     cgslds_parameters.rounding_heuristic = parameters.rounding_heuristic;
-    if (parameters.optimization_mode != OptimizationMode::Anytime)
+    if (parameters.optimization_mode != OptimizationMode::Anytime
+            && parameters.optimization_mode != OptimizationMode::Exact)
         cgslds_parameters.automatic_stop = true;
     cgslds_parameters.new_solution_callback = [&instance, &algorithm_formatter](
             const columngenerationsolver::Output& cgs_output)

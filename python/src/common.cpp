@@ -55,7 +55,8 @@ void packingsolver::python::bind_common(nb::module_& m)
         .value("Anytime", OptimizationMode::Anytime)
         .value("NotAnytime", OptimizationMode::NotAnytime)
         .value("NotAnytimeDeterministic", OptimizationMode::NotAnytimeDeterministic)
-        .value("NotAnytimeSequential", OptimizationMode::NotAnytimeSequential);
+        .value("NotAnytimeSequential", OptimizationMode::NotAnytimeSequential)
+        .value("Exact", OptimizationMode::Exact);
 
     nb::enum_<InstanceFormat>(m, "InstanceFormat")
         .value("Csv", InstanceFormat::Csv)

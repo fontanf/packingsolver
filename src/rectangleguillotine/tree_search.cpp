@@ -2599,7 +2599,8 @@ const packingsolver::rectangleguillotine::TreeSearchOutput packingsolver::rectan
     std::vector<double> growth_factors = {1.5};
     if (guides.size() * first_stage_orientations.size() * 2 <= 4)
         growth_factors = {1.33, 1.5};
-    if (parameters.optimization_mode != OptimizationMode::Anytime)
+    if (parameters.optimization_mode != OptimizationMode::Anytime
+            && parameters.optimization_mode != OptimizationMode::Exact)
         growth_factors = {1.5};
 
     std::vector<BranchingScheme> branching_schemes;
@@ -2630,7 +2631,8 @@ const packingsolver::rectangleguillotine::TreeSearchOutput packingsolver::rectan
                 ibs_parameters.timer = parameters.timer;
                 ibs_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
                 ibs_parameters.growth_factor = growth_factor;
-                if (parameters.optimization_mode != OptimizationMode::Anytime) {
+                if (parameters.optimization_mode != OptimizationMode::Anytime
+                        && parameters.optimization_mode != OptimizationMode::Exact) {
                     ibs_parameters.minimum_size_of_the_queue = 1;
                     ibs_parameters.growth_factor = parameters.not_anytime_tree_search_queue_size;
                     ibs_parameters.maximum_size_of_the_queue = parameters.not_anytime_tree_search_queue_size + 1;

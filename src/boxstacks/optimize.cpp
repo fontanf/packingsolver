@@ -274,7 +274,8 @@ void optimize_sequential_single_knapsack(
         NodeId tree_search_queue_size
             = parameters.anytime_tree_search_initial_queue_size
             * growth_factor;
-        if (parameters.optimization_mode != OptimizationMode::Anytime) {
+        if (parameters.optimization_mode != OptimizationMode::Anytime
+                && parameters.optimization_mode != OptimizationMode::Exact) {
             rectangle_queue_size = parameters
                 .not_anytime_sequential_single_knapsack_subproblem_rectangle_tree_search_queue_size;
             tree_search_queue_size = parameters
@@ -338,7 +339,8 @@ void optimize_sequential_single_knapsack(
             break;
         if (parameters.timer.needs_to_end())
             break;
-        if (parameters.optimization_mode != OptimizationMode::Anytime)
+        if (parameters.optimization_mode != OptimizationMode::Anytime
+                && parameters.optimization_mode != OptimizationMode::Exact)
             break;
 
         growth_factor = std::max(
@@ -386,7 +388,8 @@ void optimize_sequential_value_correction(
     svc_parameters.verbosity_level = 0;
     svc_parameters.timer = parameters.timer;
     svc_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
-    if (parameters.optimization_mode != OptimizationMode::Anytime) {
+    if (parameters.optimization_mode != OptimizationMode::Anytime
+            && parameters.optimization_mode != OptimizationMode::Exact) {
         svc_parameters.maximum_number_of_iterations
             = parameters.not_anytime_sequential_value_correction_number_of_iterations;
     }
@@ -449,6 +452,7 @@ bool post_process_applies(
 {
     return instance.objective() == Objective::BinPackingWithLeftovers
         && parameters.optimization_mode != OptimizationMode::Anytime
+        && parameters.optimization_mode != OptimizationMode::Exact
         && parameters.post_process;
 }
 

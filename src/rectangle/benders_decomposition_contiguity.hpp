@@ -181,7 +181,7 @@ struct BendersDecompositionContiguityParameters: packingsolver::Parameters<Insta
      * 'NotAnytimeSequential'/'NotAnytimeDeterministic' mode - see
      * 'onedimentional_contiguity::TreeSearchParameters::optimization_mode'.
      * Only used when 'use_tree_search' is 'true' and 'optimization_mode'
-     * is not 'Anytime'.
+     * is neither 'Anytime' nor 'Exact'.
      */
     NodeId master_problem_tree_search_not_anytime_queue_size = 1024;
 
