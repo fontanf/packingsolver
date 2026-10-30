@@ -392,13 +392,19 @@ Point find_leftmost_constrained_point(
  *
  * Only checks copies with |n|, |m| <= check_range, which is sufficient when
  * the lattice vectors are at least item-diameter wide.
+ *
+ * Two items closer than 'item_item_minimum_spacing' are considered as
+ * overlapping: the copies are checked against the base items inflated by the
+ * spacing. The lattice vectors come from the no-fit polygons inflated by the
+ * spacing, but these only constrain some of the copies.
  */
 bool check_periodic_packing(
         const std::vector<ShapeWithHoles>& item_shapes,
         const std::vector<Point>& item_positions,
         Point vector_1,
         Point vector_2,
-        int check_range)
+        int check_range,
+        LengthDbl item_item_minimum_spacing)
 {
     int n_items = (int)item_shapes.size();
 
@@ -431,11 +437,16 @@ bool check_periodic_packing(
 
     // Build the base items (each shape shifted by its position in the cell)
     // and their bounding boxes.
+    // The base items are inflated by slightly less than the spacing, so that
+    // items exactly at the spacing are not rejected because of rounding
+    // errors.
     std::vector<ShapeWithHoles> base_items;
     std::vector<AxisAlignedBoundingBox> base_aabbs;
     for (int item_idx = 0; item_idx < n_items; ++item_idx) {
         ShapeWithHoles s = item_shapes[item_idx];
         s.shift(item_positions[item_idx].x, item_positions[item_idx].y);
+        if (item_item_minimum_spacing > 0.0)
+            s = shape::inflate(s, item_item_minimum_spacing * (1.0 - 1e-4));
         base_aabbs.push_back(s.compute_min_max());
         base_items.push_back(std::move(s));
     }
@@ -459,8 +470,10 @@ bool check_periodic_packing(
     if (n_items >= 3) {
         for (int item_idx_1 = 0; item_idx_1 < n_items; ++item_idx_1) {
             for (int item_idx_2 = item_idx_1 + 1; item_idx_2 < n_items; ++item_idx_2) {
-                if (aabb_overlap(base_aabbs[item_idx_1], base_aabbs[item_idx_2])
-                        && shape::intersect(base_items[item_idx_1], base_items[item_idx_2], true)) {
+                ShapeWithHoles item_2 = item_shapes[item_idx_2];
+                item_2.shift(item_positions[item_idx_2].x, item_positions[item_idx_2].y);
+                if (aabb_overlap(base_aabbs[item_idx_1], item_2.compute_min_max())
+                        && shape::intersect(base_items[item_idx_1], item_2, true)) {
                     return false;
                 }
             }
@@ -529,7 +542,8 @@ bool check_periodic_packing(
 Point find_perpendicular_vector(
         const std::vector<ShapeWithHoles>& shapes,
         const std::vector<ShapeWithHoles>& nfp_union,
-        const Point& vector_1)
+        const Point& vector_1,
+        LengthDbl item_item_minimum_spacing)
 {
     bool horizontal = (vector_1.y == 0.0);
     LengthDbl step = (horizontal)? vector_1.x: vector_1.y;
@@ -584,7 +598,8 @@ Point find_perpendicular_vector(
                     zero_positions,
                     vector_1,
                     vector_2,
-                    (std::max)(3, number_of_repetitions + 1))) {
+                    (std::max)(3, number_of_repetitions + 1),
+                    item_item_minimum_spacing)) {
             return vector_2;
         }
     }
@@ -615,7 +630,8 @@ Point find_perpendicular_vector(
  */
 std::vector<PeriodicPacking> find_periodic_packing_lattice_from_combined_nfp(
         const std::vector<ShapeWithHoles>& shapes,
-        const std::vector<ShapeWithHoles>& combined_nfp)
+        const std::vector<ShapeWithHoles>& combined_nfp,
+        LengthDbl item_item_minimum_spacing)
 {
     int n = (int)shapes.size();
     std::vector<Point> zero_positions(n, {0.0, 0.0});
@@ -639,14 +655,15 @@ std::vector<PeriodicPacking> find_periodic_packing_lattice_from_combined_nfp(
             std::vector<ShapeWithHoles> ext_nfp_union = shape::compute_union(ext_nfp).shapes_with_holes;
             Point vector_2 = find_bottommost_constrained_point(ext_nfp_union, vector_1.x);
             if (shape::strictly_greater(vector_2.y, 0.0)
-                    && check_periodic_packing(shapes, zero_positions, vector_1, vector_2, 3)) {
+                    && check_periodic_packing(shapes, zero_positions, vector_1, vector_2, 3, item_item_minimum_spacing)) {
                 result.push_back({zero_positions, vector_1, vector_2});
             }
             // Rectangular lattice.
             Point vector_2_perpendicular = find_perpendicular_vector(
                     shapes,
                     combined_nfp_union.shapes_with_holes,
-                    vector_1);
+                    vector_1,
+                    item_item_minimum_spacing);
             if (shape::strictly_greater(vector_2_perpendicular.y, 0.0)
                     && !shape::equal(vector_2_perpendicular, vector_2)) {
                 result.push_back({zero_positions, vector_1, vector_2_perpendicular});
@@ -667,14 +684,15 @@ std::vector<PeriodicPacking> find_periodic_packing_lattice_from_combined_nfp(
             std::vector<ShapeWithHoles> ext_nfp_union = shape::compute_union(ext_nfp).shapes_with_holes;
             Point vector_2 = find_leftmost_constrained_point(ext_nfp_union, vector_1.y);
             if (shape::strictly_greater(vector_2.x, 0.0)
-                    && check_periodic_packing(shapes, zero_positions, vector_1, vector_2, 3)) {
+                    && check_periodic_packing(shapes, zero_positions, vector_1, vector_2, 3, item_item_minimum_spacing)) {
                 result.push_back({zero_positions, vector_1, vector_2});
             }
             // Rectangular lattice.
             Point vector_2_perpendicular = find_perpendicular_vector(
                     shapes,
                     combined_nfp_union.shapes_with_holes,
-                    vector_1);
+                    vector_1,
+                    item_item_minimum_spacing);
             if (shape::strictly_greater(vector_2_perpendicular.x, 0.0)
                     && !shape::equal(vector_2_perpendicular, vector_2)) {
                 result.push_back({zero_positions, vector_1, vector_2_perpendicular});
@@ -708,7 +726,8 @@ std::vector<PeriodicPacking> find_periodic_packing_lattice_two_shapes_cached(
         const std::vector<ShapeWithHoles>& nfp_00_union,
         const std::vector<ShapeWithHoles>& nfp_01_union,
         const std::vector<ShapeWithHoles>& nfp_10_union,
-        const std::vector<ShapeWithHoles>& nfp_11_union)
+        const std::vector<ShapeWithHoles>& nfp_11_union,
+        LengthDbl item_item_minimum_spacing)
 {
     std::vector<ShapeWithHoles> combined_nfp;
     combined_nfp.reserve(
@@ -734,7 +753,7 @@ std::vector<PeriodicPacking> find_periodic_packing_lattice_two_shapes_cached(
     placed_1.shift(position_1.x, position_1.y);
 
     return find_periodic_packing_lattice_from_combined_nfp(
-            {placed_0, placed_1}, combined_nfp);
+            {placed_0, placed_1}, combined_nfp, item_item_minimum_spacing);
 }
 
 void add_if_unique(
@@ -778,7 +797,8 @@ std::vector<ShapeWithHoles> compute_inflated_nfp_union(
  */
 std::vector<PeriodicPacking> compute_periodic_packings_from_nfp(
         const ShapeWithHoles& shape,
-        const std::vector<ShapeWithHoles>& nfp_union)
+        const std::vector<ShapeWithHoles>& nfp_union,
+        LengthDbl item_item_minimum_spacing)
 {
     AxisAlignedBoundingBox aabb = shape.compute_min_max();
     Point position = {-aabb.x_min, -aabb.y_min};
@@ -789,7 +809,7 @@ std::vector<PeriodicPacking> compute_periodic_packings_from_nfp(
     // itself is exactly its self-NFP, which doesn't depend on the position of
     // the shape.
     std::vector<PeriodicPacking> result;
-    for (PeriodicPacking pp: find_periodic_packing_lattice_from_combined_nfp({shifted}, nfp_union)) {
+    for (PeriodicPacking pp: find_periodic_packing_lattice_from_combined_nfp({shifted}, nfp_union, item_item_minimum_spacing)) {
         pp.positions = {position};
         add_if_unique(result, std::move(pp));
     }
@@ -807,7 +827,8 @@ std::vector<PeriodicPacking> compute_periodic_packings_from_nfps(
         const std::vector<ShapeWithHoles>& nfp_00_union,
         const std::vector<ShapeWithHoles>& nfp_0r_union_natural,
         const std::vector<ShapeWithHoles>& nfp_r0_union,
-        const std::vector<ShapeWithHoles>& nfp_rr_union);
+        const std::vector<ShapeWithHoles>& nfp_rr_union,
+        LengthDbl item_item_minimum_spacing);
 
 }  // namespace
 
@@ -817,7 +838,8 @@ std::vector<PeriodicPacking> packingsolver::irregular::compute_periodic_packings
 {
     return compute_periodic_packings_from_nfp(
             shape,
-            compute_inflated_nfp_union(shape, shape, item_item_minimum_spacing));
+            compute_inflated_nfp_union(shape, shape, item_item_minimum_spacing),
+            item_item_minimum_spacing);
 }
 
 /**
@@ -847,7 +869,8 @@ std::vector<PeriodicPacking> packingsolver::irregular::compute_periodic_packings
             compute_inflated_nfp_union(shape_0, shape_0, item_item_minimum_spacing),
             compute_inflated_nfp_union(shape_0, shape_r, item_item_minimum_spacing),
             compute_inflated_nfp_union(shape_r, shape_0, item_item_minimum_spacing),
-            compute_inflated_nfp_union(shape_r, shape_r, item_item_minimum_spacing));
+            compute_inflated_nfp_union(shape_r, shape_r, item_item_minimum_spacing),
+            item_item_minimum_spacing);
 }
 
 namespace
@@ -859,7 +882,8 @@ std::vector<PeriodicPacking> compute_periodic_packings_from_nfps(
         const std::vector<ShapeWithHoles>& nfp_00_union,
         const std::vector<ShapeWithHoles>& nfp_0r_union_natural,
         const std::vector<ShapeWithHoles>& nfp_r0_union,
-        const std::vector<ShapeWithHoles>& nfp_rr_union)
+        const std::vector<ShapeWithHoles>& nfp_rr_union,
+        LengthDbl item_item_minimum_spacing)
 {
     AxisAlignedBoundingBox aabb_0 = shape_0.compute_min_max();
     Point position_0 = {-aabb_0.x_min, -aabb_0.y_min};
@@ -1055,7 +1079,8 @@ std::vector<PeriodicPacking> compute_periodic_packings_from_nfps(
         const Point& t_r = valid_candidates[candidate_idx].t_r;
         for (PeriodicPacking pp: find_periodic_packing_lattice_two_shapes_cached(
                 shape_0, shape_r, position_0, t_r,
-                nfp_00_union, nfp_0r_union_natural, nfp_r0_union, nfp_rr_union)) {
+                nfp_00_union, nfp_0r_union_natural, nfp_r0_union, nfp_rr_union,
+                item_item_minimum_spacing)) {
             pp.positions = {position_0, t_r};
             add_if_unique(result, std::move(pp));
         }
@@ -1135,7 +1160,8 @@ std::vector<PeriodicItemPacking> packingsolver::irregular::compute_periodic_pack
 
         for (const PeriodicPacking& pp_same: compute_periodic_packings_from_nfp(
                     shape_0,
-                    nfp_union(rot_0, rot_0))) {
+                    nfp_union(rot_0, rot_0),
+                    item_item_minimum_spacing)) {
             PeriodicItemPacking item_packing;
             item_packing.vector_1 = pp_same.vector_1;
             item_packing.vector_2 = pp_same.vector_2;
@@ -1185,7 +1211,8 @@ std::vector<PeriodicItemPacking> packingsolver::irregular::compute_periodic_pack
                             nfp_union(rotation_first, rotation_first),
                             nfp_union(rotation_first, rotation_second),
                             nfp_union(rotation_second, rotation_first),
-                            nfp_union(rotation_second, rotation_second))) {
+                            nfp_union(rotation_second, rotation_second),
+                            item_item_minimum_spacing)) {
                     PeriodicItemPacking item_packing;
                     item_packing.vector_1 = pp_two.vector_1;
                     item_packing.vector_2 = pp_two.vector_2;
@@ -2055,7 +2082,7 @@ std::vector<PeriodicItemPacking> packingsolver::irregular::compute_wrapping_peri
                         }
 
                         for (const PeriodicPacking& periodic_packing:
-                                find_periodic_packing_lattice_from_combined_nfp(placed_shapes, combined_nfp)) {
+                                find_periodic_packing_lattice_from_combined_nfp(placed_shapes, combined_nfp, item_item_minimum_spacing)) {
                             PeriodicItemPacking item_packing;
                             item_packing.vector_1 = periodic_packing.vector_1;
                             item_packing.vector_2 = periodic_packing.vector_2;
