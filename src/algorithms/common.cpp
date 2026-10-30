@@ -20,6 +20,9 @@ std::istream& packingsolver::operator>>(
     } else if (token == "not-anytime-sequential"
             || token == "NotAnytimeSequential") {
         optimization_mode = OptimizationMode::NotAnytimeSequential;
+    } else if (token == "exact"
+            || token == "Exact") {
+        optimization_mode = OptimizationMode::Exact;
     } else  {
         in.setstate(std::ios_base::failbit);
     }
@@ -42,6 +45,9 @@ std::ostream& packingsolver::operator<<(
         break;
     } case OptimizationMode::NotAnytimeSequential: {
         os << "Not anytime, sequential";
+        break;
+    } case OptimizationMode::Exact: {
+        os << "Exact";
         break;
     }
     }

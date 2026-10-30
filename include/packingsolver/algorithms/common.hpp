@@ -218,6 +218,12 @@ enum class OptimizationMode
     NotAnytimeDeterministic,
     NotAnytimeSequential,
     // AnytimeSequential doesn't exist.
+    /**
+     * Like 'Anytime', but aimed at proving optimality: subproblems whose
+     * result a bound relies on are also solved in 'Exact' mode. Mainly for
+     * research purposes.
+     */
+    Exact,
 };
 
 std::istream& operator>>(

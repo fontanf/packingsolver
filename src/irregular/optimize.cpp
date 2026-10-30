@@ -325,6 +325,7 @@ bool post_process_applies(
 {
     return instance.objective() == Objective::BinPackingWithLeftovers
         && parameters.optimization_mode != OptimizationMode::Anytime
+        && parameters.optimization_mode != OptimizationMode::Exact
         && parameters.post_process;
 }
 
@@ -387,7 +388,8 @@ void optimize_local_search(
     ls_parameters.verbosity_level = 0;
     ls_parameters.timer = parameters.timer;
     ls_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
-    if (parameters.optimization_mode == OptimizationMode::Anytime) {
+    if (parameters.optimization_mode == OptimizationMode::Anytime
+            || parameters.optimization_mode == OptimizationMode::Exact) {
         ls_parameters.maximum_number_of_failed_separations = -1;
     } else {
         ls_parameters.maximum_number_of_failed_separations
@@ -497,7 +499,8 @@ void optimize_sequential_single_knapsack(
         Counter local_search_maximum_number_of_moves_factor
             = parameters.anytime_sequential_single_knapsack_subproblem_local_search_initial_maximum_number_of_moves_factor
             * growth_factor;
-        if (parameters.optimization_mode != OptimizationMode::Anytime) {
+        if (parameters.optimization_mode != OptimizationMode::Anytime
+                && parameters.optimization_mode != OptimizationMode::Exact) {
             tree_search_queue_size = parameters
                 .not_anytime_sequential_single_knapsack_subproblem_tree_search_queue_size;
             tree_search_periodic_packing_queue_size = parameters
@@ -566,7 +569,8 @@ void optimize_sequential_single_knapsack(
         if (parameters.timer.needs_to_end())
             break;
 
-        if (parameters.optimization_mode != OptimizationMode::Anytime)
+        if (parameters.optimization_mode != OptimizationMode::Anytime
+                && parameters.optimization_mode != OptimizationMode::Exact)
             break;
 
         // Update growth factor.
@@ -583,7 +587,8 @@ void optimize_sequential_value_correction(
         const OptimizeParameters& parameters,
         AlgorithmFormatter& algorithm_formatter)
 {
-    if (parameters.optimization_mode == OptimizationMode::Anytime) {
+    if (parameters.optimization_mode == OptimizationMode::Anytime
+            || parameters.optimization_mode == OptimizationMode::Exact) {
         optimize_sequential_single_knapsack(
                 instance,
                 parameters,
@@ -616,7 +621,8 @@ void optimize_sequential_value_correction(
     svc_parameters.timer = parameters.timer;
     svc_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
     svc_parameters.initial_profit_exponent = 1.1;
-    if (parameters.optimization_mode != OptimizationMode::Anytime)
+    if (parameters.optimization_mode != OptimizationMode::Anytime
+            && parameters.optimization_mode != OptimizationMode::Exact)
         svc_parameters.maximum_number_of_iterations = parameters.not_anytime_sequential_value_correction_number_of_iterations;
     svc_parameters.new_solution_callback = [&algorithm_formatter](
             const irregular::Output& ps_output)
@@ -639,7 +645,8 @@ void optimize_dichotomic_search(
     double maximum_approximation_ratio = parameters.initial_maximum_approximation_ratio;
     for (Counter queue_size = 1;;) {
 
-        if (parameters.optimization_mode != OptimizationMode::Anytime) {
+        if (parameters.optimization_mode != OptimizationMode::Anytime
+                && parameters.optimization_mode != OptimizationMode::Exact) {
             queue_size = parameters.not_anytime_dichotomic_search_subproblem_tree_search_queue_size;
             maximum_approximation_ratio = parameters.not_anytime_maximum_approximation_ratio;
         }
@@ -687,7 +694,8 @@ void optimize_dichotomic_search(
         if (parameters.timer.needs_to_end())
             break;
 
-        if (parameters.optimization_mode != OptimizationMode::Anytime)
+        if (parameters.optimization_mode != OptimizationMode::Anytime
+                && parameters.optimization_mode != OptimizationMode::Exact)
             break;
 
         // Update beam size.

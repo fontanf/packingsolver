@@ -1878,7 +1878,8 @@ void tree_search_worker(
             ;
             ++iteration) {
 
-        if (parameters.optimization_mode != OptimizationMode::Anytime) {
+        if (parameters.optimization_mode != OptimizationMode::Anytime
+                && parameters.optimization_mode != OptimizationMode::Exact) {
             queue_size = parameters.not_anytime_tree_search_queue_size;
             maximum_approximation_ratio = parameters.not_anytime_maximum_approximation_ratio;
         }
@@ -1919,7 +1920,8 @@ void tree_search_worker(
         if (parameters.timer.needs_to_end())
             break;
 
-        if (parameters.optimization_mode != OptimizationMode::Anytime)
+        if (parameters.optimization_mode != OptimizationMode::Anytime
+                && parameters.optimization_mode != OptimizationMode::Exact)
             break;
 
         if (cutoff != nullptr)
@@ -2134,7 +2136,8 @@ const packingsolver::irregular::TreeSearchOutput packingsolver::irregular::tree_
     std::vector<double> growth_factors = {1.5};
     //if (guides.size() * directions.size() * 2 <= 4)
     //    growth_factors = {1.33, 1.5};
-    if (parameters.optimization_mode != OptimizationMode::Anytime)
+    if (parameters.optimization_mode != OptimizationMode::Anytime
+            && parameters.optimization_mode != OptimizationMode::Exact)
         growth_factors = {1.5};
 
     std::vector<BranchingScheme::Parameters> branching_scheme_parameters_list;
@@ -2159,7 +2162,8 @@ const packingsolver::irregular::TreeSearchOutput packingsolver::irregular::tree_
                 BranchingScheme::Parameters branching_scheme_parameters;
                 branching_scheme_parameters.guide_id = guide_id;
                 branching_scheme_parameters.direction = direction;
-                if (parameters.optimization_mode == OptimizationMode::Anytime) {
+                if (parameters.optimization_mode == OptimizationMode::Anytime
+                        || parameters.optimization_mode == OptimizationMode::Exact) {
                     branching_scheme_parameters.maximum_approximation_ratio
                         = parameters.initial_maximum_approximation_ratio;
                 } else {
@@ -2172,7 +2176,8 @@ const packingsolver::irregular::TreeSearchOutput packingsolver::irregular::tree_
                 ibs_parameters.timer = parameters.timer;
                 ibs_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
                 ibs_parameters.growth_factor = growth_factor;
-                if (parameters.optimization_mode != OptimizationMode::Anytime) {
+                if (parameters.optimization_mode != OptimizationMode::Anytime
+                        && parameters.optimization_mode != OptimizationMode::Exact) {
                     ibs_parameters.minimum_size_of_the_queue
                         = parameters.not_anytime_tree_search_queue_size;
                     ibs_parameters.maximum_size_of_the_queue

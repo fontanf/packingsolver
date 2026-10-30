@@ -3,11 +3,12 @@
 Optimization modes
 ==================
 
-PackingSolver provides 3 optimization modes:
+PackingSolver provides 4 optimization modes:
 
 * Anytime
 * Not-anytime
 * Not-anytime sequential
+* Exact
 
 Anytime mode
 ------------
@@ -288,3 +289,17 @@ Now if we remove half of the items, the solver terminates after 22 seconds.
    X max:            738
    Y max:            500
    Leftover value:   131000
+
+Exact mode
+----------
+
+The exact mode is similar to the anytime mode, but it is aimed at proving the optimality of the solution rather than at finding good solutions quickly. It is mainly meant for **research purposes**.
+
+In exact mode, the subproblems whose result a bound relies on are also solved in exact mode. For example, the master problem and the subproblems of the Benders decomposition, and the pricing subproblems solved to compute a dual bound in the column generation.
+
+.. code-block:: shell
+
+    packingsolver_rectangle \
+            --input instance.json \
+            --certificate solution_rectangle.csv \
+            --optimization-mode exact
