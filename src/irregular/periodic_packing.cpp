@@ -763,7 +763,7 @@ std::vector<ShapeWithHoles> compute_inflated_nfp_union(
         LengthDbl item_item_minimum_spacing)
 {
     std::vector<ShapeWithHoles> result;
-    MultiShapeWithHoles nfp = shape::no_fit_polygon(shape_1, shape_2);
+    MultiShapeWithHoles nfp = shape::no_fit_polygon(shape_1, shape_2).nfp;
     for (const ShapeWithHoles& swh: shape::compute_union(nfp.shapes_with_holes).shapes_with_holes) {
         result.push_back(item_item_minimum_spacing > 0.0?
                 shape::inflate(swh, item_item_minimum_spacing):

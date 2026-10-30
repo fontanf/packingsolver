@@ -119,7 +119,7 @@ NoFitPolygon packingsolver::irregular::build_no_fit_polygon(
     std::vector<ShapeWithHoles> parts;
     for (const ShapeWithHoles& fixed_shape: fixed_shapes) {
         for (const ShapeWithHoles& orbiting_shape: orbiting_shapes) {
-            MultiShapeWithHoles part = shape::no_fit_polygon(fixed_shape, orbiting_shape);
+            MultiShapeWithHoles part = shape::no_fit_polygon(fixed_shape, orbiting_shape).nfp;
             parts.insert(
                     parts.end(),
                     part.shapes_with_holes.begin(),
