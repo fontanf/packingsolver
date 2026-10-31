@@ -23,10 +23,10 @@ See :doc:`the detailed description <rectangle/tree_search>`.
 Tree search with maximal spaces
 ----------------------------------
 
-This algorithm solves the :code:`feasibility` and :code:`knapsack` objectives with a single bin.
+This algorithm solves the :code:`feasibility` and :code:`knapsack` objectives with a single bin, and the :code:`bin-packing-with-leftovers`, :code:`open-dimension-x` and :code:`open-dimension-y` objectives through sequential feasibility.
 It doesn't support unloading constraints.
 
-It is a tree search algorithm where a block of items is packed at each stage. The blocks (grids of copies of an item type, and their combinations) are generated first. A node stores the maximal empty rectangles of the bin; its children place each block fitting in the empty rectangle closest to a corner of the bin.
+It is a tree search algorithm where a block of items is packed at each stage. The blocks (grids of copies of an item type, and their combinations) are generated first. A node stores the maximal empty rectangles of the bin; its children place each block fitting in the empty rectangle closest to a corner of the bin. A node is evaluated by completing it greedily.
 
 .. image:: ../img/rectangle_tree_search_maximal_spaces_3.png
    :scale: 100%

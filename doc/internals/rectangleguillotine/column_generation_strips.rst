@@ -65,15 +65,22 @@ The pricing problem consists in finding a strip of negative reduced cost
 
    rc(y^k) = \Big( \max_{j} w_j x_j^k \Big) u + \sum_{j} x_j^k v_j - \sum_{j} p_j x_j^k
 
-where :math:`u` and :math:`v_j` are the dual variables of the bin width and item demand constraints. It is solved for every possible strip width, as a (k-1)-staged guillotine single knapsack problem:
+where :math:`u` and :math:`v_j` are the dual variables of the bin width and item demand constraints. For a given strip width :math:`w`, the best strip is a (k-1)-staged guillotine knapsack problem in a :math:`w \times H` rectangle, where the profit of an item type is :math:`p_j - v_j`. It is solved for the strip widths from the largest available one downwards, keeping the strips of positive reduced profit:
 
-* for 2-staged exact, 2-staged non-exact and 3-staged homogeneous patterns, the strips are solved as one-dimensional knapsack problems;
-* otherwise, the same algorithm is applied recursively.
+* **One-staged strips** (base cases, used for 2-staged patterns and, inside higher-staged ones, for their last stage): a strip whose items are stacked one above the other is a one-dimensional knapsack problem along the height of the strip, solved with the :ref:`onedimensional <internals_onedimensional>` algorithms. With the :code:`exact` cut type, the items have exactly the width of the strip; with the :code:`non-exact` and :code:`roadef2018` cut types, they may be narrower (the waste on their right is trimmed); with the :code:`roadef2018` cut type and oriented items, two items of the same width may share a level.
+* **Two-staged homogeneous strips**, for 3-staged patterns: a strip made of identical items.
+* **Recursion.** Only if none of the strips above has a positive reduced profit, the (k-1)-staged knapsack problem of each strip width is solved with the rectangleguillotine algorithms themselves, which may run this algorithm again. A strip width is skipped when an upper bound on the reduced profit of its strips (the sum of the reduced profits of the items fitting in it) can't make it improving.
+
+**Enumeration.** When there are few of them, all the strips of a type are enumerated before the column generation (one-staged :code:`roadef2018` strips, two-staged homogeneous strips, two-staged :code:`exact`, :code:`non-exact` and :code:`roadef2018` strips, three-staged homogeneous strips), and the corresponding pricing problems are then skipped. Each strip generated is also a solution on its own (the rest of the bin being waste), and is reported as such.
+
+The first pricing problem is solved with the dual values set to 0, which gives the strips of largest profit. Since the pricing problems stop early when the time is up, the bound of the column generation (the value of the linear program plus the number of items times the best reduced cost found) is only used when all of them were solved.
 
 Search
 ------
 
-The column generation gives the linear relaxation of the model, which is a bound. Integer solutions are found by a limited discrepancy search over the column generation: at each node, a strip of the linear solution is fixed, and the column generation is run again on the residual problem. In anytime mode, the search goes on until the time limit; in the non-anytime modes, it stops by itself.
+The column generation gives the linear relaxation of the model, which is a bound: a profit bound for the :code:`knapsack` objective, a width bound for the open dimension objectives. Integer solutions are found by the limited discrepancy search of `columngenerationsolver <https://github.com/fontanf/columngenerationsolver>`_: at each node, a strip of the linear solution is fixed, and the column generation is run again on the residual problem; the nodes deviating from the rounding of the linear solution are explored by increasing number of deviations. In anytime mode, the search goes on until the time limit; in the non-anytime modes, it stops by itself.
+
+**Orientation.** The strips are vertical (first-level sub-plates side by side along x). For horizontal first-level cuts, the algorithm is run on the instance where the x and y axes are exchanged. When the orientation of the first stage is free, both are run in parallel.
 
 Automatic selection
 -------------------

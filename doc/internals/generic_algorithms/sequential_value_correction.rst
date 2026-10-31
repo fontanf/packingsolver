@@ -22,12 +22,12 @@ In the example below, items :code:`1` (3 copies) and :code:`2` (6 copies) are pa
 Profit correction
 -----------------
 
-Initially, the profit of an item is its own profit for the :code:`knapsack` objective, and its space (length, area or volume) raised to a power slightly larger than 1 for the other objectives, which breaks the ties between solutions of the same space.
+Initially, the profit of an item is its own profit for the :code:`knapsack` objective, and its space (length, area or volume) raised to the power 1.1 for the other objectives, which breaks the ties between solutions of the same space.
 
 During a pass, each bin spreads its waste over its items, in proportion to their space: an item of space :math:`s` in a bin whose items have a total space :math:`S` and whose waste is :math:`w` gets an *adjusted space* :math:`s + w \, s / S`. After the pass, for each item type :math:`j`:
 
 * for the :code:`knapsack` objective, the new profit is its original profit per unit of space times the mean adjusted space of its packed copies;
-* for the other objectives, the new profit is the total adjusted space of its copies divided by its number of copies, the copies left unpacked counting for a large penalty;
+* for the other objectives, the new profit is the total adjusted space of its copies divided by its number of copies, each copy left unpacked counting for 100 times the space of the largest bin;
 
 and the profit used in the next pass is the mean of the previous profit and of the new one.
 
@@ -36,7 +36,7 @@ For the :code:`variable-sized-bin-packing` objective, the sub-problem is solved 
 Search
 ------
 
-In anytime mode, the algorithm performs passes with corrected profits until the time limit, with a fixed effort for the sub-problems (a beam of size 128 for the tree searches); for the irregular problem type, it first runs the sequential single knapsack algorithm with an increasing effort, up to this one. In the non-anytime modes, it performs a given number of passes.
+In anytime mode, the algorithm performs passes with corrected profits until the time limit, with a fixed effort for the sub-problems (a beam of size 128 for the tree searches); for the irregular problem type, it first runs with an increasing effort, up to this one, with 3 passes for each effort (parameter :code:`anytime_sequential_value_correction_growing_queue_maximum_number_of_iterations`). In the non-anytime modes, it performs a given number of passes.
 
 For the :code:`knapsack` objective, it stops when all the items are packed. For the :code:`bin-packing` objective, it stops when all the items are packed in at most 2 bins: if all the items didn't fit in a single bin in the first pass, the next passes are very unlikely to manage it.
 

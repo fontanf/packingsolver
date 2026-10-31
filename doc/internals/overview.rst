@@ -13,11 +13,12 @@ The **generic algorithms** are not specific to any problem type. They implement 
 
 Even for a specific problem variant, different algorithms may work best depending on the characteristics of the instance. Therefore, `PackingSolver` includes multiple algorithms and **selects** the right ones to run based on the instance's characteristics.
 
-The first sections of this part of the documentation describe the pattern-generating algorithms for each problem type. Then the generic algorithms are documented. Finally, the last section describes how algorithm selection works.
+The first section describes the search shared by most pattern-generating algorithms, which are tree searches. The next sections describe the pattern-generating algorithms for each problem type. Then the generic algorithms are documented. Finally, the last section describes how algorithm selection works.
 
 .. toctree::
    :maxdepth: 2
 
+   tree_search
    onedimensional
    rectangle
    rectangleguillotine

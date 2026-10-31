@@ -13,13 +13,17 @@ Principle
 
 It is the algorithm of Araya, Moyano and Sanchez (2020) and of Guesser, Alves De Queiroz and Miyazawa (2026) for the container loading problem. The :ref:`tree search with maximal spaces for rectangle <internals_rectangle_tree_search_maximal_spaces>` is its two-dimensional version.
 
-A block of items is packed at each stage. The blocks are boxes filled with items in a guillotine pattern: grids of copies of an item type in one of its rotations, and their combinations, generated before the search. A node stores the *maximal empty spaces* of the bin: the empty boxes which aren't contained in another empty box. To generate the children of a node:
+It works exactly as its two-dimensional version, which this page assumes known, with the following differences.
 
-1. the empty space whose corner is the closest to a corner of the bin is selected;
-2. one child is generated for each remaining block fitting in it, by decreasing fitness;
-3. the block is placed in that corner, and the maximal empty spaces are updated.
+**Blocks.** The simple blocks are the grids of :math:`c_x \times c_y \times c_z` copies of an item type, in each of its allowed rotations, fitting in the bin. The combined blocks are two blocks side by side along x, y or z. They are generated in the same order (blocks of a single item first, then by decreasing profit per volume of their box), up to 10000 blocks. Unlike in two dimensions, the blocks with waste are kept even when there are few item types. The maximum weight of the bin is checked when a block is inserted.
 
-The fitness of a block placed in a space combines its profit, its contact with the sides of the space and the blocks around it, the volume which remains usable after placing it, and its number of items, as in two dimensions. A node is evaluated by completing it greedily; the beam search keeps the nodes with the best completions.
+**Maximal empty spaces.** They are boxes. When a block is placed, each maximal space it overlaps is replaced by up to six new spaces: the parts of the space before and after the block along x, along y and along z, each one extending over the whole space along the two other axes. The spaces contained in another one, and the spaces in which no remaining block fits, are removed.
+
+**Selection of the space.** The distance of a space to the corners of the bin is the sum, over the three axes, of the distance between the space and the closest side of the bin along this axis. The space of smallest distance is selected, the largest one in case of ties, and the blocks are placed in its corner on the side of the closest corner of the bin.
+
+**Fitness.** The fitness of a block placed in a space is :math:`V \times C^\alpha \times L^\beta \times N^{-\gamma}`, with the same parameters as in two dimensions, where :math:`C` is the area of the faces of the block in contact with the sides of the bin and with the blocks already placed, divided by its total surface, and :math:`L` is the fraction of the volume of the space which remains usable: in each direction, the length of the space not covered by the block is reduced to the largest length reachable with the remaining items.
+
+**Search.** As in two dimensions: a node is evaluated by its greedy completion, which is also its guide, its solution and the criterion of its dominance (global dominance); the children are generated one at a time by decreasing fitness; a single iterative beam search is run, with a growth factor of 2.
 
 Automatic selection
 -------------------
