@@ -301,6 +301,15 @@ INSTANTIATE_TEST_SUITE_P(
                 ReductionParameters(),
                 true,
             }, {
+                // Two item types of the same length, each consuming 1 for
+                // its first copy only: at most one of them per bin. Merged
+                // into a single item type of two copies, the second one
+                // would consume 0, and both would fit in the same bin: they
+                // must stay separate.
+                fs::path("data") / "onedimensional" / "tests" / "bin_packing_merge_identical_items_copy_dependent_resource_consumptions",
+                ReductionParameters(),
+                true,
+            }, {
                 // Bin length 20 (exactly two items' worth). Item types 0
                 // and 1 (both length 10, 1 copy each) are identical and
                 // would merge into a single reduced item type with 2

@@ -120,4 +120,9 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path(""),
                 fs::path("data") / "onedimensional" / "tests" / "bin_packing_eligibility" / "solution.csv",
                 fs::path("data") / "onedimensional" / "tests" / "bin_packing_eligibility" / "instance.json",
+            }, {
+                fs::path("data") / "onedimensional" / "users" / "2024-04-06_t3_items.csv",
+                fs::path("data") / "onedimensional" / "users" / "2024-04-06_t3_bins.csv",
+                fs::path("data") / "onedimensional" / "users" / "2024-04-06_t3_parameters.csv",
+                fs::path("data") / "onedimensional" / "users" / "2024-04-06_t3_solution.csv",
             }}));
