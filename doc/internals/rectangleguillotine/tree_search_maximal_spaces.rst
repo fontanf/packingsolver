@@ -6,7 +6,7 @@ Tree search with maximal spaces
 Objectives
 ----------
 
-This algorithm only handles instances with a single bin. It solves the :code:`feasibility` and :code:`knapsack` objectives directly, and the :code:`open-dimension-x`, :code:`open-dimension-y` and :code:`bin-packing-with-leftovers` objectives through the :ref:`sequential feasibility <internals_generic_algorithms_sequential_feasibility>` algorithm.
+This algorithm only handles instances with a single bin. It solves the :code:`feasibility` and :code:`knapsack` objectives directly, and the :code:`bin-packing`, :code:`open-dimension-x`, :code:`open-dimension-y` and :code:`bin-packing-with-leftovers` objectives through the :ref:`sequential feasibility <internals_generic_algorithms_sequential_feasibility>` algorithm.
 
 It generates guillotine patterns with an unlimited number of stages. It doesn't support the defects, the stacks, the minimum waste length, the minimum and maximum distances between cuts, and the maximum numbers of cuts.
 

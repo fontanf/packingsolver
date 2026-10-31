@@ -6,7 +6,7 @@ Tree search with maximal spaces
 Objectives
 ----------
 
-This algorithm solves the :code:`feasibility` and :code:`knapsack` objectives with a single bin.
+This algorithm only handles instances with a single bin. It solves the :code:`feasibility` and :code:`knapsack` objectives directly, and the :code:`bin-packing`, :code:`bin-packing-with-leftovers`, :code:`open-dimension-x`, :code:`open-dimension-y` and :code:`open-dimension-z` objectives through the :ref:`sequential feasibility <internals_generic_algorithms_sequential_feasibility>` algorithm, which solves a sequence of :code:`feasibility` sub-problems with this algorithm.
 
 Principle
 ---------
@@ -28,7 +28,7 @@ It works exactly as its two-dimensional version, which this page assumes known, 
 Automatic selection
 -------------------
 
-With a single bin, it is run for the :code:`knapsack` and :code:`feasibility` objectives when many items (more than 64 on average) fit in the bin. See :ref:`algorithm selection <internals_algorithm_selection>`.
+With a single bin, it is run for the :code:`knapsack` and :code:`feasibility` objectives when many items fit in a section of the bin in every direction (more than 8 on average), where the :ref:`tree search <internals_box_tree_search>` would have too many children. It is also used to re-optimize the bins of the solution for the :code:`bin-packing-with-leftovers` objective when the leftovers of all the bins count. See :ref:`algorithm selection <internals_algorithm_selection>`.
 
 It can be forced with :code:`--use-tree-search-maximal-spaces 1` (CLI) or :code:`use_tree_search_maximal_spaces` (Python).
 
