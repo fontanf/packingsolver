@@ -143,3 +143,35 @@ TEST(RectangleBranchingScheme, Insertion2)
     };
     EXPECT_EQ(branching_scheme.insertions(child_3), is_child_3);
 }
+
+TEST(RectangleBranchingScheme, ExtraBinDetectionUsesTheHeightOfTheRemainingItem)
+{
+    /**
+     * Item 0 fills the bottom of the bin; item 1 still fits on top of it, so
+     * no extra bin is needed: the waste of the node only comes from the space
+     * on the right of item 1 and above it, at most 10 * 10 - 94 = 6.
+     *
+     * |--------------------------------------------------| 10
+     * |    1    |                                        | 9
+     * |--------------------------------------------------|
+     * |                                                  |
+     * |                        0                         |
+     * |                                                  |
+     * |--------------------------------------------------|
+     *                                                    10
+     */
+
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(Objective::BinPacking);
+    instance_builder.add_item_type(10, 9, true);
+    instance_builder.add_item_type(4, 1, true);
+    BinTypeId bin_type_id = instance_builder.add_bin_type(10, 10);
+    instance_builder.set_bin_type_copies(bin_type_id, 2);
+    Instance instance = instance_builder.build();
+
+    BranchingScheme::Parameters p;
+    BranchingScheme branching_scheme(instance, p);
+    auto root = branching_scheme.root();
+    auto child = branching_scheme.child(root, {0, false, 1, 0, 0});
+    EXPECT_EQ(child->waste, 6);
+}
