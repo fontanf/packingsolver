@@ -349,6 +349,21 @@ public:
             }
         }
 
+        // Same number of bins, so both nodes' last bin is of the same type
+        // and their 'last_bin_resource_consumption' vectors line up 1:1.
+        // 'node_1' can only dominate 'node_2' if it never consumes more of
+        // any resource in that bin (a 'penalize' resource already crossed on
+        // 'node_1' is not worse than one not yet crossed on 'node_2', so
+        // this treats hard and 'penalize' resources alike).
+        for (ResourceId resource_id = 0;
+                resource_id < (ResourceId)node_1->last_bin_resource_consumption.size();
+                ++resource_id) {
+            if (node_1->last_bin_resource_consumption[resource_id]
+                    > node_2->last_bin_resource_consumption[resource_id]) {
+                return false;
+            }
+        }
+
         for (const UncoveredItem& uncovered_item_1: node_1->uncovered_items) {
             for (const UncoveredItem& uncovered_item_2: node_2->uncovered_items) {
                 if (uncovered_item_1.ys >= uncovered_item_2.ye)
