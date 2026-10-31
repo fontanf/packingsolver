@@ -1,0 +1,27 @@
+{
+    "objective": "bin-packing",
+    "bin_types": [
+        {
+            "width": 6000,
+            "height": 3000,
+            "defects": [
+                {
+                    "x": 0,
+                    "y": 0,
+                    "width": 6000,
+                    "height": 3000
+                }
+            ]
+        },
+        {
+            "width": 6000,
+            "height": 3000
+        }
+    ],
+    "item_types": [
+        {
+            "width": 6000,
+            "height": 3000
+        }
+    ]
+}
