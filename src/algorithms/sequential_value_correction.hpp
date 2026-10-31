@@ -40,6 +40,7 @@
 
 #include <algorithm>
 #include <functional>
+#include <map>
 #include <numeric>
 #include <sstream>
 
@@ -69,6 +70,40 @@ struct SequentialValueCorrectionParameters: packingsolver::Parameters<Instance, 
 {
     /** Maximum number of iterations. */
     Counter maximum_number_of_iterations = -1;
+
+    /**
+     * Optional function returning 'false' only if an item type doesn't fit in
+     * a bin type.
+     *
+     * Only used if the objective is VariableSizedBinPacking (see
+     * 'restrict_bin_types' and 'scarce_item_types_profit_factor_exponent').
+     */
+    std::function<bool(ItemTypeId, BinTypeId)> item_type_fits_bin_type;
+
+    /**
+     * If true and 'item_type_fits_bin_type' is set, at each step, the bin
+     * types tried are restricted to the ones in which the remaining item type
+     * which fits in the smallest number of available bins fits (ties broken
+     * by choosing the largest item type): a bin of one of these bin types
+     * needs to be used anyway to pack this item type.
+     */
+    bool restrict_bin_types = false;
+
+    /**
+     * Exponent of the factor applied to the initial profit of the item types
+     * which don't fit in all the bin types, if 'item_type_fits_bin_type' is
+     * set.
+     *
+     * For an item type, the tightness of the bin types in which it fits is the
+     * space of the item types which only fit in these bin types divided by
+     * the space of the bins of these bin types. The factor is the ratio
+     * between this tightness and the tightness of all the bin types (at least
+     * 1). Thus, the item types which compete for scarce bins are packed
+     * first.
+     *
+     * 0 disables the factor.
+     */
+    double scarce_item_types_profit_factor_exponent = 1.0;
 
     /**
      * Exponent applied to an item's space to get its initial profit for the
@@ -156,6 +191,115 @@ SequentialValueCorrectionOutput<Instance, Solution, Output> sequential_value_cor
             bin_type_ids_by_position.push_back(bin_type_id);
     }
 
+    // For VariableSizedBinPacking, item types sorted by decreasing space and
+    // the bin types in which they fit, to restrict the bin types tried.
+    std::vector<ItemTypeId> item_type_ids_by_decreasing_space;
+    std::vector<std::vector<bool>> item_type_fits_bin_type;
+    if (instance.objective() == Objective::VariableSizedBinPacking
+            && parameters.item_type_fits_bin_type) {
+        item_type_ids_by_decreasing_space.resize(instance.number_of_item_types());
+        std::iota(
+                item_type_ids_by_decreasing_space.begin(),
+                item_type_ids_by_decreasing_space.end(),
+                0);
+        std::stable_sort(
+                item_type_ids_by_decreasing_space.begin(),
+                item_type_ids_by_decreasing_space.end(),
+                [&instance](ItemTypeId item_type_id_1, ItemTypeId item_type_id_2)
+                {
+                    return instance.item_type(item_type_id_1).space()
+                        > instance.item_type(item_type_id_2).space();
+                });
+        item_type_fits_bin_type.resize(
+                instance.number_of_item_types(),
+                std::vector<bool>(instance.number_of_bin_types()));
+        for (ItemTypeId item_type_id = 0;
+                item_type_id < instance.number_of_item_types();
+                ++item_type_id) {
+            for (BinTypeId bin_type_id = 0;
+                    bin_type_id < instance.number_of_bin_types();
+                    ++bin_type_id) {
+                item_type_fits_bin_type[item_type_id][bin_type_id]
+                    = parameters.item_type_fits_bin_type(item_type_id, bin_type_id);
+            }
+        }
+
+        if (parameters.scarce_item_types_profit_factor_exponent != 0.0) {
+            // Group the item types by the set of bin types in which they fit.
+            std::map<std::vector<bool>, double> item_space_by_bin_type_set;
+            for (ItemTypeId item_type_id = 0;
+                    item_type_id < instance.number_of_item_types();
+                    ++item_type_id) {
+                const auto& item_type = instance.item_type(item_type_id);
+                item_space_by_bin_type_set[item_type_fits_bin_type[item_type_id]]
+                    += (double)item_type.copies * (double)item_type.space();
+            }
+
+            // Compute the tightness of each set of bin types.
+            std::map<std::vector<bool>, double> tightness_by_bin_type_set;
+            for (const auto& bin_type_set_and_item_space: item_space_by_bin_type_set) {
+                const std::vector<bool>& bin_type_set = bin_type_set_and_item_space.first;
+                double bin_space = 0.0;
+                for (BinTypeId bin_type_id = 0;
+                        bin_type_id < instance.number_of_bin_types();
+                        ++bin_type_id) {
+                    if (bin_type_set[bin_type_id]) {
+                        const auto& bin_type = instance.bin_type(bin_type_id);
+                        bin_space += (double)bin_type.copies * (double)bin_type.space();
+                    }
+                }
+                if (bin_space == 0.0)
+                    continue;
+                double item_space = 0.0;
+                for (const auto& other_bin_type_set_and_item_space: item_space_by_bin_type_set) {
+                    const std::vector<bool>& other_bin_type_set = other_bin_type_set_and_item_space.first;
+                    bool included = true;
+                    for (BinTypeId bin_type_id = 0;
+                            bin_type_id < instance.number_of_bin_types();
+                            ++bin_type_id) {
+                        if (other_bin_type_set[bin_type_id] && !bin_type_set[bin_type_id]) {
+                            included = false;
+                            break;
+                        }
+                    }
+                    if (included)
+                        item_space += other_bin_type_set_and_item_space.second;
+                }
+                tightness_by_bin_type_set[bin_type_set] = item_space / bin_space;
+            }
+
+            // Tightness of all the bin types.
+            double total_item_space = 0.0;
+            for (const auto& bin_type_set_and_item_space: item_space_by_bin_type_set)
+                if (tightness_by_bin_type_set.count(bin_type_set_and_item_space.first))
+                    total_item_space += bin_type_set_and_item_space.second;
+            double total_bin_space = 0.0;
+            for (BinTypeId bin_type_id = 0;
+                    bin_type_id < instance.number_of_bin_types();
+                    ++bin_type_id) {
+                const auto& bin_type = instance.bin_type(bin_type_id);
+                total_bin_space += (double)bin_type.copies * (double)bin_type.space();
+            }
+            double total_tightness = total_item_space / total_bin_space;
+
+            // Update the initial profits.
+            for (ItemTypeId item_type_id = 0;
+                    item_type_id < instance.number_of_item_types();
+                    ++item_type_id) {
+                auto tightness_iterator = tightness_by_bin_type_set.find(
+                        item_type_fits_bin_type[item_type_id]);
+                if (tightness_iterator == tightness_by_bin_type_set.end())
+                    continue;
+                double factor = tightness_iterator->second / total_tightness;
+                if (factor <= 1.0)
+                    continue;
+                profits[item_type_id] *= std::pow(
+                        factor,
+                        parameters.scarce_item_types_profit_factor_exponent);
+            }
+        }
+    }
+
     for (output.number_of_iterations = 0;; output.number_of_iterations++) {
         // track fixed copies from bins added to the partial solution in this iteration
         std::vector<ItemPos> partial_fixed_copies(instance.number_of_item_types(), 0);
@@ -219,6 +363,51 @@ SequentialValueCorrectionOutput<Instance, Solution, Output> sequential_value_cor
                         if (solution.bin_copies(bin_type_id) == bin_type.copies)
                             continue;
                         bin_type_ids.push_back(bin_type_id);
+                    }
+
+                    if (parameters.restrict_bin_types
+                            && !item_type_fits_bin_type.empty()) {
+                        // Restrict the bin types tried to the ones in which
+                        // the remaining item type which fits in the smallest
+                        // number of available bins fits. Ties are broken by
+                        // choosing the largest item type.
+                        BinPos number_of_available_bins = 0;
+                        for (BinTypeId bin_type_id: bin_type_ids) {
+                            number_of_available_bins += instance.bin_type(bin_type_id).copies
+                                - solution.bin_copies(bin_type_id);
+                        }
+                        ItemTypeId selected_item_type_id = -1;
+                        BinPos selected_number_of_bins = number_of_available_bins;
+                        for (ItemTypeId item_type_id: item_type_ids_by_decreasing_space) {
+                            ItemPos remaining_copies = instance.item_type(item_type_id).copies
+                                - instance.item_type(item_type_id).copies_fixed
+                                - (solution.item_copies(item_type_id) - partial_fixed_copies[item_type_id]);
+                            if (remaining_copies <= 0)
+                                continue;
+                            BinPos number_of_bins = 0;
+                            for (BinTypeId bin_type_id: bin_type_ids) {
+                                if (item_type_fits_bin_type[item_type_id][bin_type_id]) {
+                                    number_of_bins += instance.bin_type(bin_type_id).copies
+                                        - solution.bin_copies(bin_type_id);
+                                }
+                            }
+                            // If the item type doesn't fit in any available
+                            // bin, the current solution won't pack all the
+                            // items anyway.
+                            if (number_of_bins == 0)
+                                continue;
+                            if (number_of_bins < selected_number_of_bins) {
+                                selected_item_type_id = item_type_id;
+                                selected_number_of_bins = number_of_bins;
+                            }
+                        }
+                        if (selected_item_type_id != -1) {
+                            std::vector<BinTypeId> restricted_bin_type_ids;
+                            for (BinTypeId bin_type_id: bin_type_ids)
+                                if (item_type_fits_bin_type[selected_item_type_id][bin_type_id])
+                                    restricted_bin_type_ids.push_back(bin_type_id);
+                            bin_type_ids = restricted_bin_type_ids;
+                        }
                     }
                 }
             } else {

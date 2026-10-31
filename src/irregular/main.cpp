@@ -101,6 +101,8 @@ int main(int argc, char *argv[])
             ("maximum-approximation-ratio-factor,", po::value<double>(), "decrease factor for the maximum approximation ratio")
             ("sequential-value-correction-subproblem-tree-search-queue-size,", po::value<NodeId>(), "set sequential value correction subproblem queue size")
             ("anytime-sequential-value-correction-growing-queue-maximum-number-of-iterations,", po::value<Counter>(), "")
+            ("sequential-value-correction-restrict-bin-types,", po::value<bool>(), "")
+            ("sequential-value-correction-scarce-item-types-profit-factor-exponent,", po::value<double>(), "")
             ("column-generation-subproblem-tree-search-queue-size,", po::value<NodeId>(), "set column generation subproblem queue size")
             ("post-process-last-bin-maximum-number-of-items,", po::value<ItemPos>(), "re-optimize the last bin in the post-process only if it contains fewer items")
             ("not-anytime-maximum-approximation-ratio,", po::value<double>(), "")
@@ -211,6 +213,10 @@ int main(int argc, char *argv[])
             parameters.sequential_value_correction_subproblem_tree_search_queue_size = vm["sequential-value-correction-subproblem-tree-search-queue-size"].as<NodeId>();
         if (vm.count("anytime-sequential-value-correction-growing-queue-maximum-number-of-iterations"))
             parameters.anytime_sequential_value_correction_growing_queue_maximum_number_of_iterations = vm["anytime-sequential-value-correction-growing-queue-maximum-number-of-iterations"].as<Counter>();
+        if (vm.count("sequential-value-correction-restrict-bin-types"))
+            parameters.sequential_value_correction_restrict_bin_types = vm["sequential-value-correction-restrict-bin-types"].as<bool>();
+        if (vm.count("sequential-value-correction-scarce-item-types-profit-factor-exponent"))
+            parameters.sequential_value_correction_scarce_item_types_profit_factor_exponent = vm["sequential-value-correction-scarce-item-types-profit-factor-exponent"].as<double>();
         if (vm.count("column-generation-subproblem-tree-search-queue-size"))
             parameters.column_generation_subproblem_tree_search_queue_size = vm["column-generation-subproblem-tree-search-queue-size"].as<NodeId>();
         if (vm.count("post-process-last-bin-maximum-number-of-items"))
