@@ -82,9 +82,15 @@ struct Output: packingsolver::Output<Instance, Solution>
         if (is_proven_infeasible)
             return true;
         switch (solution_pool.best().instance().objective()) {
-        case Objective::Knapsack:
+        case Objective::Knapsack: {
+            Profit knapsack_goal = solution_pool.best().instance().knapsack_goal();
+            // The bound proves that the knapsack goal can't be reached.
+            if (std::isfinite(knapsack_goal) && knapsack_bound < knapsack_goal)
+                return true;
             return solution_pool.best().feasible()
-                && equal_profit(knapsack_bound, solution_pool.best().profit());
+                && (equal_profit(knapsack_bound, solution_pool.best().profit())
+                        || solution_pool.best().profit() >= knapsack_goal);
+        }
         case Objective::BinPacking:
             return solution_pool.best().feasible()
                 && bin_packing_bound == solution_pool.best().number_of_bins();
@@ -257,6 +263,28 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
     /** Use column generation algorithm. */
     bool use_column_generation = false;
 
+    /**
+     * Use Benders decomposition algorithm (only for the 'Knapsack',
+     * 'BinPacking' and 'VariableSizedBinPacking' objectives; only selected
+     * automatically in 'Exact' mode, for the 'Knapsack' objective with a
+     * single bin).
+     */
+    bool use_benders_decomposition = false;
+
+    /**
+     * Use the MILP NFP algorithm in the subproblems of the Benders
+     * decomposition algorithm, to prove that the items of a bin don't fit.
+     *
+     * Always used in 'Exact' mode.
+     */
+    bool benders_decomposition_use_milp_nfp = false;
+
+    /**
+     * Use the MILP NFP algorithm (only for the 'Feasibility' objective with a
+     * single bin; only selected automatically in 'Exact' mode).
+     */
+    bool use_milp_nfp = false;
+
     /** Initial maximum approximation ratio. */
     double initial_maximum_approximation_ratio = 0.20;
 
@@ -339,6 +367,12 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
      */
     NodeId column_generation_subproblem_tree_search_queue_size = 128;
 
+    /**
+     * Size of the queue for the feasibility subproblem of the Benders
+     * decomposition algorithm.
+     */
+    NodeId benders_decomposition_subproblem_tree_search_queue_size = 128;
+
     /*
      * Parameters for anytime mode
      */
@@ -412,6 +446,9 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
 
     /** Number of iterations of the sequential value correction algorithm. */
     Counter not_anytime_sequential_value_correction_number_of_iterations = 32;
+
+    /** Number of iterations of the Benders decomposition algorithm. */
+    Counter not_anytime_benders_decomposition_number_of_iterations = 32;
 
     /**
      * Maximum number of failed separations of the local search, after which

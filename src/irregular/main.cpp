@@ -95,6 +95,9 @@ int main(int argc, char *argv[])
             ("use-sequential-single-knapsack,", po::value<bool>(), "enable sequential-single-knapsack")
             ("use-sequential-value-correction,", po::value<bool>(), "enable sequential-value-correction")
             ("use-column-generation,", po::value<bool>(), "enable column-generation")
+            ("use-benders-decomposition,", po::value<bool>(), "enable Benders decomposition algorithm")
+            ("benders-decomposition-use-milp-nfp,", po::value<bool>(), "use the MILP NFP algorithm in the subproblems of the Benders decomposition algorithm")
+            ("use-milp-nfp,", po::value<bool>(), "use the MILP NFP algorithm (Feasibility objective with a single bin)")
             ("use-dichotomic-search,", po::value<bool>(), "enable dichotomic search")
             ("reduce,", po::value<bool>(), "enable/disable instance reduction (preprocessing)")
             ("initial-maximum-approximation-ratio,", po::value<double>(), "initial maximum approximation ratio")
@@ -200,6 +203,12 @@ int main(int argc, char *argv[])
             parameters.use_sequential_value_correction = vm["use-sequential-value-correction"].as<bool>();
         if (vm.count("use-column-generation"))
             parameters.use_column_generation = vm["use-column-generation"].as<bool>();
+        if (vm.count("use-benders-decomposition"))
+            parameters.use_benders_decomposition = vm["use-benders-decomposition"].as<bool>();
+        if (vm.count("benders-decomposition-use-milp-nfp"))
+            parameters.benders_decomposition_use_milp_nfp = vm["benders-decomposition-use-milp-nfp"].as<bool>();
+        if (vm.count("use-milp-nfp"))
+            parameters.use_milp_nfp = vm["use-milp-nfp"].as<bool>();
         if (vm.count("use-dichotomic-search"))
             parameters.use_dichotomic_search = vm["use-dichotomic-search"].as<bool>();
         if (vm.count("reduce"))

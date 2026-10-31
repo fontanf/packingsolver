@@ -8,6 +8,8 @@
 #include "irregular/tree_search_periodic_packing.hpp"
 #include "irregular/tree_search_maximal_spaces.hpp"
 #include "irregular/milp_raster.hpp"
+#include "irregular/benders_decomposition.hpp"
+#include "irregular/milp_nfp.hpp"
 #include "irregular/local_search.hpp"
 #include "algorithms/dichotomic_search.hpp"
 #include "algorithms/sequential_value_correction.hpp"
@@ -737,7 +739,7 @@ void optimize_column_generation(
         AlgorithmFormatter& algorithm_formatter)
 {
     ColumnGenerationPricingFunction<Instance, InstanceBuilder, Solution, irregular::Output> pricing_function
-        = [&algorithm_formatter, &parameters](const Instance& kp_instance, PricingType)
+        = [&algorithm_formatter, &parameters](const Instance& kp_instance, PricingType pricing_type)
         {
             OptimizeParameters kp_parameters;
             kp_parameters.seed = parameters.seed;
@@ -754,6 +756,17 @@ void optimize_column_generation(
                 = parameters.column_generation_subproblem_tree_search_queue_size;
             kp_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
             kp_parameters.local_search_weighting_scheme = parameters.local_search_weighting_scheme;
+            // 'PricingType::Dual' calls are rare and exist to prove a bound:
+            // force the Benders decomposition alone, with the MILP NFP
+            // algorithm in its subproblems so that its cuts, and so its
+            // bound, are proven. In 'Exact' mode, also solved in 'Exact'
+            // mode so that the bound is actually proven.
+            if (pricing_type == PricingType::Dual) {
+                if (parameters.optimization_mode == OptimizationMode::Exact)
+                    kp_parameters.optimization_mode = OptimizationMode::Exact;
+                kp_parameters.use_benders_decomposition = true;
+                kp_parameters.benders_decomposition_use_milp_nfp = true;
+            }
             return optimize(kp_instance, kp_parameters);
         };
 
@@ -763,6 +776,7 @@ void optimize_column_generation(
     cg_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
     cg_parameters.optimization_mode = parameters.optimization_mode;
     cg_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
+    cg_parameters.pricing_function_has_dual_bound = true;
     cg_parameters.new_solution_callback = [&algorithm_formatter](
             const irregular::Output& ps_output)
     {
@@ -837,6 +851,74 @@ void optimize_milp_raster(
         algorithm_formatter.update_bounds(output);
     };
     milp_raster(instance, milp_raster_parameters);
+}
+
+void optimize_benders_decomposition(
+        const Instance& instance,
+        const OptimizeParameters& parameters,
+        AlgorithmFormatter& algorithm_formatter)
+{
+    BendersDecompositionParameters bd_parameters;
+    bd_parameters.verbosity_level = 0;
+    bd_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
+    bd_parameters.timer = parameters.timer;
+    bd_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+    bd_parameters.optimization_mode = parameters.optimization_mode;
+    bd_parameters.not_anytime_maximum_number_of_iterations
+        = parameters.not_anytime_benders_decomposition_number_of_iterations;
+    bd_parameters.subproblem_queue_size
+        = parameters.benders_decomposition_subproblem_tree_search_queue_size;
+    // In 'Exact' mode, the MILP NFP algorithm is used so that the cuts are
+    // proven.
+    bd_parameters.subproblem_use_milp_nfp = parameters.benders_decomposition_use_milp_nfp
+        || parameters.optimization_mode == OptimizationMode::Exact;
+    bd_parameters.new_solution_callback = [&algorithm_formatter](
+            const irregular::Output& output)
+    {
+        const BendersDecompositionOutput& bd_output
+            = static_cast<const BendersDecompositionOutput&>(output);
+        std::stringstream ss;
+        ss << "BD " << bd_output.number_of_iterations;
+        algorithm_formatter.update_solution(bd_output.solution_pool.best(), ss.str());
+        algorithm_formatter.update_bounds(bd_output);
+    };
+    benders_decomposition(instance, bd_parameters);
+}
+
+void optimize_milp_nfp(
+        const Instance& instance,
+        const OptimizeParameters& parameters,
+        AlgorithmFormatter& algorithm_formatter)
+{
+    BinTypeId bin_type_id = 0;
+    while (instance.bin_type(bin_type_id).copies == 0)
+        bin_type_id++;
+    std::vector<ItemTypeId> item_type_ids;
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance.number_of_item_types();
+            ++item_type_id) {
+        const ItemType& item_type = instance.item_type(item_type_id);
+        for (ItemPos copy = item_type.copies_fixed; copy < item_type.copies; ++copy)
+            item_type_ids.push_back(item_type_id);
+    }
+    MilpNfpParameters milp_nfp_parameters;
+    milp_nfp_parameters.verbosity_level = 0;
+    milp_nfp_parameters.timer = parameters.timer;
+    milp_nfp_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+    if (parameters.optimization_mode == OptimizationMode::NotAnytimeSequential)
+        milp_nfp_parameters.number_of_threads = 1;
+    MilpNfpOutput milp_nfp_output = milp_nfp(
+            instance,
+            bin_type_id,
+            item_type_ids,
+            milp_nfp_parameters);
+    if (milp_nfp_output.status == MilpNfpStatus::Infeasible) {
+        algorithm_formatter.update_is_proven_infeasible();
+    } else {
+        Solution solution(instance);
+        if (milp_nfp_solution(instance, bin_type_id, milp_nfp_output, solution))
+            algorithm_formatter.update_solution(solution, "MILP NFP");
+    }
 }
 
 /**
@@ -1035,6 +1117,20 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
     bool use_dichotomic_search = parameters.use_dichotomic_search;
     bool use_column_generation = parameters.use_column_generation;
     bool use_milp_raster = parameters.use_milp_raster;
+    bool use_benders_decomposition = parameters.use_benders_decomposition;
+    bool use_milp_nfp = parameters.use_milp_nfp;
+    // The MILP NFP algorithm only supports the 'Feasibility' objective with a
+    // single bin.
+    if (instance.objective() != Objective::Feasibility
+            || instance.number_of_bins() != 1) {
+        use_milp_nfp = false;
+    }
+    // Benders decomposition only supports these objectives.
+    if (instance.objective() != Objective::Knapsack
+            && instance.objective() != Objective::BinPacking
+            && instance.objective() != Objective::VariableSizedBinPacking) {
+        use_benders_decomposition = false;
+    }
     if (instance.number_of_bins() <= 1) {
         // Disable algorithms which are not available for this objective.
         use_sequential_single_knapsack = false;
@@ -1051,6 +1147,8 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         }
         // Automatic selection.
         if (!use_tree_search
+                && !use_benders_decomposition
+                && !use_milp_nfp
                 && !use_tree_search_periodic_packing
                 && !use_tree_search_maximal_spaces
                 && !use_local_search_linear_programming
@@ -1089,6 +1187,16 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
                     < parameters.periodic_packing_max_items_threshold;
             if (instance.objective() != Objective::Knapsack)
                 use_local_search_direct_trigonometry = true;
+            // In 'Exact' mode, also run the algorithms which can prove
+            // optimality.
+            if (parameters.optimization_mode == OptimizationMode::Exact) {
+                if (instance.objective() == Objective::Knapsack)
+                    use_benders_decomposition = true;
+                if (instance.objective() == Objective::Feasibility
+                        && instance.number_of_bins() == 1) {
+                    use_milp_nfp = true;
+                }
+            }
         }
     } else if (instance.objective() == Objective::Feasibility) {
         // Disable algorithms which are not available for this objective.
@@ -1128,6 +1236,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         use_tree_search_periodic_packing = false;
         // Automatic selection.
         if (!use_tree_search
+                && !use_benders_decomposition
                 && !use_milp_raster
                 && !use_sequential_single_knapsack
                 && !use_sequential_value_correction
@@ -1170,6 +1279,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         use_milp_raster = false;
         // Automatic selection.
         if (!use_tree_search
+                && !use_benders_decomposition
                 && !use_tree_search_periodic_packing
                 && !use_local_search_linear_programming
                 && !use_local_search_nonlinear_programming
@@ -1219,6 +1329,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         }
         // Automatic selection.
         if (!use_tree_search
+                && !use_benders_decomposition
                 && !use_local_search_linear_programming
                 && !use_local_search_nonlinear_programming
                 && !use_local_search_direct_trigonometry
@@ -1470,6 +1581,32 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         auto context = task_context();
         tasks.push_back([&exception_ptr, &instance, context]() {
             wrapper<decltype(&optimize_column_generation), optimize_column_generation>(
+                    exception_ptr,
+                    instance,
+                    *context.first,
+                    *context.second);
+        });
+    }
+    // Benders decomposition.
+    if (use_benders_decomposition) {
+        exception_ptr_list.push_front(std::exception_ptr());
+        std::exception_ptr& exception_ptr = exception_ptr_list.front();
+        auto context = task_context();
+        tasks.push_back([&exception_ptr, &instance, context]() {
+            wrapper<decltype(&optimize_benders_decomposition), optimize_benders_decomposition>(
+                    exception_ptr,
+                    instance,
+                    *context.first,
+                    *context.second);
+        });
+    }
+    // MILP NFP.
+    if (use_milp_nfp) {
+        exception_ptr_list.push_front(std::exception_ptr());
+        std::exception_ptr& exception_ptr = exception_ptr_list.front();
+        auto context = task_context();
+        tasks.push_back([&exception_ptr, &instance, context]() {
+            wrapper<decltype(&optimize_milp_nfp), optimize_milp_nfp>(
                     exception_ptr,
                     instance,
                     *context.first,
