@@ -788,8 +788,10 @@ ResourceCut packingsolver::rectangle::lift_no_good_cut(
             (ItemPos)std::floor(alpha + 1e-6) : 0;
 
         if (alpha_rounded > 0) {
+            // The presence of j* in the bin is worth 'alpha_rounded': its
+            // first copy consumes all of it, its other copies nothing.
             lifted_cut.consumption.push_back(
-                    {candidate_id, threshold_schedule(alpha_rounded)});
+                    {candidate_id, {(double)alpha_rounded, 0.0}});
             s_entries.push_back({candidate_id, 1, (double)alpha_rounded});
         }
     }
