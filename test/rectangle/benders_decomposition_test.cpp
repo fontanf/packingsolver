@@ -165,13 +165,17 @@ namespace
 {
 
 /** The number of copies 'item_type_id' is capped to by 'lifted_cut'. */
-ItemPos lifted_threshold(
+/**
+ * Coefficient of a lifted item type in a lifted cut: the consumption of its
+ * first copy; -1 if it isn't in the cut.
+ */
+double lifted_coefficient(
         const ResourceCut& lifted_cut,
         ItemTypeId item_type_id)
 {
     for (const std::pair<ItemTypeId, std::vector<double>>& entry: lifted_cut.consumption)
         if (entry.first == item_type_id)
-            return (ItemPos)entry.second.size() - 1;
+            return entry.second.front();
     return -1;
 }
 
@@ -227,7 +231,39 @@ TEST(RectangleLiftNoGoodCut, LiftCoefficientsStayBoundedByCoverSize)
             bin_type_id,
             parameters);
 
-    EXPECT_EQ(lifted_threshold(lifted_cut, candidate_0), 1);
-    EXPECT_EQ(lifted_threshold(lifted_cut, candidate_1), 1);
-    EXPECT_EQ(lifted_threshold(lifted_cut, candidate_2), 1);
+    EXPECT_EQ(lifted_coefficient(lifted_cut, candidate_0), 1);
+    EXPECT_EQ(lifted_coefficient(lifted_cut, candidate_1), 1);
+    EXPECT_EQ(lifted_coefficient(lifted_cut, candidate_2), 1);
+}
+
+TEST(RectangleLiftNoGoodCut, LiftedItemCountsForItsCoefficientFromItsFirstCopy)
+{
+    // The cover {A, B, C} (at most 2 of them in a bin) is lifted with D,
+    // which fills the whole bin: forcing D into the bin leaves no room for
+    // the items of the cover, so its coefficient is '3 - 1 - 0 = 2'. A
+    // single copy of D must then count for 2 in the cut, so that D and any
+    // item of the cover are forbidden together.
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(Objective::Knapsack);
+    BinTypeId bin_type_id = instance_builder.add_bin_type(10, 10);
+    ItemTypeId item_type_a = instance_builder.add_item_type(5, 10, true);
+    ItemTypeId item_type_b = instance_builder.add_item_type(5, 10, true);
+    ItemTypeId item_type_c = instance_builder.add_item_type(5, 10, true);
+    ItemTypeId item_type_d = instance_builder.add_item_type(10, 10, true);
+    Instance instance = instance_builder.build();
+
+    ResourceCut original_cut;
+    original_cut.capacity = 2.0;
+    original_cut.consumption.push_back({item_type_a, threshold_schedule(1)});
+    original_cut.consumption.push_back({item_type_b, threshold_schedule(1)});
+    original_cut.consumption.push_back({item_type_c, threshold_schedule(1)});
+
+    BendersDecompositionParameters parameters;
+    ResourceCut lifted_cut = lift_no_good_cut(
+            original_cut,
+            instance,
+            bin_type_id,
+            parameters);
+
+    EXPECT_EQ(lifted_coefficient(lifted_cut, item_type_d), 2);
 }
