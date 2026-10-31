@@ -3,6 +3,8 @@ target_sources(PackingSolver_onedimensional_test PRIVATE
     onedimensional_test.cpp
     milp_assignment_test.cpp
     tree_search_test.cpp
+    sequential_value_correction_test.cpp
+    column_generation_test.cpp
     dual_feasible_functions_test.cpp
     dynamic_programming_test.cpp
     reduction_test.cpp)
