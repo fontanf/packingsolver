@@ -11,6 +11,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import figure
+from figure import BLUE
 
 SVG_DIR = "doc/img"
 PREFIX = "rectangle_dual_feasible_functions_"
@@ -70,5 +71,40 @@ def figure_functions():
     fig.write(SVG_DIR + "/" + PREFIX + "functions.svg")
 
 
+# Example of the page: a bin 10 x 6, and two copies each of the items 1, 2
+# and 3 (name, width, height, copies).
+BIN = (10, 6)
+ITEMS = [("1", 6, 4, 2), ("2", 4, 6, 2), ("3", 4, 3, 2)]
+
+
+def transform(items, bin_height):
+    """Dominated instance: the items of height at least 4 get the height of
+    the bin; the items of height at most 2 are removed."""
+    result = []
+    for name, w, h, copies in items:
+        if h <= 2:
+            continue
+        if h >= 4:
+            h = bin_height
+        result.append((name, w, h, copies))
+    return result
+
+
+def figure_instance(items, name):
+    fig = figure.Figure(unit=20)
+    bw, bh = BIN
+    fig.rect(0, 0, bw, bh, "bin {} x {}".format(bw, bh), "fillColor=none;strokeColor=#000000;")
+    x = 0
+    for label, w, h, copies in items:
+        fig.rect(x, -1 - h, w, h, "{}\n{} x {}\nx {}".format(label, w, h, copies), BLUE)
+        x += w + 1
+    area = sum(w * h * c for _, w, h, c in items)
+    fig.text(x / 2, -bh - 2, "area bound: {} / {}, rounded up: {}".format(
+        area, bw * bh, -(-area // (bw * bh))), w=16)
+    fig.write(SVG_DIR + "/" + PREFIX + name + ".svg")
+
+
 if __name__ == "__main__":
     figure_functions()
+    figure_instance(ITEMS, "instance")
+    figure_instance(transform(ITEMS, BIN[1]), "dominated_instance")

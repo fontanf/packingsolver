@@ -16,8 +16,9 @@ It is a constructive tree search where a single item is packed at each stage, ge
 * in a new stack, with its lower y touching either another packed stack or the side of the bin at y = 0, then pushed along x until it doesn't overlap the stacks packed;
 * on top of a stack of the skyline.
 
-.. image:: ../../img/boxstacks_tree_search.png
-   :scale: 100%
+The figure below shows a node, seen from above, and its children inserting item 4, which can be stacked on item 3 (same stackability id) but not on item 2:
+
+.. image:: ../../img/boxstacks_tree_search.svg
    :align: center
 
 An insertion above a stack must satisfy the stacking constraints: same stackability id, maximum stackability, maximum weight above, the height of the bin (using the nesting heights), the maximum stack density. Any insertion must satisfy the maximum weight of the bin and the unloading constraints.

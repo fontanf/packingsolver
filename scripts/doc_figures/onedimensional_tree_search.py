@@ -79,6 +79,70 @@ def draw_bin(fig, b, ox, oy, scale=0.4, new=None, new_style=GREEN):
     fig.rect(ox, oy, BW, b.capacity * scale, "", "fillColor=none;strokeColor=#000000;strokeWidth=2;")
 
 
+def figure_tree():
+    """Beginning of the tree: items A, B, C and D with a single copy each,
+    in bins of length 8; each child packs one more item in the bin of its
+    parent, the nodes down to depth 3."""
+    small = "fontSize=10;"
+    item_types = [
+            ItemType("A", 5, style=BLUE + small),
+            ItemType("B", 4, style=GREEN + small),
+            ItemType("C", 1, style=RED + small),
+            ItemType("D", 2, style=YELLOW + small)]
+    bin_length = 8
+    depth_max = 3
+    scale = 0.6
+
+    def children(sequence):
+        """Children of the node packing the item types of 'sequence', all in
+        the same bin since a new bin is only opened when no item fits."""
+        b = Bin(bin_length, INF)
+        for t in sequence:
+            b.add(t)
+        return [sequence + [t] for t in item_types
+                if t not in sequence and b.check(t) is None]
+
+    # Tree, and the x of each node: the leaves are spaced evenly, a parent is
+    # centered above its children.
+    positions = {}
+    leaves = [0]
+
+    def layout(sequence):
+        key = tuple(t.name for t in sequence)
+        if len(sequence) == depth_max:
+            positions[key] = leaves[0]
+            leaves[0] += BW + 0.6
+            return
+        kids = children(sequence)
+        for kid in kids:
+            layout(kid)
+        positions[key] = sum(positions[tuple(t.name for t in kid)] for kid in kids) / len(kids)
+
+    layout([])
+    fig = figure.Figure(unit=20)
+    height = bin_length * scale
+    level = height + 2
+
+    def draw(sequence):
+        key = tuple(t.name for t in sequence)
+        x, y = positions[key], -len(sequence) * level
+        b = Bin(bin_length, INF)
+        for t in sequence:
+            b.add(t)
+        draw_bin(fig, b, x, y, scale)
+        if len(sequence) == depth_max:
+            return
+        for kid in children(sequence):
+            kx = positions[tuple(t.name for t in kid)]
+            middle = y - 1
+            fig.polyline([(x + BW / 2, y), (x + BW / 2, middle), (kx + BW / 2, middle),
+                          (kx + BW / 2, y - level + height)], arrow=True)
+            draw(kid)
+
+    draw([])
+    fig.write(SVG_DIR + "/" + PREFIX + "tree.svg")
+
+
 def figure_insertions():
     fig = figure.Figure(unit=24)
     P = ItemType("P", 4, weight=2, style=BLUE)
@@ -144,5 +208,6 @@ def figure_dominance():
 
 
 if __name__ == "__main__":
+    figure_tree()
     figure_insertions()
     figure_dominance()

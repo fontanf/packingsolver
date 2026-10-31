@@ -2,39 +2,39 @@
 <defs><marker id="arrow0" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#666666"/></marker></defs>
 <rect x="-49.2" y="-21.2" width="479.2" height="194.0" fill="#ffffff"/>
 <rect x="159.6" y="-11.2" width="72.8" height="22.4" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="196.0" y="0.0">abcde</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="196.0" y="4.2">abcde</tspan></text>
 <rect x="5.6" y="44.8" width="72.8" height="22.4" fill="#f8cecc" stroke="#b85450" stroke-width="3"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="42.0" y="56.0">bcde</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="42.0" y="60.2">bcde</tspan></text>
 <polyline points="196,11.2 42.0,44.8" fill="none" stroke="#666666" stroke-width="1" marker-end="url(#arrow0)"/>
 <rect x="89.6" y="44.8" width="72.8" height="22.4" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="126.0" y="56.0">acde</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="126.0" y="60.2">acde</tspan></text>
 <polyline points="196,11.2 126.0,44.8" fill="none" stroke="#666666" stroke-width="1" marker-end="url(#arrow0)"/>
 <rect x="173.6" y="44.8" width="72.8" height="22.4" fill="#f8cecc" stroke="#b85450" stroke-width="3"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="210.0" y="56.0">abde</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="210.0" y="60.2">abde</tspan></text>
 <polyline points="196,11.2 210.0,44.8" fill="none" stroke="#666666" stroke-width="1" marker-end="url(#arrow0)"/>
 <rect x="257.6" y="44.8" width="72.8" height="22.4" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="294.0" y="56.0">abce</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="294.0" y="60.2">abce</tspan></text>
 <polyline points="196,11.2 294.0,44.8" fill="none" stroke="#666666" stroke-width="1" marker-end="url(#arrow0)"/>
 <rect x="341.6" y="44.8" width="72.8" height="22.4" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="378.0" y="56.0">abcd</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="378.0" y="60.2">abcd</tspan></text>
 <polyline points="196,11.2 378.0,44.8" fill="none" stroke="#666666" stroke-width="1" marker-end="url(#arrow0)"/>
 <rect x="-39.2" y="100.8" width="36.4" height="22.4" fill="#d5e8d4" stroke="#82b366" stroke-width="1" stroke-dasharray="3 3"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="-21.0" y="112.0">cde</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="-21.0" y="116.2">cde</tspan></text>
 <polyline points="42.0,67.2 -21.0,100.8" fill="none" stroke="#666666" stroke-width="1" marker-end="url(#arrow0)"/>
 <rect x="2.8" y="100.8" width="36.4" height="22.4" fill="#d5e8d4" stroke="#82b366" stroke-width="1" stroke-dasharray="3 3"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="21.0" y="112.0">bde</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="21.0" y="116.2">bde</tspan></text>
 <polyline points="42.0,67.2 21.0,100.8" fill="none" stroke="#666666" stroke-width="1" marker-end="url(#arrow0)"/>
 <rect x="44.8" y="100.8" width="36.4" height="22.4" fill="#d5e8d4" stroke="#82b366" stroke-width="1" stroke-dasharray="3 3"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="63.0" y="112.0">bce</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="63.0" y="116.2">bce</tspan></text>
 <polyline points="42.0,67.2 63.0,100.8" fill="none" stroke="#666666" stroke-width="1" marker-end="url(#arrow0)"/>
 <rect x="86.8" y="100.8" width="36.4" height="22.4" fill="#d5e8d4" stroke="#82b366" stroke-width="1" stroke-dasharray="3 3"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="105.0" y="112.0">bcd</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="105.0" y="116.2">bcd</tspan></text>
 <polyline points="42.0,67.2 105.0,100.8" fill="none" stroke="#666666" stroke-width="1" marker-end="url(#arrow0)"/>
 <rect x="170.8" y="100.8" width="36.4" height="22.4" fill="#d5e8d4" stroke="#82b366" stroke-width="1" stroke-dasharray="3 3"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="189.0" y="112.0">abe</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="189.0" y="116.2">abe</tspan></text>
 <polyline points="210.0,67.2 189.0,100.8" fill="none" stroke="#666666" stroke-width="1" marker-end="url(#arrow0)"/>
 <rect x="212.8" y="100.8" width="36.4" height="22.4" fill="#d5e8d4" stroke="#82b366" stroke-width="1" stroke-dasharray="3 3"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="231.0" y="112.0">abd</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="231.0" y="116.2">abd</tspan></text>
 <polyline points="210.0,67.2 231.0,100.8" fill="none" stroke="#666666" stroke-width="1" marker-end="url(#arrow0)"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="196.0" y="141.2">red: doesn&#x27;t fit; green: fits; dashed: 3 items, known to fit; thick: no-good</tspan><tspan x="196.0" y="155.6">cut</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="196.0" y="145.4">red: doesn&#x27;t fit; green: fits; dashed: 3 items, known to fit; thick: no-good</tspan><tspan x="196.0" y="159.8">cut</tspan></text>
 </svg>

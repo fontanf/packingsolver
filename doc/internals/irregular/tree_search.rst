@@ -17,8 +17,7 @@ It is a constructive tree search where a single item is packed at each stage. Th
 
 It is a generalization of the :ref:`tree search for rectangle <internals_rectangle_tree_search>`: the items are packed from left to right, each new item resting on the item inserted just before it, and pushed to the right until it doesn't overlap the items already packed.
 
-.. image:: ../../img/irregular_tree_search.png
-   :scale: 100%
+.. image:: ../../img/irregular_tree_search.svg
    :align: center
 
 Preprocessing

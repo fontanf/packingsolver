@@ -23,8 +23,7 @@ This algorithm solves the :code:`feasibility`, :code:`knapsack`, :code:`bin-pack
 
 It is a tree search algorithm where a single item is packed at each stage. The root node is an empty partial solution (no item packed). Given a node, a child node is generated for each feasible insertion of an unpacked item after the last one inserted, either in the same bin or in a new bin.
 
-.. image:: ../img/onedimensional_tree_search.png
-   :scale: 100%
+.. image:: ../img/onedimensional_tree_search_tree.svg
    :align: center
 
 See :doc:`the detailed description <onedimensional/tree_search>`.

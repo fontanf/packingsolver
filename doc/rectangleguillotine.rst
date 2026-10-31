@@ -47,8 +47,7 @@ Guillotine vs non-guillotine patterns
 
 A cutting pattern is a **guillotine pattern** if it can be produced by a sequence of straight cuts, each going all the way from one edge of the current plate to the opposite edge. The number of cutting stages of a pattern is the number of sets of parallel cuts necessary to extract all the items from the pattern. Here is an example of a 4-staged pattern:
 
-.. image:: img/rectangleguillotine_number_of_stages.png
-   :scale: 100%
+.. image:: img/rectangleguillotine_number_of_stages.svg
    :align: center
 
 A pattern that cannot be produced this way, however the items are arranged, is a **non-guillotine pattern**.

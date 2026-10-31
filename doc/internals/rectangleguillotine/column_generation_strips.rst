@@ -17,8 +17,7 @@ A k-staged pattern is made of first-level sub-plates, the *strips*, placed side 
 
 Here is an illustration of the algorithm:
 
-.. image:: ../../img/rectangleguillotine_column_generation_strips.png
-   :scale: 100%
+.. image:: ../../img/rectangleguillotine_column_generation_strips.svg
    :align: center
 
 Model

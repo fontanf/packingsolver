@@ -1,55 +1,55 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="389.2" height="316.4" viewBox="-106.2 -59.4 389.2 316.4">
 <rect x="-106.2" y="-59.4" width="389.2" height="316.4" fill="#ffffff"/>
 <rect x="0" y="-26" width="26" height="26" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="13.0" y="-13.0">A1</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="13.0" y="-8.8">A1</tspan></text>
 <rect x="28.6" y="-26" width="26" height="26" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="41.6" y="-13.0">B2</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="41.6" y="-8.8">B2</tspan></text>
 <rect x="57.2" y="-26" width="26" height="26" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="70.2" y="-13.0">B3</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="70.2" y="-8.8">B3</tspan></text>
 <rect x="85.8" y="-26" width="26" height="26" fill="#fff2cc" stroke="#d6b656" stroke-width="1"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="98.8" y="-13.0">C4</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="98.8" y="-8.8">C4</tspan></text>
 <rect x="114.4" y="-26" width="26" height="26" fill="#fff2cc" stroke="#d6b656" stroke-width="1"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="127.4" y="-13.0">C5</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="127.4" y="-8.8">C5</tspan></text>
 <rect x="143.0" y="-26" width="26" height="26" fill="#fff2cc" stroke="#d6b656" stroke-width="1"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="156.0" y="-13.0">C6</tspan></text>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="85.8" y="-41.6">labels of the items, item types by increasing number of copies</tspan></text>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central" font-weight="bold"><tspan x="65.0" y="49.4">A</tspan></text>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central" font-weight="bold"><tspan x="117.0" y="49.4">B</tspan></text>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central" font-weight="bold"><tspan x="169.0" y="49.4">C</tspan></text>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="0.0" y="80.6">bin 0</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="156.0" y="-8.8">C6</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="85.8" y="-37.4">labels of the items, item types by increasing number of copies</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" font-weight="bold"><tspan x="65.0" y="53.6">A</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" font-weight="bold"><tspan x="117.0" y="53.6">B</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" font-weight="bold"><tspan x="169.0" y="53.6">C</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="0.0" y="84.8">bin 0</tspan></text>
 <rect x="49.4" y="67.6" width="31.2" height="26" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="65.0" y="80.6">1</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="65.0" y="84.8">1</tspan></text>
 <rect x="101.4" y="67.6" width="31.2" height="26" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="117.0" y="80.6">2</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="117.0" y="84.8">2</tspan></text>
 <rect x="153.4" y="67.6" width="31.2" height="26" fill="#fff2cc" stroke="#d6b656" stroke-width="1"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="169.0" y="80.6">3</tspan></text>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="0.0" y="109.2">bin 1</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="169.0" y="84.8">3</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="0.0" y="113.4">bin 1</tspan></text>
 <rect x="49.4" y="96.2" width="31.2" height="26" fill="#f5f5f5" stroke="#666666" stroke-width="1"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#333333" text-anchor="middle" dominant-baseline="central"><tspan x="65.0" y="109.2">0</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#333333" text-anchor="middle"><tspan x="65.0" y="113.4">0</tspan></text>
 <rect x="101.4" y="96.2" width="31.2" height="26" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="117.0" y="109.2">2</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="117.0" y="113.4">2</tspan></text>
 <rect x="153.4" y="96.2" width="31.2" height="26" fill="#fff2cc" stroke="#d6b656" stroke-width="1"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="169.0" y="109.2">3</tspan></text>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="0.0" y="137.8">bin 2</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="169.0" y="113.4">3</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="0.0" y="142.0">bin 2</tspan></text>
 <rect x="49.4" y="124.8" width="31.2" height="26" fill="#f5f5f5" stroke="#666666" stroke-width="1"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#333333" text-anchor="middle" dominant-baseline="central"><tspan x="65.0" y="137.8">0</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#333333" text-anchor="middle"><tspan x="65.0" y="142.0">0</tspan></text>
 <rect x="101.4" y="124.8" width="31.2" height="26" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="117.0" y="137.8">1</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="117.0" y="142.0">1</tspan></text>
 <rect x="153.4" y="124.8" width="31.2" height="26" fill="#fff2cc" stroke="#d6b656" stroke-width="1"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="169.0" y="137.8">3</tspan></text>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="0.0" y="166.4">bin 3</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="169.0" y="142.0">3</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="0.0" y="170.6">bin 3</tspan></text>
 <rect x="49.4" y="153.4" width="31.2" height="26" fill="#f5f5f5" stroke="#666666" stroke-width="1"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#333333" text-anchor="middle" dominant-baseline="central"><tspan x="65.0" y="166.4">0</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#333333" text-anchor="middle"><tspan x="65.0" y="170.6">0</tspan></text>
 <rect x="101.4" y="153.4" width="31.2" height="26" fill="#f5f5f5" stroke="#666666" stroke-width="1"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#333333" text-anchor="middle" dominant-baseline="central"><tspan x="117.0" y="166.4">0</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#333333" text-anchor="middle"><tspan x="117.0" y="170.6">0</tspan></text>
 <rect x="153.4" y="153.4" width="31.2" height="26" fill="#fff2cc" stroke="#d6b656" stroke-width="1"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="169.0" y="166.4">3</tspan></text>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="0.0" y="195.0">bin 4</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="169.0" y="170.6">3</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="0.0" y="199.2">bin 4</tspan></text>
 <rect x="49.4" y="182.0" width="31.2" height="26" fill="#f5f5f5" stroke="#666666" stroke-width="1"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#333333" text-anchor="middle" dominant-baseline="central"><tspan x="65.0" y="195.0">0</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#333333" text-anchor="middle"><tspan x="65.0" y="199.2">0</tspan></text>
 <rect x="101.4" y="182.0" width="31.2" height="26" fill="#f5f5f5" stroke="#666666" stroke-width="1"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#333333" text-anchor="middle" dominant-baseline="central"><tspan x="117.0" y="195.0">0</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#333333" text-anchor="middle"><tspan x="117.0" y="199.2">0</tspan></text>
 <rect x="153.4" y="182.0" width="31.2" height="26" fill="#fff2cc" stroke="#d6b656" stroke-width="1"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="169.0" y="195.0">2</tspan></text>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="117.0" y="239.2">maximum number of copies in the bin of each rank</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="169.0" y="199.2">2</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="117.0" y="243.4">maximum number of copies in the bin of each rank</tspan></text>
 </svg>

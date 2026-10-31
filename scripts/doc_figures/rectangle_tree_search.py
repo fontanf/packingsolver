@@ -211,6 +211,31 @@ def figure_insertions():
     fig.write(SVG_DIR + "/" + PREFIX + "insertions.svg")
 
 
+def figure_children():
+    """A node, and its children inserting E (in both orientations) and F."""
+    fig = figure.Figure(unit=16)
+    children = []
+    for label, rotate in (("E", False), ("E", True), ("F", False)):
+        w, h = SIZES[label]
+        if rotate:
+            w, h = h, w
+        for pos in range(len(NODE.segments)):
+            position, _ = insertion(NODE.segments, w, h, pos)
+            if position is not None and (label, position, w) not in [(c[0], c[1], c[2]) for c in children]:
+                children.append((label, position, w, h))
+    width = len(children) * (W + 2) - 2
+    ox = (width - W) / 2
+    draw_items(fig, NODE, ox, 0)
+    fig.bin(ox, 0, W, H)
+    fig.big_arrow(width / 2, -0.5, length=2.5)
+    for k, (label, position, w, h) in enumerate(children):
+        ox = k * (W + 2)
+        draw_items(fig, NODE, ox, -10)
+        fig.rect(ox + position[0], -10 + position[1], w, h, label, RED)
+        fig.bin(ox, -10, W, H)
+    fig.write(SVG_DIR + "/" + PREFIX + "children.svg")
+
+
 def figure_child():
     fig = figure.Figure(unit=24)
     w, h = SIZES["E"]
@@ -315,6 +340,7 @@ def figure_dominance():
 if __name__ == "__main__":
     figure_skyline()
     figure_insertions()
+    figure_children()
     figure_child()
     figure_defects()
     figure_guide_area()

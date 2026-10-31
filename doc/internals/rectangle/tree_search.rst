@@ -18,10 +18,9 @@ It is a constructive tree search where a single item is packed at each stage:
 * the children of a node are obtained by inserting one more item, at one of a few candidate positions, in the current (last) bin, or in a new bin if no item fits in the current bin anymore;
 * a node is a *leaf* when all the items are packed.
 
-The figure below shows a node (top), and its children inserting the items 4 and 5 (bottom). The item is always inserted as far to the left as possible, at a height given by the items already packed.
+The figure below shows a node (top), and its children inserting the items E (in both orientations) and F (bottom). The item is always inserted as far to the left as possible, at a height given by the items already packed.
 
-.. image:: ../../img/rectangle_tree_search.png
-   :scale: 100%
+.. image:: ../../img/rectangle_tree_search_children.svg
    :align: center
 
 The tree is far too large to be explored completely, so it is explored by an :ref:`iterative beam search <internals_tree_search>`: at each depth, only the nodes considered the most promising by a *guide* function are expanded, and the search is restarted with more and more nodes kept at each depth. Many nodes are also discarded because another node is at least as good (*dominance*), or because they can't lead to a better solution than the best one found (*bounds*).
