@@ -304,6 +304,18 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
     NodeId sequential_value_correction_subproblem_tree_search_queue_size = 128;
 
     /**
+     * In anytime mode, before running with a queue of size
+     * 'sequential_value_correction_subproblem_tree_search_queue_size', the
+     * sequential value correction algorithm runs with a growing queue size,
+     * like the sequential single knapsack algorithm. This is the number of
+     * iterations for each queue size.
+     *
+     * With limited bin copies (VariableSizedBinPacking), a single iteration
+     * without profit correction might never manage to pack all the items.
+     */
+    Counter anytime_sequential_value_correction_growing_queue_maximum_number_of_iterations = 3;
+
+    /**
      * Size of the queue for the pricing knapsack subproblem of the column
      * generation algorithm.
      */

@@ -483,7 +483,8 @@ void optimize_sequential_single_knapsack(
         const Instance& instance,
         const OptimizeParameters& parameters,
         AlgorithmFormatter& algorithm_formatter,
-        Counter queue_size_max)
+        Counter queue_size_max,
+        Counter maximum_number_of_iterations)
 {
     double maximum_approximation_ratio = parameters.initial_maximum_approximation_ratio;
     for (Counter iteration = 0, growth_factor = 1;; ++iteration) {
@@ -546,9 +547,9 @@ void optimize_sequential_single_knapsack(
         svc_parameters.verbosity_level = 0;
         svc_parameters.timer = parameters.timer;
         svc_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
-        svc_parameters.maximum_number_of_iterations = 1;
-        // No later iteration to adjust profits away from this initial
-        // value - see 'SequentialValueCorrectionParameters::
+        svc_parameters.maximum_number_of_iterations = maximum_number_of_iterations;
+        // With a single iteration, no later iteration to adjust profits away
+        // from this initial value - see 'SequentialValueCorrectionParameters::
         // initial_profit_exponent''s own doc comment.
         svc_parameters.initial_profit_exponent = 1.0;
         svc_parameters.new_solution_callback = [
@@ -593,7 +594,8 @@ void optimize_sequential_value_correction(
                 instance,
                 parameters,
                 algorithm_formatter,
-                parameters.sequential_value_correction_subproblem_tree_search_queue_size - 1);
+                parameters.sequential_value_correction_subproblem_tree_search_queue_size - 1,
+                parameters.anytime_sequential_value_correction_growing_queue_maximum_number_of_iterations);
     }
 
     SequentialValueCorrectionFunction<Instance, Solution> kp_solve
@@ -1411,7 +1413,8 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
                     instance,
                     *context.first,
                     *context.second,
-                    -1);
+                    -1,
+                    1);
         });
     }
     // Sequential value correction.
