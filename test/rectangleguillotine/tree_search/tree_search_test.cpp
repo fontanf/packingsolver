@@ -16,6 +16,9 @@ struct RectangleGuillotineTreeSearchTestParams
     fs::path items_path;
     fs::path parameters_path;
     fs::path certificate_path;
+
+    /** Size of the queue of the tree search; if negative, the default one. */
+    packingsolver::Counter not_anytime_tree_search_queue_size = -1;
 };
 
 inline std::ostream& operator<<(std::ostream& os, const RectangleGuillotineTreeSearchTestParams& test_params)
@@ -44,6 +47,10 @@ TEST_P(RectangleGuillotineTreeSearchTest, RectangleGuillotineTreeSearch)
     OptimizeParameters optimize_parameters;
     optimize_parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytimeSequential;
     optimize_parameters.use_tree_search = true;
+    if (test_params.not_anytime_tree_search_queue_size >= 0) {
+        optimize_parameters.not_anytime_tree_search_queue_size
+            = test_params.not_anytime_tree_search_queue_size;
+    }
     auto output = optimize(instance, optimize_parameters);
 
     SolutionBuilder solution_builder(instance);
@@ -536,6 +543,57 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "rectangleguillotine" / "tests" / "defect_cut_above_item" / "instance.json",
                 fs::path(""),
                 fs::path("data") / "rectangleguillotine" / "tests" / "defect_cut_above_item" / "solution.csv",
+            }, {
+                fs::path("data") / "rectangle" / "roadef2018" / "A1_bins.csv",
+                fs::path("data") / "rectangle" / "roadef2018" / "A1_defects.csv",
+                fs::path("data") / "rectangle" / "roadef2018" / "A1_items.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "roadef2018" / "parameters.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "roadef2018" / "A1_solution.csv",
+            }, {
+                fs::path("data") / "rectangle" / "roadef2018" / "A17_bins.csv",
+                fs::path("data") / "rectangle" / "roadef2018" / "A17_defects.csv",
+                fs::path("data") / "rectangle" / "roadef2018" / "A17_items.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "roadef2018" / "parameters.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "roadef2018" / "A17_solution.csv",
+            }, {
+                fs::path("data") / "rectangle" / "roadef2018" / "A20_bins.csv",
+                fs::path("data") / "rectangle" / "roadef2018" / "A20_defects.csv",
+                fs::path("data") / "rectangle" / "roadef2018" / "A20_items.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "roadef2018" / "parameters.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "roadef2018" / "A20_solution.csv",
+                10000,
+            }, {
+                fs::path("data") / "rectangle" / "roadef2018" / "B5_bins.csv",
+                fs::path("data") / "rectangle" / "roadef2018" / "B5_defects.csv",
+                fs::path("data") / "rectangle" / "roadef2018" / "B5_items.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "roadef2018" / "parameters.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "roadef2018" / "B5_solution.csv",
+            }, {
+                // The first bin is entirely covered by a defect: it stays
+                // empty, and the item goes in the second bin.
+                fs::path(""),
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "bin_packing_defect_covering_bin" / "instance.json",
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "bin_packing_defect_covering_bin" / "solution.csv",
+            }, {
+                // A resource of capacity 1, each item consuming 1: a single
+                // item per bin, although several fit in a bin.
+                fs::path(""),
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "bin_packing_resource_one_item_per_bin" / "instance.json",
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "bin_packing_resource_one_item_per_bin" / "solution.csv",
+            }, {
+                // Items of profit 10, and a penalize resource of capacity 1
+                // and penalty 100, each item consuming 1: packing a second
+                // item gives a profit of 20 - 100, so only one item is
+                // packed.
+                fs::path(""),
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_penalize_resource" / "instance.json",
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_penalize_resource" / "solution.csv",
             }}));
 
 
