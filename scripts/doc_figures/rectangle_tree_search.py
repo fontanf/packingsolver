@@ -13,11 +13,10 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import drawio
-from drawio import BLUE, RED, GREEN, YELLOW, DEFECT
+import figure
+from figure import BLUE, RED, GREEN, YELLOW, DEFECT
 
-DRAWIO_DIR = "doc/internals"
-PNG_DIR = "doc/img"
+SVG_DIR = "doc/img"
 PREFIX = "rectangle_tree_search_"
 
 W, H = 10, 6  # Bin.
@@ -154,7 +153,7 @@ def draw_skyline(fig, segments, ox, oy, color="#b85450", width=3, dashed=False):
 ################################################################################
 
 def figure_skyline():
-    fig = drawio.Figure(unit=30)
+    fig = figure.Figure(unit=30)
     draw_items(fig, NODE, 0, 0)
     fig.bin(0, 0, W, H)
     draw_skyline(fig, NODE.segments, 0, 0)
@@ -170,12 +169,11 @@ def figure_skyline():
                     s.ys, s.ye, item, s.xe),
                 w=9, align="left")
     fig.polyline([(0, 0), (W + 0.3, 0)], "strokeColor=#999999;dashed=1;")
-    fig.write(DRAWIO_DIR + "/" + PREFIX + "skyline.drawio",
-              PNG_DIR + "/" + PREFIX + "skyline.png")
+    fig.write(SVG_DIR + "/" + PREFIX + "skyline.svg")
 
 
 def figure_insertions():
-    fig = drawio.Figure(unit=18)
+    fig = figure.Figure(unit=18)
     panels = []
     for label, rotate in (("E", False), ("E", True)):
         w, h = SIZES[label]
@@ -210,12 +208,11 @@ def figure_insertions():
         where = "on the floor" if pos == 0 else "above " + NODE.segments[pos - 1].item
         fig.text(ox + W / 2, oy - 0.9, "{}, {}".format(label, where), w=W + 1, size=11)
         fig.text(ox + W / 2, oy - 1.9, status, w=W + 1, size=11)
-    fig.write(DRAWIO_DIR + "/" + PREFIX + "insertions.drawio",
-              PNG_DIR + "/" + PREFIX + "insertions.png")
+    fig.write(SVG_DIR + "/" + PREFIX + "insertions.svg")
 
 
 def figure_child():
-    fig = drawio.Figure(unit=24)
+    fig = figure.Figure(unit=24)
     w, h = SIZES["E"]
     position, _ = insertion(NODE.segments, w, h, 1)
     node = NODE.insert("E", w, h, 1)
@@ -235,12 +232,11 @@ def figure_child():
             s.ys, s.ye, s.item if s.item is not None else "floor", s.xe) for s in n.segments]
         for i, line in enumerate(lines):
             fig.text(ox + W / 2, -1 - 0.8 * i, line, w=W, size=11)
-    fig.write(DRAWIO_DIR + "/" + PREFIX + "child.drawio",
-              PNG_DIR + "/" + PREFIX + "child.png")
+    fig.write(SVG_DIR + "/" + PREFIX + "child.svg")
 
 
 def figure_defects():
-    fig = drawio.Figure(unit=24)
+    fig = figure.Figure(unit=24)
     defect = (3, 0, 2, 2)
     w, h = 4, 2
     segments = new_bin_skyline()
@@ -259,12 +255,11 @@ def figure_defects():
     fig.rect(ox + position[0], position[1], w, h, "G", GREEN)
     fig.bin(ox, 0, W, H)
     fig.text(ox + W / 2, -0.8, "above the defect: x = {}, y = {}".format(*position), w=W + 2)
-    fig.write(DRAWIO_DIR + "/" + PREFIX + "defects.drawio",
-              PNG_DIR + "/" + PREFIX + "defects.png")
+    fig.write(SVG_DIR + "/" + PREFIX + "defects.svg")
 
 
 def figure_guide_area():
-    fig = drawio.Figure(unit=24)
+    fig = figure.Figure(unit=24)
     node = NODE
     xs_max = max(x for _, x, _, _, _ in node.items)
     item_area = sum(w * h for _, _, _, w, h in node.items)
@@ -291,12 +286,11 @@ def figure_guide_area():
     draw_skyline(fig, node.segments, ox, 0)
     fig.text(ox + W / 2, -0.8, "area to the left of the skyline = {}".format(current_area), w=W + 2)
     fig.text(ox + W / 2, -1.6, "waste = {} - {} = {}".format(current_area, item_area, current_area - item_area), w=W + 2)
-    fig.write(DRAWIO_DIR + "/" + PREFIX + "guide_area.drawio",
-              PNG_DIR + "/" + PREFIX + "guide_area.png")
+    fig.write(SVG_DIR + "/" + PREFIX + "guide_area.svg")
 
 
 def figure_dominance():
-    fig = drawio.Figure(unit=24)
+    fig = figure.Figure(unit=24)
     # Same items (A and C), packed in a different order.
     node_1 = build([("C", 0), ("A", 0)])
     node_2 = build([("A", 0), ("C", 0)])
@@ -315,8 +309,7 @@ def figure_dominance():
     draw_skyline(fig, node_1.segments, ox, 0, color="#82b366", width=3)
     fig.text(ox + W / 2, -0.8, "the skyline of node 1 is never", w=W + 2)
     fig.text(ox + W / 2, -1.5, "to the right of the one of node 2", w=W + 2)
-    fig.write(DRAWIO_DIR + "/" + PREFIX + "dominance.drawio",
-              PNG_DIR + "/" + PREFIX + "dominance.png")
+    fig.write(SVG_DIR + "/" + PREFIX + "dominance.svg")
 
 
 if __name__ == "__main__":

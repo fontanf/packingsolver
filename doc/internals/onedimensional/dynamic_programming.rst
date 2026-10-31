@@ -20,7 +20,7 @@ If the instance is a classical knapsack problem, it is therefore solved to optim
 
 **Copies.** An item type with :math:`q` copies is turned into 0-1 items by binary decomposition: items of 1, 2, 4, ... copies, the last one with the remaining copies. Any number of copies from 0 to :math:`q` is then a sum of a subset of these items. The items longer than the bin are left out: when an item of :math:`2^k` copies doesn't fit, the larger numbers of copies don't fit either.
 
-.. image:: ../../img/onedimensional_dynamic_programming_binary_decomposition.png
+.. image:: ../../img/onedimensional_dynamic_programming_binary_decomposition.svg
    :scale: 100%
    :align: center
 

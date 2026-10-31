@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="404.0" height="256.8" viewBox="-42.0 -202 404.0 256.8">
+<rect x="-42.0" y="-202" width="404.0" height="256.8" fill="#ffffff"/>
+<rect x="0" y="-192" width="320" height="192" fill="none" stroke="#000000" stroke-width="2"/>
+<polyline points="128,-192 128,-160 192,-160 192,-64 256,-64 256,0" fill="none" stroke="#b85450" stroke-width="5"/>
+<polyline points="128,-192 128,-128 160,-128 160,-64 256,-64 256,0" fill="none" stroke="#82b366" stroke-width="3"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="160.0" y="16.0">green: front of node 1; red: front of node 2</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="160.0" y="35.2">node 1 dominates node 2</tspan></text>
+</svg>

@@ -10,17 +10,16 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import drawio
-from drawio import BLUE, RED, GREEN, YELLOW, GRAY
+import figure
+from figure import BLUE, RED, GREEN, YELLOW, GRAY
 
-DRAWIO_DIR = "doc/internals"
-PNG_DIR = "doc/img"
+SVG_DIR = "doc/img"
 PREFIX = "rectangle_benders_decomposition_"
 
 
 def figure_iteration():
     """Flow of an iteration."""
-    fig = drawio.Figure(unit=30)
+    fig = figure.Figure(unit=30)
     bw, bh = 7, 1.2
 
     def box(x, y, label, style=BLUE):
@@ -65,13 +64,12 @@ def figure_iteration():
     y = steps[-1][0]
     fig.polyline([(x - bw / 2, y), (x - bw / 2 - 1, y), (x - bw / 2 - 1, 0), (x - bw / 2, 0)],
                  "strokeColor=#333333;", arrow=True)
-    fig.write(DRAWIO_DIR + "/" + PREFIX + "iteration.drawio",
-              PNG_DIR + "/" + PREFIX + "iteration.png")
+    fig.write(SVG_DIR + "/" + PREFIX + "iteration.svg")
 
 
 def figure_triplet_shapes():
     """The 8 guillotine arrangements of three items."""
-    fig = drawio.Figure(unit=16)
+    fig = figure.Figure(unit=16)
     sizes = {1: (4, 3), 2: (3, 2), 3: (2, 2)}
 
     def row(items):
@@ -110,13 +108,12 @@ def figure_triplet_shapes():
         height = max(y + sizes[i][1] for i, x, y in placed)
         fig.rect(ox, oy, width, height, "", "fillColor=none;strokeColor=#000000;dashed=1;")
         fig.text(ox + 5, oy - 1, title, w=12, size=11)
-    fig.write(DRAWIO_DIR + "/" + PREFIX + "triplet_shapes.drawio",
-              PNG_DIR + "/" + PREFIX + "triplet_shapes.png")
+    fig.write(SVG_DIR + "/" + PREFIX + "triplet_shapes.svg")
 
 
 def figure_minimal_subsets():
     """Depth-first search of the infeasible subsets of a selection."""
-    fig = drawio.Figure(unit=28)
+    fig = figure.Figure(unit=28)
     bw, bh = 2.6, 0.8
     # (label, x, y, status, parent): status 'infeasible', 'feasible', 'cut'.
     nodes = [
@@ -146,8 +143,7 @@ def figure_minimal_subsets():
             px, py = nodes[parent][1], nodes[parent][2]
             fig.arrow(px, py - bh / 2, x, y + bh / 2, "strokeColor=#666666;")
     fig.text(7, -5.3, "red: doesn't fit; green: fits; dashed: 3 items, known to fit; thick: no-good cut", w=16, size=12)
-    fig.write(DRAWIO_DIR + "/" + PREFIX + "minimal_subsets.drawio",
-              PNG_DIR + "/" + PREFIX + "minimal_subsets.png")
+    fig.write(SVG_DIR + "/" + PREFIX + "minimal_subsets.svg")
 
 
 if __name__ == "__main__":

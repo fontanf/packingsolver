@@ -61,7 +61,7 @@ Such transformations are *dual feasible functions*: a function :math:`f` such th
 
 The figure below shows the three functions for :math:`C = 10` and :math:`k = 3`, scaled so that :math:`f(C)` is at the top (for :math:`f_1`, all the medium items have length 3). The dashed line is the identity, scaled the same way: the short lengths are mostly rounded down, and the long ones up.
 
-.. image:: ../../img/rectangle_dual_feasible_functions_functions.png
+.. image:: ../../img/rectangle_dual_feasible_functions_functions.svg
    :scale: 100%
    :align: center
 

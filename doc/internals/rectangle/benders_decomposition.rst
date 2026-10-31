@@ -69,7 +69,7 @@ Iterations
 
 At each iteration, the master problem is solved, then the bins of its solution are checked, from the cheapest checks to the most expensive ones. As soon as a check adds cuts, the master problem is solved again.
 
-.. image:: ../../img/rectangle_benders_decomposition_iteration.png
+.. image:: ../../img/rectangle_benders_decomposition_iteration.svg
    :scale: 100%
    :align: center
 
@@ -77,7 +77,7 @@ At each iteration, the master problem is solved, then the bins of its solution a
 2. **Dual feasible functions.** For each bin, the most violated inequality derived from the :ref:`dual feasible functions <internals_rectangle_dual_feasible_functions>` is searched. Such an inequality is valid for any selection of items in a bin of this type, so it is added as a permanent cut. If one is found for some bin, the master problem is solved again.
 3. **Incompatible triplets.** For each bin, the triplets of items of the bin which can never fit together are searched. Three rectangles are considered to fit together in a bin if and only if they fit in one of the 8 *guillotine arrangements* below, in some orientations: all three in a row, all three in a column, or two of them side by side (or one above the other) and the third one above them (or to their right). This was checked exhaustively against a search over the positions of the items, on tens of thousands of random cases; it doesn't hold for four items. If none of the 8 arrangements fits, the triplet is added as a permanent cut, forbidding these three items in a bin of this type. If one is found for some bin, the master problem is solved again.
 
-   .. image:: ../../img/rectangle_benders_decomposition_triplet_shapes.png
+   .. image:: ../../img/rectangle_benders_decomposition_triplet_shapes.svg
       :scale: 100%
       :align: center
 
@@ -97,7 +97,7 @@ The selections of at most 3 items are known to fit: the incompatible pairs and t
 
 In the example below, the selection *abcde* doesn't fit. Removing *a* gives *bcde*, which doesn't fit either; removing any further item of *bcde* gives a selection of 3 items, which fits, so *bcde* becomes a cut. In the same way, *abde* becomes a cut. The selections *acde*, *abce* and *abcd* fit.
 
-.. image:: ../../img/rectangle_benders_decomposition_minimal_subsets.png
+.. image:: ../../img/rectangle_benders_decomposition_minimal_subsets.svg
    :scale: 100%
    :align: center
 

@@ -40,7 +40,7 @@ When the queue of the current depth is empty, the search moves to the next depth
 
 The figure below shows the first two depths with :math:`w = 2`. The values are the guides (smaller is better). At depth 1, the two nodes with the smallest guides are kept. At depth 2, the node of guide 1.06 is dominated by another node of the queue, so the nodes of guides 1.04 and 1.08 are kept.
 
-.. image:: ../img/tree_search_beam_search.png
+.. image:: ../img/tree_search_beam_search.svg
    :scale: 100%
    :align: center
 
@@ -57,7 +57,7 @@ Each beam search uses the best solution found by the previous ones for its bound
 
 The figure below shows the nodes kept (in green) by successive beam searches on a small tree whose nodes are ordered by guide from left to right. With :math:`w = 6`, no queue is ever full, so the tree is explored completely.
 
-.. image:: ../img/tree_search_restarts.png
+.. image:: ../img/tree_search_restarts.svg
    :scale: 100%
    :align: center
 

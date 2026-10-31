@@ -9,11 +9,10 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import drawio
-from drawio import BLUE, RED, GREEN
+import figure
+from figure import BLUE, RED, GREEN
 
-DRAWIO_DIR = "doc/internals"
-PNG_DIR = "doc/img"
+SVG_DIR = "doc/img"
 PREFIX = "rectangle_bar_relaxation_"
 
 W, H = 6, 4
@@ -22,7 +21,7 @@ ITEMS = [("A", 0, 0, 4, 2, BLUE), ("B", 4, 0, 2, 3, RED), ("C", 0, 2, 3, 2, GREE
 
 def figure_bars():
     """A packing, and the row-bars and column-bars it gives."""
-    fig = drawio.Figure(unit=30)
+    fig = figure.Figure(unit=30)
     for name, x, y, w, h, style in ITEMS:
         fig.rect(x, y, w, h, name, style)
     for r in range(1, H):
@@ -51,8 +50,7 @@ def figure_bars():
                 y += h
         fig.rect(ox + c + 0.1, 0, 0.8, H, "", "fillColor=none;strokeColor=#000000;strokeWidth=2;")
     fig.text(ox + W / 2, -0.6, "column-bars: capacity {}".format(H), w=W + 2)
-    fig.write(DRAWIO_DIR + "/" + PREFIX + "bars.drawio",
-              PNG_DIR + "/" + PREFIX + "bars.png")
+    fig.write(SVG_DIR + "/" + PREFIX + "bars.svg")
 
 
 if __name__ == "__main__":

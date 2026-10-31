@@ -24,7 +24,7 @@ Master problem
 
 On the left of the figure below, a solution of the master problem: the heights of the columns don't exceed the height of the bin, but items A and B are cut into slices at different heights. On the right, the y-check finds y-positions for the same x-positions:
 
-.. image:: ../../img/rectangle_benders_decomposition_contiguity_relaxation.png
+.. image:: ../../img/rectangle_benders_decomposition_contiguity_relaxation.svg
    :scale: 100%
    :align: center
 
@@ -85,7 +85,7 @@ Given the x-positions (and orientations) of the selected units, the y-check look
 
 **Branch-and-bound.** A node stores the *skyline* of the units placed: the height used in each column. The *niche* is the leftmost run of columns at the lowest height. The children of a node place, at the bottom of the niche, each unplaced unit lying entirely inside it (by increasing x-position); a last child *closes* the niche, raising it to the height of its lowest neighbor, without placing anything. When a unit is placed, the columns of the niche to its left are raised to its top (or to the height of the left neighbor of the niche, if smaller): any other unit placed there later would only be a different order of the same packing.
 
-.. image:: ../../img/rectangle_benders_decomposition_contiguity_niche.png
+.. image:: ../../img/rectangle_benders_decomposition_contiguity_niche.svg
    :scale: 100%
    :align: center
 
@@ -121,7 +121,7 @@ Then the y-check is run on its solution:
 
 The cut forbids the remaining units at all their candidate placements in their windows, in the same orientation. In the example below, B overlaps A and C, which don't overlap each other: A can move as far as x = 6 and C as far as x = 1 while still overlapping B.
 
-.. image:: ../../img/rectangle_benders_decomposition_contiguity_lifted_windows.png
+.. image:: ../../img/rectangle_benders_decomposition_contiguity_lifted_windows.svg
    :scale: 100%
    :align: center
 

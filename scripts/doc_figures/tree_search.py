@@ -10,11 +10,10 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import drawio
-from drawio import GREEN, GRAY
+import figure
+from figure import GREEN, GRAY
 
-DRAWIO_DIR = "doc/internals"
-PNG_DIR = "doc/img"
+SVG_DIR = "doc/img"
 PREFIX = "tree_search_"
 
 DISCARDED = GRAY + "dashed=1;"
@@ -23,7 +22,7 @@ DISCARDED = GRAY + "dashed=1;"
 def figure_beam_search():
     """Beam search with a queue of size 2: at each depth, only the 2 nodes
     with the smallest guides are kept."""
-    fig = drawio.Figure(unit=30)
+    fig = figure.Figure(unit=30)
     bw, bh = 1.6, 0.7
 
     def node(x, y, label, style):
@@ -48,14 +47,13 @@ def figure_beam_search():
     for k, text in enumerate(("depth 0", "depth 1", "depth 2")):
         fig.text(-1.5, -2 * k, text, w=2.5, size=12)
     fig.text(6, -5.8, "green: kept in the queue of size 2; gray: discarded; values: guides", w=14, size=12)
-    fig.write(DRAWIO_DIR + "/" + PREFIX + "beam_search.drawio",
-              PNG_DIR + "/" + PREFIX + "beam_search.png")
+    fig.write(SVG_DIR + "/" + PREFIX + "beam_search.svg")
 
 
 def figure_restarts():
     """Nodes kept by the successive beam searches on a small tree, whose
     nodes are ordered by guide from left to right at each depth."""
-    fig = drawio.Figure(unit=24)
+    fig = figure.Figure(unit=24)
     r = 0.35
     # Tree: 3 children at depth 1, 2 children each at depth 2.
     depth_1 = [0, 1, 2]
@@ -92,8 +90,7 @@ def figure_restarts():
         fig.text(ox + 3.75, -5.0, title, w=8, size=12)
         if w == 6:
             fig.text(ox + 3.75, -5.6, "the tree is explored completely", w=8, size=12)
-    fig.write(DRAWIO_DIR + "/" + PREFIX + "restarts.drawio",
-              PNG_DIR + "/" + PREFIX + "restarts.png")
+    fig.write(SVG_DIR + "/" + PREFIX + "restarts.svg")
 
 
 if __name__ == "__main__":

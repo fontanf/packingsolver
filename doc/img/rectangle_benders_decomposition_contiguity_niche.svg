@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="608.0" height="188.0" viewBox="-38.0 -150 608.0 188.0">
+<defs><pattern id="hatch0" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" stroke="#b85450" stroke-width="2"/></pattern></defs>
+<rect x="-38.0" y="-150" width="608.0" height="188.0" fill="#ffffff"/>
+<rect x="0" y="-84" width="28" height="84" fill="#f5f5f5" stroke="#bbbbbb" stroke-width="1"/>
+<rect x="28" y="-84" width="28" height="84" fill="#f5f5f5" stroke="#bbbbbb" stroke-width="1"/>
+<rect x="56" y="-28" width="28" height="28" fill="#f5f5f5" stroke="#bbbbbb" stroke-width="1"/>
+<rect x="84" y="-28" width="28" height="28" fill="#f5f5f5" stroke="#bbbbbb" stroke-width="1"/>
+<rect x="112" y="-28" width="28" height="28" fill="#f5f5f5" stroke="#bbbbbb" stroke-width="1"/>
+<rect x="140" y="-56" width="28" height="56" fill="#f5f5f5" stroke="#bbbbbb" stroke-width="1"/>
+<rect x="168" y="-112" width="28" height="112" fill="#f5f5f5" stroke="#bbbbbb" stroke-width="1"/>
+<rect x="196" y="-112" width="28" height="112" fill="#f5f5f5" stroke="#bbbbbb" stroke-width="1"/>
+<polyline points="0,-84 28,-84 28,-84 56,-84 56,-28 84,-28 84,-28 112,-28 112,-28 140,-28 140,-56 168,-56 168,-112 196,-112 196,-112 224,-112" fill="none" stroke="#b85450" stroke-width="3"/>
+<rect x="0" y="-140" width="224" height="140" fill="none" stroke="#000000" stroke-width="2"/>
+<rect x="56" y="-35.0" width="84" height="7.0" fill="#fff2cc" stroke="#d6b656" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="98.0" y="-44.8">niche</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="112.0" y="19.6">niche: lowest columns, leftmost</tspan></text>
+<rect x="280" y="-84" width="28" height="84" fill="#f5f5f5" stroke="#bbbbbb" stroke-width="1"/>
+<rect x="308" y="-84" width="28" height="84" fill="#f5f5f5" stroke="#bbbbbb" stroke-width="1"/>
+<rect x="336" y="-84" width="28" height="84" fill="#f5f5f5" stroke="#bbbbbb" stroke-width="1"/>
+<rect x="364" y="-84" width="28" height="84" fill="#f5f5f5" stroke="#bbbbbb" stroke-width="1"/>
+<rect x="392" y="-84" width="28" height="84" fill="#f5f5f5" stroke="#bbbbbb" stroke-width="1"/>
+<rect x="420" y="-56" width="28" height="56" fill="#f5f5f5" stroke="#bbbbbb" stroke-width="1"/>
+<rect x="448" y="-112" width="28" height="112" fill="#f5f5f5" stroke="#bbbbbb" stroke-width="1"/>
+<rect x="476" y="-112" width="28" height="112" fill="#f5f5f5" stroke="#bbbbbb" stroke-width="1"/>
+<polyline points="280,-84 308,-84 308,-84 336,-84 336,-84 364,-84 364,-84 392,-84 392,-84 420,-84 420,-56 448,-56 448,-112 476,-112 476,-112 504,-112" fill="none" stroke="#b85450" stroke-width="3"/>
+<rect x="280" y="-140" width="224" height="140" fill="none" stroke="#000000" stroke-width="2"/>
+<rect x="364" y="-84" width="56" height="56" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="392.0" y="-56.0">item</tspan></text>
+<rect x="336" y="-84" width="28" height="56" fill="#f8cecc"/>
+<rect x="336" y="-84" width="28" height="56" fill="url(#hatch0)" stroke="#b85450" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="392.0" y="19.6">item placed at x = 3: the gap on its left is closed</tspan></text>
+</svg>

@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="492.5" height="213.5" viewBox="-92.5 -20.5 492.5 213.5">
+<defs><marker id="arrow0" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#666666"/></marker></defs>
+<rect x="-92.5" y="-20.5" width="492.5" height="213.5" fill="#ffffff"/>
+<rect x="156.0" y="-10.5" width="48.0" height="21.0" fill="#f5f5f5" stroke="#666666" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#333333" text-anchor="middle" dominant-baseline="central"><tspan x="180.0" y="0.0">root</tspan></text>
+<polyline points="180,10.5 45.0,49.5" fill="none" stroke="#666666" stroke-width="1" marker-end="url(#arrow0)"/>
+<rect x="21.0" y="49.5" width="48.0" height="21.0" fill="#f5f5f5" stroke="#666666" stroke-width="1" stroke-dasharray="3 3"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#333333" text-anchor="middle" dominant-baseline="central"><tspan x="45.0" y="60.0">1.30</tspan></text>
+<polyline points="180,10.5 135.0,49.5" fill="none" stroke="#666666" stroke-width="1" marker-end="url(#arrow0)"/>
+<rect x="111.0" y="49.5" width="48.0" height="21.0" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="135.0" y="60.0">1.05</tspan></text>
+<polyline points="180,10.5 225.0,49.5" fill="none" stroke="#666666" stroke-width="1" marker-end="url(#arrow0)"/>
+<rect x="201.0" y="49.5" width="48.0" height="21.0" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="225.0" y="60.0">1.10</tspan></text>
+<polyline points="180,10.5 315.0,49.5" fill="none" stroke="#666666" stroke-width="1" marker-end="url(#arrow0)"/>
+<rect x="291.0" y="49.5" width="48.0" height="21.0" fill="#f5f5f5" stroke="#666666" stroke-width="1" stroke-dasharray="3 3"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#333333" text-anchor="middle" dominant-baseline="central"><tspan x="315.0" y="60.0">1.25</tspan></text>
+<polyline points="135.0,70.5 75.0,109.5" fill="none" stroke="#666666" stroke-width="1" marker-end="url(#arrow0)"/>
+<rect x="51.0" y="109.5" width="48.0" height="21.0" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="75.0" y="120.0">1.04</tspan></text>
+<polyline points="135.0,70.5 135.0,109.5" fill="none" stroke="#666666" stroke-width="1" marker-end="url(#arrow0)"/>
+<rect x="111.0" y="109.5" width="48.0" height="21.0" fill="#f5f5f5" stroke="#666666" stroke-width="1" stroke-dasharray="3 3"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#333333" text-anchor="middle" dominant-baseline="central"><tspan x="135.0" y="120.0">1.12</tspan></text>
+<polyline points="225.0,70.5 195.0,109.5" fill="none" stroke="#666666" stroke-width="1" marker-end="url(#arrow0)"/>
+<rect x="171.0" y="109.5" width="48.0" height="21.0" fill="#f5f5f5" stroke="#666666" stroke-width="1" stroke-dasharray="3 3"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#333333" text-anchor="middle" dominant-baseline="central"><tspan x="195.0" y="120.0">1.06</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="195.0" y="144.0">dominated</tspan></text>
+<polyline points="225.0,70.5 255.0,109.5" fill="none" stroke="#666666" stroke-width="1" marker-end="url(#arrow0)"/>
+<rect x="231.0" y="109.5" width="48.0" height="21.0" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="255.0" y="120.0">1.08</tspan></text>
+<polyline points="225.0,70.5 315.0,109.5" fill="none" stroke="#666666" stroke-width="1" marker-end="url(#arrow0)"/>
+<rect x="291.0" y="109.5" width="48.0" height="21.0" fill="#f5f5f5" stroke="#666666" stroke-width="1" stroke-dasharray="3 3"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#333333" text-anchor="middle" dominant-baseline="central"><tspan x="315.0" y="120.0">1.20</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="-45.0" y="0.0">depth 0</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="-45.0" y="60.0">depth 1</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="-45.0" y="120.0">depth 2</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="180.0" y="174.0">green: kept in the queue of size 2; gray: discarded; values: guides</tspan></text>
+</svg>
