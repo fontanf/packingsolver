@@ -232,9 +232,10 @@ struct BendersDecompositionParameters: packingsolver::Parameters<Instance, Solut
  * (not 'alpha' copies at profit 1: unlike the original cut's items, which
  * really do represent that many physical units, j* is a single physical
  * item whose *equivalent covering worth* happens to be 'alpha') - and is
- * appended to the same, single cut being built, with its own row
- * contribution capped at 'alpha' via 'threshold_schedule' exactly as for
- * the original items.
+ * appended to the same, single cut being built: its first copy consumes
+ * 'alpha' and its other copies nothing, so that its row contribution is
+ * 'alpha' as soon as it is in the bin (a 'threshold_schedule(alpha)' would
+ * instead only reach 'alpha' with 'alpha' copies of it).
  *
  * Unlike a purely geometric domination check (fits within the footprint of
  * some subset of 'S', therefore forces at least that much room), this
