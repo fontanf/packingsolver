@@ -102,7 +102,7 @@ Encoding the copies of an item type in a bin as "at least :math:`c` copies" vari
 
 **Symmetry breaking.** The bin instances of a bin type are interchangeable. The item types are sorted by increasing number of copies, and the copies get consecutive labels in this order; let :math:`S_i` be the label of the last copy of item type :math:`i`, counting only the item types which fit in bin type :math:`t`. Any solution can be relabeled so that its bin instances are ordered by increasing smallest label of the items they contain. Then the bin instance of rank :math:`k` (from 0) only contains labels larger than :math:`k`, so it contains at most :math:`\max(0, S_i - k)` copies of item type :math:`i`, and the variables :math:`x_{i,t,k,c}` beyond this number are not created. In the example below, item type A has a single copy, labeled 1: only the first bin can contain it.
 
-.. image:: ../../img/onedimensional_milp_assignment_symmetry_breaking.png
+.. image:: ../../img/onedimensional_milp_assignment_symmetry_breaking.svg
    :scale: 100%
    :align: center
 

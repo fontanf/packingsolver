@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="474.4" height="276.0" viewBox="-74.0 -202 474.4 276.0">
+<rect x="-74.0" y="-202" width="474.4" height="276.0" fill="#ffffff"/>
+<rect x="0" y="-192" width="128" height="192" fill="#fff2cc" stroke="none" stroke-width="1"/>
+<rect x="128" y="-64" width="128" height="64" fill="#fff2cc" stroke="none" stroke-width="1"/>
+<rect x="128" y="-128" width="64" height="64" fill="#fff2cc" stroke="none" stroke-width="1"/>
+<rect x="0" y="-96" width="128" height="96" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="64.0" y="-48.0">A</tspan></text>
+<rect x="0" y="-160" width="64" height="64" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="32.0" y="-128.0">B</tspan></text>
+<rect x="64" y="-128" width="64" height="32" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="96.0" y="-112.0">C</tspan></text>
+<rect x="128" y="-64" width="96" height="64" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="176.0" y="-32.0">D</tspan></text>
+<rect x="128" y="-128" width="64" height="64" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="160.0" y="-96.0">E</tspan></text>
+<polyline points="128,0 128,-192" fill="none" stroke="#b85450" stroke-width="3"/>
+<polyline points="256,0 256,-192" fill="none" stroke="#b85450" stroke-width="3" stroke-dasharray="3 3"/>
+<polyline points="0,-96 128,-96" fill="none" stroke="#6c8ebf" stroke-width="3"/>
+<polyline points="0,-160 128,-160" fill="none" stroke="#6c8ebf" stroke-width="3"/>
+<polyline points="128,-64 256,-64" fill="none" stroke="#6c8ebf" stroke-width="3"/>
+<polyline points="128,-128 256,-128" fill="none" stroke="#6c8ebf" stroke-width="3" stroke-dasharray="3 3"/>
+<polyline points="64,-96 64,-160" fill="none" stroke="#82b366" stroke-width="3"/>
+<polyline points="192,-64 192,-128" fill="none" stroke="#82b366" stroke-width="3" stroke-dasharray="3 3"/>
+<rect x="0" y="-192" width="320" height="192" fill="none" stroke="#000000" stroke-width="2"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="128.0" y="12.8">x1_prev</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="192.0" y="12.8">x3_curr</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="256.0" y="12.8">x1_curr</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#000000" text-anchor="start" dominant-baseline="central"><tspan x="326.4" y="-64.0">y2_prev</tspan></text>
+<polyline points="256,-64 323.2,-64" fill="none" stroke="#999999" stroke-width="1" stroke-dasharray="3 3"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#000000" text-anchor="start" dominant-baseline="central"><tspan x="326.4" y="-128.0">y2_curr</tspan></text>
+<polyline points="256,-128 323.2,-128" fill="none" stroke="#999999" stroke-width="1" stroke-dasharray="3 3"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="160.0" y="35.2">red: 1-cuts, blue: 2-cuts, green: 3-cuts, dashed: current cuts</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="160.0" y="54.4">yellow: current area</tspan></text>
+</svg>

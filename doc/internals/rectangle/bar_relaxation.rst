@@ -17,7 +17,7 @@ It is the *bar relaxation* of Scheithauer (1999), in two dimensions, generalized
 
 In the figure below, the packing (left) gives 4 row-bars of capacity 6 (middle) and 6 column-bars of capacity 4 (right). Item A, of size 4 × 2, takes a length 4 in 2 row-bars, and a length 2 in 4 column-bars. The relaxation forgets which bars an item uses, as long as the bars aren't overfilled: the pieces of an item don't have to be in consecutive bars, nor at the same position in each bar.
 
-.. image:: ../../img/rectangle_bar_relaxation_bars.png
+.. image:: ../../img/rectangle_bar_relaxation_bars.svg
    :scale: 100%
    :align: center
 

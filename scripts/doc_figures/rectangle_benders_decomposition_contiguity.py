@@ -11,11 +11,10 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import drawio
-from drawio import BLUE, RED, GREEN, YELLOW, GRAY
+import figure
+from figure import BLUE, RED, GREEN, YELLOW, GRAY
 
-DRAWIO_DIR = "doc/internals"
-PNG_DIR = "doc/img"
+SVG_DIR = "doc/img"
 PREFIX = "rectangle_benders_decomposition_contiguity_"
 
 STYLES = {"A": BLUE, "B": RED, "C": GREEN, "D": YELLOW}
@@ -25,7 +24,7 @@ def figure_relaxation():
     """A solution of the master problem, where the slices of an item may be
     at different heights in different columns, and the packing found by the
     y-check from its x-positions."""
-    fig = drawio.Figure(unit=36)
+    fig = figure.Figure(unit=36)
     W, H = 4, 4
     # Item: (x, width, height).
     items = {"A": (0, 2, 2), "B": (1, 2, 1), "C": (2, 2, 2), "D": (1, 2, 1)}
@@ -51,8 +50,7 @@ def figure_relaxation():
     fig.bin(ox, 0, W, H)
     fig.text(ox + W / 2, -0.5, "y-check: y-positions", w=W + 3)
     fig.text(ox + W / 2, -1.0, "for the same x-positions", w=W + 3)
-    fig.write(DRAWIO_DIR + "/" + PREFIX + "relaxation.drawio",
-              PNG_DIR + "/" + PREFIX + "relaxation.png")
+    fig.write(SVG_DIR + "/" + PREFIX + "relaxation.svg")
 
 
 def y_check(items, W, H):
@@ -74,7 +72,7 @@ def y_check(items, W, H):
 def figure_niche():
     """A branching step of the y-check: the niche, a candidate, the closed
     gap."""
-    fig = drawio.Figure(unit=28)
+    fig = figure.Figure(unit=28)
     W, H = 8, 5
     skyline = [3, 3, 1, 1, 1, 2, 4, 4]
 
@@ -104,8 +102,7 @@ def figure_niche():
     fig.rect(ox + x, 1, w, h, "item", BLUE)
     fig.rect(ox + 2, 1, x - 2, after[2] - 1, "", RED + "fillStyle=hatch;")
     fig.text(ox + W / 2, -0.7, "item placed at x = 3: the gap on its left is closed", w=W + 4)
-    fig.write(DRAWIO_DIR + "/" + PREFIX + "niche.drawio",
-              PNG_DIR + "/" + PREFIX + "niche.png")
+    fig.write(SVG_DIR + "/" + PREFIX + "niche.svg")
 
 
 def lifted_windows(units, W):
@@ -128,7 +125,7 @@ def lifted_windows(units, W):
 
 
 def figure_lifted_windows():
-    fig = drawio.Figure(unit=30)
+    fig = figure.Figure(unit=30)
     W = 12
     units = [(1, 4), (4, 3), (6, 4)]
     names = ["A", "B", "C"]
@@ -144,8 +141,7 @@ def figure_lifted_windows():
     fig.polyline([(0, 1), (W, 1)], "strokeColor=#666666;")
     fig.text(0, 1.6, "0", w=1, size=11)
     fig.text(W, 1.6, str(W), w=1, size=11)
-    fig.write(DRAWIO_DIR + "/" + PREFIX + "lifted_windows.drawio",
-              PNG_DIR + "/" + PREFIX + "lifted_windows.png")
+    fig.write(SVG_DIR + "/" + PREFIX + "lifted_windows.svg")
     return windows
 
 

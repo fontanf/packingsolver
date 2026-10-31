@@ -50,7 +50,7 @@ When the instance has at most 3 item types, the blocks containing waste (whose i
 
 The figure below shows the 24 blocks generated for the example, in the order in which they are generated, and examples of blocks dropped because they contain waste:
 
-.. image:: ../../img/rectangle_tree_search_maximal_spaces_blocks.png
+.. image:: ../../img/rectangle_tree_search_maximal_spaces_blocks.svg
    :scale: 100%
    :align: center
 
@@ -71,7 +71,7 @@ At the root, the only maximal empty space is the effective bin. The defects of t
 
 In the figure below, after placing A in the bottom-left corner, the empty space of the bin is described by 2 maximal spaces (in yellow under the node), which overlap: the space to the right of A, and the space above A. Placing three B on the right of the bin cuts both of them.
 
-.. image:: ../../img/rectangle_tree_search_maximal_spaces_spaces.png
+.. image:: ../../img/rectangle_tree_search_maximal_spaces_spaces.svg
    :scale: 100%
    :align: center
 
@@ -99,7 +99,7 @@ Two sets of parameters are used: :math:`(\alpha, \beta, \gamma, \delta) = (3.70,
 
 The figure below shows candidate insertions in the selected space of the previous figure, with the sides in contact in red. The last block leaves on its left a gap of width 1, which no remaining item can fill (in hatched red): its area-loss factor is :math:`(5 + 0) \times (2 + 4) / (6 \times 6) = 0.83`.
 
-.. image:: ../../img/rectangle_tree_search_maximal_spaces_fitness.png
+.. image:: ../../img/rectangle_tree_search_maximal_spaces_fitness.svg
    :scale: 100%
    :align: center
 
@@ -112,7 +112,7 @@ A node is evaluated by completing it greedily: from the node, the insertion of b
 
 The figure below shows the first three children of the node of the previous figures (the block they place in green), and their greedy completions (dashed). The three children lead to a completion packing all the items.
 
-.. image:: ../../img/rectangle_tree_search_maximal_spaces_greedy.png
+.. image:: ../../img/rectangle_tree_search_maximal_spaces_greedy.svg
    :scale: 100%
    :align: center
 

@@ -10,18 +10,17 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import drawio
-from drawio import BLUE, GREEN, YELLOW, GRAY
+import figure
+from figure import BLUE, GREEN, YELLOW, GRAY
 
-DRAWIO_DIR = "doc/internals"
-PNG_DIR = "doc/img"
+SVG_DIR = "doc/img"
 PREFIX = "onedimensional_milp_assignment_"
 
 
 def figure_symmetry_breaking():
     """Labels of the items, and maximum number of copies of each item type in
     the bin of each rank."""
-    fig = drawio.Figure(unit=26)
+    fig = figure.Figure(unit=26)
     # Item types sorted by increasing number of copies.
     item_types = [("A", 1, BLUE), ("B", 2, GREEN), ("C", 3, YELLOW)]
     number_of_bins = 5
@@ -47,8 +46,7 @@ def figure_symmetry_breaking():
             fig.rect(1.9 + j * 2, y, 1.2, 1, str(bound), style if bound > 0 else GRAY)
     fig.text(4.5, oy - (number_of_bins + 1) * 1.1 - 0.1,
              "maximum number of copies in the bin of each rank", w=12, size=12)
-    fig.write(DRAWIO_DIR + "/" + PREFIX + "symmetry_breaking.drawio",
-              PNG_DIR + "/" + PREFIX + "symmetry_breaking.png")
+    fig.write(SVG_DIR + "/" + PREFIX + "symmetry_breaking.svg")
 
 
 if __name__ == "__main__":

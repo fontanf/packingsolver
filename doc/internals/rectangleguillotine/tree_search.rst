@@ -51,7 +51,7 @@ A node stores:
 * for each stack, the number of its items packed;
 * the number of items packed, their area and their profit, the numbers and lengths of the cuts of each stage, the cutting cost and the resource consumption of the current bin.
 
-.. image:: ../../img/rectangleguillotine_tree_search_front.png
+.. image:: ../../img/rectangleguillotine_tree_search_front.svg
    :scale: 100%
    :align: center
 
@@ -148,7 +148,7 @@ Two nodes with the same number of items packed in each stack can be compared, un
 * node 1 is in an earlier bin; or
 * both are in the same bin, with the same orientation of the 1-cuts, and the front of node 1 is nowhere beyond the front of node 2: for example, :math:`x_1^{curr}` of node 1 is not larger than :math:`x_1^{prev}` of node 2, or the five positions of the front of node 1 are not larger than the ones of node 2 (with special cases when the current second-level sub-plate reaches the top of the bin).
 
-.. image:: ../../img/rectangleguillotine_tree_search_dominance.png
+.. image:: ../../img/rectangleguillotine_tree_search_dominance.svg
    :scale: 100%
    :align: center
 

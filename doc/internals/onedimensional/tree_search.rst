@@ -53,7 +53,7 @@ Children
 
 In the figure below, items P and Q are packed in a bin of length 10 and of maximum weight 10, and Q allows a weight of at most 3 after it. Each candidate item is shown with the first condition it violates:
 
-.. image:: ../../img/onedimensional_tree_search_insertions.png
+.. image:: ../../img/onedimensional_tree_search_insertions.svg
    :scale: 100%
    :align: center
 
@@ -127,7 +127,7 @@ Two nodes with the same number of copies of each item type packed can be compare
 
 In the example below, the bins have a length of 10, and both nodes pack the items A (6), B (5), C (4) and D (2), with D last. In node 1, A and C fill the first bin; in node 2, B and C leave a gap of 1 in it, in which no remaining item fits. Node 1 dominates node 2.
 
-.. image:: ../../img/onedimensional_tree_search_dominance.png
+.. image:: ../../img/onedimensional_tree_search_dominance.svg
    :scale: 100%
    :align: center
 

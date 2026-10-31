@@ -10,11 +10,10 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import drawio
-from drawio import BLUE, YELLOW
+import figure
+from figure import BLUE, YELLOW
 
-DRAWIO_DIR = "doc/internals"
-PNG_DIR = "doc/img"
+SVG_DIR = "doc/img"
 PREFIX = "rectangleguillotine_tree_search_"
 
 W, H = 10, 6
@@ -34,7 +33,7 @@ def current_area_outline(x1_prev, x1_curr, y2_prev, y2_curr, x3_curr):
 
 
 def figure_front():
-    fig = drawio.Figure(unit=32)
+    fig = figure.Figure(unit=32)
     x1_prev, x1_curr, y2_prev, y2_curr, x3_curr = 4, 8, 2, 4, 6
     # Current area.
     fig.rect(0, 0, x1_prev, H, "", YELLOW + "strokeColor=none;")
@@ -63,12 +62,11 @@ def figure_front():
         fig.polyline([(x1_curr, y), (W + 0.1, y)], "strokeColor=#999999;dashed=1;")
     fig.text(W / 2, -1.1, "red: 1-cuts, blue: 2-cuts, green: 3-cuts, dashed: current cuts", w=W + 4, size=12)
     fig.text(W / 2, -1.7, "yellow: current area", w=W + 4, size=12)
-    fig.write(DRAWIO_DIR + "/" + PREFIX + "front.drawio",
-              PNG_DIR + "/" + PREFIX + "front.png")
+    fig.write(SVG_DIR + "/" + PREFIX + "front.svg")
 
 
 def figure_dominance():
-    fig = drawio.Figure(unit=32)
+    fig = figure.Figure(unit=32)
     f1 = (4, 8, 2, 4, 5)
     f2 = (4, 8, 2, 5, 6)
     fig.bin(0, 0, W, H)
@@ -76,8 +74,7 @@ def figure_dominance():
     fig.polyline(current_area_outline(*f1), "strokeColor=#82b366;strokeWidth=3;")
     fig.text(W / 2, -0.5, "green: front of node 1; red: front of node 2", w=W + 2, size=12)
     fig.text(W / 2, -1.1, "node 1 dominates node 2", w=W + 2, size=12)
-    fig.write(DRAWIO_DIR + "/" + PREFIX + "dominance.drawio",
-              PNG_DIR + "/" + PREFIX + "dominance.png")
+    fig.write(SVG_DIR + "/" + PREFIX + "dominance.svg")
 
 
 if __name__ == "__main__":

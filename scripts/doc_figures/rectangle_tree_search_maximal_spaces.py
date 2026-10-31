@@ -14,12 +14,11 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import drawio
-from drawio import BLUE, RED, GREEN, YELLOW, GRAY
+import figure
+from figure import BLUE, RED, GREEN, YELLOW, GRAY
 from rectangle_maximal_spaces_model import Instance, Node, compute_blocks, anchor
 
-DRAWIO_DIR = "doc/internals"
-PNG_DIR = "doc/img"
+SVG_DIR = "doc/img"
 PREFIX = "rectangle_tree_search_maximal_spaces_"
 
 INSTANCE = Instance(10, 6, {"A": (4, 3, 2, 12), "B": (2, 2, 4, 4), "C": (3, 1, 3, 3)})
@@ -65,7 +64,7 @@ def draw_spaces(fig, node, ox, oy):
 
 
 def figure_blocks():
-    fig = drawio.Figure(unit=12)
+    fig = figure.Figure(unit=12)
     x, y, row_h = 0, 0, 0
     max_w = 62
     for b in BLOCKS:
@@ -83,12 +82,11 @@ def figure_blocks():
         fig.rect(x, y - b.h, b.w, b.h, "", GRAY + "fillStyle=hatch;")
         draw_block(fig, b, x, y - b.h)
         x += b.w + 3
-    fig.write(DRAWIO_DIR + "/" + PREFIX + "blocks.drawio",
-              PNG_DIR + "/" + PREFIX + "blocks.png")
+    fig.write(SVG_DIR + "/" + PREFIX + "blocks.svg")
 
 
 def figure_spaces():
-    fig = drawio.Figure(unit=24)
+    fig = figure.Figure(unit=24)
     a = find_block({"A": 1})
     root = Node(INSTANCE)
     node_1 = root.insert(BLOCKS, a, 0, 0)
@@ -117,13 +115,12 @@ def figure_spaces():
     fig.bin(ox, 0, W, H)
     draw_spaces(fig, node_2, ox, 0)
     fig.text(W / 2 + ox, -0.8, "after placing 3 B: {} maximal spaces".format(len(node_2.spaces)), w=W + 2)
-    fig.write(DRAWIO_DIR + "/" + PREFIX + "spaces.drawio",
-              PNG_DIR + "/" + PREFIX + "spaces.png")
+    fig.write(SVG_DIR + "/" + PREFIX + "spaces.svg")
     return node_1
 
 
 def figure_fitness(node_1):
-    fig = drawio.Figure(unit=20)
+    fig = figure.Figure(unit=20)
     insertions, space = node_1.insertions(BLOCKS)
     chosen = [insertions[0], insertions[1], insertions[3]]
     # Add the insertion illustrating the area-loss factor.
@@ -144,12 +141,11 @@ def figure_fitness(node_1):
             fig.polyline([(ox + x1, y1), (ox + x2, y2)], "strokeColor=#b85450;strokeWidth=4;")
         fig.text(ox + W / 2, -0.9, "V = {}, C = {:.2f}, L = {:.2f}, N = {}".format(v, c, l, n), w=W + 2, size=11)
         fig.text(ox + W / 2, -1.8, "fitness = {:.2f}".format(fit), w=W + 2, size=11)
-    fig.write(DRAWIO_DIR + "/" + PREFIX + "fitness.drawio",
-              PNG_DIR + "/" + PREFIX + "fitness.png")
+    fig.write(SVG_DIR + "/" + PREFIX + "fitness.svg")
 
 
 def figure_greedy(node_1):
-    fig = drawio.Figure(unit=24)
+    fig = figure.Figure(unit=24)
     insertions, space = node_1.insertions(BLOCKS)
     for k, ins in enumerate(insertions[:3]):
         ox = k * (W + 2)
@@ -163,8 +159,7 @@ def figure_greedy(node_1):
         fig.bin(ox, 0, W, H)
         fig.text(ox + W / 2, -0.8, "child {}: profit {}, greedy value {}".format(
             k + 1, child.profit, greedy.profit), w=W + 3)
-    fig.write(DRAWIO_DIR + "/" + PREFIX + "greedy.drawio",
-              PNG_DIR + "/" + PREFIX + "greedy.png")
+    fig.write(SVG_DIR + "/" + PREFIX + "greedy.svg")
 
 
 if __name__ == "__main__":

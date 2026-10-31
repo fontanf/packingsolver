@@ -15,11 +15,10 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import drawio
-from drawio import BLUE, RED, GREEN, YELLOW, GRAY
+import figure
+from figure import BLUE, RED, GREEN, YELLOW, GRAY
 
-DRAWIO_DIR = "doc/internals"
-PNG_DIR = "doc/img"
+SVG_DIR = "doc/img"
 PREFIX = "onedimensional_tree_search_"
 
 INF = math.inf
@@ -81,7 +80,7 @@ def draw_bin(fig, b, ox, oy, scale=0.4, new=None, new_style=GREEN):
 
 
 def figure_insertions():
-    fig = drawio.Figure(unit=24)
+    fig = figure.Figure(unit=24)
     P = ItemType("P", 4, weight=2, style=BLUE)
     Q = ItemType("Q", 3, weight=2, weight_after=3, style=BLUE)
     candidates = [
@@ -114,14 +113,13 @@ def figure_insertions():
             fig.text(ox + BW / 2, -1.1, ", ".join(detail), w=4.4, size=11)
         fig.text(ox + BW / 2, -2.0, "valid" if reason is None else reason, w=4.4, size=11,
                  extra="fontStyle=1;")
-    fig.write(DRAWIO_DIR + "/" + PREFIX + "insertions.drawio",
-              PNG_DIR + "/" + PREFIX + "insertions.png")
+    fig.write(SVG_DIR + "/" + PREFIX + "insertions.svg")
 
 
 def figure_dominance():
     """Two nodes packing the same items, with the same last item: the one
     with the smallest current length dominates the other one."""
-    fig = drawio.Figure(unit=24)
+    fig = figure.Figure(unit=24)
     A = ItemType("A", 6, style=BLUE)
     B = ItemType("B", 5, style=GREEN)
     C = ItemType("C", 4, style=YELLOW)
@@ -142,8 +140,7 @@ def figure_dominance():
             current_length = 10 * i + b.length
         fig.text(ox + BW + 0.3, -0.6, title, w=5, size=12)
         fig.text(ox + BW + 0.3, -1.2, "current length {}".format(current_length), w=5, size=11)
-    fig.write(DRAWIO_DIR + "/" + PREFIX + "dominance.drawio",
-              PNG_DIR + "/" + PREFIX + "dominance.png")
+    fig.write(SVG_DIR + "/" + PREFIX + "dominance.svg")
 
 
 if __name__ == "__main__":

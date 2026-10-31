@@ -10,10 +10,9 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import drawio
+import figure
 
-DRAWIO_DIR = "doc/internals"
-PNG_DIR = "doc/img"
+SVG_DIR = "doc/img"
 PREFIX = "rectangle_dual_feasible_functions_"
 
 C, K = 10, 3
@@ -45,7 +44,7 @@ def f2(x):
 
 
 def figure_functions():
-    fig = drawio.Figure(unit=24)
+    fig = figure.Figure(unit=24)
     size = 6
     for k, (name, f) in enumerate((("f0", f0), ("f1", f1), ("f2", f2))):
         ox = k * (size + 2.5)
@@ -68,8 +67,7 @@ def figure_functions():
             fig.text(ox + x / C * size, -0.45, str(x), w=1, size=10)
         fig.text(ox - 0.5, size, str(top), w=1, size=10)
         fig.text(ox + size / 2, -1.2, "{}, C = {}, k = {}".format(name, C, K), w=size + 2, size=12)
-    fig.write(DRAWIO_DIR + "/" + PREFIX + "functions.drawio",
-              PNG_DIR + "/" + PREFIX + "functions.png")
+    fig.write(SVG_DIR + "/" + PREFIX + "functions.svg")
 
 
 if __name__ == "__main__":
