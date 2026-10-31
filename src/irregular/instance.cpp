@@ -376,24 +376,33 @@ bool Instance::can_contain(
 bool Instance::fits_some_bin(
         ItemTypeId item_type_id) const
 {
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < number_of_bin_types();
+            ++bin_type_id) {
+        if (item_type_fits_bin_type(item_type_id, bin_type_id))
+            return true;
+    }
+    return false;
+}
+
+bool Instance::item_type_fits_bin_type(
+        ItemTypeId item_type_id,
+        BinTypeId bin_type_id) const
+{
     const ItemType& item_type = this->item_type(item_type_id);
     if (!item_type.has_only_discrete_rotations())
         return true;
+    const BinType& bin_type = this->bin_type(bin_type_id);
+    LengthDbl bin_width = bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min;
+    LengthDbl bin_height = bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min;
     for (const AllowedRotation& allowed_rotation: item_type.allowed_rotations) {
         AxisAlignedBoundingBox item_aabb = item_type.compute_min_max(
                 allowed_rotation.start_angle,
                 allowed_rotation.mirror);
         LengthDbl item_width = item_aabb.x_max - item_aabb.x_min;
         LengthDbl item_height = item_aabb.y_max - item_aabb.y_min;
-        for (BinTypeId bin_type_id = 0;
-                bin_type_id < number_of_bin_types();
-                ++bin_type_id) {
-            const BinType& bin_type = this->bin_type(bin_type_id);
-            LengthDbl bin_width = bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min;
-            LengthDbl bin_height = bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min;
-            if (item_width <= bin_width && item_height <= bin_height)
-                return true;
-        }
+        if (item_width <= bin_width && item_height <= bin_height)
+            return true;
     }
     return false;
 }
