@@ -479,31 +479,31 @@ BranchingScheme::Node BranchingScheme::child_tmp(
             const ItemType& item_type = instance.item_type(item_type_id);
             if (node.item_number_of_copies[item_type_id] == item_type.copies)
                 continue;
-            Length xj = item_type.rect.x;
-            if (!item_type.oriented) {
-                Length yj = item_type.rect.y;
-                if (xj > yj)
-                    xj = yj;
-            }
-            int ok = false;
+            // Dimensions of the remaining item, not of the inserted one.
+            Length remaining_xj = item_type.rect.x;
+            Length remaining_yj = item_type.rect.y;
+            bool ok = false;
             for (const UncoveredItem& uncovered_item: node.uncovered_items) {
-                if (uncovered_item.ys + yj <= yi
-                        && uncovered_item.xe + xj <= xi) {
+                if (uncovered_item.ys + remaining_yj <= yi
+                        && uncovered_item.xe + remaining_xj <= xi) {
                     ok = true;
-                    break;;
+                    break;
                 }
                 if (!item_type.oriented
-                        && uncovered_item.ys + xj <= yi
-                        && uncovered_item.xe + yj <= xi) {
+                        && uncovered_item.ys + remaining_xj <= yi
+                        && uncovered_item.xe + remaining_yj <= xi) {
                     ok = true;
                     break;
                 }
             }
             if (!ok) {
-                if (!item_type.oriented && xj > yj)
-                    xj = yj;
+                // The item needs a new bin, in which it uses at least its
+                // narrowest width.
+                Length width = (!item_type.oriented)?
+                    std::min(remaining_xj, remaining_yj):
+                    remaining_xj;
                 Area waste = previous_bins_area_[bin_pos + 1]
-                    + xj * yi - instance.item_area();
+                    + width * yi - instance.item_area();
                 if (node.waste < waste)
                     node.waste = waste;
                 break;
