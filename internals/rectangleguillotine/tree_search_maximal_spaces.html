@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Tree search with maximal spaces &#8212; PackingSolver</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../../_static/classic.css?v=14e077c0" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=a00afc7f" />
+    
+    <script src="../../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Column generation strips" href="column_generation_strips.html" />
+    <link rel="prev" title="Tree search" href="tree_search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="column_generation_strips.html" title="Column generation strips"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="tree_search.html" title="Tree search"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../overview.html" >Solver internals</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../rectangleguillotine.html" accesskey="U"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> algorithms</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Tree search with maximal spaces</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="tree-search-with-maximal-spaces">
+<span id="internals-rectangleguillotine-tree-search-maximal-spaces"></span><h1>Tree search with maximal spaces<a class="headerlink" href="#tree-search-with-maximal-spaces" title="Link to this heading">¶</a></h1>
+<section id="objectives">
+<h2>Objectives<a class="headerlink" href="#objectives" title="Link to this heading">¶</a></h2>
+<p>This algorithm only handles instances with a single bin. It solves the <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code> and <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code> objectives directly, and the <code class="code docutils literal notranslate"><span class="pre">open-dimension-x</span></code>, <code class="code docutils literal notranslate"><span class="pre">open-dimension-y</span></code> and <code class="code docutils literal notranslate"><span class="pre">bin-packing-with-leftovers</span></code> objectives through the <a class="reference internal" href="../generic_algorithms/sequential_feasibility.html#internals-generic-algorithms-sequential-feasibility"><span class="std std-ref">sequential feasibility</span></a> algorithm.</p>
+<p>It generates guillotine patterns with an unlimited number of stages. It doesn’t support the defects, the stacks, the minimum waste length, the minimum and maximum distances between cuts, and the maximum numbers of cuts.</p>
+</section>
+<section id="principle">
+<h2>Principle<a class="headerlink" href="#principle" title="Link to this heading">¶</a></h2>
+<p>It is the guillotine version of the <a class="reference internal" href="../rectangle/tree_search_maximal_spaces.html#internals-rectangle-tree-search-maximal-spaces"><span class="std std-ref">tree search with maximal spaces for rectangle</span></a>: a block of items is packed at each stage, in an empty space of the bin. The blocks are guillotine patterns themselves: grids of copies of an item type, and their combinations side by side or one above the other, generated before the search. Here is an example of block generation from 4 items:</p>
+<a class="reference internal image-reference" href="../../_images/rectangleguillotine_tree_search_maximal_spaces_1.png"><img alt="../../_images/rectangleguillotine_tree_search_maximal_spaces_1.png" class="align-center" height="534" src="../../_images/rectangleguillotine_tree_search_maximal_spaces_1.png" width="354" />
+</a>
+</section>
+<section id="unused-rectangular-spaces">
+<h2>Unused rectangular spaces<a class="headerlink" href="#unused-rectangular-spaces" title="Link to this heading">¶</a></h2>
+<p>To keep the patterns guillotine, the empty spaces are the leaves of the cut tree of the pattern: the <em>unused rectangular spaces</em>. Placing a block of width <span class="math notranslate nohighlight">\(w_b\)</span> and height <span class="math notranslate nohighlight">\(h_b\)</span> at the bottom-left corner of an unused space splits the rest of the space with two guillotine cuts, into two new unused spaces which don’t overlap:</p>
+<ul class="simple">
+<li><p>with a vertical cut first: the part to the right of the block, over the whole height of the space, and the part above the block, over the width of the block;</p></li>
+<li><p>with a horizontal cut first: the part above the block, over the whole width of the space, and the part to the right of the block, over the height of the block.</p></li>
+</ul>
+<p>The direction of the cuts is given by the depth of the space in the cut tree and by the orientation of the first stage. At the root, both orientations are tried, so two children are generated per candidate block, one with a vertical cut and one with a horizontal cut:</p>
+<a class="reference internal image-reference" href="../../_images/rectangleguillotine_tree_search_maximal_spaces_2.png"><img alt="../../_images/rectangleguillotine_tree_search_maximal_spaces_2.png" class="align-center" height="1044" src="../../_images/rectangleguillotine_tree_search_maximal_spaces_2.png" width="764" />
+</a>
+<p>Here are the two unused spaces of the first child generated above:</p>
+<a class="reference internal image-reference" href="../../_images/rectangleguillotine_tree_search_maximal_spaces_3.png"><img alt="../../_images/rectangleguillotine_tree_search_maximal_spaces_3.png" class="align-center" height="124" src="../../_images/rectangleguillotine_tree_search_maximal_spaces_3.png" width="364" />
+</a>
+<p>Unlike in the <code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> case, the unused spaces never overlap. To generate the children of a node, the unused space with the smallest area, the most constrained one, is selected, and one child is generated per remaining block that fits inside:</p>
+<a class="reference internal image-reference" href="../../_images/rectangleguillotine_tree_search_maximal_spaces_4.png"><img alt="../../_images/rectangleguillotine_tree_search_maximal_spaces_4.png" class="align-center" height="564" src="../../_images/rectangleguillotine_tree_search_maximal_spaces_4.png" width="764" />
+</a>
+</section>
+<section id="search">
+<h2>Search<a class="headerlink" href="#search" title="Link to this heading">¶</a></h2>
+<p>The children of a node are generated by decreasing profit of the block divided by the area of the space. A node is evaluated by completing it greedily, inserting the best scored block at each step; the beam search keeps the nodes with the best completions. The tree is explored by an iterative beam search.</p>
+</section>
+<section id="automatic-selection">
+<h2>Automatic selection<a class="headerlink" href="#automatic-selection" title="Link to this heading">¶</a></h2>
+<p>With a single bin, it is run for the instances with an unlimited number of stages and none of the features it doesn’t support (except when the hypergraph tree search with infinite copies is selected instead). See <a class="reference internal" href="../algorithm_selection.html#internals-algorithm-selection"><span class="std std-ref">algorithm selection</span></a>.</p>
+<p>It can be forced with <code class="code docutils literal notranslate"><span class="pre">--use-tree-search-maximal-spaces</span> <span class="pre">1</span></code> (CLI) or <code class="code docutils literal notranslate"><span class="pre">use_tree_search_maximal_spaces</span></code> (Python).</p>
+</section>
+<section id="source-files">
+<h2>Source files<a class="headerlink" href="#source-files" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">src/rectangleguillotine/block.hpp</span></code>, <code class="code docutils literal notranslate"><span class="pre">src/rectangleguillotine/block.cpp</span></code>: the blocks</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">src/rectangleguillotine/tree_search_maximal_spaces.hpp</span></code>, <code class="code docutils literal notranslate"><span class="pre">src/rectangleguillotine/tree_search_maximal_spaces.cpp</span></code>: the branching scheme and the search</p></li>
+</ul>
+<p>References:</p>
+<ul class="simple">
+<li><p>“A beam search algorithm for the biobjective container loading problem” (Araya, Moyano and Sanchez, 2020)</p>
+<ul>
+<li><p><a class="reference external" href="https://doi.org/10.1016/j.ejor.2020.03.040">https://doi.org/10.1016/j.ejor.2020.03.040</a></p></li>
+</ul>
+</li>
+<li><p>“A tree search-based heuristic for the three-dimensional single container loading problem” (Guesser, Alves De Queiroz and Miyazawa, 2026)</p>
+<ul>
+<li><p><a class="reference external" href="https://doi.org/10.1016/j.ejor.2026.01.039">https://doi.org/10.1016/j.ejor.2026.01.039</a></p></li>
+</ul>
+</li>
+<li><p>“EATKG: An Open-Source Efficient Exact Algorithm for the Two-Dimensional Knapsack Problem with Guillotine Constraints” (Wang, Baldacci, Liu and Wei, 2025)</p>
+<ul>
+<li><p><a class="reference external" href="https://doi.org/10.1016/j.ejor.2025.05.033">https://doi.org/10.1016/j.ejor.2025.05.033</a></p></li>
+</ul>
+</li>
+</ul>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+<h3><a href="../../index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">PackingSolver’s documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../objectives.html">Objectives</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../optimization_modes.html">Optimization modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> solver</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../overview.html">Solver internals</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> algorithms</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> algorithms</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../rectangleguillotine.html#tree-search">Tree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rectangleguillotine.html#tree-search-with-maximal-spaces">Tree search with maximal spaces</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rectangleguillotine.html#column-generation-strips">Column generation strips</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rectangleguillotine.html#sequential-strips-one-dimensional">Sequential strips / one-dimensional</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rectangleguillotine.html#tree-search-hypergraph">Tree search hypergraph</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rectangleguillotine.html#tree-search-hypergraph-with-infinite-copies">Tree search hypergraph with infinite copies</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../rectangleguillotine.html#dual-feasible-functions">Dual feasible functions</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generic_algorithms.html">Generic algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../algorithm_selection.html">Algorithm selection</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="column_generation_strips.html" title="Column generation strips"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="tree_search.html" title="Tree search"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../overview.html" >Solver internals</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../rectangleguillotine.html" ><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> algorithms</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Tree search with maximal spaces</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2019-2024, Florian Fontan.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.1.
+    </div>
+  </body>
+</html>

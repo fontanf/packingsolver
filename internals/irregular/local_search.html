@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Local search &#8212; PackingSolver</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../../_static/classic.css?v=14e077c0" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=a00afc7f" />
+    
+    <script src="../../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Local search: direct trigonometry engine" href="local_search_direct_trigonometry.html" />
+    <link rel="prev" title="Tree search with maximal spaces" href="tree_search_maximal_spaces.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="local_search_direct_trigonometry.html" title="Local search: direct trigonometry engine"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="tree_search_maximal_spaces.html" title="Tree search with maximal spaces"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../overview.html" >Solver internals</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../irregular.html" accesskey="U"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Local search</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="local-search">
+<span id="internals-irregular-local-search"></span><h1>Local search<a class="headerlink" href="#local-search" title="Link to this heading">¶</a></h1>
+<section id="objectives">
+<h2>Objectives<a class="headerlink" href="#objectives" title="Link to this heading">¶</a></h2>
+<p>The local search solves the <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code> objective directly: it looks for a packing of all the items in the available bins. It solves the <code class="code docutils literal notranslate"><span class="pre">bin-packing</span></code>, <code class="code docutils literal notranslate"><span class="pre">bin-packing-with-leftovers</span></code>, <code class="code docutils literal notranslate"><span class="pre">open-dimension-x</span></code>, <code class="code docutils literal notranslate"><span class="pre">open-dimension-y</span></code> and <code class="code docutils literal notranslate"><span class="pre">open-dimension-xy</span></code> objectives through the <a class="reference internal" href="../generic_algorithms/sequential_feasibility.html#internals-generic-algorithms-sequential-feasibility"><span class="std std-ref">sequential feasibility</span></a> algorithm: each time a packing is found, the space available is shrunk (one bin fewer, or the length of the last bin or the open dimension shrunk by 0.1%), and the local search is run again, starting from the previous packing.</p>
+<p>It doesn’t solve the <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code> and <code class="code docutils literal notranslate"><span class="pre">variable-sized-bin-packing</span></code> objectives.</p>
+</section>
+<section id="principle">
+<h2>Principle<a class="headerlink" href="#principle" title="Link to this heading">¶</a></h2>
+<p>Unlike the tree searches, the local search works on complete layouts: all the items are in a bin, but the layout is allowed to be infeasible. The goal is to make it feasible. How a layout may be infeasible, and how it is made feasible, depends on the <em>engine</em>:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="local_search_direct_trigonometry.html#internals-irregular-local-search-direct-trigonometry"><span class="std std-ref">direct trigonometry</span></a>: the items may overlap; the overlap is minimized by moving the items one by one to the best of many sampled positions;</p></li>
+<li><p><a class="reference internal" href="local_search_linear_programming.html#internals-irregular-local-search-linear-programming"><span class="std std-ref">linear programming</span></a>: the items may be shrunk instead of overlapping; linear programs move them slightly and maximize their sizes;</p></li>
+<li><p><a class="reference internal" href="local_search_nonlinear_programming.html#internals-irregular-local-search-nonlinear-programming"><span class="std std-ref">nonlinear programming</span></a>: the same with nonlinear programs, in which the items may also rotate.</p></li>
+</ul>
+<p>Each engine provides a <em>separator</em>, which tries to make a layout feasible: a <em>separation</em>. A separation succeeds if the layout becomes feasible. Otherwise, it stops when it doesn’t make progress anymore, and its layout is the best one found, with the smallest <em>loss</em>. The loss measures how far a layout is from being feasible: the overlap for the direct trigonometry engine, the area lost by shrinking the items for the other ones.</p>
+<p>The engines share the search on top of the separator, described below.</p>
+</section>
+<section id="initial-layout">
+<h2>Initial layout<a class="headerlink" href="#initial-layout" title="Link to this heading">¶</a></h2>
+<p>The initial layout is built by the separator from a solution, possibly infeasible and partial: the solution found for the previous sub-problem of the sequential feasibility algorithm, or an empty solution. The items missing from it are inserted by the separator.</p>
+<p>The solution of the previous sub-problem uses more space than available, since the space has been shrunk. Its bins are mapped to the bins of the sub-problem with the same bin types; the bins which don’t fit anymore are dropped, and their items are inserted again. The items which stick out of their bin are repaired by the separator.</p>
+</section>
+<section id="iterated-local-search">
+<h2>Iterated local search<a class="headerlink" href="#iterated-local-search" title="Link to this heading">¶</a></h2>
+<p>The initial layout is separated, with more effort than the next separations. While the separations fail, the search goes on as follows:</p>
+<ol class="arabic simple">
+<li><p>the layout of the failed separation is added to a <em>population</em> of failed layouts;</p></li>
+<li><p>a layout of the population is drawn by binary tournament;</p></li>
+<li><p>it is <em>disrupted</em>: the engine changes it a lot locally, e.g. by moving a large item somewhere else;</p></li>
+<li><p>it is separated. This separation is given up early if its loss doesn’t get below the loss of the drawn layout.</p></li>
+</ol>
+<p>The population keeps layouts which have a small loss and which are different from each other, as in hybrid genetic search: each layout is ranked by its loss and by its contribution to the diversity, its distance to its closest neighbors in the population. The distance between two layouts is provided by the engine. The population holds between 4 and 8 layouts; when it is full, the layouts with the worst ranks are removed, except the 2 layouts with the smallest losses.</p>
+<p>In anytime mode, the search goes on until the time limit. In the non-anytime modes, it stops after a given number of failed separations (and, for the direct trigonometry engine, after a given number of item moves); the instance is then considered infeasible.</p>
+</section>
+<section id="automatic-selection">
+<h2>Automatic selection<a class="headerlink" href="#automatic-selection" title="Link to this heading">¶</a></h2>
+<p>The direct trigonometry engine is part of the automatic selection, for the objectives it supports, alongside the tree search. The linear and nonlinear programming engines are only run when they are selected explicitly. See <a class="reference internal" href="../algorithm_selection.html#internals-algorithm-selection"><span class="std std-ref">algorithm selection</span></a>.</p>
+</section>
+<section id="source-files">
+<h2>Source files<a class="headerlink" href="#source-files" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">src/irregular/local_search.hpp</span></code>, <code class="code docutils literal notranslate"><span class="pre">src/irregular/local_search.cpp</span></code>: the iterated local search and the conversion of the initial solutions</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">src/irregular/sequential_feasibility.hpp</span></code>, <code class="code docutils literal notranslate"><span class="pre">src/irregular/sequential_feasibility.cpp</span></code>: the sequential feasibility algorithm</p></li>
+</ul>
+<p>References:</p>
+<ul class="simple">
+<li><p>“A Hybrid Genetic Algorithm for Multidepot and Periodic Vehicle Routing Problems” (Vidal, Crainic, Gendreau, Lahrichi and Rei, 2012), for the management of the population</p>
+<ul>
+<li><p><a class="reference external" href="https://doi.org/10.1287/opre.1120.1048">https://doi.org/10.1287/opre.1120.1048</a></p></li>
+</ul>
+</li>
+</ul>
+<div class="toctree-wrapper compound">
+</div>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+<h3><a href="../../index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">PackingSolver’s documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../objectives.html">Objectives</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../optimization_modes.html">Optimization modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> solver</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../overview.html">Solver internals</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> algorithms</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#trivial-single-item">Trivial single item</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#tree-search">Tree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#tree-search-with-periodic-packings">Tree search with periodic packings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#tree-search-with-maximal-spaces">Tree search with maximal spaces</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#local-search">Local search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#milp-raster">MILP raster</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../irregular.html#one-dimensional-bound">One-dimensional bound</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../generic_algorithms.html">Generic algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../algorithm_selection.html">Algorithm selection</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="local_search_direct_trigonometry.html" title="Local search: direct trigonometry engine"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="tree_search_maximal_spaces.html" title="Tree search with maximal spaces"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../overview.html" >Solver internals</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../irregular.html" ><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Local search</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2019-2024, Florian Fontan.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.1.
+    </div>
+  </body>
+</html>

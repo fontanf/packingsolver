@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Conservative scales &#8212; PackingSolver</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../../_static/classic.css?v=14e077c0" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=a00afc7f" />
+    
+    <script src="../../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Bar relaxation" href="bar_relaxation.html" />
+    <link rel="prev" title="Dual feasible functions" href="dual_feasible_functions.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="bar_relaxation.html" title="Bar relaxation"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="dual_feasible_functions.html" title="Dual feasible functions"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../overview.html" >Solver internals</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../rectangle.html" accesskey="U"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> algorithms</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Conservative scales</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="conservative-scales">
+<span id="internals-rectangle-conservative-scales"></span><h1>Conservative scales<a class="headerlink" href="#conservative-scales" title="Link to this heading">¶</a></h1>
+<section id="objectives">
+<h2>Objectives<a class="headerlink" href="#objectives" title="Link to this heading">¶</a></h2>
+<p>This algorithm computes a bound for the <code class="code docutils literal notranslate"><span class="pre">bin-packing</span></code> and <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code> objectives, for instances with a single bin type and without item rotation. It doesn’t produce solutions.</p>
+</section>
+<section id="principle">
+<h2>Principle<a class="headerlink" href="#principle" title="Link to this heading">¶</a></h2>
+<p>It computes the bound <span class="math notranslate nohighlight">\(L_{BKRS}\)</span> of Belov, Kartak, Rohling and Scheithauer (2013), as used by Côté, Haouari and Iori (2021).</p>
+<p>Like the <a class="reference internal" href="dual_feasible_functions.html#internals-rectangle-dual-feasible-functions"><span class="std std-ref">dual feasible functions</span></a>, it replaces the dimensions of the items by other values, keeping the packings feasible, and computes the area bound of the transformed instance. But the new widths are not given by a formula: they are optimized, and they take into account the heights.</p>
+<p><strong>Conservative scales.</strong> New widths <span class="math notranslate nohighlight">\(w'_j\)</span> are <em>conservative</em> if, for every set of items whose original widths sum to at most the width <span class="math notranslate nohighlight">\(W\)</span> of the bin, their new widths also sum to at most <span class="math notranslate nohighlight">\(W\)</span>. Then any set of items which can be crossed by a horizontal line in a packing still fits along the width with the new widths, so the area bound computed with the new widths is still valid.</p>
+<p><strong>Linear program.</strong> Among the conservative scales, the ones maximizing the transformed area are computed by a linear program.</p>
+<p><strong>Input</strong>:</p>
+<ul class="simple">
+<li><p>the width <span class="math notranslate nohighlight">\(W\)</span> of the bin</p></li>
+<li><p>the item copies <span class="math notranslate nohighlight">\(j = 1, \ldots, N\)</span> (one per copy of each item type); for each item copy <span class="math notranslate nohighlight">\(j\)</span>: its original width <span class="math notranslate nohighlight">\(w_j\)</span> and a weight <span class="math notranslate nohighlight">\(h_j\)</span>, its current height (the original one, or a rescaled one)</p></li>
+<li><p>the sets <span class="math notranslate nohighlight">\(S\)</span> of item copies whose original widths sum to at most <span class="math notranslate nohighlight">\(W\)</span>: <span class="math notranslate nohighlight">\(\sum_{j \in S} w_j \le W\)</span></p></li>
+</ul>
+<p><strong>Variables</strong>:</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(w'_j \ge 0\)</span>: the new width of item copy <span class="math notranslate nohighlight">\(j\)</span> (0 for the item copies wider than the bin)</p></li>
+</ul>
+<p><strong>Objective</strong>: maximize the transformed area</p>
+<div class="math notranslate nohighlight">
+\[\max \sum_j h_j \, w'_j\]</div>
+<p><strong>Constraints</strong>:</p>
+<ul class="simple">
+<li><p>Conservative scales: the item copies fitting along the width with their original widths still fit with their new widths</p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[\forall S \qquad \sum_{j \in S} w'_j \le W\]</div>
+<p>There are exponentially many constraints, so they are generated by a cutting-plane loop: the most violated one for the current solution is found by solving a 0-1 knapsack problem (the item copies with their new widths as profits and their original widths as weights, of capacity <span class="math notranslate nohighlight">\(W\)</span>); if its optimal value exceeds <span class="math notranslate nohighlight">\(W\)</span>, its solution is a violated constraint. The new heights are computed the same way, exchanging the widths and the heights.</p>
+<p><strong>Iterations.</strong> The first vectors are the original widths and heights. At each iteration, new widths are optimized with the heights of the previous iteration as weights, and new heights with the widths of the previous iteration as weights. Each new vector of widths (resp. heights) is combined with all the vectors of heights (resp. widths) computed so far, and the bound is the best area bound over all these pairs:</p>
+<div class="math notranslate nohighlight">
+\[\left\lceil \frac{\sum_j w'_j \, h'_j}{W H} \right\rceil\]</div>
+<p>By default, 5 iterations are performed.</p>
+<p>For the <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code> objective, the instance is proven infeasible if the bound exceeds the number of bins.</p>
+<p>The items must not be rotatable: with rotations, the scales of an item would depend on its orientation, and treating an item as fixed in its given orientation could overstate the bound.</p>
+</section>
+<section id="automatic-selection">
+<h2>Automatic selection<a class="headerlink" href="#automatic-selection" title="Link to this heading">¶</a></h2>
+<p>The bound is computed automatically when there is a single bin type, no item can be rotated, and there are at most 100 items. It can be forced with <code class="code docutils literal notranslate"><span class="pre">use_conservative_scales</span></code> (Python, C++); there is no CLI option.</p>
+</section>
+<section id="source-files">
+<h2>Source files<a class="headerlink" href="#source-files" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">src/rectangle/conservative_scales.hpp</span></code>, <code class="code docutils literal notranslate"><span class="pre">src/rectangle/conservative_scales.cpp</span></code></p></li>
+</ul>
+<p>References:</p>
+<ul class="simple">
+<li><p>“One-dimensional relaxations and LP bounds for orthogonal packing” (Belov, Kartak, Rohling and Scheithauer, 2013)</p>
+<ul>
+<li><p><a class="reference external" href="https://doi.org/10.1007/s10288-012-0206-8">https://doi.org/10.1007/s10288-012-0206-8</a></p></li>
+</ul>
+</li>
+<li><p>“Combinatorial Benders Decomposition for the Two-Dimensional Bin Packing Problem” (Côté, Haouari and Iori, 2021)</p>
+<ul>
+<li><p><a class="reference external" href="https://doi.org/10.1287/ijoc.2020.1014">https://doi.org/10.1287/ijoc.2020.1014</a></p></li>
+</ul>
+</li>
+</ul>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+<h3><a href="../../index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">PackingSolver’s documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../objectives.html">Objectives</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../optimization_modes.html">Optimization modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> solver</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../overview.html">Solver internals</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> algorithms</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> algorithms</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../rectangle.html#tree-search">Tree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rectangle.html#tree-search-with-maximal-spaces">Tree search with maximal spaces</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rectangle.html#benders-decomposition">Benders decomposition</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rectangle.html#benders-decomposition-with-contiguity">Benders decomposition with contiguity</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rectangle.html#dual-feasible-functions">Dual feasible functions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rectangle.html#conservative-scales">Conservative scales</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../rectangle.html#bar-relaxation">Bar relaxation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generic_algorithms.html">Generic algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../algorithm_selection.html">Algorithm selection</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="bar_relaxation.html" title="Bar relaxation"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="dual_feasible_functions.html" title="Dual feasible functions"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../overview.html" >Solver internals</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../rectangle.html" ><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> algorithms</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Conservative scales</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2019-2024, Florian Fontan.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.1.
+    </div>
+  </body>
+</html>

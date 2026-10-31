@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Tree search &#8212; PackingSolver</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../../_static/classic.css?v=14e077c0" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=a00afc7f" />
+    
+    <script src="../../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Tree search with periodic packings" href="tree_search_periodic_packing.html" />
+    <link rel="prev" title="irregular algorithms" href="../irregular.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="tree_search_periodic_packing.html" title="Tree search with periodic packings"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="../irregular.html" title="irregular algorithms"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../overview.html" >Solver internals</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../irregular.html" accesskey="U"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Tree search</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="tree-search">
+<span id="internals-irregular-tree-search"></span><h1>Tree search<a class="headerlink" href="#tree-search" title="Link to this heading">¶</a></h1>
+<section id="objectives">
+<h2>Objectives<a class="headerlink" href="#objectives" title="Link to this heading">¶</a></h2>
+<p>This algorithm solves the <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code>, <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code>, <code class="code docutils literal notranslate"><span class="pre">bin-packing</span></code>, <code class="code docutils literal notranslate"><span class="pre">bin-packing-with-leftovers</span></code>, <code class="code docutils literal notranslate"><span class="pre">open-dimension-x</span></code> and <code class="code docutils literal notranslate"><span class="pre">open-dimension-y</span></code> objectives directly. It also solves the <code class="code docutils literal notranslate"><span class="pre">variable-sized-bin-packing</span></code> objective when there is a single bin type (it is then a bin packing problem).</p>
+<p>The <code class="code docutils literal notranslate"><span class="pre">open-dimension-xy</span></code> objective is solved through the <a class="reference internal" href="../generic_algorithms/sequential_feasibility.html#internals-generic-algorithms-sequential-feasibility"><span class="std std-ref">sequential feasibility</span></a> algorithm, the tree search solving its <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code> sub-problems.</p>
+</section>
+<section id="principle">
+<h2>Principle<a class="headerlink" href="#principle" title="Link to this heading">¶</a></h2>
+<p>It is a constructive tree search where a single item is packed at each stage. The root node is an empty partial solution. Given a node, a child node is generated for each candidate insertion of each unpacked item, either in the current (last) bin or in a new bin. The tree is explored by an iterative beam search, guided by a guide function (see below).</p>
+<p>It is a generalization of the <a class="reference internal" href="../rectangle/tree_search.html#internals-rectangle-tree-search"><span class="std std-ref">tree search for rectangle</span></a>: the items are packed from left to right, each new item resting on the item inserted just before it, and pushed to the right until it doesn’t overlap the items already packed.</p>
+<a class="reference internal image-reference" href="../../_images/irregular_tree_search.png"><img alt="../../_images/irregular_tree_search.png" class="align-center" height="524" src="../../_images/irregular_tree_search.png" width="774" />
+</a>
+</section>
+<section id="preprocessing">
+<h2>Preprocessing<a class="headerlink" href="#preprocessing" title="Link to this heading">¶</a></h2>
+<p><strong>Simplified shapes.</strong> The shapes of the items, of the bin borders and of the defects, inflated by the minimum spacings, are replaced by polygons with fewer vertices containing them (circular arcs are first approximated by line segments), so that a packing of the simplified shapes is a packing of the original ones. Fewer vertices make the insertions faster. The vertices are removed by increasing cost, as long as the total area added by the approximations stays below a <em>maximum approximation ratio</em> times the smaller of the total area of the bins and the total area of the items.</p>
+<p><strong>Directions.</strong> The branching scheme always packs the items from left to right, then from bottom to top, in its own frame. The other directions (from right to left, from top to bottom, and the ones filling the columns first) are obtained by mirroring and transposing the instance. The directions used depend on the objective:</p>
+<ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">open-dimension-x</span></code>: from left to right, then from bottom to top or from top to bottom;</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">open-dimension-y</span></code>: from bottom to top, then from left to right or from right to left;</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">bin-packing-with-leftovers</span></code>: the directions keeping the leftover at the position given by the leftover mode;</p></li>
+<li><p>the other objectives with a single bin: from left to right and from bottom to top;</p></li>
+<li><p>the other objectives with several bins: a single direction, given by the leftover mode.</p></li>
+</ul>
+<p><strong>Rotations.</strong> Each item type is considered in a finite set of orientations. With discrete allowed rotations, these are the allowed angles (and their mirrored versions, if mirroring is allowed). With continuous rotations, the candidate angles are the ones making an edge of the item, or of its convex hull, parallel to the x-axis or to the y-axis. They are scored by the area of the bounding box not covered by the convex hull, divided by the square of the area of the convex hull, which favors the angles where the item fills its bounding box well, and the large items. For each item type, the least wide and the least high angles (with their 180° counterparts) and the best scored one are kept, then the best scored angles over all the item types, up to a budget.</p>
+<p><strong>Trapezoids and supports.</strong> For each item type and orientation, the simplified shapes are decomposed into <em>generalized trapezoids</em>, whose parallel sides are horizontal. They are used to check the overlaps quickly. The boundaries are also decomposed into <em>supports</em>:</p>
+<ul class="simple">
+<li><p>the <em>supporting parts</em>: chains of edges with the material below them, on which another item can rest;</p></li>
+<li><p>the <em>supported parts</em>: chains of edges with the material above them, with which an item rests on another one.</p></li>
+</ul>
+</section>
+<section id="nodes">
+<h2>Nodes<a class="headerlink" href="#nodes" title="Link to this heading">¶</a></h2>
+<p>A node stores the items packed in the current bin through two lists of trapezoids:</p>
+<ul class="simple">
+<li><p>the <em>skyline</em>: the parts of the trapezoids of the packed items which are visible from the right of the bin;</p></li>
+<li><p>the <em>extra trapezoids</em>: the trapezoids of the packed items which are not part of the skyline, but which are not behind it either, so that they can still block a new item.</p></li>
+</ul>
+<p>The bins before the current one are closed: no item can be added to them anymore.</p>
+</section>
+<section id="insertions">
+<h2>Insertions<a class="headerlink" href="#insertions" title="Link to this heading">¶</a></h2>
+<p>To insert an item in the current bin, a supported part of the item, in one of its orientations, is put on a supporting part of the last inserted item. The item then slides along the supporting part, following the slopes of both chains, to the right, until it doesn’t overlap the skyline and the extra trapezoids anymore. The insertion is discarded if the item then sticks out of the bin.</p>
+<p>The insertions of the parent node which are still valid are kept: each one is checked against the last inserted item, and slides further if needed. So the candidate positions accumulate along the search, and an item can be inserted against any item of the front, not only the last one.</p>
+<p>If no item can be inserted in the current bin, the items are inserted in a new bin, resting on the supporting parts of the bin itself: its bottom border, and the tops of its defects. Bins in which no item fits are skipped.</p>
+</section>
+<section id="guides">
+<h2>Guides<a class="headerlink" href="#guides" title="Link to this heading">¶</a></h2>
+<p>The guide of a node estimates the quality of the partial solution; the beam search keeps the nodes with the smallest guides. Most guides compare the space already lost with the area of the packed items.</p>
+<p>The <em>guide area</em> of a node is the area of the bins before the current one, plus the area of the current bin to the left of <span class="math notranslate nohighlight">\(x_s\)</span>, the largest x-coordinate of the leftmost points of the packed items, plus the area of the skyline to the right of <span class="math notranslate nohighlight">\(x_s\)</span>. It approximates the area that new items can no longer use.</p>
+<ul class="simple">
+<li><p>Guide 0: guide area divided by the total area of the convex hulls of the packed items.</p></li>
+<li><p>Guide 1: same as guide 0, divided again by the total area of the convex hulls, to favor the large items.</p></li>
+<li><p>Guide 2: area of the bounding box of the items of the current bin divided by the total area of the convex hulls of the packed items.</p></li>
+<li><p>Guide 3: same as guide 2, divided again by the total area of the convex hulls.</p></li>
+<li><p>Guide 4: guide area divided by the profit of the packed items.</p></li>
+<li><p>Guide 5: same as guide 4, divided by the mean area of the packed items.</p></li>
+</ul>
+<p>By default, guides 4 and 5 are used for the <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code> objective, and guides 0 and 1 for the other objectives. Guides 2 and 3 are used by the post-process re-optimizing the last bin of the solutions.</p>
+</section>
+<section id="dominance-and-pruning">
+<h2>Dominance and pruning<a class="headerlink" href="#dominance-and-pruning" title="Link to this heading">¶</a></h2>
+<p>Two nodes with the same number of copies of each item type packed can be compared: a node dominates the other one if it uses as many bins, if its skyline is everywhere to the left of the other one, and if their extra trapezoids are the same. Dominated nodes are discarded.</p>
+<p>A node is also discarded when it can’t lead to a better solution than the best one found, e.g. when it already uses as many bins as the best solution for the <code class="code docutils literal notranslate"><span class="pre">bin-packing</span></code> objective, or when it already reaches as far as the best solution for the <code class="code docutils literal notranslate"><span class="pre">open-dimension-x</span></code> objective.</p>
+</section>
+<section id="search">
+<h2>Search<a class="headerlink" href="#search" title="Link to this heading">¶</a></h2>
+<p>In anytime mode, an iterative beam search is run for each pair (guide, direction), in parallel. Each one starts with a beam (queue) of size 1, and the size of the beam is multiplied by 1.5 at each restart. The shapes are simplified with a maximum approximation ratio of 20% at first, multiplied by 0.75 at each restart, so that the first solutions are found quickly and the next ones are more accurate. The best solution found is used as a cutoff by the next restarts.</p>
+<p>In the non-anytime modes, a single beam search is run for each pair (guide, direction), with a beam of size 512 and a maximum approximation ratio of 5%.</p>
+</section>
+<section id="strengths-and-limitations">
+<h2>Strengths and limitations<a class="headerlink" href="#strengths-and-limitations" title="Link to this heading">¶</a></h2>
+<p>The items are packed along a front, each against the items already packed. This works well when the items fit together edge to edge, like the pieces of a puzzle. It works less well when the items are large and concave, or when the small items should fill the gaps between the large ones: once the front has moved beyond a gap, the gap can’t be used anymore. The <a class="reference internal" href="local_search.html#internals-irregular-local-search"><span class="std std-ref">local search</span></a> doesn’t have this limitation.</p>
+</section>
+<section id="automatic-selection">
+<h2>Automatic selection<a class="headerlink" href="#automatic-selection" title="Link to this heading">¶</a></h2>
+<p>With a single bin, the tree search is run unless the instance is dominated by item types with many copies, in which case the <a class="reference internal" href="tree_search_periodic_packing.html#internals-irregular-tree-search-periodic-packing"><span class="std std-ref">tree search with periodic packings</span></a> is run instead (and the tree search too if few items fit in the bin). With several bins, it is run when the item types have few copies compared to the number of items fitting in a bin, alongside the generic algorithms using it to solve their sub-problems. See <a class="reference internal" href="../algorithm_selection.html#internals-algorithm-selection"><span class="std std-ref">algorithm selection</span></a>.</p>
+<p>It can be forced with <code class="code docutils literal notranslate"><span class="pre">--use-tree-search</span> <span class="pre">1</span></code> (CLI) or <code class="code docutils literal notranslate"><span class="pre">use_tree_search</span></code> (Python).</p>
+</section>
+<section id="source-files">
+<h2>Source files<a class="headerlink" href="#source-files" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">src/irregular/tree_search.hpp</span></code>, <code class="code docutils literal notranslate"><span class="pre">src/irregular/tree_search.cpp</span></code>: the branching scheme and the search</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">src/irregular/shape_simplification.hpp</span></code>: the simplified shapes</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">src/irregular/rotations.hpp</span></code>: the orientations considered for the items with continuous rotations</p></li>
+</ul>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+<h3><a href="../../index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">PackingSolver’s documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../objectives.html">Objectives</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../optimization_modes.html">Optimization modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> solver</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../overview.html">Solver internals</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> algorithms</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#trivial-single-item">Trivial single item</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#tree-search">Tree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#tree-search-with-periodic-packings">Tree search with periodic packings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#tree-search-with-maximal-spaces">Tree search with maximal spaces</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#local-search">Local search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#milp-raster">MILP raster</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../irregular.html#one-dimensional-bound">One-dimensional bound</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../generic_algorithms.html">Generic algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../algorithm_selection.html">Algorithm selection</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="tree_search_periodic_packing.html" title="Tree search with periodic packings"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="../irregular.html" title="irregular algorithms"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../overview.html" >Solver internals</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../irregular.html" ><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Tree search</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2019-2024, Florian Fontan.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.1.
+    </div>
+  </body>
+</html>

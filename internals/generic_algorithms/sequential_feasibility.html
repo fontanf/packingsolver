@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Sequential feasibility &#8212; PackingSolver</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../../_static/classic.css?v=14e077c0" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=a00afc7f" />
+    
+    <script src="../../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Algorithm selection" href="../algorithm_selection.html" />
+    <link rel="prev" title="Column generation" href="column_generation.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../algorithm_selection.html" title="Algorithm selection"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="column_generation.html" title="Column generation"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../overview.html" >Solver internals</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../generic_algorithms.html" accesskey="U">Generic algorithms</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Sequential feasibility</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="sequential-feasibility">
+<span id="internals-generic-algorithms-sequential-feasibility"></span><h1>Sequential feasibility<a class="headerlink" href="#sequential-feasibility" title="Link to this heading">¶</a></h1>
+<section id="objectives">
+<h2>Objectives<a class="headerlink" href="#objectives" title="Link to this heading">¶</a></h2>
+<p>This algorithm solves the <code class="code docutils literal notranslate"><span class="pre">bin-packing</span></code>, <code class="code docutils literal notranslate"><span class="pre">bin-packing-with-leftovers</span></code>, <code class="code docutils literal notranslate"><span class="pre">open-dimension-x</span></code>, <code class="code docutils literal notranslate"><span class="pre">open-dimension-y</span></code> and <code class="code docutils literal notranslate"><span class="pre">open-dimension-xy</span></code> objectives, with an algorithm solving the <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code> objective. It is not selected by itself: it is used by the algorithms which only solve the <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code> objective directly.</p>
+</section>
+<section id="principle">
+<h2>Principle<a class="headerlink" href="#principle" title="Link to this heading">¶</a></h2>
+<p>It repeatedly solves a <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code> sub-problem asking whether all the items fit into a shrinking amount of space:</p>
+<ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">bin-packing</span></code>: a number of bins;</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">bin-packing-with-leftovers</span></code>: a number of bins, the last one restricted to a length;</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">open-dimension-x</span></code> and <code class="code docutils literal notranslate"><span class="pre">open-dimension-y</span></code>: a bin restricted to a length along the open dimension;</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">open-dimension-xy</span></code>: a bin restricted to a length along both dimensions, with the given aspect ratio.</p></li>
+</ul>
+<p>It starts from an estimate computed from the total space of the items. As long as the sub-problem is feasible, it tightens the space based on the solution just found (one bin fewer than it actually used, or slightly less than the length it actually reached) and solves it again. It stops as soon as a sub-problem turns out infeasible (or can’t be solved within its budget), and returns the last feasible solution found.</p>
+<p><strong>Warm start.</strong> In the irregular version, each sub-problem, except the first one, receives the previous solution found as a warm start. It is generally not a feasible solution of the sub-problem: the space has been shrunk, so some items may stick out of their bin, and the bins which aren’t available anymore are dropped together with their items. It is up to the inner algorithm to repair it, and the <a class="reference internal" href="../irregular/local_search.html#internals-irregular-local-search"><span class="std std-ref">irregular local search</span></a> does.</p>
+</section>
+<section id="uses">
+<h2>Uses<a class="headerlink" href="#uses" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>irregular: the <a class="reference internal" href="../irregular/local_search.html#internals-irregular-local-search"><span class="std std-ref">local search</span></a> (shrinking the open dimension by 0.1% at each step), the <a class="reference internal" href="../irregular/tree_search_periodic_packing.html#internals-irregular-tree-search-periodic-packing"><span class="std std-ref">tree search with periodic packings</span></a>, the <a class="reference internal" href="../irregular/tree_search_maximal_spaces.html#internals-irregular-tree-search-maximal-spaces"><span class="std std-ref">tree search with maximal spaces</span></a>, and the <a class="reference internal" href="../irregular/tree_search.html#internals-irregular-tree-search"><span class="std std-ref">tree search</span></a> for the <code class="code docutils literal notranslate"><span class="pre">open-dimension-xy</span></code> objective;</p></li>
+<li><p>rectangleguillotine: the <a class="reference internal" href="../rectangleguillotine/tree_search_maximal_spaces.html#internals-rectangleguillotine-tree-search-maximal-spaces"><span class="std std-ref">tree search with maximal spaces</span></a>, for the <code class="code docutils literal notranslate"><span class="pre">open-dimension-x</span></code>, <code class="code docutils literal notranslate"><span class="pre">open-dimension-y</span></code> and <code class="code docutils literal notranslate"><span class="pre">bin-packing-with-leftovers</span></code> objectives with a single bin.</p></li>
+</ul>
+<p>The <a class="reference internal" href="../onedimensional/milp_assignment.html#internals-onedimensional-milp-assignment"><span class="std std-ref">MILP assignment</span></a> and <a class="reference internal" href="column_generation.html#internals-generic-algorithms-column-generation"><span class="std std-ref">column generation</span></a> algorithms use a similar scheme for the <code class="code docutils literal notranslate"><span class="pre">bin-packing</span></code> objective, trying the numbers of bins in increasing order from a lower bound.</p>
+</section>
+<section id="source-files">
+<h2>Source files<a class="headerlink" href="#source-files" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">src/irregular/sequential_feasibility.hpp</span></code>, <code class="code docutils literal notranslate"><span class="pre">src/irregular/sequential_feasibility.cpp</span></code></p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">src/rectangleguillotine/sequential_feasibility.hpp</span></code>, <code class="code docutils literal notranslate"><span class="pre">src/rectangleguillotine/sequential_feasibility.cpp</span></code></p></li>
+</ul>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+<h3><a href="../../index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">PackingSolver’s documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../objectives.html">Objectives</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../optimization_modes.html">Optimization modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> solver</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../overview.html">Solver internals</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../generic_algorithms.html">Generic algorithms</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../generic_algorithms.html#sequential-single-knapsack">Sequential single knapsack</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../generic_algorithms.html#sequential-value-correction">Sequential value correction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../generic_algorithms.html#dichotomic-search">Dichotomic search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../generic_algorithms.html#column-generation">Column generation</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../generic_algorithms.html#sequential-feasibility">Sequential feasibility</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../algorithm_selection.html">Algorithm selection</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../algorithm_selection.html" title="Algorithm selection"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="column_generation.html" title="Column generation"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../overview.html" >Solver internals</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../generic_algorithms.html" >Generic algorithms</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Sequential feasibility</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2019-2024, Florian Fontan.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.1.
+    </div>
+  </body>
+</html>

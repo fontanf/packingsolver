@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Dual feasible functions &#8212; PackingSolver</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../../_static/classic.css?v=14e077c0" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=a00afc7f" />
+    
+    <script src="../../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Conservative scales" href="conservative_scales.html" />
+    <link rel="prev" title="Benders decomposition with contiguity" href="benders_decomposition_contiguity.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="conservative_scales.html" title="Conservative scales"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="benders_decomposition_contiguity.html" title="Benders decomposition with contiguity"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../overview.html" >Solver internals</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../rectangle.html" accesskey="U"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> algorithms</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Dual feasible functions</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="dual-feasible-functions">
+<span id="internals-rectangle-dual-feasible-functions"></span><h1>Dual feasible functions<a class="headerlink" href="#dual-feasible-functions" title="Link to this heading">¶</a></h1>
+<section id="objectives">
+<h2>Objectives<a class="headerlink" href="#objectives" title="Link to this heading">¶</a></h2>
+<p>This algorithm computes a bound for the <code class="code docutils literal notranslate"><span class="pre">bin-packing</span></code>, <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code> and <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code> objectives, for instances with a single bin type. It doesn’t produce solutions.</p>
+<p>It is also used by the <a class="reference internal" href="benders_decomposition.html#internals-rectangle-benders-decomposition"><span class="std std-ref">Benders decomposition</span></a> to generate cuts.</p>
+</section>
+<section id="principle">
+<h2>Principle<a class="headerlink" href="#principle" title="Link to this heading">¶</a></h2>
+<p>The algorithm builds dominated instances, in the sense that every feasible solution of the original instance is also feasible for the dominated instances. Computing the classical area bound on these instances may lead to different values, sometimes better, which remain valid bounds for the original instance.</p>
+<p>In the example below, the bin is 10x6 and there are two copies each of items <code class="docutils literal notranslate"><span class="pre">1</span></code> (6x4), <code class="docutils literal notranslate"><span class="pre">2</span></code> (4x6) and <code class="docutils literal notranslate"><span class="pre">3</span></code> (4x3). Every pair of these items fits together in the bin, so the naive bound based on the total item area (2x(24+24+12) = 120, divided by the bin area 60, rounded up) is only 2:</p>
+<a class="reference internal image-reference" href="../../_images/rectangle_dual_feasible_functions_1.png"><img alt="../../_images/rectangle_dual_feasible_functions_1.png" class="align-center" height="524" src="../../_images/rectangle_dual_feasible_functions_1.png" width="644" />
+</a>
+<p>We apply the following transformation:</p>
+<ul class="simple">
+<li><p>For every item with height <span class="math notranslate nohighlight">\(\geq 4\)</span>, change its height to <span class="math notranslate nohighlight">\(6\)</span></p></li>
+<li><p>Remove every item with height <span class="math notranslate nohighlight">\(\leq 2\)</span></p></li>
+</ul>
+<p>Every feasible solution for the original instance is feasible for the modified instance: when the height of an item with height <span class="math notranslate nohighlight">\(\geq 4\)</span> is increased, every item it might intersect necessarily has height <span class="math notranslate nohighlight">\(\leq 2\)</span>, and is therefore among the removed items.</p>
+<p>Only item <code class="docutils literal notranslate"><span class="pre">1</span></code> is affected by the transformation: its height becomes 6. Here is the dominated instance:</p>
+<a class="reference internal image-reference" href="../../_images/rectangle_dual_feasible_functions_2.png"><img alt="../../_images/rectangle_dual_feasible_functions_2.png" class="align-center" height="524" src="../../_images/rectangle_dual_feasible_functions_2.png" width="644" />
+</a>
+<p>Here, the naive area bound computed on the dominated instance (2x(36+24+12) = 144, divided by 60, rounded up) is 3, which turns out to be tight: the original instance does require 3 bins.</p>
+</section>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading">¶</a></h2>
+<p>Such transformations are <em>dual feasible functions</em>. The ones used are the three families of Carlier, Clautiaux and Moukrim (2007), described on the <a class="reference internal" href="../onedimensional/dual_feasible_functions.html#internals-onedimensional-dual-feasible-functions"><span class="std std-ref">onedimensional page</span></a>: <span class="math notranslate nohighlight">\(f_0\)</span> (rounding the long items up to the bin and the short ones down to 0, as in the example above), <span class="math notranslate nohighlight">\(f_1\)</span> (counting the medium items) and <span class="math notranslate nohighlight">\(f_2\)</span> (rounding to multiples of the breakpoint).</p>
+<p>A function is applied to the widths, with a breakpoint <span class="math notranslate nohighlight">\(k\)</span>, and a function to the heights, with a breakpoint <span class="math notranslate nohighlight">\(l\)</span>. For each pair of breakpoints and each pair of families:</p>
+<ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">bin-packing</span></code> and <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code>: the bound is the total transformed area of the items, <span class="math notranslate nohighlight">\(\sum_i f(w_i) \, g(h_i)\)</span>, divided by the transformed area of the bin, rounded up. The best bound is kept. For the <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code> objective, the instance is proven infeasible if the bound exceeds the number of bins.</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">knapsack</span></code>: the bound is the fractional (Dantzig) bound of the knapsack problem with the transformed areas. The smallest bound is kept.</p></li>
+</ul>
+<p>When an item can be rotated, its transformed area depends on its orientation; the smallest of its two transformed areas is used, which keeps the bound valid whatever the orientation of the item in the packing.</p>
+</section>
+<section id="cuts">
+<h2>Cuts<a class="headerlink" href="#cuts" title="Link to this heading">¶</a></h2>
+<p>For a selection of items assigned to a bin, the same functions give inequalities on the numbers of items of each item type, valid for any selection in a bin of this type: the total transformed area of the items mustn’t exceed the transformed area of the bin. The Benders decomposition looks for the most violated one for the selections proposed by its master problem.</p>
+</section>
+<section id="automatic-selection">
+<h2>Automatic selection<a class="headerlink" href="#automatic-selection" title="Link to this heading">¶</a></h2>
+<p>The bound is computed automatically when there is a single bin type and at most 100 items. It can be forced with <code class="code docutils literal notranslate"><span class="pre">--use-dual-feasible-functions</span> <span class="pre">1</span></code> (CLI) or <code class="code docutils literal notranslate"><span class="pre">use_dual_feasible_functions</span></code> (Python).</p>
+</section>
+<section id="source-files">
+<h2>Source files<a class="headerlink" href="#source-files" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">src/rectangle/dual_feasible_functions.hpp</span></code>, <code class="code docutils literal notranslate"><span class="pre">src/rectangle/dual_feasible_functions.cpp</span></code></p></li>
+</ul>
+<p>References:</p>
+<ul class="simple">
+<li><p>“New reduction procedures and lower bounds for the two-dimensional bin packing problem with fixed orientation” (Carlier, Clautiaux and Moukrim, 2007)</p>
+<ul>
+<li><p><a class="reference external" href="https://doi.org/10.1016/j.cor.2005.08.012">https://doi.org/10.1016/j.cor.2005.08.012</a></p></li>
+</ul>
+</li>
+<li><p>“A new lower bound for the non-oriented two-dimensional bin-packing problem” (Clautiaux, Jouglet and El Hayek, 2007)</p>
+<ul>
+<li><p><a class="reference external" href="https://doi.org/10.1016/j.orl.2006.07.001">https://doi.org/10.1016/j.orl.2006.07.001</a></p></li>
+</ul>
+</li>
+<li><p>“Heuristic approaches for the two- and three-dimensional knapsack packing problem” (Egeblad and Pisinger, 2009)</p>
+<ul>
+<li><p><a class="reference external" href="https://doi.org/10.1016/j.cor.2007.12.004">https://doi.org/10.1016/j.cor.2007.12.004</a></p></li>
+</ul>
+</li>
+<li><p>“A theoretical and experimental study of fast lower bounds for the two-dimensional bin packing problem” (Serairi and Haouari, 2018)</p>
+<ul>
+<li><p><a class="reference external" href="https://doi.org/10.1051/ro/2017019">https://doi.org/10.1051/ro/2017019</a></p></li>
+</ul>
+</li>
+</ul>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+<h3><a href="../../index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">PackingSolver’s documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../objectives.html">Objectives</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../optimization_modes.html">Optimization modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> solver</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../overview.html">Solver internals</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> algorithms</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> algorithms</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../rectangle.html#tree-search">Tree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rectangle.html#tree-search-with-maximal-spaces">Tree search with maximal spaces</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rectangle.html#benders-decomposition">Benders decomposition</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rectangle.html#benders-decomposition-with-contiguity">Benders decomposition with contiguity</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rectangle.html#dual-feasible-functions">Dual feasible functions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rectangle.html#conservative-scales">Conservative scales</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../rectangle.html#bar-relaxation">Bar relaxation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generic_algorithms.html">Generic algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../algorithm_selection.html">Algorithm selection</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="conservative_scales.html" title="Conservative scales"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="benders_decomposition_contiguity.html" title="Benders decomposition with contiguity"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../overview.html" >Solver internals</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../rectangle.html" ><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> algorithms</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Dual feasible functions</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2019-2024, Florian Fontan.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.1.
+    </div>
+  </body>
+</html>

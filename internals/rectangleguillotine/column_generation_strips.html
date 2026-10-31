@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Column generation strips &#8212; PackingSolver</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../../_static/classic.css?v=14e077c0" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=a00afc7f" />
+    
+    <script src="../../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Sequential strips / one-dimensional" href="sequential_strips_onedimensional.html" />
+    <link rel="prev" title="Tree search with maximal spaces" href="tree_search_maximal_spaces.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="sequential_strips_onedimensional.html" title="Sequential strips / one-dimensional"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="tree_search_maximal_spaces.html" title="Tree search with maximal spaces"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../overview.html" >Solver internals</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../rectangleguillotine.html" accesskey="U"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> algorithms</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Column generation strips</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="column-generation-strips">
+<span id="internals-rectangleguillotine-column-generation-strips"></span><h1>Column generation strips<a class="headerlink" href="#column-generation-strips" title="Link to this heading">¶</a></h1>
+<section id="objectives">
+<h2>Objectives<a class="headerlink" href="#objectives" title="Link to this heading">¶</a></h2>
+<p>This algorithm solves the <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code>, <code class="code docutils literal notranslate"><span class="pre">open-dimension-x</span></code> and <code class="code docutils literal notranslate"><span class="pre">open-dimension-y</span></code> objectives, with a single bin.</p>
+<p>It generates k-staged guillotine patterns. It is fast when k = 2. When k &gt;= 4, it becomes impractical. It doesn’t support the defects, the stacks, the minimum waste length and the maximum numbers of cuts.</p>
+</section>
+<section id="principle">
+<h2>Principle<a class="headerlink" href="#principle" title="Link to this heading">¶</a></h2>
+<p>A k-staged pattern is made of first-level sub-plates, the <em>strips</em>, placed side by side, each one being a (k-1)-staged pattern. The algorithm chooses the strips by solving a Dantzig-Wolfe reformulation of the problem, where a variable is a strip, by column generation. Contrary to the tree search with maximal spaces algorithm, the strips are not generated beforehand, but dynamically, by the pricing problem.</p>
+<p>Here is an illustration of the algorithm:</p>
+<a class="reference internal image-reference" href="../../_images/rectangleguillotine_column_generation_strips.png"><img alt="../../_images/rectangleguillotine_column_generation_strips.png" class="align-center" height="824" src="../../_images/rectangleguillotine_column_generation_strips.png" width="564" />
+</a>
+</section>
+<section id="model">
+<h2>Model<a class="headerlink" href="#model" title="Link to this heading">¶</a></h2>
+<p><strong>Input</strong>:</p>
+<ul class="simple">
+<li><p>a bin of width <span class="math notranslate nohighlight">\(W\)</span></p></li>
+<li><p>item types <span class="math notranslate nohighlight">\(j = 1, \ldots, n\)</span>; for each item type <span class="math notranslate nohighlight">\(j\)</span>: a profit <span class="math notranslate nohighlight">\(p_j\)</span>, a width <span class="math notranslate nohighlight">\(w_j\)</span> and a number of copies <span class="math notranslate nohighlight">\(q_j\)</span></p></li>
+<li><p>a set <span class="math notranslate nohighlight">\(K\)</span> of feasible strips; for each strip <span class="math notranslate nohighlight">\(k \in K\)</span>, <span class="math notranslate nohighlight">\(x_j^k\)</span> is the number of copies of item type <span class="math notranslate nohighlight">\(j\)</span> it contains</p></li>
+</ul>
+<p><strong>Variables</strong>:</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(y^k \in \{0, \ldots, q^{\max}\}\)</span>, <span class="math notranslate nohighlight">\(k \in K\)</span>: number of times strip <span class="math notranslate nohighlight">\(k\)</span> is used</p></li>
+</ul>
+<p><strong>Objective</strong>: maximize the total profit of the packed items</p>
+<div class="math notranslate nohighlight">
+\[\max \sum_{k} \Big( \sum_{j} p_j \, x_j^k \Big) y^k\]</div>
+<p><strong>Constraints</strong>:</p>
+<ul class="simple">
+<li><p>Bin width: the strips selected must fit side by side in the bin</p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[\sum_{k} \Big( \max_{j} w_j x_j^k \Big) y^k \le W\]</div>
+<ul class="simple">
+<li><p>Item demand: each item type used at most <span class="math notranslate nohighlight">\(q_j\)</span> times</p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[\forall j \qquad \sum_{k} x_j^k \, y^k \le q_j\]</div>
+<p>For the open dimension objectives, the width of the strips is minimized instead, all the items being packed.</p>
+</section>
+<section id="pricing-problem">
+<h2>Pricing problem<a class="headerlink" href="#pricing-problem" title="Link to this heading">¶</a></h2>
+<p>The pricing problem consists in finding a strip of negative reduced cost</p>
+<div class="math notranslate nohighlight">
+\[rc(y^k) = \Big( \max_{j} w_j x_j^k \Big) u + \sum_{j} x_j^k v_j - \sum_{j} p_j x_j^k\]</div>
+<p>where <span class="math notranslate nohighlight">\(u\)</span> and <span class="math notranslate nohighlight">\(v_j\)</span> are the dual variables of the bin width and item demand constraints. It is solved for every possible strip width, as a (k-1)-staged guillotine single knapsack problem:</p>
+<ul class="simple">
+<li><p>for 2-staged exact, 2-staged non-exact and 3-staged homogeneous patterns, the strips are solved as one-dimensional knapsack problems;</p></li>
+<li><p>otherwise, the same algorithm is applied recursively.</p></li>
+</ul>
+</section>
+<section id="search">
+<h2>Search<a class="headerlink" href="#search" title="Link to this heading">¶</a></h2>
+<p>The column generation gives the linear relaxation of the model, which is a bound. Integer solutions are found by a limited discrepancy search over the column generation: at each node, a strip of the linear solution is fixed, and the column generation is run again on the residual problem. In anytime mode, the search goes on until the time limit; in the non-anytime modes, it stops by itself.</p>
+</section>
+<section id="automatic-selection">
+<h2>Automatic selection<a class="headerlink" href="#automatic-selection" title="Link to this heading">¶</a></h2>
+<p>With a single bin, it is run for the <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code> and open dimension objectives with 2-staged patterns, or 3-staged homogeneous ones, and none of the features it doesn’t support. It is also used by the <a class="reference internal" href="sequential_strips_onedimensional.html#internals-rectangleguillotine-sequential-strips-onedimensional"><span class="std std-ref">sequential strips / one-dimensional</span></a> algorithm. See <a class="reference internal" href="../algorithm_selection.html#internals-algorithm-selection"><span class="std std-ref">algorithm selection</span></a>.</p>
+<p>It can be forced with <code class="code docutils literal notranslate"><span class="pre">--use-column-generation-strips</span> <span class="pre">1</span></code> (CLI) or <code class="code docutils literal notranslate"><span class="pre">use_column_generation_strips</span></code> (Python).</p>
+</section>
+<section id="source-files">
+<h2>Source files<a class="headerlink" href="#source-files" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">src/rectangleguillotine/column_generation_strips.hpp</span></code>, <code class="code docutils literal notranslate"><span class="pre">src/rectangleguillotine/column_generation_strips.cpp</span></code></p></li>
+</ul>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+<h3><a href="../../index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">PackingSolver’s documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../objectives.html">Objectives</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../optimization_modes.html">Optimization modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> solver</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../overview.html">Solver internals</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> algorithms</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> algorithms</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../rectangleguillotine.html#tree-search">Tree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rectangleguillotine.html#tree-search-with-maximal-spaces">Tree search with maximal spaces</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rectangleguillotine.html#column-generation-strips">Column generation strips</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rectangleguillotine.html#sequential-strips-one-dimensional">Sequential strips / one-dimensional</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rectangleguillotine.html#tree-search-hypergraph">Tree search hypergraph</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rectangleguillotine.html#tree-search-hypergraph-with-infinite-copies">Tree search hypergraph with infinite copies</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../rectangleguillotine.html#dual-feasible-functions">Dual feasible functions</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generic_algorithms.html">Generic algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../algorithm_selection.html">Algorithm selection</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="sequential_strips_onedimensional.html" title="Sequential strips / one-dimensional"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="tree_search_maximal_spaces.html" title="Tree search with maximal spaces"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../overview.html" >Solver internals</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../rectangleguillotine.html" ><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> algorithms</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Column generation strips</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2019-2024, Florian Fontan.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.1.
+    </div>
+  </body>
+</html>

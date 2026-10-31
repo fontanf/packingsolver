@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Tree search &#8212; PackingSolver</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../../_static/classic.css?v=14e077c0" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=a00afc7f" />
+    
+    <script src="../../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="MILP assignment" href="milp_assignment.html" />
+    <link rel="prev" title="one-dimensional algorithms" href="../onedimensional.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="milp_assignment.html" title="MILP assignment"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="../onedimensional.html" title="one-dimensional algorithms"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../overview.html" >Solver internals</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../onedimensional.html" accesskey="U"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> algorithms</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Tree search</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="tree-search">
+<span id="internals-onedimensional-tree-search"></span><h1>Tree search<a class="headerlink" href="#tree-search" title="Link to this heading">¶</a></h1>
+<section id="objectives">
+<h2>Objectives<a class="headerlink" href="#objectives" title="Link to this heading">¶</a></h2>
+<p>This algorithm solves the <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code>, <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code>, <code class="code docutils literal notranslate"><span class="pre">bin-packing</span></code> and <code class="code docutils literal notranslate"><span class="pre">bin-packing-with-leftovers</span></code> objectives, and the <code class="code docutils literal notranslate"><span class="pre">variable-sized-bin-packing</span></code> objective when there is a single bin type (it is then a bin packing problem).</p>
+</section>
+<section id="principle">
+<h2>Principle<a class="headerlink" href="#principle" title="Link to this heading">¶</a></h2>
+<p>It is a constructive tree search where a single item is packed at each stage. The root node is an empty partial solution. Given a node, a child node is generated for each item type which can be packed after the last item of the current (last) bin. If no item can be packed in the current bin, a child node is generated for each item type which can be packed in a new bin. The tree is explored by an iterative beam search, guided by a guide function.</p>
+<a class="reference internal image-reference" href="../../_images/onedimensional_tree_search.png"><img alt="../../_images/onedimensional_tree_search.png" class="align-center" height="446" src="../../_images/onedimensional_tree_search.png" width="684" />
+</a>
+<p>The bins are considered in a fixed order: in the order in which they appear in the instance, or by increasing length for the <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code> objective. Bins in which no remaining item fits are skipped.</p>
+</section>
+<section id="insertions">
+<h2>Insertions<a class="headerlink" href="#insertions" title="Link to this heading">¶</a></h2>
+<p>An item can be packed after the last item of the current bin if:</p>
+<ul class="simple">
+<li><p>the length of the bin is not exceeded; an item packed right after another item only needs its length minus its nesting length;</p></li>
+<li><p>the maximum weight of the bin is not exceeded;</p></li>
+<li><p>the maximum stackability of the items of the bin is not exceeded: the number of items in a bin can’t exceed the smallest maximum stackability of its items;</p></li>
+<li><p>the maximum weight after constraint is satisfied: the weight of the new item doesn’t exceed the remaining weight allowed after any of the items of the bin;</p></li>
+<li><p>the capacities of the resources of the bin are not exceeded (a <em>penalize</em> resource never blocks an insertion; its penalty is subtracted from the profit instead).</p></li>
+</ul>
+</section>
+<section id="guides">
+<h2>Guides<a class="headerlink" href="#guides" title="Link to this heading">¶</a></h2>
+<p>The guide of a node estimates the quality of the partial solution; the beam search keeps the nodes with the smallest guides. Most guides compare the <em>current length</em> of the node, the total length of the closed bins plus the length used in the current bin, with the length of the items packed.</p>
+<ul class="simple">
+<li><p>Guide 0: current length divided by the length of the items packed.</p></li>
+<li><p>Guide 1: same as guide 0, divided by the mean length of the items packed, to favor the long items.</p></li>
+<li><p>Guide 2: waste percentage (plus 0.1), divided by the mean length of the items packed.</p></li>
+<li><p>Guide 3: same as guide 2 with the mean squared length of the items.</p></li>
+<li><p>Guide 4: current length divided by the profit of the items packed.</p></li>
+<li><p>Guide 5: same as guide 4, divided by the mean length of the items packed.</p></li>
+<li><p>Guide 6: waste.</p></li>
+<li><p>Guides 7 and 8: knapsack upper bound of the node (then waste for guide 8).</p></li>
+</ul>
+<p>By default, guides 4 and 5 are used for the <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code> objective, guides 0 and 1 for the <code class="code docutils literal notranslate"><span class="pre">bin-packing-with-leftovers</span></code> objective, and guides 0 and 2 for the other objectives.</p>
+</section>
+<section id="dominance-and-pruning">
+<h2>Dominance and pruning<a class="headerlink" href="#dominance-and-pruning" title="Link to this heading">¶</a></h2>
+<p>Two nodes with the same number of copies of each item type packed can be compared. A node dominates the other one if its last item has the same item type, if it uses as many bins, if its current length is not larger, if its profit is not smaller, and if the resource consumption of its current bin is not larger for any resource. Dominated nodes are discarded.</p>
+<p>A node is also discarded when it can’t lead to a better solution than the best one found. For the <code class="code docutils literal notranslate"><span class="pre">bin-packing</span></code> objective, the number of bins needed by a node is bounded by filling the bins, in order, with the current length plus the length of the remaining items (each one counted with its nested length).</p>
+</section>
+<section id="search">
+<h2>Search<a class="headerlink" href="#search" title="Link to this heading">¶</a></h2>
+<p>In anytime mode, an iterative beam search is run for each guide, in parallel. Each one starts with a beam of size 1, and the size of the beam is multiplied by a growth factor at each restart. When at most two guides are used, each one is run with two growth factors, 1.33 and 1.5. When the beam search explores the whole tree, the solution found is proven optimal (or the instance proven infeasible).</p>
+<p>In the non-anytime modes, a single beam search is run for each guide, with a beam of a given size.</p>
+</section>
+<section id="automatic-selection">
+<h2>Automatic selection<a class="headerlink" href="#automatic-selection" title="Link to this heading">¶</a></h2>
+<p>With a single bin, the tree search is run unless another algorithm has been selected explicitly. With several bins, it is run when the item types have few copies compared to the number of items fitting in a bin, alongside the generic algorithms using it to solve their sub-problems. See <a class="reference internal" href="../algorithm_selection.html#internals-algorithm-selection"><span class="std std-ref">algorithm selection</span></a>.</p>
+<p>It can be forced with <code class="code docutils literal notranslate"><span class="pre">--use-tree-search</span> <span class="pre">1</span></code> (CLI) or <code class="code docutils literal notranslate"><span class="pre">use_tree_search</span></code> (Python).</p>
+</section>
+<section id="source-files">
+<h2>Source files<a class="headerlink" href="#source-files" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">src/onedimensional/tree_search.hpp</span></code>, <code class="code docutils literal notranslate"><span class="pre">src/onedimensional/tree_search.cpp</span></code></p></li>
+</ul>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+<h3><a href="../../index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">PackingSolver’s documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../objectives.html">Objectives</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../optimization_modes.html">Optimization modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> solver</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../overview.html">Solver internals</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> algorithms</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../onedimensional.html#dynamic-programming-for-the-classical-0-1-knapsack-problem">Dynamic programming for the classical 0-1 knapsack problem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../onedimensional.html#tree-search">Tree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../onedimensional.html#milp-assignment">MILP assignment</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../onedimensional.html#dual-feasible-functions">Dual feasible functions</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generic_algorithms.html">Generic algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../algorithm_selection.html">Algorithm selection</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="milp_assignment.html" title="MILP assignment"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="../onedimensional.html" title="one-dimensional algorithms"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../overview.html" >Solver internals</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../onedimensional.html" ><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> algorithms</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Tree search</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2019-2024, Florian Fontan.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.1.
+    </div>
+  </body>
+</html>

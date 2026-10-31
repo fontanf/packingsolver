@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Local search: direct trigonometry engine &#8212; PackingSolver</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../../_static/classic.css?v=14e077c0" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=a00afc7f" />
+    
+    <script src="../../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Local search: linear programming engine" href="local_search_linear_programming.html" />
+    <link rel="prev" title="Local search" href="local_search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="local_search_linear_programming.html" title="Local search: linear programming engine"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="local_search.html" title="Local search"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../overview.html" >Solver internals</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../irregular.html" ><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms</a> &#187;</li>
+          <li class="nav-item nav-item-3"><a href="local_search.html" accesskey="U">Local search</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Local search: direct trigonometry engine</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="local-search-direct-trigonometry-engine">
+<span id="internals-irregular-local-search-direct-trigonometry"></span><h1>Local search: direct trigonometry engine<a class="headerlink" href="#local-search-direct-trigonometry-engine" title="Link to this heading">¶</a></h1>
+<p>This page describes the separator of the direct trigonometry engine of the <a class="reference internal" href="local_search.html#internals-irregular-local-search"><span class="std std-ref">local search</span></a>. It follows the separator of Sparrow (Gardeyn and Vanden Berghe, 2025), which is itself built on the collision detection of jagua-rs.</p>
+<section id="principle">
+<h2>Principle<a class="headerlink" href="#principle" title="Link to this heading">¶</a></h2>
+<p>The items may overlap each other, overlap the defects, the fixed items and the borders of their bin, and stick out of their bin. Each collision is quantified by a <em>collision loss</em>, an approximation of the overlap area computed from circles inscribed in the shapes. A separation moves the colliding items one by one, each to the best of many sampled positions, to minimize the total collision loss weighted by guided local search weights.</p>
+<p>The engine is called <em>direct trigonometry</em> because the overlaps are computed directly from the geometry of the shapes, without linear or nonlinear programs.</p>
+</section>
+<section id="shapes">
+<h2>Shapes<a class="headerlink" href="#shapes" title="Link to this heading">¶</a></h2>
+<p>For each item type and each orientation, the shapes are simplified into polygons with fewer vertices, with a small maximum approximation ratio (0.5%). The shapes inflated by the item-item minimum spacing are kept too.</p>
+<p>Each polygon is described by <em>poles</em>: disjoint circles inscribed in it. The first one is the largest inscribed circle (the pole of inaccessibility); each next one is the largest circle inscribed in the polygon minus the previous circles. Poles are generated until they cover 90% of the area with at least 8 poles, or 80% with at least 16 poles, with at most 64 poles.</p>
+<p>Each pole is found with a quadtree search inspired by Mapbox’s polylabel algorithm: a square cell is only split if the distance of its center to the boundary of the region, plus its half-diagonal, can improve the best circle found. All the searches of a polygon use the same quadtree, so the distance of the center of a cell to the boundary of the polygon is computed only once and kept, together with its distance to the poles already considered: a next search only accounts for the poles added since. Computing the poles is the most expensive part of the preprocessing, so the item types are processed in parallel by the workers of the separator.</p>
+<p>The <em>hazards</em> of a bin are the obstacles an item may collide with: its borders, its defects (inflated by the spacings), its fixed items, and its exterior.</p>
+</section>
+<section id="collision-loss">
+<h2>Collision loss<a class="headerlink" href="#collision-loss" title="Link to this heading">¶</a></h2>
+<p>Whether two shapes collide is decided exactly, from their polygons. The largest poles, covering half of the area of the item, are checked first, to detect most collisions quickly.</p>
+<p>The collision loss of two colliding shapes is computed from their poles, following the Sparrow paper. For each pair of poles, the penetration depth (the sum of the radii minus the distance between the centers) is multiplied by the smallest radius. Penetration depths smaller than <span class="math notranslate nohighlight">\(\varepsilon\)</span>, 1% of the largest diameter of the two shapes, decay smoothly towards 0 instead of being negative, so that the loss stays positive for colliding shapes whose poles don’t overlap. With <span class="math notranslate nohighlight">\(O\)</span> the sum over the pairs of poles, the loss is</p>
+<div class="math notranslate nohighlight">
+\[\sqrt{O + \varepsilon^2} \times \sqrt{\sqrt{A_1} \sqrt{A_2}}\]</div>
+<p>where <span class="math notranslate nohighlight">\(A_1\)</span> and <span class="math notranslate nohighlight">\(A_2\)</span> are the areas of the convex hulls of the shapes. As in Sparrow, the loss of an item sticking out of its bin is computed from the area <span class="math notranslate nohighlight">\(O\)</span> of its bounding box outside the bin: <span class="math notranslate nohighlight">\(2 \sqrt{O} \sqrt{A}\)</span>, where <span class="math notranslate nohighlight">\(A\)</span> is the area of its convex hull.</p>
+<p>Each pair of items, and each pair of an item and a hazard, has a guided local search weight. The <em>total loss</em> of a layout is the sum of the collision losses; the <em>weighted loss</em>, minimized by the moves, is the sum of the collision losses times their weights.</p>
+</section>
+<section id="moves">
+<h2>Moves<a class="headerlink" href="#moves" title="Link to this heading">¶</a></h2>
+<p>At each iteration of a separation, each colliding item, in a random order, is removed from the layout and put back at the best placement found by the following search:</p>
+<ul class="simple">
+<li><p>the current placement, and 25 samples around it, in the same bin;</p></li>
+<li><p>50 samples in random bins, in random allowed orientations;</p></li>
+<li><p>the 3 best distinct samples are refined by coordinate descent: the item is moved in small steps along the axes, the step growing (×1.1) after a successful move and shrinking (×0.5) after a failed one; then the best result is refined further with smaller steps.</p></li>
+</ul>
+<p>A placement without collision is always preferred. The evaluation of a candidate placement stops as soon as its weighted loss exceeds the one of the worst of the best candidates.</p>
+<p>With several workers (3 by default), each worker moves the colliding items from the current layout, in its own random order, in its own thread, and the layout of the worker with the smallest weighted loss is kept.</p>
+</section>
+<section id="guided-local-search-weights">
+<h2>Guided local search weights<a class="headerlink" href="#guided-local-search-weights" title="Link to this heading">¶</a></h2>
+<p>After each iteration, the weights of the colliding pairs are increased, by a factor between 1.2 and 2, proportional to their collision loss divided by the largest collision loss. The weights of the pairs which don’t collide anymore decay by a factor 0.95, down to 1. So the collisions which persist become more and more expensive, and the items involved end up moved further away.</p>
+</section>
+<section id="separation">
+<h2>Separation<a class="headerlink" href="#separation" title="Link to this heading">¶</a></h2>
+<p>A separation is a sequence of <em>strikes</em>. In a strike, iterations are performed until a counter of iterations without improvement reaches 200: the counter is reset when the smallest total loss found decreases by at least 2%, and incremented when it doesn’t decrease. The strike is a failure if it hasn’t decreased the total loss by at least 2%. Between strikes, the best layout found is restored, keeping the weights. The separation stops after 3 failed strikes in a row (1 while the loss is above the reference loss of the iterated local search), or as soon as the total loss is 0.</p>
+</section>
+<section id="initial-layout-and-disruption">
+<h2>Initial layout and disruption<a class="headerlink" href="#initial-layout-and-disruption" title="Link to this heading">¶</a></h2>
+<p>When a solution is loaded, the items which stick out of their bin are moved back by removing a slice of the bin at a random position: the items after the slice are shifted towards the slice. The missing items are then inserted one by one, each at the best of 1000 sampled placements, the placements without collision being scored to favor the bottom left of the first bins.</p>
+<p>A layout is disrupted by swapping two large items; the items covered by one of them after the swap are moved to the space it left.</p>
+<p>The distance between two layouts, used by the population of the iterated local search, describes each item by its bin, its orientation, and the cell of a grid containing the center of its bounding box (the cells of an item type being as large as its smallest dimension). The copies of an item type being interchangeable, the distance is the number of items whose description doesn’t match the description of an item of the other layout.</p>
+</section>
+<section id="differences-with-sparrow">
+<h2>Differences with Sparrow<a class="headerlink" href="#differences-with-sparrow" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>The rotations are discrete: an item changes orientation by sampling, never by coordinate descent. The items with continuous rotations are considered in a finite set of orientations.</p></li>
+<li><p>There is no spatial index: an evaluation goes through the items of the bin, filtered by their bounding boxes.</p></li>
+</ul>
+</section>
+<section id="automatic-selection">
+<h2>Automatic selection<a class="headerlink" href="#automatic-selection" title="Link to this heading">¶</a></h2>
+<p>The engine is run by the automatic selection for the objectives supported by the local search, alongside the tree search. It can be forced with <code class="code docutils literal notranslate"><span class="pre">--use-local-search-direct-trigonometry</span> <span class="pre">1</span></code> (CLI) or <code class="code docutils literal notranslate"><span class="pre">use_local_search_direct_trigonometry</span></code> (Python).</p>
+</section>
+<section id="source-files">
+<h2>Source files<a class="headerlink" href="#source-files" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">src/irregular/direct_trigonometry/separator.hpp</span></code>, <code class="code docutils literal notranslate"><span class="pre">src/irregular/direct_trigonometry/separator.cpp</span></code>: the separator</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">src/irregular/direct_trigonometry/polygon.hpp</span></code>, <code class="code docutils literal notranslate"><span class="pre">src/irregular/direct_trigonometry/polygon.cpp</span></code>: the polygons, their intersection and their poles</p></li>
+</ul>
+<p>References:</p>
+<ul class="simple">
+<li><p>“An open-source heuristic to reboot 2D nesting research” (Gardeyn and Vanden Berghe, 2025)</p>
+<ul>
+<li><p><a class="reference external" href="https://doi.org/10.48550/arXiv.2509.13329">https://doi.org/10.48550/arXiv.2509.13329</a></p></li>
+</ul>
+</li>
+<li><p>“Sparrow” (Gardeyn), and its collision detection engine “jagua-rs”</p>
+<ul>
+<li><p><a class="reference external" href="https://github.com/JeroenGar/sparrow">https://github.com/JeroenGar/sparrow</a></p></li>
+<li><p><a class="reference external" href="https://github.com/JeroenGar/jagua-rs">https://github.com/JeroenGar/jagua-rs</a></p></li>
+</ul>
+</li>
+</ul>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+<h3><a href="../../index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">PackingSolver’s documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../objectives.html">Objectives</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../optimization_modes.html">Optimization modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> solver</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../overview.html">Solver internals</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> algorithms</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#trivial-single-item">Trivial single item</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#tree-search">Tree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#tree-search-with-periodic-packings">Tree search with periodic packings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#tree-search-with-maximal-spaces">Tree search with maximal spaces</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#local-search">Local search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#milp-raster">MILP raster</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../irregular.html#one-dimensional-bound">One-dimensional bound</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../generic_algorithms.html">Generic algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../algorithm_selection.html">Algorithm selection</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="local_search_linear_programming.html" title="Local search: linear programming engine"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="local_search.html" title="Local search"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../overview.html" >Solver internals</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../irregular.html" ><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms</a> &#187;</li>
+          <li class="nav-item nav-item-3"><a href="local_search.html" >Local search</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Local search: direct trigonometry engine</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2019-2024, Florian Fontan.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.1.
+    </div>
+  </body>
+</html>

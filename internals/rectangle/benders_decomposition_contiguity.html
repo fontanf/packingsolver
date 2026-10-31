@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Benders decomposition with contiguity &#8212; PackingSolver</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../../_static/classic.css?v=14e077c0" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=a00afc7f" />
+    
+    <script src="../../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Dual feasible functions" href="dual_feasible_functions.html" />
+    <link rel="prev" title="Benders decomposition" href="benders_decomposition.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="dual_feasible_functions.html" title="Dual feasible functions"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="benders_decomposition.html" title="Benders decomposition"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../overview.html" >Solver internals</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../rectangle.html" accesskey="U"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> algorithms</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Benders decomposition with contiguity</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="benders-decomposition-with-contiguity">
+<span id="internals-rectangle-benders-decomposition-contiguity"></span><h1>Benders decomposition with contiguity<a class="headerlink" href="#benders-decomposition-with-contiguity" title="Link to this heading">¶</a></h1>
+<section id="objectives">
+<h2>Objectives<a class="headerlink" href="#objectives" title="Link to this heading">¶</a></h2>
+<p>This algorithm solves the <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code> and <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code> objectives, for a single bin. It doesn’t model the defects, the weights and the eligibilities.</p>
+<p>It is an exact method: when it converges, the solution found is optimal.</p>
+</section>
+<section id="principle">
+<h2>Principle<a class="headerlink" href="#principle" title="Link to this heading">¶</a></h2>
+<p>It is a combinatorial Benders decomposition, following Côté, Dell’Amico and Iori (2014) for the strip packing problem, as adapted by Wang, Baldacci, Furini, Wei and Liu (2025) to a bin of fixed size.</p>
+<p>Unlike the <a class="reference internal" href="benders_decomposition.html#internals-rectangle-benders-decomposition"><span class="std std-ref">Benders decomposition</span></a>, whose master problem only sees the area of the items, the master problem here also decides the x-position of each item, and the subproblem only has to find y-positions consistent with them.</p>
+</section>
+<section id="master-problem">
+<h2>Master problem<a class="headerlink" href="#master-problem" title="Link to this heading">¶</a></h2>
+<p>The bin is cut into unit-width columns, and each item, in one of its orientations, into as many unit-width slices as its width. Each item selected is assigned to a run of consecutive columns, its x-position, and the total height of the items covering each column must not exceed the height of the bin. This is the <em>contiguous</em> relaxation of the problem (the “P|cont|Cmax” parallel processor scheduling relaxation): a solution of the master problem is not necessarily a packing, since the items don’t have y-positions.</p>
+<p><strong>Input</strong>:</p>
+<ul class="simple">
+<li><p>a bin of width <span class="math notranslate nohighlight">\(W\)</span> and height <span class="math notranslate nohighlight">\(H\)</span>, cut into columns <span class="math notranslate nohighlight">\(x = 0, \ldots, W - 1\)</span></p></li>
+<li><p>the <em>units</em> <span class="math notranslate nohighlight">\(u\)</span>, one per copy of each item type; for each unit <span class="math notranslate nohighlight">\(u\)</span>: its profit <span class="math notranslate nohighlight">\(p_u\)</span>, and its <em>candidate placements</em> <span class="math notranslate nohighlight">\((x, o)\)</span>: its left column <span class="math notranslate nohighlight">\(x\)</span> and its orientation <span class="math notranslate nohighlight">\(o\)</span>, with width <span class="math notranslate nohighlight">\(w_{u,o}\)</span> and height <span class="math notranslate nohighlight">\(h_{u,o}\)</span></p></li>
+<li><p>the no-good cuts found so far <span class="math notranslate nohighlight">\(\mathcal{C}\)</span>; each cut is given by a set of units <span class="math notranslate nohighlight">\(S\)</span> and, for each unit <span class="math notranslate nohighlight">\(u \in S\)</span>, a set of its candidate placements <span class="math notranslate nohighlight">\(C_u\)</span>: the units of <span class="math notranslate nohighlight">\(S\)</span> can’t all be placed at placements of their sets (for the <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code> objective, <span class="math notranslate nohighlight">\(C_u\)</span> contains all the placements of <span class="math notranslate nohighlight">\(u\)</span>)</p></li>
+</ul>
+<p>The candidate left columns of each unit are the <em>meet-in-the-middle patterns</em> of Côté and Iori (2018), rather than all the integer positions, which keeps the model tractable.</p>
+<p><strong>Variables</strong>:</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(\rho_{u,x,o} \in \{0, 1\}\)</span>: <span class="math notranslate nohighlight">\(\rho_{u,x,o} = 1\)</span> iff unit <span class="math notranslate nohighlight">\(u\)</span> is placed with its left side at column <span class="math notranslate nohighlight">\(x\)</span>, in orientation <span class="math notranslate nohighlight">\(o\)</span></p></li>
+</ul>
+<p><strong>Objective</strong>: maximize the profit of the units placed (<code class="code docutils literal notranslate"><span class="pre">knapsack</span></code>; no objective for <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code>)</p>
+<div class="math notranslate nohighlight">
+\[\max \sum_{u,x,o} p_u \, \rho_{u,x,o}\]</div>
+<p><strong>Constraints</strong>:</p>
+<ul class="simple">
+<li><p>Units: each unit is placed at most once (exactly once for the <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code> objective)</p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[\forall u \qquad \sum_{x,o} \rho_{u,x,o} \le 1\]</div>
+<ul class="simple">
+<li><p>Column heights: the units covering a column fit in the height of the bin</p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[\forall x' \qquad \sum_{(u,x,o) \,:\, x \le x' &lt; x + w_{u,o}} h_{u,o} \, \rho_{u,x,o} \le H\]</div>
+<ul class="simple">
+<li><p>No-good cuts</p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[\forall (S, C) \in \mathcal{C} \qquad \sum_{u \in S} \; \sum_{(x,o) \in C_u} \rho_{u,x,o} \le |S| - 1\]</div>
+<p>The master problem is solved either by a dedicated branch-and-bound (the default), in the spirit of the numerically exact algorithm of Wang et al. (2025), or by this 0-1 MILP.</p>
+</section>
+<section id="subproblem">
+<h2>Subproblem<a class="headerlink" href="#subproblem" title="Link to this heading">¶</a></h2>
+<p>The subproblem is the <em>y-check</em>: given the x-positions (and orientations) of the selected items, is there a set of y-positions making a valid packing? It is solved with the combinatorial branch-and-bound of Côté, Dell’Amico and Iori (2014), based on the skyline of the packed items.</p>
+<p>If the y-check fails, for the <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code> objective, the same set of items is first checked at other x-positions, by a <em>local Benders decomposition</em>: the algorithm itself is called on a <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code> instance with exactly these items. If it finds a packing, it is optimal, since the profit only depends on the items selected. Otherwise, the set of items is infeasible at any position, and a no-good cut forbidding it is added to the master problem.</p>
+<p>For the <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code> objective, the no-good cut of a failed y-check is strengthened following Wang et al. (2025): the set of items is first shrunk (by binary splits along vertical lines, by sweeps, then by removing the items one at a time) to a smaller set which still fails, then the forbidden x-window of each remaining item is widened as far as it provably stays infeasible, with a linear program.</p>
+</section>
+<section id="automatic-selection">
+<h2>Automatic selection<a class="headerlink" href="#automatic-selection" title="Link to this heading">¶</a></h2>
+<p>It is not part of the automatic selection. It can be selected with <code class="code docutils literal notranslate"><span class="pre">--use-benders-decomposition-contiguity</span> <span class="pre">1</span></code> (CLI) or <code class="code docutils literal notranslate"><span class="pre">use_benders_decomposition_contiguity</span></code> (Python).</p>
+</section>
+<section id="source-files">
+<h2>Source files<a class="headerlink" href="#source-files" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">src/rectangle/benders_decomposition_contiguity.hpp</span></code>, <code class="code docutils literal notranslate"><span class="pre">src/rectangle/benders_decomposition_contiguity.cpp</span></code>: the decomposition and the y-check</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">src/rectangle/onedimentional_contiguity/</span></code>: the master problem</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">src/algorithms/meet_in_the_middle.hpp</span></code>: the meet-in-the-middle patterns</p></li>
+</ul>
+<p>References:</p>
+<ul class="simple">
+<li><p>“Combinatorial Benders’ Cuts for the Strip Packing Problem” (Côté, Dell’Amico and Iori, 2014)</p>
+<ul>
+<li><p><a class="reference external" href="https://doi.org/10.1287/opre.2013.1248">https://doi.org/10.1287/opre.2013.1248</a></p></li>
+</ul>
+</li>
+<li><p>“The Meet-in-the-Middle Principle for Cutting and Packing Problems” (Côté and Iori, 2018)</p>
+<ul>
+<li><p><a class="reference external" href="https://doi.org/10.1287/ijoc.2018.0806">https://doi.org/10.1287/ijoc.2018.0806</a></p></li>
+</ul>
+</li>
+<li><p>“Exact Algorithms for Two-Dimensional Knapsack Problems: A Unified Framework with New Benchmark Results” (Wang, Baldacci, Furini, Wei and Liu, 2025)</p>
+<ul>
+<li><p><a class="reference external" href="https://doi.org/10.1287/ijoc.2025.1423">https://doi.org/10.1287/ijoc.2025.1423</a></p></li>
+</ul>
+</li>
+</ul>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+<h3><a href="../../index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">PackingSolver’s documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../objectives.html">Objectives</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../optimization_modes.html">Optimization modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> solver</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../overview.html">Solver internals</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> algorithms</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> algorithms</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../rectangle.html#tree-search">Tree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rectangle.html#tree-search-with-maximal-spaces">Tree search with maximal spaces</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rectangle.html#benders-decomposition">Benders decomposition</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rectangle.html#benders-decomposition-with-contiguity">Benders decomposition with contiguity</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rectangle.html#dual-feasible-functions">Dual feasible functions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rectangle.html#conservative-scales">Conservative scales</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../rectangle.html#bar-relaxation">Bar relaxation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generic_algorithms.html">Generic algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../algorithm_selection.html">Algorithm selection</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="dual_feasible_functions.html" title="Dual feasible functions"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="benders_decomposition.html" title="Benders decomposition"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../overview.html" >Solver internals</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../rectangle.html" ><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> algorithms</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Benders decomposition with contiguity</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2019-2024, Florian Fontan.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.1.
+    </div>
+  </body>
+</html>
