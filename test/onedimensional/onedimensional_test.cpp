@@ -69,6 +69,33 @@ TEST(OneDimensional, ResourceConsumptionCopiedFromOriginalInstance)
             5.0);
 }
 
+TEST(OneDimensional, ReductionDoesNotMergeCopyDependentResourceConsumptions)
+{
+    // Two item types of the same length, each consuming 1 for its first
+    // copy only: at most one of them per bin. Merged into a single item type
+    // of two copies, the second one would consume 0, and both would fit in
+    // the same bin.
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(packingsolver::Objective::BinPacking);
+    packingsolver::BinTypeId bin_type_id = instance_builder.add_bin_type(10);
+    instance_builder.set_bin_type_copies(bin_type_id, 2);
+    packingsolver::ResourceId resource_id = instance_builder.add_bin_type_resource(bin_type_id, 1);
+    for (int i = 0; i < 2; ++i) {
+        packingsolver::ItemTypeId item_type_id = instance_builder.add_item_type(1);
+        instance_builder.add_resource_consumption(bin_type_id, resource_id, item_type_id, {1.0, 0.0});
+    }
+    const Instance instance = instance_builder.build();
+
+    OptimizeParameters optimize_parameters;
+    optimize_parameters.verbosity_level = 0;
+    optimize_parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytimeSequential;
+    optimize_parameters.use_milp_assignment = true;
+    Output output = optimize(instance, optimize_parameters);
+
+    EXPECT_TRUE(output.solution_pool.best().feasible());
+    EXPECT_EQ(output.solution_pool.best().number_of_bins(), 2);
+}
+
 TEST(OneDimensional, WriteCsvRoundTrip)
 {
     InstanceBuilder instance_builder;

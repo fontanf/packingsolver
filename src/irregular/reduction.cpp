@@ -307,6 +307,13 @@ bool Reduction::items_mergeable(
                 = (schedule_2_ptr != nullptr)? *schedule_2_ptr: empty_schedule;
             if (schedule_1 != schedule_2)
                 return false;
+            // The consumption of a copy depends on the number of copies of
+            // its item type already in the bin: after the merge, the copies
+            // of the second item type would be counted as further copies of
+            // the first one, so the schedule must be the same for every copy.
+            for (double consumption: schedule_1)
+                if (consumption != schedule_1.front())
+                    return false;
         }
     }
 
