@@ -18,6 +18,9 @@ public:
     /** Set the objective. */
     void set_objective(Objective objective) { instance_.objective_ = objective; }
 
+    /** Set the knapsack goal (see 'Instance::knapsack_goal'). */
+    void set_knapsack_goal(Profit knapsack_goal) { instance_.knapsack_goal_ = knapsack_goal; }
+
     /*
      * Read from files
      */

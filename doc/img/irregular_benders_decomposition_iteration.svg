@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512.0" height="416.0" viewBox="-205.0 -28.0 512.0 416.0">
+<defs><marker id="arrow0" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#333333"/></marker></defs>
+<rect x="-205.0" y="-28.0" width="512.0" height="416.0" fill="#ffffff"/>
+<rect x="-165.0" y="-18.0" width="330" height="36.0" rx="5.4" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#000000" text-anchor="middle"><tspan x="0.0" y="3.85">solve the master problem</tspan></text>
+<polyline points="0,18.0 0,42.0" fill="none" stroke="#333333" stroke-width="1" marker-end="url(#arrow0)"/>
+<rect x="-165.0" y="42.0" width="330" height="36.0" rx="5.4" fill="#fff2cc" stroke="#d6b656" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#000000" text-anchor="middle"><tspan x="0.0" y="63.85">can its solution beat the best one?</tspan></text>
+<polyline points="0,78.0 0,102.0" fill="none" stroke="#333333" stroke-width="1" marker-end="url(#arrow0)"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#000000" text-anchor="start"><tspan x="9.0" y="93.85">yes</tspan></text>
+<polyline points="165.0,60.0 225.0,60.0" fill="none" stroke="#333333" stroke-width="1" marker-end="url(#arrow0)"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#000000" text-anchor="middle"><tspan x="195.0" y="53.35">no</tspan></text>
+<rect x="225.0" y="42.0" width="72.0" height="36.0" rx="5.4" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#000000" text-anchor="middle"><tspan x="261.0" y="63.85">stop</tspan></text>
+<rect x="-165.0" y="102.0" width="330" height="36.0" rx="5.4" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#000000" text-anchor="middle"><tspan x="0.0" y="117.25">for each bin, add its items, largest first,</tspan><tspan x="0.0" y="130.45">until MILP NFP proves that they don&#x27;t fit</tspan></text>
+<polyline points="0,138.0 0,162.0" fill="none" stroke="#333333" stroke-width="1" marker-end="url(#arrow0)"/>
+<rect x="-165.0" y="162.0" width="330" height="36.0" rx="5.4" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#000000" text-anchor="middle"><tspan x="0.0" y="177.25">if none is proven infeasible,</tspan><tspan x="0.0" y="190.45">pack the items of the bin</tspan></text>
+<polyline points="0,198.0 0,222.0" fill="none" stroke="#333333" stroke-width="1" marker-end="url(#arrow0)"/>
+<rect x="-165.0" y="222.0" width="330" height="36.0" rx="5.4" fill="#fff2cc" stroke="#d6b656" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#000000" text-anchor="middle"><tspan x="0.0" y="243.85">does every bin fit?</tspan></text>
+<polyline points="0,258.0 0,282.0" fill="none" stroke="#333333" stroke-width="1" marker-end="url(#arrow0)"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#000000" text-anchor="start"><tspan x="9.0" y="273.85">no</tspan></text>
+<polyline points="165.0,240.0 225.0,240.0" fill="none" stroke="#333333" stroke-width="1" marker-end="url(#arrow0)"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#000000" text-anchor="middle"><tspan x="195.0" y="233.35">yes</tspan></text>
+<rect x="225.0" y="222.0" width="72.0" height="36.0" rx="5.4" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#000000" text-anchor="middle"><tspan x="261.0" y="243.85">stop</tspan></text>
+<rect x="-165.0" y="282.0" width="330" height="36.0" rx="5.4" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#000000" text-anchor="middle"><tspan x="0.0" y="297.25">minimal infeasible subset</tspan><tspan x="0.0" y="310.45">of each bin which doesn&#x27;t fit</tspan></text>
+<polyline points="0,318.0 0,342.0" fill="none" stroke="#333333" stroke-width="1" marker-end="url(#arrow0)"/>
+<rect x="-165.0" y="342.0" width="330" height="36.0" rx="5.4" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#000000" text-anchor="middle"><tspan x="0.0" y="357.25">lift the proven cuts,</tspan><tspan x="0.0" y="370.45">add the cuts to the master problem</tspan></text>
+<polyline points="-165.0,360.0 -195.0,360.0 -195.0,0 -165.0,0" fill="none" stroke="#333333" stroke-width="1" marker-end="url(#arrow0)"/>
+</svg>

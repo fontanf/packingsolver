@@ -74,6 +74,24 @@ It rasterizes the bins and the items onto a grid and solves the resulting placem
 
 See :doc:`the detailed description <irregular/milp_raster>`.
 
+Benders decomposition
+------------------------
+
+This algorithm solves the :code:`knapsack`, :code:`bin-packing` and :code:`variable-sized-bin-packing` objectives.
+
+Its master problem assigns the items to the bins considering only their areas, as a one-dimensional problem. For each bin of its solution, a subproblem checks whether the items actually fit; if not, no-good cuts forbidding infeasible subsets of them are added to the master problem, which is solved again. With the :ref:`MILP NFP <internals_irregular_milp_nfp>` algorithm in its subproblems, the cuts are proven, so the value of the master problem is a bound, and the algorithm is exact.
+
+See :doc:`the detailed description <irregular/benders_decomposition>`.
+
+MILP NFP
+------------
+
+This algorithm solves the :code:`feasibility` objective with a single bin. Its main use is to prove that a set of items doesn't fit in a bin, in the subproblems of the Benders decomposition.
+
+For each combination of rotations of the items, the non-overlap of each pair of items is modeled with the convex pieces of the complement of their no-fit polygon, in a mixed-integer linear program. The items don't fit if every program is infeasible.
+
+See :doc:`the detailed description <irregular/milp_nfp>`.
+
 One-dimensional bound
 ------------------------
 
@@ -90,3 +108,5 @@ Relaxes the instance to a one-dimensional problem (each bin and item type keeps 
    irregular/tree_search_maximal_spaces
    irregular/local_search
    irregular/milp_raster
+   irregular/benders_decomposition
+   irregular/milp_nfp

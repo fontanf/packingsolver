@@ -25,6 +25,8 @@ target_sources(PackingSolver_irregular PRIVATE
     nonlinear_programming/separation_model.cpp
     nonlinear_programming/separator.cpp
     milp_raster.cpp
+    milp_nfp.cpp
+    benders_decomposition.cpp
     trivial.cpp
     direct_trigonometry/polygon.cpp
     direct_trigonometry/separator.cpp

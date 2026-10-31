@@ -439,6 +439,15 @@ public:
     /** Get the objective of the problem. */
     inline Objective objective() const { return objective_; }
 
+    /**
+     * Get the knapsack goal: for the 'Knapsack' objective, the search stops
+     * as soon as a solution reaches it, or as soon as the bound proves that
+     * it can't be reached (e.g. a pricing problem of a column generation,
+     * which only needs a column of negative reduced cost, or a proof that
+     * there is none). Infinite by default.
+     */
+    inline Profit knapsack_goal() const { return knapsack_goal_; }
+
     /*
      * Getters: parameters
      */
@@ -640,6 +649,9 @@ private:
 
     /** Objective. */
     Objective objective_ = Objective::BinPacking;
+
+    /** Knapsack goal. */
+    Profit knapsack_goal_ = std::numeric_limits<Profit>::infinity();
 
     /** Parameters. */
     Parameters parameters_;

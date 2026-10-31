@@ -675,11 +675,13 @@ PricingOutput ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution,
         }
 
         // The knapsack goal: the profit above which a column has a negative
-        // reduced cost. A primal pricing call only needs such a column, so
-        // the pricing solver can stop as soon as it finds one (with a small
-        // margin, so that the column is not discarded because of rounding
-        // errors). A dual pricing call needs the optimal column.
-        if (pricing_type == PricingType::Primal) {
+        // reduced cost. A pricing call only needs such a column, or a bound
+        // proving that there is none, so the pricing solver can stop as soon
+        // as it finds one (with a small margin, so that the column is not
+        // discarded because of rounding errors) or as soon as its bound
+        // drops below the goal. The bound returned by a dual pricing call
+        // stopped early is still valid.
+        {
             Profit threshold = std::numeric_limits<Profit>::infinity();
             if (instance_.objective() == Objective::VariableSizedBinPacking
                     || instance_.objective() == Objective::BinPacking) {

@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="675.2" height="252.4" viewBox="-15.6 -242.4 675.2 252.4">
+<rect x="-15.6" y="-242.4" width="675.2" height="252.4" fill="#ffffff"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="112.0" y="-191.8">positions in the bin</tspan></text>
+<rect x="0" y="-168" width="224" height="168" fill="none" stroke="#000000" stroke-width="2"/>
+<polygon points="28,-28 140,-28 140,-112 98.0,-112 98.0,-56 70.0,-56 70.0,-112 28,-112" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="49.0" y="-74.2">i</tspan></text>
+<rect x="70.0" y="-112" width="28" height="56" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="84.0" y="-79.8">j</tspan></text>
+<ellipse cx="28.0" cy="-28.0" rx="2.24" ry="2.24" fill="#000000" stroke="#000000" stroke-width="1"/>
+<ellipse cx="70.0" cy="-56.0" rx="2.24" ry="2.24" fill="#000000" stroke="#000000" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#000000" text-anchor="end"><tspan x="22.4" y="-14.35">p_i</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#000000" text-anchor="start"><tspan x="74.2" y="-42.35">p_j</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="462.0" y="-219.8">relative positions d = p_j - p_i</tspan></text>
+<rect x="308" y="-196" width="84" height="196" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="350.0" y="-93.8">F1</tspan></text>
+<rect x="532" y="-196" width="84" height="196" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="574.0" y="-93.8">F2</tspan></text>
+<rect x="392" y="-28" width="140" height="28" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="462.0" y="-9.8">F3</tspan></text>
+<rect x="392" y="-196" width="140" height="28" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="462.0" y="-177.8">F4</tspan></text>
+<rect x="392" y="-168" width="140" height="140" fill="#cccccc" stroke="#666666" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="13" fill="#000000" text-anchor="middle"><tspan x="504.0" y="-43.05">NFP</tspan></text>
+<rect x="308" y="-196" width="308" height="196" fill="none" stroke="#000000" stroke-width="2" stroke-dasharray="3 3"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="13" fill="#000000" text-anchor="start"><tspan x="621.6" y="-183.05">R</tspan></text>
+<polyline points="462.0,-112 462.0,-168" fill="none" stroke="#b85450" stroke-width="4"/>
+<polyline points="485.8,-145.6 464.8,-145.6" fill="none" stroke="#b85450" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#b85450" text-anchor="start"><tspan x="487.2" y="-141.75">exact fit</tspan></text>
+<ellipse cx="462.0" cy="-112.0" rx="2.24" ry="2.24" fill="#000000" stroke="#000000" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#000000" text-anchor="end"><tspan x="456.4" y="-101.15">d</tspan></text>
+<ellipse cx="420.0" cy="-84.0" rx="1.68" ry="1.68" fill="#000000" stroke="#000000" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#000000" text-anchor="end"><tspan x="415.8" y="-71.75">0</tspan></text>
+</svg>
