@@ -596,6 +596,17 @@ public:
     bool fits_some_bin(ItemTypeId item_type_id) const;
 
     /**
+     * Conservatively check whether item type 'item_type_id' could fit in bin
+     * type 'bin_type_id'.
+     *
+     * One-sided, like 'fits_some_bin': 'false' is a guarantee the item
+     * doesn't fit in the bin type.
+     */
+    bool item_type_fits_bin_type(
+            ItemTypeId item_type_id,
+            BinTypeId bin_type_id) const;
+
+    /**
      * Return 'true' iff some bin type has at least one resource - i.e. iff
      * it has an actual, non-trivial per-bin capacity constraint that
      * algorithms need to track.
