@@ -6,7 +6,7 @@ Tree search with maximal spaces
 Objectives
 ----------
 
-This algorithm only handles instances with a single bin. It solves the :code:`knapsack` and :code:`feasibility` objectives directly, and the :code:`bin-packing-with-leftovers`, :code:`open-dimension-x` and :code:`open-dimension-y` objectives through the :ref:`sequential feasibility <internals_generic_algorithms_sequential_feasibility>` algorithm, which solves a sequence of :code:`feasibility` sub-problems with this algorithm. It supports the defects, the maximum weight of the bin and the resources, but not the unloading constraints.
+This algorithm only handles instances with a single bin. It solves the :code:`knapsack` and :code:`feasibility` objectives directly, and the :code:`bin-packing`, :code:`bin-packing-with-leftovers`, :code:`open-dimension-x` and :code:`open-dimension-y` objectives through the :ref:`sequential feasibility <internals_generic_algorithms_sequential_feasibility>` algorithm, which solves a sequence of :code:`feasibility` sub-problems with this algorithm. It supports the defects, the maximum weight of the bin and the resources, but not the unloading constraints.
 
 Principle
 ---------

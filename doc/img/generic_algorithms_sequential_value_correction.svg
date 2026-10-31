@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="703.4" height="366.8" viewBox="-10 -37.2 703.4 366.8">
+<rect x="-10" y="-37.2" width="703.4" height="366.8" fill="#ffffff"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start" dominant-baseline="central" font-weight="bold"><tspan x="0" y="-17.0">Bins of length 10</tspan></text>
+<rect x="0" y="-3.4" width="107.1" height="27.2" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="53.55" y="10.2">A</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start" dominant-baseline="central"><tspan x="112.2" y="10.2">length 7, 5 copies</tspan></text>
+<rect x="0" y="34.0" width="30.6" height="27.2" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="15.3" y="47.6">B</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start" dominant-baseline="central"><tspan x="35.7" y="47.6">length 2, 5 copies</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start" dominant-baseline="central" font-weight="bold"><tspan x="0" y="112.2">profits</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start" dominant-baseline="central" font-weight="bold"><tspan x="122.4" y="112.2">bins</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start" dominant-baseline="central" font-weight="bold"><tspan x="360.4" y="105.0">adjusted space</tspan><tspan x="360.4" y="119.4">of a copy</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start" dominant-baseline="central" font-weight="bold"><tspan x="496.4" y="105.0">corrected</tspan><tspan x="496.4" y="119.4">profits</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start" dominant-baseline="central" font-weight="bold"><tspan x="0" y="136.0">pass 1</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start" dominant-baseline="central"><tspan x="0" y="158.1">A: 8.50</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start" dominant-baseline="central"><tspan x="0" y="175.1">B: 2.14</tspan></text>
+<rect x="122.4" y="146.2" width="153.0" height="27.2" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<rect x="122.4" y="146.2" width="30.6" height="27.2" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="137.7" y="159.8">B</tspan></text>
+<rect x="153.0" y="146.2" width="30.6" height="27.2" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="168.3" y="159.8">B</tspan></text>
+<rect x="183.6" y="146.2" width="30.6" height="27.2" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="198.9" y="159.8">B</tspan></text>
+<rect x="214.2" y="146.2" width="30.6" height="27.2" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="229.5" y="159.8">B</tspan></text>
+<rect x="244.8" y="146.2" width="30.6" height="27.2" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="260.1" y="159.8">B</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start" dominant-baseline="central"><tspan x="282.2" y="159.8">x 1</tspan></text>
+<rect x="122.4" y="183.6" width="153.0" height="27.2" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<rect x="122.4" y="183.6" width="107.1" height="27.2" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="175.95" y="197.2">A</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start" dominant-baseline="central"><tspan x="282.2" y="197.2">x 5</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start" dominant-baseline="central"><tspan x="122.4" y="224.4">6 bins</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start" dominant-baseline="central"><tspan x="360.4" y="158.1">A: 10.00</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start" dominant-baseline="central"><tspan x="496.4" y="158.1">A: (8.50 + 10.00) / 2 = 9.25</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start" dominant-baseline="central"><tspan x="360.4" y="175.1">B: 2.00</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start" dominant-baseline="central"><tspan x="496.4" y="175.1">B: (2.14 + 2.00) / 2 = 2.07</tspan></text>
+<polyline points="0,244.8 680,244.8" fill="none" stroke="#999999" stroke-width="1" stroke-dasharray="3 3"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start" dominant-baseline="central" font-weight="bold"><tspan x="0" y="258.4">pass 2</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start" dominant-baseline="central"><tspan x="0" y="280.5">A: 9.25</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start" dominant-baseline="central"><tspan x="0" y="297.5">B: 2.07</tspan></text>
+<rect x="122.4" y="268.6" width="153.0" height="27.2" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<rect x="122.4" y="268.6" width="107.1" height="27.2" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="175.95" y="282.2">A</tspan></text>
+<rect x="229.5" y="268.6" width="30.6" height="27.2" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="244.8" y="282.2">B</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start" dominant-baseline="central"><tspan x="282.2" y="282.2">x 5</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start" dominant-baseline="central"><tspan x="122.4" y="309.4">5 bins</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start" dominant-baseline="central"><tspan x="360.4" y="280.5">A: 7.78</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start" dominant-baseline="central"><tspan x="496.4" y="280.5">A: (9.25 + 7.78) / 2 = 8.51</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start" dominant-baseline="central"><tspan x="360.4" y="297.5">B: 2.22</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start" dominant-baseline="central"><tspan x="496.4" y="297.5">B: (2.07 + 2.22) / 2 = 2.15</tspan></text>
+</svg>

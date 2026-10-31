@@ -66,7 +66,7 @@ In anytime mode, an iterative beam search is run for each pair (guide, direction
 Automatic selection
 -------------------
 
-With a single bin, the tree search is run unless the objective is :code:`knapsack` or :code:`feasibility` and many items (more than 64 on average) fit in the bin, in which case the :ref:`tree search with maximal spaces <internals_box_tree_search_maximal_spaces>` is run instead. With several bins, it is run when the item types have few copies compared to the number of items fitting in a bin, alongside the generic algorithms using it to solve their sub-problems. See :ref:`algorithm selection <internals_algorithm_selection>`.
+With a single bin and the :code:`knapsack` or :code:`feasibility` objective, the tree search is run in the directions in which few items fit in a section of the bin: at most 8 on average (parameter :code:`many_items_in_section_threshold`), the area of the section of the bin divided by the mean area of the section of the items; if no direction qualifies, the :ref:`tree search with maximal spaces <internals_box_tree_search_maximal_spaces>` is run instead. With a single bin and the other objectives, the tree search is run. With several bins, it is run when the item types have few copies compared to the number of items fitting in a bin, alongside the generic algorithms using it to solve their sub-problems. See :ref:`algorithm selection <internals_algorithm_selection>`.
 
 It can be forced with :code:`--use-tree-search 1` (CLI) or :code:`use_tree_search` (Python).
 
