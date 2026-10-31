@@ -95,3 +95,41 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "box" / "tests" / "open_dimension_z_4_different_items_zy" / "parameters.csv",
                 fs::path("data") / "box" / "tests" / "open_dimension_z_4_different_items_zy" / "solution.csv",
             }}));
+
+#include "box/tree_search.hpp"
+
+TEST(BoxBranchingScheme, DominanceComparesTheResourceConsumptionOfTheCurrentBin)
+{
+    // Two nodes with the same items, the same number of bins and the same
+    // skyline, but node 1 consumes more of the resource of its current bin:
+    // an item which still fits in the current bin of node 2 may not fit in
+    // the current bin of node 1, so node 1 doesn't dominate node 2.
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(packingsolver::Objective::Knapsack);
+    packingsolver::BinTypeId bin_type_id = instance_builder.add_bin_type(10, 10, 10);
+    packingsolver::ResourceId resource_id = instance_builder.add_bin_type_resource(bin_type_id, 2);
+    packingsolver::ItemTypeId item_type_id = instance_builder.add_item_type(5, 5, 5);
+    instance_builder.set_item_type_copies(item_type_id, 4);
+    instance_builder.add_resource_consumption(bin_type_id, resource_id, item_type_id, {1});
+    Instance instance = instance_builder.build();
+
+    BranchingScheme::Parameters parameters;
+    BranchingScheme branching_scheme(instance, parameters);
+
+    BranchingScheme::UncoveredItem uncovered_item;
+    uncovered_item.x = 0;
+    uncovered_item.x_dominance = 0;
+    uncovered_item.ys = 0;
+    uncovered_item.ye = 10;
+    uncovered_item.zs = 0;
+    uncovered_item.ze = 10;
+    auto node_1 = std::make_shared<BranchingScheme::Node>();
+    node_1->number_of_bins = 1;
+    node_1->uncovered_items = {uncovered_item};
+    node_1->last_bin_resource_consumption = {2};
+    auto node_2 = std::make_shared<BranchingScheme::Node>(*node_1);
+    node_2->last_bin_resource_consumption = {1};
+
+    EXPECT_FALSE(branching_scheme.dominates(node_1, node_2));
+    EXPECT_TRUE(branching_scheme.dominates(node_2, node_1));
+}
