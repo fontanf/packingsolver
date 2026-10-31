@@ -16,12 +16,12 @@
 <ellipse cx="129.6" cy="-144.0" rx="1.92" ry="1.92" fill="#6c8ebf" stroke="#6c8ebf" stroke-width="1"/>
 <ellipse cx="144.0" cy="-144.0" rx="1.92" ry="1.92" fill="#6c8ebf" stroke="#6c8ebf" stroke-width="1"/>
 <polyline points="0.0,-0.0 14.4,-0.0 28.8,-0.0 43.2,-43.2 57.6,-57.6 72.0,-72.0 86.4,-86.4 100.8,-100.8 115.2,-144.0 129.6,-144.0 144.0,-144.0" fill="none" stroke="#6c8ebf" stroke-width="2"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="43.2" y="10.8">3</tspan></text>
-<text font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="72.0" y="10.8">5</tspan></text>
-<text font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="100.8" y="10.8">7</tspan></text>
-<text font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="144.0" y="10.8">10</tspan></text>
-<text font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="-12.0" y="-144.0">10</tspan></text>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="72.0" y="28.8">f0, C = 10, k = 3</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#000000" text-anchor="middle"><tspan x="43.2" y="14.3">3</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#000000" text-anchor="middle"><tspan x="72.0" y="14.3">5</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#000000" text-anchor="middle"><tspan x="100.8" y="14.3">7</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#000000" text-anchor="middle"><tspan x="144.0" y="14.3">10</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#000000" text-anchor="middle"><tspan x="-12.0" y="-140.5">10</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="72.0" y="33.0">f0, C = 10, k = 3</tspan></text>
 <polyline points="204.0,0 360.0,0" fill="none" stroke="#000000" stroke-width="1" marker-end="url(#arrow0)"/>
 <polyline points="204.0,0 204.0,-156.0" fill="none" stroke="#000000" stroke-width="1" marker-end="url(#arrow0)"/>
 <polyline points="204.0,0 348.0,-144" fill="none" stroke="#bbbbbb" stroke-width="1" stroke-dasharray="3 3"/>
@@ -37,12 +37,12 @@
 <ellipse cx="333.6" cy="-144.0" rx="1.92" ry="1.92" fill="#6c8ebf" stroke="#6c8ebf" stroke-width="1"/>
 <ellipse cx="348.0" cy="-144.0" rx="1.92" ry="1.92" fill="#6c8ebf" stroke="#6c8ebf" stroke-width="1"/>
 <polyline points="204.0,-0.0 218.4,-0.0 232.8,-0.0 247.2,-48.0 261.6,-48.0 276.0,-48.0 290.4,-96.0 304.8,-96.0 319.2,-144.0 333.6,-144.0 348.0,-144.0" fill="none" stroke="#6c8ebf" stroke-width="2"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="247.2" y="10.8">3</tspan></text>
-<text font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="276.0" y="10.8">5</tspan></text>
-<text font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="304.8" y="10.8">7</tspan></text>
-<text font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="348.0" y="10.8">10</tspan></text>
-<text font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="192.0" y="-144.0">3</tspan></text>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="276.0" y="28.8">f1, C = 10, k = 3</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#000000" text-anchor="middle"><tspan x="247.2" y="14.3">3</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#000000" text-anchor="middle"><tspan x="276.0" y="14.3">5</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#000000" text-anchor="middle"><tspan x="304.8" y="14.3">7</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#000000" text-anchor="middle"><tspan x="348.0" y="14.3">10</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#000000" text-anchor="middle"><tspan x="192.0" y="-140.5">3</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="276.0" y="33.0">f1, C = 10, k = 3</tspan></text>
 <polyline points="408.0,0 564.0,0" fill="none" stroke="#000000" stroke-width="1" marker-end="url(#arrow0)"/>
 <polyline points="408.0,0 408.0,-156.0" fill="none" stroke="#000000" stroke-width="1" marker-end="url(#arrow0)"/>
 <polyline points="408.0,0 552.0,-144" fill="none" stroke="#bbbbbb" stroke-width="1" stroke-dasharray="3 3"/>
@@ -58,10 +58,10 @@
 <ellipse cx="537.6" cy="-144.0" rx="1.92" ry="1.92" fill="#6c8ebf" stroke="#6c8ebf" stroke-width="1"/>
 <ellipse cx="552.0" cy="-144.0" rx="1.92" ry="1.92" fill="#6c8ebf" stroke="#6c8ebf" stroke-width="1"/>
 <polyline points="408.0,-0.0 422.4,-0.0 436.8,-0.0 451.2,-48.0 465.6,-48.0 480.0,-72.0 494.4,-96.0 508.8,-96.0 523.2,-144.0 537.6,-144.0 552.0,-144.0" fill="none" stroke="#6c8ebf" stroke-width="2"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="451.2" y="10.8">3</tspan></text>
-<text font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="480.0" y="10.8">5</tspan></text>
-<text font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="508.8" y="10.8">7</tspan></text>
-<text font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="552.0" y="10.8">10</tspan></text>
-<text font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="396.0" y="-144.0">6</tspan></text>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="480.0" y="28.8">f2, C = 10, k = 3</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#000000" text-anchor="middle"><tspan x="451.2" y="14.3">3</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#000000" text-anchor="middle"><tspan x="480.0" y="14.3">5</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#000000" text-anchor="middle"><tspan x="508.8" y="14.3">7</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#000000" text-anchor="middle"><tspan x="552.0" y="14.3">10</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#000000" text-anchor="middle"><tspan x="396.0" y="-140.5">6</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="480.0" y="33.0">f2, C = 10, k = 3</tspan></text>
 </svg>

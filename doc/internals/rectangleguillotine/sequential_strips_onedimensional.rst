@@ -22,8 +22,7 @@ The solution is then built by placing, in each bin, the strips assigned to it si
 
 Contrary to the tree search with maximal spaces algorithm and to the column generation strips algorithm, the strips generated contain exactly all the items.
 
-.. image:: ../../img/rectangleguillotine_sequential_strips_onedimensional.png
-   :scale: 100%
+.. image:: ../../img/rectangleguillotine_sequential_strips_onedimensional.svg
    :align: center
 
 The strips of the first phase are chosen to minimize the total width, not to be grouped well into bins, so the result is a heuristic solution.

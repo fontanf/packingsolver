@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="428.0" height="389.0" viewBox="-46.0 -106 428.0 389.0">
+<rect x="-46.0" y="-106" width="428.0" height="389.0" fill="#ffffff"/>
+<rect x="0" y="-72" width="96" height="72" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="48.0" y="-31.8">1</tspan></text>
+<rect x="0" y="-96" width="84" height="24" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="42.0" y="-79.8">4</tspan></text>
+<rect x="0" y="-96" width="96" height="96" fill="none" stroke="#000000" stroke-width="1"/>
+<rect x="144" y="-60" width="48" height="60" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="168.0" y="-25.8">2</tspan></text>
+<rect x="192" y="-48" width="36" height="48" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="210.0" y="-19.8">3</tspan></text>
+<rect x="144" y="-84" width="84" height="24" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="186.0" y="-67.8">4</tspan></text>
+<rect x="144" y="-84" width="84" height="84" fill="none" stroke="#000000" stroke-width="1"/>
+<polygon points="109.0,12 119.0,12 119.0,34 125.0,34 114.0,48 103.0,34 109.0,34" fill="#ffffff" stroke="#000000"/>
+<rect x="0" y="96" width="96" height="72" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="48.0" y="136.2">1</tspan></text>
+<rect x="0" y="72" width="84" height="24" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="42.0" y="88.2">4</tspan></text>
+<rect x="0" y="72" width="96" height="96" fill="none" stroke="#000000" stroke-width="1"/>
+<rect x="96" y="108" width="48" height="60" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="120.0" y="142.2">2</tspan></text>
+<rect x="144" y="120" width="36" height="48" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="162.0" y="148.2">3</tspan></text>
+<rect x="96" y="84" width="84" height="24" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="138.0" y="100.2">4</tspan></text>
+<rect x="96" y="84" width="84" height="84" fill="none" stroke="#000000" stroke-width="1"/>
+<rect x="0" y="72" width="180" height="96" fill="none" stroke="#000000" stroke-width="2"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#000000" text-anchor="middle"><tspan x="90.0" y="186.25">side by side</tspan></text>
+<rect x="240" y="180" width="96" height="72" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="288.0" y="220.2">1</tspan></text>
+<rect x="240" y="156" width="84" height="24" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="282.0" y="172.2">4</tspan></text>
+<rect x="240" y="156" width="96" height="96" fill="none" stroke="#000000" stroke-width="1"/>
+<rect x="240" y="96" width="48" height="60" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="264.0" y="130.2">2</tspan></text>
+<rect x="288" y="108" width="36" height="48" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="306.0" y="136.2">3</tspan></text>
+<rect x="240" y="72" width="84" height="24" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="282.0" y="88.2">4</tspan></text>
+<rect x="240" y="72" width="84" height="84" fill="none" stroke="#000000" stroke-width="1"/>
+<rect x="240" y="72" width="96" height="180" fill="none" stroke="#000000" stroke-width="2"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#000000" text-anchor="middle"><tspan x="288.0" y="270.25">one above the other</tspan></text>
+</svg>

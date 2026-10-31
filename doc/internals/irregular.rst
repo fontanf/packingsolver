@@ -23,8 +23,7 @@ It is a tree search algorithm where a single item is packed at each stage. The r
 
 It is a generalization of the tree search algorithm for :code:`rectangle`.
 
-.. image:: ../img/irregular_tree_search.png
-   :scale: 100%
+.. image:: ../img/irregular_tree_search.svg
    :align: center
 
 See :doc:`the detailed description <irregular/tree_search>`.
@@ -58,8 +57,7 @@ It works on complete layouts which are allowed to be infeasible, and tries to ma
 * linear programming: the items may be shrunk instead of overlapping, and linear programs move them slightly while maximizing their sizes;
 * nonlinear programming: the same with nonlinear programs, in which the items may also rotate (requires Knitro).
 
-.. image:: ../img/irregular_local_search.png
-   :scale: 100%
+.. image:: ../img/irregular_local_search.svg
    :align: center
 
 See :doc:`the detailed description <irregular/local_search>`.
@@ -71,8 +69,7 @@ This algorithm solves the :code:`feasibility` and :code:`knapsack` objectives.
 
 It rasterizes the bins and the items onto a grid and solves the resulting placement problem as a mixed-integer linear program, refining the grid iteratively.
 
-.. image:: ../img/irregular_milp_raster.png
-   :scale: 100%
+.. image:: ../img/irregular_milp_raster.svg
    :align: center
 
 See :doc:`the detailed description <irregular/milp_raster>`.

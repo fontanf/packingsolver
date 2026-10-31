@@ -1,35 +1,35 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="564" height="371.9" viewBox="-10 -37.2 564 371.9">
 <rect x="-10" y="-37.2" width="564" height="371.9" fill="#ffffff"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start" dominant-baseline="central" font-weight="bold"><tspan x="0" y="-17.0">Items of height 1 and lengths 5, 4, 3, 3, 3; strip of height 2</tspan></text>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start" dominant-baseline="central" font-weight="bold"><tspan x="0" y="17.0">sub-problem 1: length 18 (twice the area of the items, divided by the height of the strip)</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start" font-weight="bold"><tspan x="0" y="-12.8">Items of height 1 and lengths 5, 4, 3, 3, 3; strip of height 2</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start" font-weight="bold"><tspan x="0" y="21.2">sub-problem 1: length 18 (twice the area of the items, divided by the height of the strip)</tspan></text>
 <rect x="0" y="30.6" width="336.6" height="54.4" fill="#f5f5f5" stroke="#666666" stroke-width="1"/>
 <rect x="0.0" y="30.6" width="93.5" height="27.2" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="46.75" y="44.2">5</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="46.75" y="48.4">5</tspan></text>
 <rect x="93.5" y="30.6" width="56.1" height="27.2" fill="#fff2cc" stroke="#d6b656" stroke-width="1"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="121.55" y="44.2">3</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="121.55" y="48.4">3</tspan></text>
 <rect x="0.0" y="57.8" width="74.8" height="27.2" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="37.4" y="71.4">4</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="37.4" y="75.6">4</tspan></text>
 <rect x="74.8" y="57.8" width="56.1" height="27.2" fill="#fff2cc" stroke="#d6b656" stroke-width="1"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="102.85" y="71.4">3</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="102.85" y="75.6">3</tspan></text>
 <rect x="130.9" y="57.8" width="56.1" height="27.2" fill="#fff2cc" stroke="#d6b656" stroke-width="1"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="158.95" y="71.4">3</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="158.95" y="75.6">3</tspan></text>
 <polyline points="187.0,27.2 187.0,88.4" fill="none" stroke="#b85450" stroke-width="2" stroke-dasharray="3 3"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start" dominant-baseline="central"><tspan x="0" y="96.9">found, length used 10: next length min(0.99 x 10, 10 - 1) = 9</tspan></text>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start" dominant-baseline="central" font-weight="bold"><tspan x="0" y="125.8">sub-problem 2: length 9</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start"><tspan x="0" y="101.1">found, length used 10: next length min(0.99 x 10, 10 - 1) = 9</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start" font-weight="bold"><tspan x="0" y="130.0">sub-problem 2: length 9</tspan></text>
 <rect x="0" y="139.4" width="168.3" height="54.4" fill="#f5f5f5" stroke="#666666" stroke-width="1"/>
 <rect x="0.0" y="139.4" width="93.5" height="27.2" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="46.75" y="153.0">5</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="46.75" y="157.2">5</tspan></text>
 <rect x="93.5" y="139.4" width="74.8" height="27.2" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="130.9" y="153.0">4</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="130.9" y="157.2">4</tspan></text>
 <rect x="0.0" y="166.6" width="56.1" height="27.2" fill="#fff2cc" stroke="#d6b656" stroke-width="1"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="28.05" y="180.2">3</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="28.05" y="184.4">3</tspan></text>
 <rect x="56.1" y="166.6" width="56.1" height="27.2" fill="#fff2cc" stroke="#d6b656" stroke-width="1"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="84.15" y="180.2">3</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="84.15" y="184.4">3</tspan></text>
 <rect x="112.2" y="166.6" width="56.1" height="27.2" fill="#fff2cc" stroke="#d6b656" stroke-width="1"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="140.25" y="180.2">3</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="140.25" y="184.4">3</tspan></text>
 <polyline points="168.3,136.0 168.3,197.2" fill="none" stroke="#b85450" stroke-width="2" stroke-dasharray="3 3"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start" dominant-baseline="central"><tspan x="0" y="205.7">found, length used 9: next length min(0.99 x 9, 9 - 1) = 8</tspan></text>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start" dominant-baseline="central" font-weight="bold"><tspan x="0" y="234.6">sub-problem 3: length 8</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start"><tspan x="0" y="209.9">found, length used 9: next length min(0.99 x 9, 9 - 1) = 8</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start" font-weight="bold"><tspan x="0" y="238.8">sub-problem 3: length 8</tspan></text>
 <rect x="0" y="248.2" width="149.6" height="54.4" fill="#f5f5f5" stroke="#666666" stroke-width="1"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start" dominant-baseline="central"><tspan x="0" y="314.5">no solution: stop, the previous solution is returned</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start"><tspan x="0" y="318.7">no solution: stop, the previous solution is returned</tspan></text>
 </svg>

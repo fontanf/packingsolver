@@ -22,10 +22,9 @@ At each stage, a new third-level sub-plate is filled, either:
 * in the current bin, in a new first-level sub-plate, to the right of the last one;
 * in a new bin.
 
-The figure below shows a node (top) and children of each of these kinds (bottom):
+The figure below shows a node (top) and its children of the first three kinds inserting the items 3 and 4 (bottom); the dashed lines are the first- and second-level sub-plates, which grow to contain the new item. Item 4 doesn't fit in a new second-level sub-plate:
 
-.. image:: ../../img/rectangleguillotine_tree_search.png
-   :scale: 100%
+.. image:: ../../img/rectangleguillotine_tree_search_children.svg
    :align: center
 
 A third-level sub-plate contains a single item at its bottom (with possibly some waste above it), a single item at its top (when it would intersect a defect at the bottom), two items of the same width one above the other (with the :code:`roadef2018` cut type), or no item (to skip a defect).

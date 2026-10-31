@@ -116,19 +116,21 @@ class Figure:
         top = cy - line_height * (len(lines) - 1) / 2
         weight = ' font-weight="bold"' if bold else ""
         if background is not None:
-            text_width = max(len(line) for line in lines) * CHARACTER_WIDTH * size
-            x0 = {"middle": cx - text_width / 2, "start": cx, "end": cx - text_width}[anchor]
+            text_width = max(len(line) for line in lines) * CHARACTER_WIDTH * size + 4
+            x0 = {"middle": cx - text_width / 2, "start": cx - 2, "end": cx - text_width + 2}[anchor]
             self.elements.append(
                     '<rect x="{}" y="{}" width="{}" height="{}" fill="{}"/>'.format(
                         round(x0, 2), round(top - line_height / 2, 2),
                         round(text_width, 2), round(line_height * len(lines), 2), background))
+        # The baseline of a line is below its center by about a third of the
+        # font size (instead of 'dominant-baseline', which not all the
+        # renderers support).
         tspans = "".join(
                 '<tspan x="{}" y="{}">{}</tspan>'.format(
-                    round(cx, 2), round(top + k * line_height, 2), html.escape(line))
+                    round(cx, 2), round(top + k * line_height + 0.35 * size, 2), html.escape(line))
                 for k, line in enumerate(lines))
         self.elements.append(
-                '<text font-family="{}" font-size="{}" fill="{}" text-anchor="{}" '
-                'dominant-baseline="central"{}>{}</text>'.format(
+                '<text font-family="{}" font-size="{}" fill="{}" text-anchor="{}"{}>{}</text>'.format(
                     FONT_FAMILY, size, color, anchor, weight, tspans))
 
     def rect(self, x, y, w, h, label="", style=BLUE, extra=""):
@@ -159,9 +161,30 @@ class Figure:
             self.elements.append('<rect x="{}" y="{}" width="{}" height="{}"{} {}/>'.format(
                 px, py, pw, ph, radius, attributes))
         self._label(px + pw / 2, py + ph / 2, pw, label,
+                    size=int(s.get("fontSize", "12")),
                     color=s.get("fontColor", "#000000"),
                     bold=(s.get("fontStyle") == "1"),
                     background=s.get("labelBackgroundColor"))
+
+    def polygon(self, points, label="", style=BLUE, label_position=None):
+        """Polygon through 'points'; its label is centered on the mean of
+        the points, or on 'label_position'."""
+        s, attributes = self._shape_attributes(style)
+        pixels = [(self._x(x), self._y(y)) for x, y in points]
+        for px, py in pixels:
+            self._extend(px, py, px, py)
+        self.elements.append('<polygon points="{}" {}/>'.format(
+            " ".join("{},{}".format(a, b) for a, b in pixels), attributes))
+        if label_position is None:
+            label_position = (
+                    sum(x for x, _ in points) / len(points),
+                    sum(y for _, y in points) / len(points))
+        xs = [px for px, _ in pixels]
+        self._label(self._x(label_position[0]), self._y(label_position[1]),
+                    max(xs) - min(xs), label,
+                    size=int(s.get("fontSize", "12")),
+                    color=s.get("fontColor", "#000000"),
+                    bold=(s.get("fontStyle") == "1"))
 
     def bin(self, x, y, w, h):
         self.rect(x, y, w, h, "", WHITE + "strokeWidth=2;fillColor=none;")
@@ -181,7 +204,8 @@ class Figure:
         self._label(cx, py, pw, label, size=size,
                     color=s.get("fontColor", "#000000"),
                     bold=(s.get("fontStyle") == "1"),
-                    anchor=anchor)
+                    anchor=anchor,
+                    background=s.get("labelBackgroundColor"))
 
     def polyline(self, points, style="strokeColor=#000000;", arrow=False):
         """Polyline through 'points'; with an arrow at its end if 'arrow'."""

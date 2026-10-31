@@ -1,11 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="680.0" height="167.0" viewBox="-10 -130 680.0 167.0">
 <rect x="-10" y="-130" width="680.0" height="167.0" fill="#ffffff"/>
 <rect x="0" y="-60" width="120" height="60" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="60.0" y="-30.0">A</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="60.0" y="-25.8">A</tspan></text>
 <rect x="120" y="-90" width="60" height="90" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="150.0" y="-45.0">B</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="150.0" y="-40.8">B</tspan></text>
 <rect x="0" y="-120" width="90" height="60" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="45.0" y="-90.0">C</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="45.0" y="-85.8">C</tspan></text>
 <polyline points="0,-30 180,-30" fill="none" stroke="#999999" stroke-width="1" stroke-dasharray="3 3"/>
 <polyline points="0,-60 180,-60" fill="none" stroke="#999999" stroke-width="1" stroke-dasharray="3 3"/>
 <polyline points="0,-90 180,-90" fill="none" stroke="#999999" stroke-width="1" stroke-dasharray="3 3"/>
@@ -15,49 +15,49 @@
 <polyline points="120,0 120,-120" fill="none" stroke="#999999" stroke-width="1" stroke-dasharray="3 3"/>
 <polyline points="150,0 150,-120" fill="none" stroke="#999999" stroke-width="1" stroke-dasharray="3 3"/>
 <rect x="0" y="-120" width="180" height="120" fill="none" stroke="#000000" stroke-width="2"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="90.0" y="18.0">packing</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="90.0" y="22.2">packing</tspan></text>
 <rect x="225.0" y="-27.0" width="120" height="24.0" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="285.0" y="-15.0">A</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="285.0" y="-10.8">A</tspan></text>
 <rect x="345.0" y="-27.0" width="60" height="24.0" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="375.0" y="-15.0">B</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="375.0" y="-10.8">B</tspan></text>
 <rect x="225.0" y="-27.0" width="180" height="24.0" fill="none" stroke="#000000" stroke-width="2"/>
 <rect x="225.0" y="-57.0" width="120" height="24.0" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="285.0" y="-45.0">A</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="285.0" y="-40.8">A</tspan></text>
 <rect x="345.0" y="-57.0" width="60" height="24.0" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="375.0" y="-45.0">B</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="375.0" y="-40.8">B</tspan></text>
 <rect x="225.0" y="-57.0" width="180" height="24.0" fill="none" stroke="#000000" stroke-width="2"/>
 <rect x="225.0" y="-87.0" width="90" height="24.0" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="270.0" y="-75.0">C</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="270.0" y="-70.8">C</tspan></text>
 <rect x="315.0" y="-87.0" width="60" height="24.0" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="345.0" y="-75.0">B</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="345.0" y="-70.8">B</tspan></text>
 <rect x="225.0" y="-87.0" width="180" height="24.0" fill="none" stroke="#000000" stroke-width="2"/>
 <rect x="225.0" y="-117.0" width="90" height="24.0" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="270.0" y="-105.0">C</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="270.0" y="-100.8">C</tspan></text>
 <rect x="225.0" y="-117.0" width="180" height="24.0" fill="none" stroke="#000000" stroke-width="2"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="315.0" y="18.0">row-bars: capacity 6</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="315.0" y="22.2">row-bars: capacity 6</tspan></text>
 <rect x="453.0" y="-60" width="24.0" height="60" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="465.0" y="-30.0">A</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="465.0" y="-25.8">A</tspan></text>
 <rect x="453.0" y="-120" width="24.0" height="60" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="465.0" y="-90.0">C</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="465.0" y="-85.8">C</tspan></text>
 <rect x="453.0" y="-120" width="24.0" height="120" fill="none" stroke="#000000" stroke-width="2"/>
 <rect x="483.0" y="-60" width="24.0" height="60" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="495.0" y="-30.0">A</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="495.0" y="-25.8">A</tspan></text>
 <rect x="483.0" y="-120" width="24.0" height="60" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="495.0" y="-90.0">C</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="495.0" y="-85.8">C</tspan></text>
 <rect x="483.0" y="-120" width="24.0" height="120" fill="none" stroke="#000000" stroke-width="2"/>
 <rect x="513.0" y="-60" width="24.0" height="60" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="525.0" y="-30.0">A</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="525.0" y="-25.8">A</tspan></text>
 <rect x="513.0" y="-120" width="24.0" height="60" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="525.0" y="-90.0">C</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="525.0" y="-85.8">C</tspan></text>
 <rect x="513.0" y="-120" width="24.0" height="120" fill="none" stroke="#000000" stroke-width="2"/>
 <rect x="543.0" y="-60" width="24.0" height="60" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="555.0" y="-30.0">A</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="555.0" y="-25.8">A</tspan></text>
 <rect x="543.0" y="-120" width="24.0" height="120" fill="none" stroke="#000000" stroke-width="2"/>
 <rect x="573.0" y="-90" width="24.0" height="90" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="585.0" y="-45.0">B</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="585.0" y="-40.8">B</tspan></text>
 <rect x="573.0" y="-120" width="24.0" height="120" fill="none" stroke="#000000" stroke-width="2"/>
 <rect x="603.0" y="-90" width="24.0" height="90" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="615.0" y="-45.0">B</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="615.0" y="-40.8">B</tspan></text>
 <rect x="603.0" y="-120" width="24.0" height="120" fill="none" stroke="#000000" stroke-width="2"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="540.0" y="18.0">column-bars: capacity 4</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="540.0" y="22.2">column-bars: capacity 4</tspan></text>
 </svg>

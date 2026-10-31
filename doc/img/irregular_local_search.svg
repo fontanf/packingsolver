@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="392.0" height="308" viewBox="-10 -106 392.0 308">
+<rect x="-10" y="-106" width="392.0" height="308" fill="#ffffff"/>
+<polygon points="0,0 72,0 0,-72" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1" opacity="0.7"/>
+<polygon points="0,-72 24,-72 24,-48 48,-48 48,-72 72,-72 72,-96 0,-96" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1" opacity="0.7"/>
+<polygon points="24,-48 48,-48 48,-24 72,-24 72,-48 96,-48 96,-72 72,-72 72,-96 48,-96 48,-72 24,-72" fill="#f8cecc" stroke="#b85450" stroke-width="1" opacity="0.7"/>
+<polygon points="72,-24 144,-24 144,-72 120,-72 120,-48 72,-48" fill="#d5e8d4" stroke="#82b366" stroke-width="1" opacity="0.7"/>
+<polygon points="96,-72 120,-72 120,-48 144,-48 144,-96 96,-96" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1" opacity="0.7"/>
+<rect x="0" y="-96" width="144" height="96" fill="none" stroke="#000000" stroke-width="2"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start"><tspan x="156.0" y="-43.8">infeasible layout: the items overlap</tspan></text>
+<polygon points="0,192 72,192 0,120" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<polygon points="0,120 24,120 24,144 48,144 48,120 72,120 72,96 0,96" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<polygon points="48,144 72,144 72,168 96,168 96,144 120,144 120,120 96,120 96,96 72,96 72,120 48,120" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<polygon points="72,192 144,192 144,144 120,144 120,168 72,168" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<polygon points="96,120 120,120 120,144 144,144 144,96 96,96" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<rect x="0" y="96" width="144" height="96" fill="none" stroke="#000000" stroke-width="2"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start"><tspan x="156.0" y="141.0">the overlap is minimized: feasible</tspan><tspan x="156.0" y="155.4">layout</tspan></text>
+<polygon points="67.0,9.6 77.0,9.6 77.0,62.8 83.0,62.8 72.0,76.8 61.0,62.8 67.0,62.8" fill="#ffffff" stroke="#000000"/>
+</svg>
