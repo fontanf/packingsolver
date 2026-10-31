@@ -86,9 +86,11 @@ A node is also discarded when it can't lead to a better solution than the best o
 Search
 ------
 
-In anytime mode, an iterative beam search is run for each pair (guide, direction), in parallel. Each one starts with a beam (queue) of size 1, and the size of the beam is multiplied by 1.5 at each restart. The shapes are simplified with a maximum approximation ratio of 20% at first, multiplied by 0.75 at each restart, so that the first solutions are found quickly and the next ones are more accurate. The best solution found is used as a cutoff by the next restarts.
+In anytime mode, a sequence of beam searches is run for each pair (guide, direction), in parallel. Unlike in the other tree searches, each one is a separate beam search, with its own queue size and its own simplified shapes, rather than a restart of the :ref:`iterative beam search <internals_tree_search>`: the first one has a queue of size 1, and the size of the queue is multiplied by 1.5 at each restart; the shapes are simplified with a maximum approximation ratio of 20% at first, multiplied by 0.75 at each restart, so that the first solutions are found quickly and the next ones are more accurate. The best solution found is used as a cutoff by the next beam searches: the nodes which can't lead to a better solution are discarded. The sequence stops when a beam search explores its whole tree, which is only complete for its simplified shapes.
 
-In the non-anytime modes, a single beam search is run for each pair (guide, direction), with a beam of size 512 and a maximum approximation ratio of 5%.
+When all the items can rotate freely and the bins are squares, the directions are equivalent, and a single one is used.
+
+In the non-anytime modes, a single beam search is run for each pair (guide, direction), with a queue of size 512 (parameter :code:`not_anytime_tree_search_queue_size`) and a maximum approximation ratio of 5% (parameter :code:`not_anytime_maximum_approximation_ratio`).
 
 Strengths and limitations
 -------------------------

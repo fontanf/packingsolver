@@ -20,9 +20,15 @@ It decomposes the problem in two phases:
    :scale: 100%
    :align: center
 
-The rectangle problem is first solved trying to pack all the stacks. If not all of them fit, it is solved again maximizing the profit.
+The rectangle problem is solved with the :ref:`rectangle tree search <internals_rectangle_tree_search>`, in a sequence of attempts:
 
-**Axle weights.** When the solution violates the middle axle weight constraint of a semi-trailer truck, a stack is split in two (a light one of the last unloading group) and the two phases are repeated: smaller stacks give more freedom to distribute the weight along the bin. If the solution still violates the axle weight constraints, and some unpacked item is light enough to fit in the remaining weight capacity, the more expensive :ref:`boxstacks tree search <internals_boxstacks_tree_search>` is run afterwards.
+* first trying to pack all the stacks, with guide 0, then guide 1, which give the best packings when the axle weight constraints are not critical;
+* if the middle axle weight constraint is violated, with guide 8, which favors the nodes keeping the middle axle weight low (and the lighter items first in the symmetry breaking); if the rear axle weight constraint is violated, with guide 9 (and the heavier items first);
+* if not all the stacks fit, maximizing the profit, with guides 4 and 5, then again guide 8 or 9 if an axle weight constraint is violated.
+
+In all of them, the groups of items unloaded last are packed first (see the group guiding strategy of the rectangle tree search).
+
+**Axle weights.** When the solution violates the middle axle weight constraint of a semi-trailer truck, a stack is split in two (among the stacks of at least two items, one of the latest unloading group, the lightest one) and the rectangle phase is repeated, up to 7 splits: smaller stacks give more freedom to distribute the weight along the bin. If the solution still violates the axle weight constraints, and some unpacked item is light enough to fit in the remaining weight capacity, the more expensive :ref:`boxstacks tree search <internals_boxstacks_tree_search>` is run afterwards.
 
 The bin is filled along x; to fill it along y, the algorithm is run on the flipped instance.
 

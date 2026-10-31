@@ -100,19 +100,29 @@ Encoding the copies of an item type in a bin as "at least :math:`c` copies" vari
 
    y_{t,k} \ge y_{t',k'}
 
-**Symmetry breaking.** The bin instances of a bin type are interchangeable. They can be relabeled by increasing order of the smallest label of the items they contain, the items being labeled by item type, by increasing number of copies. Then the :math:`k`-th bin instance of a type can't contain more than a given number of copies of each item type, and the variables :math:`x_{i,t,k,c}` beyond this number are not created.
+**Symmetry breaking.** The bin instances of a bin type are interchangeable. The item types are sorted by increasing number of copies, and the copies get consecutive labels in this order; let :math:`S_i` be the label of the last copy of item type :math:`i`, counting only the item types which fit in bin type :math:`t`. Any solution can be relabeled so that its bin instances are ordered by increasing smallest label of the items they contain. Then the bin instance of rank :math:`k` (from 0) only contains labels larger than :math:`k`, so it contains at most :math:`\max(0, S_i - k)` copies of item type :math:`i`, and the variables :math:`x_{i,t,k,c}` beyond this number are not created. In the example below, item type A has a single copy, labeled 1: only the first bin can contain it.
+
+.. image:: ../../img/onedimensional_milp_assignment_symmetry_breaking.png
+   :scale: 100%
+   :align: center
+
+The number of copies of an item type in a bin is also bounded by its number of copies and by the number of copies fitting in the bin by their length.
+
+**Penalize resources.** A *penalize* resource doesn't constrain the bins: its penalty is subtracted from the profit when its capacity is exceeded in a bin. Only the resources of the form "at least :math:`N` of a set of copies in the same bin" are supported (an integer capacity, and consumptions of 1 per copy up to a threshold): a binary variable per bin instance pays the penalty, and is forced to 1 by a constraint for each subset of :math:`N` copies of the set. These resources come from the subset-row cuts of the column generation, which involve few item types.
 
 Bin packing
 -----------
 
-For the :code:`bin-packing` objective, a tree search is run first, which gives a solution and a lower bound on the number of bins. The MILP is then solved as a sequence of :code:`feasibility` problems, packing all the items in a fixed number of bins, trying the numbers of bins in increasing order from the lower bound; the first feasible one is optimal. If the tree search already found a solution, only the numbers of bins strictly below its number of bins are tried.
+For the :code:`bin-packing` objective, the MILP is solved, by default, as a sequence of :code:`feasibility` problems, packing all the items in the first :math:`b` bins of the instance (in the order in which the bin types are given), for increasing values of :math:`b`: from the best lower bound known when the algorithm starts (computed, for example, by the dual feasible functions) to the number of bins available. The first feasible one is optimal if all the previous ones were proven infeasible; each one proven infeasible raises the lower bound.
 
-For the :code:`variable-sized-bin-packing` objective, the number of bin instances of each bin type in the model is bounded, using a tree search.
+Otherwise (parameter :code:`use_sequential_feasibility` disabled), the instance is first solved heuristically, with the column generation if there is a single bin type and with the tree search otherwise. If a complete solution is found, its number of bins of each bin type bounds the number of bin instances of each bin type in the model: since the bin types are used in their order, a solution using fewer bins can't use more bins of a given type. Then a single MILP minimizes the number of bins.
+
+For the :code:`variable-sized-bin-packing` objective, the number of bin instances of each bin type in the model is bounded by the number of bins needed to pack, with this bin type alone, all the items which fit in it, computed with the column generation.
 
 Solver
 ------
 
-The MILPs are solved with HiGHS. The solutions found by the solver are reported as they are found, the bound of the solver is reported as a bound of the instance, and the solver is stopped as soon as its bound shows that it can't improve the best solution found.
+The MILPs are solved with HiGHS, with the best solution found so far as a starting solution. The solutions found by the solver are reported as they are found, the bound of the solver is reported as a bound of the instance, and the solver is stopped as soon as the best solution is proven optimal.
 
 Automatic selection
 -------------------
@@ -123,3 +133,4 @@ Source files
 ------------
 
 * :code:`src/onedimensional/milp_assignment.hpp`, :code:`src/onedimensional/milp_assignment.cpp`
+* :code:`scripts/doc_figures/onedimensional_milp_assignment.py`: the figure of the symmetry breaking

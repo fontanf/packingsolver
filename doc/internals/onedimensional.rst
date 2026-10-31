@@ -5,21 +5,16 @@
 
 See :ref:`onedimensional<onedimensional>` for the input/output format and CLI usage of this solver.
 
-Dynamic programming for the classical 0-1 knapsack problem
-----------------------------------------------------------
+Dynamic programming
+-------------------
 
-This algorithm solves the :code:`knapsack` objective.
+This algorithm solves the :code:`knapsack` objective with a single bin.
 
-It ignores all the constraints except the capacity constraint and solves the problem as a classical 0-1 knapsack problem using the primal-dual dynamic programming algorithm.
-Afterwards, it checks if the returned solution satisfies the other constraints previously ignored. If so, the solution is stored and is actually optimal.
+It ignores all the constraints except the length of the bin, and solves the problem as a classical 0-1 knapsack problem, by dynamic programming. Afterwards, it checks whether the solution satisfies the other constraints. If so, the solution is optimal.
 
-Thus, if the instance to solve is a classical 0-1 knapsack problem, it is solved optimally. And even if it is not, as long as in practice only the capacity constraint is active for this instance, it still gets solved very quickly to proven optimality. Otherwise, the running time of this algorithm remains small compared to the time of the other algorithms that will be executed instead. Therefore, the overhead is not significant.
+Thus, if the instance is a classical 0-1 knapsack problem, it is solved optimally. And even if it is not, as long as in practice only the length of the bin matters for the instance, it still gets solved very quickly to proven optimality. Otherwise, its running time remains small compared to the time of the other algorithms, which are run instead.
 
-Reference:
-
-* "A Minimal Algorithm for the 0-1 Knapsack Problem" (Pisinger, 1997)
-
-  * https://doi.org/10.1287/opre.45.5.758
+See :doc:`the detailed description <onedimensional/dynamic_programming>`.
 
 Tree search
 -----------
@@ -56,6 +51,7 @@ See :doc:`the detailed description <onedimensional/dual_feasible_functions>`.
    :maxdepth: 1
    :hidden:
 
+   onedimensional/dynamic_programming
    onedimensional/tree_search
    onedimensional/milp_assignment
    onedimensional/dual_feasible_functions

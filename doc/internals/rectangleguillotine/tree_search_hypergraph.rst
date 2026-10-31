@@ -31,7 +31,16 @@ The blocks are processed best first, by decreasing *potential*: the profit of th
 * :math:`\text{dp}(w, h)` is the best profit of a guillotine pattern in a :math:`w \times h` rectangle, ignoring the numbers of copies of the item types (any number of copies is allowed);
 * :math:`\text{rdp}(w, h)` is the best profit which can be packed in the rest of the bin when a :math:`w \times h` rectangle is placed in it, computed backwards from the full bin: the bin can be obtained from the :math:`w \times h` rectangle by successive guillotine cuts, and each cut adds a rectangle worth :math:`\text{dp}` of its dimensions.
 
-Since the numbers of copies are ignored, :math:`\text{profit} + \text{rdp}(w, h)` is an upper bound on the profit of any pattern containing the block. The algorithm stops as soon as no block remaining in the queue has a potential larger than the profit of the best pattern found, which is then optimal.
+Since the numbers of copies are ignored, :math:`\text{profit} + \text{rdp}(w, h)` is an upper bound on the profit of any pattern containing the block. The algorithm stops as soon as no block remaining in the queue has a potential larger than the profit of the best pattern found, which is then optimal. The dynamic programs are computed on the bin minus its trims.
+
+Search
+------
+
+* **Initial blocks.** One block per item type and per allowed orientation, containing a single item.
+* **Queue.** The blocks to process are stored in 2000 buckets, the bucket :math:`k` containing the blocks whose potential is between :math:`0.99^{k+1} U` and :math:`0.99^k U`, where :math:`U = \text{dp}(W, H)` is the bound of the whole bin. The buckets are processed by decreasing potential, and the blocks of a bucket in the reverse order of their insertion: the order is best first up to 1%. When the upper limit :math:`0.99^k U` of the next bucket isn't larger than the profit of the best pattern found, no remaining block can improve it, and the search stops.
+* **Combinations.** A block taken from the queue is skipped if its potential isn't larger than the profit of the best pattern found anymore, or if a block with the same dimensions and the same numbers of copies of each item type has already been processed. Otherwise, it is combined with each block already processed, itself included, side by side and one above the other. A combination is discarded if it doesn't fit in the bin, if its potential isn't larger than the profit of the best pattern found, or if it uses more copies of an item type than available.
+* **Solutions.** Each combination whose profit is larger than the profit of the best pattern found becomes the new best pattern. The pattern is rebuilt from the cut tree of the block, with additional cuts trimming the waste when a block is smaller than the space it is placed in.
+
 
 Automatic selection
 -------------------

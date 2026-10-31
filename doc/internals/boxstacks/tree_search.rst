@@ -29,6 +29,17 @@ Guides
 
 The guides are the ones of the rectangle tree search, with volumes: by default, guides 4 and 5 for the :code:`knapsack` objective, guides 0 and 1 for the :code:`bin-packing-with-leftovers` objective, and guides 0 and 2 for the other objectives.
 
+Dominance
+---------
+
+Two nodes with the same number of copies of each item type packed can be compared. Node 1 dominates node 2 if it uses fewer bins, or as many bins and:
+
+* leftover values which aren't smaller (for the :code:`bin-packing-with-leftovers` objective);
+* a middle axle weight which isn't larger;
+* the same stacks on the floor (same footprints, in the same order), each stack of node 1 being not higher than the corresponding stack of node 2, allowing at least as much weight and as many items on top of it, and ending with an item of the same stackability id.
+
+Since the stacks must have the same footprints, this dominance is much more restrictive than the one of the rectangle tree search.
+
 This algorithm is more expensive than the sequential one-dimensional / rectangle algorithm. It is useful when the axle weight constraints are active in the best solutions, which then need sparse packings.
 
 Source files

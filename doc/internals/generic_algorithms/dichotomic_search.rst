@@ -40,7 +40,7 @@ For a waste estimate :math:`w` (a fraction of the space of the items), the bins 
 
 Then a :code:`bin-packing` sub-problem is solved, with the items and the bins chosen, then the other bins. If all the items are packed in the bins chosen, the waste estimate is decreased; otherwise, it is increased.
 
-In the example below, the items to pack have a total area of 500, and three bin types are available (20x16, 16x16 and 16x12). At a waste estimate of 0%, the smallest combination of bins reaching the required area is one 16x12 and one 20x16 bin (total area 512); packing all the items into exactly these two bins turns out to be infeasible, so the waste estimate is increased. At a waste estimate of 5% (required area 550), three 16x12 bins (total area 576) are enough, and this time every item packs successfully:
+In the example below, the items to pack have a total area of 500, and three bin types are available (20x16, 16x16 and 16x12). With a waste estimate of 0%, the smallest combination of bins reaching the required area would be one 16x12 and one 20x16 bin (total area 512), but packing all the items into exactly these two bins is infeasible: the estimate is too small. With a waste estimate of 5% (required area 525), three 16x12 bins (total area 576) are chosen, and every item packs successfully:
 
 .. image:: ../../img/generic_algorithms_dichotomic_search.png
    :scale: 100%

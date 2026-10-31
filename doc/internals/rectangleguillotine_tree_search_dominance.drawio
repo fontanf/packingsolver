@@ -1,0 +1,15 @@
+<mxfile host="drawio">
+  <diagram name="Page-1" id="page">
+    <mxGraphModel grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="c3" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=2;fillColor=none;" vertex="1" parent="1"><mxGeometry x="0" y="-192" width="320" height="192" as="geometry"/></mxCell>
+        <mxCell id="c4" style="html=1;rounded=0;endArrow=none;strokeColor=#b85450;strokeWidth=5;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="128" y="-192" as="sourcePoint"/><mxPoint x="256" y="0" as="targetPoint"/><Array as="points"><mxPoint x="128" y="-160"/><mxPoint x="192" y="-160"/><mxPoint x="192" y="-64"/><mxPoint x="256" y="-64"/></Array></mxGeometry></mxCell>
+        <mxCell id="c5" style="html=1;rounded=0;endArrow=none;strokeColor=#82b366;strokeWidth=3;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="128" y="-192" as="sourcePoint"/><mxPoint x="256" y="0" as="targetPoint"/><Array as="points"><mxPoint x="128" y="-128"/><mxPoint x="160" y="-128"/><mxPoint x="160" y="-64"/><mxPoint x="256" y="-64"/></Array></mxGeometry></mxCell>
+        <mxCell id="c6" value="green: front of node 1; red: front of node 2" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=12;" vertex="1" parent="1"><mxGeometry x="-32.0" y="6.4" width="384" height="19.2" as="geometry"/></mxCell>
+        <mxCell id="c7" value="node 1 dominates node 2" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=12;" vertex="1" parent="1"><mxGeometry x="-32.0" y="25.6" width="384" height="19.2" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
