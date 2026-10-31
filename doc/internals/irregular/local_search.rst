@@ -40,7 +40,7 @@ The initial layout is separated, with more effort than the next separations. Whi
 3. it is *disrupted*: the engine changes it a lot locally, e.g. by moving a large item somewhere else;
 4. it is separated. This separation is given up early if its loss doesn't get below the loss of the drawn layout.
 
-The population keeps layouts which have a small loss and which are different from each other, as in hybrid genetic search: each layout is ranked by its loss and by its contribution to the diversity, its distance to its closest neighbors in the population. The distance between two layouts is provided by the engine. The population holds between 4 and 8 layouts; when it is full, the layouts with the worst ranks are removed, except the 2 layouts with the smallest losses.
+The population keeps layouts which have a small loss and which are different from each other, as in hybrid genetic search: each layout is ranked by its loss and by its contribution to the diversity, its mean distance to its 2 closest neighbors in the population. The distance between two layouts is provided by the engine. The population holds between 4 and 8 layouts; when it is full, the layouts with the worst ranks are removed, except the 2 layouts with the smallest losses.
 
 In anytime mode, the search goes on until the time limit. In the non-anytime modes, it stops after a given number of failed separations (and, for the direct trigonometry engine, after a given number of item moves); the instance is then considered infeasible.
 

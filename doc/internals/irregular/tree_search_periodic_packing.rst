@@ -68,7 +68,7 @@ A node is evaluated by completing it greedily, inserting the best scored block a
 Search
 ------
 
-The tree is explored by an iterative beam search. In anytime mode, the size of the beam grows at each restart. In the non-anytime modes, a single beam search is run, with a beam of size 16.
+The tree is explored by the :ref:`iterative beam search <internals_tree_search>` generating the children one at a time, by decreasing score, with a growth factor of 2. Two nodes with the same number of copies of each item type packed are compared by their greedy values: the one with the smallest greedy value is dominated. Since the depth of a node is its number of blocks, the dominance compares the nodes of all the queues (global dominance). In the non-anytime modes, the search is run with a queue of size 1, then with a queue of the size given by the parameter :code:`not_anytime_tree_search_periodic_packing_queue_size` (16 by default).
 
 Automatic selection
 -------------------

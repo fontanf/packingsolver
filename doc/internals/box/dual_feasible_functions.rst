@@ -11,7 +11,7 @@ This algorithm computes a bound for the :code:`bin-packing`, :code:`feasibility`
 Principle
 ---------
 
-It is the generalization to three dimensions of the :ref:`dual feasible functions for rectangle <internals_rectangle_dual_feasible_functions>`, following the framework of Fekete and Schepers (2004): a dual feasible function is applied to each of the three dimensions of the items and of the bin, with its own breakpoint, and the volume bound of the transformed instance is a valid bound for the original instance.
+It is the generalization to three dimensions of the :ref:`dual feasible functions for rectangle <internals_rectangle_dual_feasible_functions>`, following the framework of Fekete and Schepers (2004): a dual feasible function is applied to each of the three dimensions of the items and of the bin, with its own breakpoint, and the volume bound of the transformed instance is a valid bound for the original instance. The three families :math:`f_0`, :math:`f_1` and :math:`f_2` are tried on each axis, which gives 27 combinations for each triple of breakpoints. The breakpoints of an axis are computed as in two dimensions, from the lengths along this axis which the items can take in their allowed rotations.
 
 * :code:`bin-packing` and :code:`feasibility`: the bound is the total transformed volume of the items divided by the transformed volume of the bin, rounded up, maximized over the breakpoints and the families of functions. For the :code:`feasibility` objective, the instance is proven infeasible if the bound exceeds the number of bins.
 * :code:`knapsack`: the bound is the fractional (Dantzig) bound of the knapsack problem with the transformed volumes, minimized over the breakpoints and the families of functions.

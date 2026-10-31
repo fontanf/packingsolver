@@ -63,7 +63,7 @@ The pricing problem consists in finding, for some bin type :math:`i`, a pattern 
 
 where :math:`u_i` and :math:`v_j` are the dual variables of the bin type bound and item demand constraints. For each bin type, this is a single-bin :code:`knapsack` problem with item profits :math:`v_j`, solved with the regular algorithms of the problem type, in non-anytime mode (a beam of size 128 for the tree searches by default).
 
-These heuristic solutions of the pricing problem are enough to generate good patterns, but not to prove that no pattern of negative reduced cost remains, so the bound of the linear relaxation is only valid when the pricing problems are solved exactly. For the rectangle problem type, the pricing problems are solved exactly with the :ref:`Benders decomposition <internals_rectangle_benders_decomposition>` when a bound is needed.
+These heuristic solutions of the pricing problem are enough to generate good patterns, but not to prove that no pattern of negative reduced cost remains, so the bound of the linear relaxation is only valid when the pricing problems are solved exactly. For the rectangle problem type, the pricing problems are solved with the :ref:`Benders decomposition <internals_rectangle_benders_decomposition>` when a bound is needed; in the :code:`exact` mode, this Benders decomposition is itself run in :code:`exact` mode, so that the bound is proven.
 
 Search
 ------
@@ -72,7 +72,7 @@ The integer solutions are found by a limited discrepancy search: at each node, a
 
 **Bin packing.** The linear relaxation minimizes a cost, which is converted into a number of bins by dividing it by the cost of the bin type; this is only valid with a single bin type. So for the :code:`bin-packing` objective, the column generation is instead run as a sequence of :code:`feasibility` problems (each with a given number of bins, tried in increasing order from a lower bound), the first feasible one being optimal. This scheme is always used with several bin types, and, depending on the problem type, with a single one too.
 
-**Subset-row cuts.** Optionally, subset-row cuts (Jepsen et al., 2008) can be separated at the root node to tighten the linear relaxation: for a subset of item types, they bound the number of patterns containing at least two of them. They only help when the pricing problems enforce them too.
+**Subset-row cuts.** Subset-row cuts (Jepsen et al., 2008) can be separated to tighten the linear relaxation: for a subset of item types, they bound the number of patterns containing at least two of them. They only help when the pricing problems enforce them too, so they are only enabled for the rectangle problem type, whose tree searches enforce them through the resources of the bins (a subset-row cut becomes a *penalize* resource, whose penalty is the dual value of the cut).
 
 Automatic selection
 -------------------
