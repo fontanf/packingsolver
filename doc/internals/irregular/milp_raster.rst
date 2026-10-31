@@ -13,8 +13,7 @@ Principle
 
 The bins are discretized into a grid of square cells, and the items are only placed at positions of the grid. The problem then becomes a set packing problem: select placements of the items, such that no two placements cover the same cell, maximizing the profit of the items placed. It is solved as a mixed-integer linear program (MILP). The grid is then refined, and the program solved again.
 
-.. image:: ../../img/irregular_milp_raster.png
-   :scale: 100%
+.. image:: ../../img/irregular_milp_raster.svg
    :align: center
 
 Rasterization

@@ -15,8 +15,7 @@ Principle
 
 It is the guillotine version of the :ref:`tree search with maximal spaces for rectangle <internals_rectangle_tree_search_maximal_spaces>`: a block of items is packed at each stage, in an empty space of the bin. The blocks are guillotine patterns themselves: grids of copies of an item type, and their combinations side by side or one above the other, generated before the search exactly as for :code:`rectangle` (same order, same limit of 10000 blocks, same rule dropping the blocks with waste when there are at most 3 item types), except that the cut thickness is added between the items of a grid and between the two parts of a combined block. Here is an example of block generation from 4 items:
 
-.. image:: ../../img/rectangleguillotine_tree_search_maximal_spaces_1.png
-   :scale: 100%
+.. image:: ../../img/rectangleguillotine_tree_search_maximal_spaces_blocks.svg
    :align: center
 
 Unused rectangular spaces
@@ -29,20 +28,17 @@ To keep the patterns guillotine, the empty spaces are the leaves of the cut tree
 
 The new spaces are separated from the block by the cut thickness. The direction of the first cut alternates with the depth of the space in the cut tree: if it is vertical at even depths, it is horizontal at odd depths; the space to the right of the block in the first case (above it in the second case) has the depth of the space plus one, and the other one the depth plus two. The orientation of the first stage is given by the parameters; when it is free, both orientations are tried for the first block, so two children are generated per candidate block, one with a vertical cut and one with a horizontal cut, and the orientation chosen holds for the rest of the pattern:
 
-.. image:: ../../img/rectangleguillotine_tree_search_maximal_spaces_2.png
-   :scale: 100%
+.. image:: ../../img/rectangleguillotine_tree_search_maximal_spaces_root_children.svg
    :align: center
 
-Here are the two unused spaces of the first child generated above:
+Here are the two unused spaces of the first child generated above, with their areas and their depths in the cut tree:
 
-.. image:: ../../img/rectangleguillotine_tree_search_maximal_spaces_3.png
-   :scale: 100%
+.. image:: ../../img/rectangleguillotine_tree_search_maximal_spaces_spaces.svg
    :align: center
 
 Unlike in the :code:`rectangle` case, the unused spaces never overlap. After each insertion, the blocks which use more copies of an item type than remaining are discarded, and so are the spaces in which no remaining block fits. To generate the children of a node, the unused space with the smallest area, the most constrained one, is selected (ties are broken by preferring the space closest to the bottom-left corner of the bin), and one child is generated per remaining block that fits inside:
 
-.. image:: ../../img/rectangleguillotine_tree_search_maximal_spaces_4.png
-   :scale: 100%
+.. image:: ../../img/rectangleguillotine_tree_search_maximal_spaces_children.svg
    :align: center
 
 Greedy value and search

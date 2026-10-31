@@ -17,8 +17,7 @@ The algorithm builds dominated instances, in the sense that every feasible solut
 
 In the example below, the bin is 10 × 6 and there are two copies each of items 1 (6 × 4), 2 (4 × 6) and 3 (4 × 3). Every pair of these items fits together in the bin, so the area bound (2 × (24 + 24 + 12) = 120, divided by the bin area 60, rounded up) is only 2:
 
-.. image:: ../../img/rectangle_dual_feasible_functions_1.png
-   :scale: 100%
+.. image:: ../../img/rectangle_dual_feasible_functions_instance.svg
    :align: center
 
 We apply the following transformation:
@@ -30,8 +29,7 @@ Every feasible solution of the original instance is feasible for the modified in
 
 Only item 1 is affected by the transformation: its height becomes 6. Here is the dominated instance:
 
-.. image:: ../../img/rectangle_dual_feasible_functions_2.png
-   :scale: 100%
+.. image:: ../../img/rectangle_dual_feasible_functions_dominated_instance.svg
    :align: center
 
 The area bound of the dominated instance (2 × (36 + 24 + 12) = 144, divided by 60, rounded up) is 3, which turns out to be tight: the original instance does require 3 bins.

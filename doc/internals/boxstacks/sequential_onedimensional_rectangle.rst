@@ -16,8 +16,7 @@ It decomposes the problem in two phases:
 1. **Stacks.** The items are grouped into stacks by solving a :ref:`one-dimensional <internals_onedimensional>` variable-sized bin packing problem, for each group of items which can be stacked together (same stackability id, same unloading group). Each stack is a one-dimensional bin whose length is the height of the bin, and the one-dimensional instance carries the stacking constraints: maximum weight, maximum stackability, maximum weight above, nesting heights. The stacks generated contain exactly all the items.
 2. **Footprints.** The stacks, described by their footprints, are packed into the floor of the bin by solving a :ref:`rectangle <internals_rectangle>` :code:`knapsack` problem (an :code:`open-dimension-x` problem for the :code:`open-dimension-x` objective), whose profits are the profits of the stacks. The rectangle problem carries the maximum weight of the bin and its axle weight constraints.
 
-.. image:: ../../img/boxstacks_sequential_onedimensional_rectangle.png
-   :scale: 100%
+.. image:: ../../img/boxstacks_sequential_onedimensional_rectangle.svg
    :align: center
 
 The rectangle problem is solved with the :ref:`rectangle tree search <internals_rectangle_tree_search>`, in a sequence of attempts:

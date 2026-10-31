@@ -72,8 +72,7 @@ The variations by objective and problem type:
 * :code:`variable-sized-bin-packing`: the :ref:`dichotomic search <internals_generic_algorithms_dichotomic_search>` is also used with several bin types, as illustrated below;
 * the algorithms which don't support an objective or a feature of the instance are removed from the selection.
 
-.. image:: ../img/algorithm_selection_variable_sized_bin_packing.png
-   :scale: 100%
+.. image:: ../img/algorithm_selection_variable_sized_bin_packing.svg
    :align: center
 
 The details for each algorithm are given in the *Automatic selection* section of its page.

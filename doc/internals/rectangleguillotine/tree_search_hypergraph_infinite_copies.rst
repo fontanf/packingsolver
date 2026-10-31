@@ -15,8 +15,7 @@ Principle
 
 It works the same way as the tree search hypergraph algorithm, except that the numbers of copies of the item types are not taken into account. Without them, a block is only described by its dimensions, and the best pattern for each dimensions can be computed by dynamic programming: the best profit in a :math:`w \times h` rectangle is the best of the items fitting exactly in it, and of the best patterns of the two parts of each vertical and horizontal guillotine cut of the rectangle.
 
-.. image:: ../../img/rectangleguillotine_dynamic_programming_infinite_copies.png
-   :scale: 100%
+.. image:: ../../img/rectangleguillotine_tree_search_hypergraph_infinite_copies_combinations.svg
    :align: center
 
 **Raster points.** Any guillotine pattern can be transformed into a pattern with the same items whose cuts are at *normal positions*, the sums of item dimensions (with the cut thickness), by pushing its items towards the origin (Herz, 1972; Christofides and Whitlock, 1977). The dynamic program only needs the rectangles whose dimensions are *raster points*: what remains of the bin after cutting a normal position (Scheithauer and Terno, 1996). This makes the array of the dynamic program much smaller than one entry per integer width and height. With :math:`t` the cut thickness and :math:`\lfloor x \rfloor` the largest raster point not larger than :math:`x`, the recurrence on the raster points :math:`w` and :math:`h` is:

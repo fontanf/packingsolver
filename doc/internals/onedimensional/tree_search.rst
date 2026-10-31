@@ -18,10 +18,9 @@ It is a constructive tree search where a single item is packed at each stage:
 * the children of a node are obtained by packing one more item after the last item of the current (last) bin, or in a new bin if no item can be packed in the current bin anymore;
 * a node is a *leaf* when all the items are packed.
 
-The figure below shows the beginning of the tree, with four item types A, B, C and D. Each child adds one item on top of the bin of its parent:
+The figure below shows the beginning of the tree, with four item types A (length 5), B (4), C (1) and D (2), with a single copy each, and bins of length 8. Each child adds one item on top of the bin of its parent:
 
-.. image:: ../../img/onedimensional_tree_search.png
-   :scale: 100%
+.. image:: ../../img/onedimensional_tree_search_tree.svg
    :align: center
 
 The tree is explored by the :ref:`iterative beam search <internals_tree_search>`, guided by the guides below. Many nodes are also discarded by the dominance and the bounds.

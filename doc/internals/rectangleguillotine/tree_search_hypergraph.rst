@@ -19,8 +19,7 @@ It is a kind of tree search, but instead of generating children from one parent 
 
 This is similar to the block generation step of the tree search with maximal spaces algorithm. In the tree search with maximal spaces algorithm, the block generation stops once enough blocks have been generated; in this algorithm, it stops when the block generated is proven to be an optimal solution.
 
-.. image:: ../../img/rectangleguillotine_labelling.png
-   :scale: 100%
+.. image:: ../../img/rectangleguillotine_tree_search_hypergraph_combinations.svg
    :align: center
 
 Bound

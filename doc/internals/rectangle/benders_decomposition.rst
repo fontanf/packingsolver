@@ -22,8 +22,7 @@ When the items of a bin don't fit, *cuts* are added to the master problem, forbi
 
 In the example below, the bin has an area of 15, and the items 1, 2 and 3 have an area of 6, 6 and 3. At iteration 1, with no cuts yet, the master problem selects the three items, the only selection filling the area of the bin. This selection turns out to be infeasible: once items 1 and 2 are packed, there is no room left for item 3. A cut excluding this selection is added, and at iteration 2 the master problem selects items 1 and 2 only (area 12), which fit:
 
-.. image:: ../../img/rectangle_benders_decomposition.png
-   :scale: 100%
+.. image:: ../../img/rectangle_benders_decomposition_example.svg
    :align: center
 
 Master problem
