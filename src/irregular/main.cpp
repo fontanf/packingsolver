@@ -100,6 +100,7 @@ int main(int argc, char *argv[])
             ("initial-maximum-approximation-ratio,", po::value<double>(), "initial maximum approximation ratio")
             ("maximum-approximation-ratio-factor,", po::value<double>(), "decrease factor for the maximum approximation ratio")
             ("sequential-value-correction-subproblem-tree-search-queue-size,", po::value<NodeId>(), "set sequential value correction subproblem queue size")
+            ("anytime-sequential-value-correction-growing-queue-maximum-number-of-iterations,", po::value<Counter>(), "")
             ("column-generation-subproblem-tree-search-queue-size,", po::value<NodeId>(), "set column generation subproblem queue size")
             ("post-process-last-bin-maximum-number-of-items,", po::value<ItemPos>(), "re-optimize the last bin in the post-process only if it contains fewer items")
             ("not-anytime-maximum-approximation-ratio,", po::value<double>(), "")
@@ -208,6 +209,8 @@ int main(int argc, char *argv[])
             parameters.maximum_approximation_ratio_factor = vm["maximum-approximation-ratio-factor"].as<double>();
         if (vm.count("sequential-value-correction-subproblem-tree-search-queue-size"))
             parameters.sequential_value_correction_subproblem_tree_search_queue_size = vm["sequential-value-correction-subproblem-tree-search-queue-size"].as<NodeId>();
+        if (vm.count("anytime-sequential-value-correction-growing-queue-maximum-number-of-iterations"))
+            parameters.anytime_sequential_value_correction_growing_queue_maximum_number_of_iterations = vm["anytime-sequential-value-correction-growing-queue-maximum-number-of-iterations"].as<Counter>();
         if (vm.count("column-generation-subproblem-tree-search-queue-size"))
             parameters.column_generation_subproblem_tree_search_queue_size = vm["column-generation-subproblem-tree-search-queue-size"].as<NodeId>();
         if (vm.count("post-process-last-bin-maximum-number-of-items"))
