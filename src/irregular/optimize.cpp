@@ -552,12 +552,6 @@ void optimize_sequential_single_knapsack(
         // from this initial value - see 'SequentialValueCorrectionParameters::
         // initial_profit_exponent''s own doc comment.
         svc_parameters.initial_profit_exponent = 1.0;
-        svc_parameters.item_type_fits_bin_type = [&instance](
-                ItemTypeId item_type_id,
-                BinTypeId bin_type_id)
-        {
-            return instance.item_type_fits_bin_type(item_type_id, bin_type_id);
-        };
         svc_parameters.restrict_bin_types
             = parameters.sequential_value_correction_restrict_bin_types;
         svc_parameters.scarce_item_types_profit_factor_exponent
@@ -633,12 +627,6 @@ void optimize_sequential_value_correction(
     svc_parameters.timer = parameters.timer;
     svc_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
     svc_parameters.initial_profit_exponent = 1.1;
-    svc_parameters.item_type_fits_bin_type = [&instance](
-            ItemTypeId item_type_id,
-            BinTypeId bin_type_id)
-    {
-        return instance.item_type_fits_bin_type(item_type_id, bin_type_id);
-    };
     svc_parameters.restrict_bin_types
         = parameters.sequential_value_correction_restrict_bin_types;
     svc_parameters.scarce_item_types_profit_factor_exponent

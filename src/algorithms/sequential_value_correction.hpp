@@ -72,27 +72,21 @@ struct SequentialValueCorrectionParameters: packingsolver::Parameters<Instance, 
     Counter maximum_number_of_iterations = -1;
 
     /**
-     * Optional function returning 'false' only if an item type doesn't fit in
-     * a bin type.
+     * If true, for VariableSizedBinPacking, at each step, the bin types tried
+     * are restricted to the ones in which the remaining item type which fits
+     * in the smallest number of available bins fits (ties broken by choosing
+     * the largest item type): a bin of one of these bin types needs to be
+     * used anyway to pack this item type.
      *
-     * Only used if the objective is VariableSizedBinPacking (see
-     * 'restrict_bin_types' and 'scarce_item_types_profit_factor_exponent').
+     * Uses 'Instance::item_type_fits_bin_type', which must only return
+     * 'false' if the item type doesn't fit in the bin type.
      */
-    std::function<bool(ItemTypeId, BinTypeId)> item_type_fits_bin_type;
+    bool restrict_bin_types = true;
 
     /**
-     * If true and 'item_type_fits_bin_type' is set, at each step, the bin
-     * types tried are restricted to the ones in which the remaining item type
-     * which fits in the smallest number of available bins fits (ties broken
-     * by choosing the largest item type): a bin of one of these bin types
-     * needs to be used anyway to pack this item type.
-     */
-    bool restrict_bin_types = false;
-
-    /**
-     * Exponent of the factor applied to the initial profit of the item types
-     * which don't fit in all the bin types, if 'item_type_fits_bin_type' is
-     * set.
+     * For VariableSizedBinPacking, exponent of the factor applied to the
+     * initial profit of the item types which don't fit in all the bin types
+     * (according to 'Instance::item_type_fits_bin_type').
      *
      * For an item type, the tightness of the bin types in which it fits is the
      * space of the item types which only fit in these bin types divided by
@@ -192,11 +186,13 @@ SequentialValueCorrectionOutput<Instance, Solution, Output> sequential_value_cor
     }
 
     // For VariableSizedBinPacking, item types sorted by decreasing space and
-    // the bin types in which they fit, to restrict the bin types tried.
+    // the bin types in which they fit, to restrict the bin types tried and to
+    // boost the initial profits of the item types competing for scarce bins.
     std::vector<ItemTypeId> item_type_ids_by_decreasing_space;
     std::vector<std::vector<bool>> item_type_fits_bin_type;
     if (instance.objective() == Objective::VariableSizedBinPacking
-            && parameters.item_type_fits_bin_type) {
+            && (parameters.restrict_bin_types
+                || parameters.scarce_item_types_profit_factor_exponent != 0.0)) {
         item_type_ids_by_decreasing_space.resize(instance.number_of_item_types());
         std::iota(
                 item_type_ids_by_decreasing_space.begin(),
@@ -220,7 +216,7 @@ SequentialValueCorrectionOutput<Instance, Solution, Output> sequential_value_cor
                     bin_type_id < instance.number_of_bin_types();
                     ++bin_type_id) {
                 item_type_fits_bin_type[item_type_id][bin_type_id]
-                    = parameters.item_type_fits_bin_type(item_type_id, bin_type_id);
+                    = instance.item_type_fits_bin_type(item_type_id, bin_type_id);
             }
         }
 

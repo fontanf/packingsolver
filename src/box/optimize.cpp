@@ -202,6 +202,10 @@ void optimize_sequential_single_knapsack(
         svc_parameters.verbosity_level = 0;
         svc_parameters.timer = parameters.timer;
         svc_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+        svc_parameters.restrict_bin_types
+            = parameters.sequential_value_correction_restrict_bin_types;
+        svc_parameters.scarce_item_types_profit_factor_exponent
+            = parameters.sequential_value_correction_scarce_item_types_profit_factor_exponent;
         svc_parameters.maximum_number_of_iterations = 1;
         // No later iteration to adjust profits away from this initial
         // value - see 'SequentialValueCorrectionParameters::
@@ -263,6 +267,10 @@ void optimize_sequential_value_correction(
     svc_parameters.verbosity_level = 0;
     svc_parameters.timer = parameters.timer;
     svc_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+    svc_parameters.restrict_bin_types
+        = parameters.sequential_value_correction_restrict_bin_types;
+    svc_parameters.scarce_item_types_profit_factor_exponent
+        = parameters.sequential_value_correction_scarce_item_types_profit_factor_exponent;
     svc_parameters.initial_profit_exponent = 1.1;
     if (parameters.optimization_mode != OptimizationMode::Anytime
             && parameters.optimization_mode != OptimizationMode::Exact)

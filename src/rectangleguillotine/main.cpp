@@ -127,6 +127,8 @@ int main(int argc, char *argv[])
             ("use-dichotomic-search,", po::value<bool>(), "enable dichotomic search")
             ("sequential-value-correction-subproblem-tree-search-queue-size,", po::value<NodeId>(), "set sequential value correction subproblem queue size")
             ("sequential-value-correction-subproblem-tree-search-maximal-spaces-queue-size,", po::value<NodeId>(), "set sequential value correction subproblem maximal spaces queue size")
+            ("sequential-value-correction-restrict-bin-types,", po::value<bool>(), "")
+            ("sequential-value-correction-scarce-item-types-profit-factor-exponent,", po::value<double>(), "")
             ("column-generation-subproblem-tree-search-queue-size,", po::value<NodeId>(), "set column generation subproblem queue size")
             ("column-generation-subproblem-tree-search-maximal-spaces-queue-size,", po::value<NodeId>(), "set column generation subproblem maximal spaces queue size")
             ("not-anytime-tree-search-queue-size,", po::value<Counter>(), "")
@@ -322,6 +324,10 @@ int main(int argc, char *argv[])
             parameters.sequential_value_correction_subproblem_tree_search_queue_size = vm["sequential-value-correction-subproblem-tree-search-queue-size"].as<NodeId>();
         if (vm.count("sequential-value-correction-subproblem-tree-search-maximal-spaces-queue-size"))
             parameters.sequential_value_correction_subproblem_tree_search_maximal_spaces_queue_size = vm["sequential-value-correction-subproblem-tree-search-maximal-spaces-queue-size"].as<NodeId>();
+        if (vm.count("sequential-value-correction-restrict-bin-types"))
+            parameters.sequential_value_correction_restrict_bin_types = vm["sequential-value-correction-restrict-bin-types"].as<bool>();
+        if (vm.count("sequential-value-correction-scarce-item-types-profit-factor-exponent"))
+            parameters.sequential_value_correction_scarce_item_types_profit_factor_exponent = vm["sequential-value-correction-scarce-item-types-profit-factor-exponent"].as<double>();
         if (vm.count("column-generation-subproblem-tree-search-queue-size"))
             parameters.column_generation_subproblem_tree_search_queue_size = vm["column-generation-subproblem-tree-search-queue-size"].as<NodeId>();
         if (vm.count("column-generation-subproblem-tree-search-maximal-spaces-queue-size"))

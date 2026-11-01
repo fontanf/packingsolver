@@ -219,6 +219,24 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
     NodeId sequential_value_correction_subproblem_tree_search_queue_size = 512;
 
     /**
+     * For VariableSizedBinPacking, in the sequential value correction and the
+     * sequential single knapsack algorithms, restrict the bin types tried at
+     * each step to the ones in which the remaining item type which fits in
+     * the smallest number of available bins fits (see
+     * 'SequentialValueCorrectionParameters::restrict_bin_types').
+     */
+    bool sequential_value_correction_restrict_bin_types = true;
+
+    /**
+     * For VariableSizedBinPacking, in the sequential value correction and the
+     * sequential single knapsack algorithms, exponent of the factor applied
+     * to the initial profit of the item types which compete for scarce bins
+     * (see 'SequentialValueCorrectionParameters::
+     * scarce_item_types_profit_factor_exponent'). 0 disables it.
+     */
+    double sequential_value_correction_scarce_item_types_profit_factor_exponent = 1.0;
+
+    /**
      * Size of the queue for the pricing knapsack subproblem of the column
      * generation algorithm.
      */
