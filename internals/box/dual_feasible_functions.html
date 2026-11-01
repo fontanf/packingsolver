@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Dual feasible functions &#8212; PackingSolver</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../../_static/classic.css?v=14e077c0" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=a00afc7f" />
+    
+    <script src="../../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="box-stacks algorithms" href="../boxstacks.html" />
+    <link rel="prev" title="Tree search with maximal spaces" href="tree_search_maximal_spaces.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../boxstacks.html" title="box-stacks algorithms"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="tree_search_maximal_spaces.html" title="Tree search with maximal spaces"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../overview.html" >Solver internals</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../box.html" accesskey="U"><code class="code docutils literal notranslate"><span class="pre">box</span></code> algorithms</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Dual feasible functions</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="dual-feasible-functions">
+<span id="internals-box-dual-feasible-functions"></span><h1>Dual feasible functions<a class="headerlink" href="#dual-feasible-functions" title="Link to this heading">¶</a></h1>
+<section id="objectives">
+<h2>Objectives<a class="headerlink" href="#objectives" title="Link to this heading">¶</a></h2>
+<p>This algorithm computes a bound for the <code class="code docutils literal notranslate"><span class="pre">bin-packing</span></code>, <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code> and <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code> objectives, for instances with a single bin type. It doesn’t produce solutions.</p>
+</section>
+<section id="principle">
+<h2>Principle<a class="headerlink" href="#principle" title="Link to this heading">¶</a></h2>
+<p>It is the generalization to three dimensions of the <a class="reference internal" href="../rectangle/dual_feasible_functions.html#internals-rectangle-dual-feasible-functions"><span class="std std-ref">dual feasible functions for rectangle</span></a>, following the framework of Fekete and Schepers (2004): a dual feasible function is applied to each of the three dimensions of the items and of the bin, with its own breakpoint, and the volume bound of the transformed instance is a valid bound for the original instance. The three families <span class="math notranslate nohighlight">\(f_0\)</span>, <span class="math notranslate nohighlight">\(f_1\)</span> and <span class="math notranslate nohighlight">\(f_2\)</span> are tried on each axis, which gives 27 combinations for each triple of breakpoints. The breakpoints of an axis are computed as in two dimensions, from the lengths along this axis which the items can take in their allowed rotations.</p>
+<ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">bin-packing</span></code> and <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code>: the bound is the total transformed volume of the items divided by the transformed volume of the bin, rounded up, maximized over the breakpoints and the families of functions. For the <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code> objective, the instance is proven infeasible if the bound exceeds the number of bins.</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">knapsack</span></code>: the bound is the fractional (Dantzig) bound of the knapsack problem with the transformed volumes, minimized over the breakpoints and the families of functions.</p></li>
+</ul>
+<p>When an item can be rotated, its transformed volume depends on its rotation; the smallest one over its allowed rotations (up to 6) is used, which keeps the bound valid whatever the rotation of the item in the packing.</p>
+</section>
+<section id="automatic-selection">
+<h2>Automatic selection<a class="headerlink" href="#automatic-selection" title="Link to this heading">¶</a></h2>
+<p>The number of combinations of breakpoints grows quickly with the number of item types, so the bound is only computed automatically when there is a single bin type and at most 50 items. It can be forced with <code class="code docutils literal notranslate"><span class="pre">--use-dual-feasible-functions</span> <span class="pre">1</span></code> (CLI) or <code class="code docutils literal notranslate"><span class="pre">use_dual_feasible_functions</span></code> (Python).</p>
+</section>
+<section id="source-files">
+<h2>Source files<a class="headerlink" href="#source-files" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">src/box/dual_feasible_functions.hpp</span></code>, <code class="code docutils literal notranslate"><span class="pre">src/box/dual_feasible_functions.cpp</span></code></p></li>
+</ul>
+<p>References:</p>
+<ul class="simple">
+<li><p>“New reduction procedures and lower bounds for the two-dimensional bin packing problem with fixed orientation” (Carlier, Clautiaux and Moukrim, 2007)</p>
+<ul>
+<li><p><a class="reference external" href="https://doi.org/10.1016/j.cor.2005.08.012">https://doi.org/10.1016/j.cor.2005.08.012</a></p></li>
+</ul>
+</li>
+<li><p>“A general framework for bounds for higher-dimensional orthogonal packing problems” (Fekete and Schepers, 2004)</p>
+<ul>
+<li><p><a class="reference external" href="https://doi.org/10.1002/mcda.350">https://doi.org/10.1002/mcda.350</a></p></li>
+</ul>
+</li>
+</ul>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+<h3><a href="../../index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">PackingSolver’s documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../objectives.html">Objectives</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../optimization_modes.html">Optimization modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> solver</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../overview.html">Solver internals</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../tree_search.html">Tree search</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> algorithms</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> algorithms</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../box.html#tree-search">Tree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../box.html#tree-search-with-maximal-spaces">Tree search with maximal spaces</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../box.html#dual-feasible-functions">Dual feasible functions</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../box.html#trivial-bounds">Trivial bounds</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generic_algorithms.html">Generic algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../algorithm_selection.html">Algorithm selection</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../boxstacks.html" title="box-stacks algorithms"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="tree_search_maximal_spaces.html" title="Tree search with maximal spaces"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../overview.html" >Solver internals</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../box.html" ><code class="code docutils literal notranslate"><span class="pre">box</span></code> algorithms</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Dual feasible functions</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2019-2024, Florian Fontan.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.1.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Dynamic programming &#8212; PackingSolver</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../../_static/classic.css?v=14e077c0" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=a00afc7f" />
+    
+    <script src="../../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Tree search" href="tree_search.html" />
+    <link rel="prev" title="one-dimensional algorithms" href="../onedimensional.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="tree_search.html" title="Tree search"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="../onedimensional.html" title="one-dimensional algorithms"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../overview.html" >Solver internals</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../onedimensional.html" accesskey="U"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> algorithms</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Dynamic programming</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="dynamic-programming">
+<span id="internals-onedimensional-dynamic-programming"></span><h1>Dynamic programming<a class="headerlink" href="#dynamic-programming" title="Link to this heading">¶</a></h1>
+<section id="objectives">
+<h2>Objectives<a class="headerlink" href="#objectives" title="Link to this heading">¶</a></h2>
+<p>This algorithm solves the <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code> objective with a single bin. It ignores all the constraints but the length of the bin; the solution it finds is kept only if it satisfies the other ones.</p>
+</section>
+<section id="principle">
+<h2>Principle<a class="headerlink" href="#principle" title="Link to this heading">¶</a></h2>
+<p>The problem is solved as a classical 0-1 knapsack problem: the items have to be packed in a bin of length <span class="math notranslate nohighlight">\(C\)</span>, maximizing the profit of the items packed, and an item takes its length minus its nesting length, <span class="math notranslate nohighlight">\(\ell_j - \max(0, n_j)\)</span>, the least it can take. The other constraints (the length taken by the first item of the bin, the weights, the maximum stackability, the resources) are ignored, so the problem solved is a relaxation:</p>
+<ul class="simple">
+<li><p>its optimal value is a bound of the instance;</p></li>
+<li><p>its optimal solution is checked against all the constraints; if it satisfies them, it is optimal.</p></li>
+</ul>
+<p>If the instance is a classical knapsack problem, it is therefore solved to optimality. Even if it isn’t, if only the length of the bin matters in practice for the instance, it gets solved very quickly to proven optimality; otherwise, the running time of this algorithm is small compared to the one of the algorithms run after it.</p>
+<p><strong>Copies.</strong> An item type with <span class="math notranslate nohighlight">\(q\)</span> copies is turned into 0-1 items by binary decomposition: items of 1, 2, 4, … copies, the last one with the remaining copies. Any number of copies from 0 to <span class="math notranslate nohighlight">\(q\)</span> is then a sum of a subset of these items. The items longer than the bin are left out: when an item of <span class="math notranslate nohighlight">\(2^k\)</span> copies doesn’t fit, the larger numbers of copies don’t fit either.</p>
+<a class="reference internal image-reference" href="../../_images/onedimensional_dynamic_programming_binary_decomposition.svg"><img alt="../../_images/onedimensional_dynamic_programming_binary_decomposition.svg" class="align-center" height="140" src="../../_images/onedimensional_dynamic_programming_binary_decomposition.svg" width="358" />
+</a>
+</section>
+<section id="algorithms">
+<h2>Algorithms<a class="headerlink" href="#algorithms" title="Link to this heading">¶</a></h2>
+<p><strong>Subset sum.</strong> If the profit of each item is equal to the length it takes, the problem is a subset sum problem: packing as much length as possible. The lengths and the capacity are divided by their greatest common divisor, and the problem is solved with the dynamic programming of Bellman, implemented with bit operations: the reachable lengths are stored as bits of 64-bit words, and an item shifts and merges them, 64 lengths at once. It is used if the number of items times the number of words of the capacity, which estimates its running time, is at most <span class="math notranslate nohighlight">\(2^{23}\)</span> (parameter <code class="code docutils literal notranslate"><span class="pre">dynamic_programming_subset_sum_maximum_size</span></code>). On subset sum problems, the bounds of the primal-dual dynamic programming below don’t discard any state, so its number of states may grow with the capacity.</p>
+<p><strong>Knapsack.</strong> Otherwise, the problem is solved with the primal-dual dynamic programming of Pisinger (1997), implemented in <a class="reference external" href="https://github.com/fontanf/knapsacksolver">knapsacksolver</a>. It starts from the items sorted by decreasing efficiency (profit per length) and their <em>break solution</em>, the items before the first one which doesn’t fit, and enlarges a <em>core</em> of items around the break item, in which items are added to or removed from the break solution. The states whose upper bound isn’t larger than the best solution found are discarded. The items of a binary decomposition all have the same efficiency, so many states survive; the <em>pairing</em> option, which adds a promising item from outside the core when the number of states grows, is enabled. The dynamic programming stops after <span class="math notranslate nohighlight">\(2^{20}\)</span> states (parameter <code class="code docutils literal notranslate"><span class="pre">dynamic_programming_knapsack_maximum_number_of_states</span></code>): its solution is then still reported, but it isn’t proven optimal.</p>
+</section>
+<section id="automatic-selection">
+<h2>Automatic selection<a class="headerlink" href="#automatic-selection" title="Link to this heading">¶</a></h2>
+<p>It is run first, before the other algorithms, for the <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code> objective with a single bin. If it proves its solution optimal, the other algorithms aren’t run. It is also used to solve the knapsack subproblems of the generic algorithms (sequential single knapsack, sequential value correction, column generation, dichotomic search).</p>
+</section>
+<section id="source-files">
+<h2>Source files<a class="headerlink" href="#source-files" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">src/onedimensional/dynamic_programming.hpp</span></code>, <code class="code docutils literal notranslate"><span class="pre">src/onedimensional/dynamic_programming.cpp</span></code></p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">scripts/doc_figures/onedimensional_dynamic_programming.py</span></code>: the figure of the binary decomposition</p></li>
+</ul>
+<p>References:</p>
+<ul class="simple">
+<li><p>“A Minimal Algorithm for the 0-1 Knapsack Problem” (Pisinger, 1997)</p>
+<ul>
+<li><p><a class="reference external" href="https://doi.org/10.1287/opre.45.5.758">https://doi.org/10.1287/opre.45.5.758</a></p></li>
+</ul>
+</li>
+</ul>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+<h3><a href="../../index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">PackingSolver’s documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../objectives.html">Objectives</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../optimization_modes.html">Optimization modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> solver</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../overview.html">Solver internals</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../tree_search.html">Tree search</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> algorithms</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../onedimensional.html#trivial-bound">Trivial bound</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../onedimensional.html#dynamic-programming">Dynamic programming</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../onedimensional.html#tree-search">Tree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../onedimensional.html#milp-assignment">MILP assignment</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../onedimensional.html#dual-feasible-functions">Dual feasible functions</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generic_algorithms.html">Generic algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../algorithm_selection.html">Algorithm selection</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="tree_search.html" title="Tree search"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="../onedimensional.html" title="one-dimensional algorithms"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../overview.html" >Solver internals</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../onedimensional.html" ><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> algorithms</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Dynamic programming</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2019-2024, Florian Fontan.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.1.
+    </div>
+  </body>
+</html>

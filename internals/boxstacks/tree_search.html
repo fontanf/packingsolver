@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Tree search &#8212; PackingSolver</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../../_static/classic.css?v=14e077c0" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=a00afc7f" />
+    
+    <script src="../../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="irregular algorithms" href="../irregular.html" />
+    <link rel="prev" title="Sequential one-dimensional / rectangle" href="sequential_onedimensional_rectangle.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../irregular.html" title="irregular algorithms"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="sequential_onedimensional_rectangle.html" title="Sequential one-dimensional / rectangle"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../overview.html" >Solver internals</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../boxstacks.html" accesskey="U"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> algorithms</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Tree search</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="tree-search">
+<span id="internals-boxstacks-tree-search"></span><h1>Tree search<a class="headerlink" href="#tree-search" title="Link to this heading">¶</a></h1>
+<section id="objectives">
+<h2>Objectives<a class="headerlink" href="#objectives" title="Link to this heading">¶</a></h2>
+<p>This algorithm solves the <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code> and <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code> objectives with a single bin. It is run by the <a class="reference internal" href="sequential_onedimensional_rectangle.html#internals-boxstacks-sequential-onedimensional-rectangle"><span class="std std-ref">sequential one-dimensional / rectangle</span></a> algorithm when its solution violates the axle weight constraints.</p>
+</section>
+<section id="principle">
+<h2>Principle<a class="headerlink" href="#principle" title="Link to this heading">¶</a></h2>
+<p>It is a constructive tree search where a single item is packed at each stage, generalizing the <a class="reference internal" href="../rectangle/tree_search.html#internals-rectangle-tree-search"><span class="std std-ref">tree search for rectangle</span></a>: the floor of the bin is filled with stacks of items along x, and a node stores the skyline of the stacks packed. The possible insertions for an unpacked item are:</p>
+<ul class="simple">
+<li><p>in a new stack, with its lower y touching either another packed stack or the side of the bin at y = 0, then pushed along x until it doesn’t overlap the stacks packed;</p></li>
+<li><p>on top of a stack of the skyline.</p></li>
+</ul>
+<p>The figure below shows a node, seen from above, and its children inserting item 4, which can be stacked on item 3 (same stackability id) but not on item 2:</p>
+<img alt="../../_images/boxstacks_tree_search.svg" class="align-center" src="../../_images/boxstacks_tree_search.svg" />
+<p>An insertion above a stack must satisfy the stacking constraints: same stackability id, maximum stackability, maximum weight above, the height of the bin (using the nesting heights), the maximum stack density. Any insertion must satisfy the maximum weight of the bin and the unloading constraints.</p>
+<p><strong>Axle weights.</strong> The axle weights of a semi-trailer truck depend on the position of the center of gravity of the items, which is only known once the items are packed. So the axle weight constraints are checked when the last item of an unloading group is inserted, and the insertion is discarded if an axle is then overloaded.</p>
+</section>
+<section id="guides">
+<h2>Guides<a class="headerlink" href="#guides" title="Link to this heading">¶</a></h2>
+<p>The guides are the ones of the rectangle tree search, with volumes: by default, guides 4 and 5 for the <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code> objective, guides 0 and 1 for the <code class="code docutils literal notranslate"><span class="pre">bin-packing-with-leftovers</span></code> objective, and guides 0 and 2 for the other objectives.</p>
+</section>
+<section id="dominance">
+<h2>Dominance<a class="headerlink" href="#dominance" title="Link to this heading">¶</a></h2>
+<p>Two nodes with the same number of copies of each item type packed can be compared. Node 1 dominates node 2 if it uses fewer bins, or as many bins and:</p>
+<ul class="simple">
+<li><p>leftover values which aren’t smaller (for the <code class="code docutils literal notranslate"><span class="pre">bin-packing-with-leftovers</span></code> objective);</p></li>
+<li><p>a middle axle weight which isn’t larger;</p></li>
+<li><p>the same stacks on the floor (same footprints, in the same order), each stack of node 1 being not higher than the corresponding stack of node 2, allowing at least as much weight and as many items on top of it, and ending with an item of the same stackability id.</p></li>
+</ul>
+<p>Since the stacks must have the same footprints, this dominance is much more restrictive than the one of the rectangle tree search.</p>
+<p>This algorithm is more expensive than the sequential one-dimensional / rectangle algorithm. It is useful when the axle weight constraints are active in the best solutions, which then need sparse packings.</p>
+</section>
+<section id="source-files">
+<h2>Source files<a class="headerlink" href="#source-files" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">src/boxstacks/tree_search.hpp</span></code>, <code class="code docutils literal notranslate"><span class="pre">src/boxstacks/tree_search.cpp</span></code></p></li>
+</ul>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+<h3><a href="../../index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">PackingSolver’s documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../objectives.html">Objectives</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../optimization_modes.html">Optimization modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> solver</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../overview.html">Solver internals</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../tree_search.html">Tree search</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> algorithms</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> algorithms</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../boxstacks.html#sequential-one-dimensional-rectangle">Sequential one-dimensional / rectangle</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../boxstacks.html#tree-search">Tree search</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../boxstacks.html#box-bounds">Box bounds</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generic_algorithms.html">Generic algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../algorithm_selection.html">Algorithm selection</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../irregular.html" title="irregular algorithms"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="sequential_onedimensional_rectangle.html" title="Sequential one-dimensional / rectangle"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../overview.html" >Solver internals</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../boxstacks.html" ><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> algorithms</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Tree search</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2019-2024, Florian Fontan.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.1.
+    </div>
+  </body>
+</html>

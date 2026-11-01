@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Tree search &#8212; PackingSolver</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=14e077c0" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=a00afc7f" />
+    
+    <script src="../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/design-tabs.js?v=f930bc37"></script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="one-dimensional algorithms" href="onedimensional.html" />
+    <link rel="prev" title="Solver internals" href="overview.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="onedimensional.html" title="one-dimensional algorithms"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="overview.html" title="Solver internals"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="overview.html" accesskey="U">Solver internals</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Tree search</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="tree-search">
+<span id="internals-tree-search"></span><h1>Tree search<a class="headerlink" href="#tree-search" title="Link to this heading">¶</a></h1>
+<p>Most pattern-generating algorithms of PackingSolver are tree searches. They differ in how they build the solutions, but almost all of them explore their search tree with the same algorithm, an <em>iterative beam search</em>, implemented in the <a class="reference external" href="https://github.com/fontanf/treesearchsolver">treesearchsolver</a> library. This page describes what these algorithms have in common; the page of each algorithm describes how it builds the solutions. (The tree searches with hypergraphs of <code class="code docutils literal notranslate"><span class="pre">rectangleguillotine</span></code> are the exception: they explore their search tree completely, by dynamic programming.)</p>
+<section id="branching-scheme">
+<h2>Branching scheme<a class="headerlink" href="#branching-scheme" title="Link to this heading">¶</a></h2>
+<p>Each tree search defines a <em>branching scheme</em>, which describes its search tree:</p>
+<ul class="simple">
+<li><p>the <strong>root</strong>: an empty solution;</p></li>
+<li><p>the <strong>children</strong> of a node: in general, the node with one more item, or one more block of items, packed at one of a few candidate positions;</p></li>
+<li><p>whether a node is a <strong>leaf</strong>, i.e. a complete solution, which isn’t expanded;</p></li>
+<li><p>which nodes are <strong>solutions</strong> for the objective of the instance, and when a solution is <strong>better</strong> than another one;</p></li>
+<li><p>a <strong>bound</strong>: whether a node can’t lead to a better solution than a given one;</p></li>
+<li><p>a <strong>guide</strong>: an order on the nodes, from the most promising to the least promising one;</p></li>
+<li><p>a <strong>dominance</strong> relation: a key, such that only the nodes with the same key can be compared (typically, the number of copies of each item type packed), and whether a node <em>dominates</em> another one, i.e. whether every solution which can be obtained from the second node can also be obtained, or improved, from the first one;</p></li>
+<li><p>optionally, the <strong>depth</strong> of a node. By default, the depth of a child is the depth of its parent plus one.</p></li>
+</ul>
+<p>The iterative beam search only uses these components, so the same search applies to all the problem types.</p>
+</section>
+<section id="beam-search">
+<h2>Beam search<a class="headerlink" href="#beam-search" title="Link to this heading">¶</a></h2>
+<p>A <em>beam search</em> is a breadth-first search in which only a limited number of nodes is kept at each depth. The nodes of each depth are kept in a <em>queue</em>, ordered by guide, of maximum size <span class="math notranslate nohighlight">\(w\)</span>.</p>
+<p>The beam search starts with the root in the queue of depth 0. Then, depth by depth, each node of the queue of the current depth is processed, from the most promising one:</p>
+<ul class="simple">
+<li><p>if the node is discarded by the bound, compared to the best solution found so far, the next node is processed;</p></li>
+<li><p>otherwise, its children are generated. Each child:</p>
+<ul>
+<li><p>is compared to the best solution found, which it replaces if it is better;</p></li>
+<li><p>is discarded if it is a leaf, or if it is discarded by the bound;</p></li>
+<li><p>otherwise, is added to the queue of its depth. If this queue is full, the child is only added if it is more promising than the least promising node of the queue, which is then removed;</p></li>
+<li><p>is not added if it is dominated by a node of the queue with the same key; when it is added, the nodes of the queue with the same key which it dominates are removed.</p></li>
+</ul>
+</li>
+</ul>
+<p>When the queue of the current depth is empty, the search moves to the next depth. It ends when the queues of all the next depths are empty.</p>
+<p>The figure below shows the first two depths with <span class="math notranslate nohighlight">\(w = 2\)</span>. The values are the guides (smaller is better). At depth 1, the two nodes with the smallest guides are kept. At depth 2, the node of guide 1.06 is dominated by another node of the queue, so the nodes of guides 1.04 and 1.08 are kept.</p>
+<a class="reference internal image-reference" href="../_images/tree_search_beam_search.svg"><img alt="../_images/tree_search_beam_search.svg" class="align-center" height="213" src="../_images/tree_search_beam_search.svg" width="492" />
+</a>
+<p>Since a node usually has many children, the queues are usually full, and the nodes discarded because a queue is full are the ones that make the search incomplete.</p>
+</section>
+<section id="iterative-beam-search">
+<h2>Iterative beam search<a class="headerlink" href="#iterative-beam-search" title="Link to this heading">¶</a></h2>
+<p>The best size of the queues isn’t known in advance: a small size gives a solution quickly, a large size gives a better solution, slowly. The <em>iterative beam search</em> runs successive beam searches, with larger and larger queues. The first one is run with <span class="math notranslate nohighlight">\(w = 1\)</span>: it is a greedy algorithm, which quickly gives a first solution. Then, after each beam search, <span class="math notranslate nohighlight">\(w\)</span> becomes <span class="math notranslate nohighlight">\(\max(w + 1, \lfloor w \times g \rfloor)\)</span>, where <span class="math notranslate nohighlight">\(g &gt; 1\)</span> is the <em>growth factor</em>.</p>
+<p>Each beam search uses the best solution found by the previous ones for its bounds, so the later beam searches discard more nodes.</p>
+<p><strong>Optimality proof.</strong> If no queue was ever full during a beam search, no node was discarded because of the size of a queue. The nodes were only discarded by the bounds and the dominance, which never discard a node leading to a strictly better solution: the whole tree has been explored implicitly. The best solution found is then optimal or, if no solution was found, the instance is infeasible, and the search stops.</p>
+<p>The figure below shows the nodes kept (in green) by successive beam searches on a small tree whose nodes are ordered by guide from left to right. With <span class="math notranslate nohighlight">\(w = 6\)</span>, no queue is ever full, so the tree is explored completely.</p>
+<a class="reference internal image-reference" href="../_images/tree_search_restarts.svg"><img alt="../_images/tree_search_restarts.svg" class="align-center" height="170" src="../_images/tree_search_restarts.svg" width="620" />
+</a>
+<p>The search also stops when the time limit is reached, or when the best solution reaches a bound proven by another algorithm.</p>
+</section>
+<section id="variants">
+<h2>Variants<a class="headerlink" href="#variants" title="Link to this heading">¶</a></h2>
+<p><strong>Children generated one at a time.</strong> Some branching schemes, those of the tree searches with maximal spaces, generate the children of a node one at a time, from the most promising one, instead of all at once. A node of the queue then generates at most <span class="math notranslate nohighlight">\(w\)</span> children: the next ones would anyway be less promising than the <span class="math notranslate nohighlight">\(w\)</span> children already generated. This saves the time spent generating children which would be discarded. If a node has more than <span class="math notranslate nohighlight">\(w\)</span> children, the beam search is not complete.</p>
+<p><strong>Global dominance.</strong> By default, a node is only compared, for the dominance, to the nodes of the queue of its depth. When the depth doesn’t determine the items packed, for example when the children pack blocks of several items, nodes of different depths may have the same key. Some algorithms then compare a node to the nodes of all the queues.</p>
+</section>
+<section id="runs-in-packingsolver">
+<h2>Runs in PackingSolver<a class="headerlink" href="#runs-in-packingsolver" title="Link to this heading">¶</a></h2>
+<p>The tree searches of PackingSolver follow the same pattern, detailed on the page of each algorithm:</p>
+<ul class="simple">
+<li><p><strong>Parallel searches.</strong> In anytime mode (and in the <code class="code docutils literal notranslate"><span class="pre">exact</span></code> mode, which runs the searches the same way), an iterative beam search is run for each combination of a few parameters of the branching scheme, typically the guide and the direction in which the bins are filled, in parallel. When there are only a few combinations, each one may also be run with two growth factors, 1.33 and 1.5; otherwise, the growth factor is 1.5. Each search uses the best solution it found itself for its bounds. They report their solutions to a common output, and all stop as soon as the best solution is proven optimal.</p></li>
+<li><p><strong>Non-anytime modes.</strong> Each search is only run with <span class="math notranslate nohighlight">\(w = 1\)</span>, then with a single larger queue size, given by a parameter of the algorithm. In the <code class="code docutils literal notranslate"><span class="pre">not-anytime-deterministic</span></code> mode, each search reports its solutions to its own output, and these outputs are merged at the end in a fixed order, so that the result doesn’t depend on the order in which the threads find their solutions.</p></li>
+</ul>
+</section>
+<section id="source-files">
+<h2>Source files<a class="headerlink" href="#source-files" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">include/treesearchsolver/iterative_beam_search_2.hpp</span></code> (<a class="reference external" href="https://github.com/fontanf/treesearchsolver">treesearchsolver</a>): the iterative beam search</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">include/treesearchsolver/iterative_beam_search.hpp</span></code>: the iterative beam search generating the children one at a time</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">scripts/doc_figures/tree_search.py</span></code>: the figures of this page</p></li>
+</ul>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+<h3><a href="../index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../index.html">PackingSolver’s documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../objectives.html">Objectives</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../optimization_modes.html">Optimization modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> solver</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="overview.html">Solver internals</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Tree search</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#branching-scheme">Branching scheme</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#beam-search">Beam search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#iterative-beam-search">Iterative beam search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#variants">Variants</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#runs-in-packingsolver">Runs in PackingSolver</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#source-files">Source files</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="generic_algorithms.html">Generic algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="algorithm_selection.html">Algorithm selection</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="onedimensional.html" title="one-dimensional algorithms"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="overview.html" title="Solver internals"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="overview.html" >Solver internals</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Tree search</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2019-2024, Florian Fontan.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.1.
+    </div>
+  </body>
+</html>

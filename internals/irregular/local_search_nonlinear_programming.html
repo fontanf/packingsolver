@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Local search: nonlinear programming engine &#8212; PackingSolver</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../../_static/classic.css?v=14e077c0" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=a00afc7f" />
+    
+    <script src="../../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="MILP raster" href="milp_raster.html" />
+    <link rel="prev" title="Local search: linear programming engine" href="local_search_linear_programming.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="milp_raster.html" title="MILP raster"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="local_search_linear_programming.html" title="Local search: linear programming engine"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../overview.html" >Solver internals</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../irregular.html" ><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms</a> &#187;</li>
+          <li class="nav-item nav-item-3"><a href="local_search.html" accesskey="U">Local search</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Local search: nonlinear programming engine</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="local-search-nonlinear-programming-engine">
+<span id="internals-irregular-local-search-nonlinear-programming"></span><h1>Local search: nonlinear programming engine<a class="headerlink" href="#local-search-nonlinear-programming-engine" title="Link to this heading">¶</a></h1>
+<p>This page describes the separator of the nonlinear programming engine of the <a class="reference internal" href="local_search.html#internals-irregular-local-search"><span class="std std-ref">local search</span></a>. It requires Knitro: PackingSolver must be built with <code class="code docutils literal notranslate"><span class="pre">-DPACKINGSOLVER_USE_KNITRO=ON</span></code>.</p>
+<section id="principle">
+<h2>Principle<a class="headerlink" href="#principle" title="Link to this heading">¶</a></h2>
+<p>As in the <a class="reference internal" href="local_search_linear_programming.html#internals-irregular-local-search-linear-programming"><span class="std std-ref">linear programming engine</span></a>, the items may be shrunk instead of overlapping, and a separation solves a sequence of programs, each one moving the items slightly and maximizing their weighted scales. The programs are nonlinear, so that the items may also rotate within their allowed rotation ranges, which is useful for the items with continuous rotations.</p>
+<p>The shrunk items, the loss, the separation, the guided local search weights, the initial layout and the disruption are the same as in the linear programming engine. The distance between two layouts also counts the rotations of the items.</p>
+</section>
+<section id="nonlinear-program-of-a-step">
+<h2>Nonlinear program of a step<a class="headerlink" href="#nonlinear-program-of-a-step" title="Link to this heading">¶</a></h2>
+<p>A step builds a nonlinear program for each bin, around the current layout.</p>
+<p><strong>Input</strong>:</p>
+<ul class="simple">
+<li><p>the items <span class="math notranslate nohighlight">\(i\)</span> of the bin; for each item <span class="math notranslate nohighlight">\(i\)</span>: its current position <span class="math notranslate nohighlight">\(\bar{p}_i\)</span>, the maximum move <span class="math notranslate nohighlight">\(\delta_i\)</span>, its rotation range <span class="math notranslate nohighlight">\([\theta^{\min}_i, \theta^{\max}_i]\)</span> relative to its current angle (at most 5° in each direction, for the item types with continuous rotations, decreasing with the movement ratio; <span class="math notranslate nohighlight">\(\{0\}\)</span> otherwise), its area <span class="math notranslate nohighlight">\(a_i\)</span> and its guided local search weight <span class="math notranslate nohighlight">\(g_i\)</span></p></li>
+<li><p>the convex parts of the items; for each part <span class="math notranslate nohighlight">\(P\)</span> of an item <span class="math notranslate nohighlight">\(i(P)\)</span>: its vertices and its center <span class="math notranslate nohighlight">\(c_P\)</span>, relative to the reference point of the item, at its current angle</p></li>
+<li><p>the obstacles of the bin, decomposed into convex parts, which don’t move</p></li>
+<li><p>the pairs of parts which may get close to each other during the step, with their spacing <span class="math notranslate nohighlight">\(s\)</span></p></li>
+<li><p>the bounding box of the bin and the item-bin spacing</p></li>
+</ul>
+<p>The position in the bin of a vertex <span class="math notranslate nohighlight">\(u\)</span> of a part <span class="math notranslate nohighlight">\(P\)</span> of an item at position <span class="math notranslate nohighlight">\(p\)</span>, rotated by <span class="math notranslate nohighlight">\(\theta\)</span>, with scale <span class="math notranslate nohighlight">\(\lambda\)</span> is</p>
+<div class="math notranslate nohighlight">
+\[U(u) = p + R(\theta) \big( c_P + \lambda (u - c_P) \big)\]</div>
+<p>where <span class="math notranslate nohighlight">\(R(\theta)\)</span> is the rotation of angle <span class="math notranslate nohighlight">\(\theta\)</span>. For an obstacle, it is the vertex itself.</p>
+<p><strong>Variables</strong>:</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(p_i \in \mathbb{R}^2\)</span>: the position of the reference point of item <span class="math notranslate nohighlight">\(i\)</span>, in the box <span class="math notranslate nohighlight">\(\bar{p}_i \pm \delta_i\)</span>, and such that the centers of its parts are in the bin</p></li>
+<li><p><span class="math notranslate nohighlight">\(\theta_i \in [\theta^{\min}_i, \theta^{\max}_i]\)</span>: the rotation of item <span class="math notranslate nohighlight">\(i\)</span> around its reference point</p></li>
+<li><p><span class="math notranslate nohighlight">\(\lambda_i \in [0, 1]\)</span>: the scale of item <span class="math notranslate nohighlight">\(i\)</span></p></li>
+<li><p><span class="math notranslate nohighlight">\(\alpha_{PQ} \in \mathbb{R}\)</span> and <span class="math notranslate nohighlight">\(\beta_{PQ} \in \mathbb{R}\)</span>, for each pair of parts <span class="math notranslate nohighlight">\((P, Q)\)</span>: the angle of the normal <span class="math notranslate nohighlight">\(n(\alpha_{PQ}) = (\cos \alpha_{PQ}, \sin \alpha_{PQ})\)</span> and the offset of a line separating the two parts</p></li>
+</ul>
+<p><strong>Objective</strong>: maximize the weighted scales of the items</p>
+<div class="math notranslate nohighlight">
+\[\max \sum_i g_i \, a_i \, \lambda_i\]</div>
+<p><strong>Constraints</strong>:</p>
+<ul class="simple">
+<li><p>Separation: for each pair of parts <span class="math notranslate nohighlight">\((P, Q)\)</span>, the vertices of <span class="math notranslate nohighlight">\(P\)</span> are on one side of the separating line, and the vertices of <span class="math notranslate nohighlight">\(Q\)</span> on the other side, at least at the spacing</p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[\forall u \in P \qquad \beta_{PQ} - n(\alpha_{PQ}) \cdot U(u) \ge 0\]</div>
+<div class="math notranslate nohighlight">
+\[\forall u \in Q \qquad n(\alpha_{PQ}) \cdot U(u) - \beta_{PQ} \ge s\]</div>
+<ul class="simple">
+<li><p>Containment: the vertices of the parts which may reach the borders of the bounding box of the bin stay inside it, minus the item-bin spacing; for the left side of the bin, for example:</p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[U(u)_x \ge X^{\min} + s_{\text{bin}}\]</div>
+<p>Two convex parts don’t overlap if and only if such a line exists, so, unlike in the linear programming engine, no separating edge needs to be selected: the optimization chooses the lines. These are the quasi-phi-functions of Stoyan, Pankratov and Romanova (2016).</p>
+<p>The lines are initialized with the lines separating the parts with the largest gap in the current layout (or with the smallest penetration if they overlap), computed exactly from the Minkowski difference of the two parts.</p>
+<p><strong>Always feasible.</strong> As in the linear programming engine, the current positions with null scales are a solution: the parts are then reduced to their centers, which stay in the bin, and two distinct centers can always be separated by a line. The exceptions are a center inside an obstacle, and two centers closer than the spacing.</p>
+<p>The programs are solved with the interior point method of Knitro, with tight feasibility tolerances so that the solutions pass the exact overlap checks. The active set and SQP methods of Knitro don’t move away from the warm start.</p>
+</section>
+<section id="strengths-and-limitations">
+<h2>Strengths and limitations<a class="headerlink" href="#strengths-and-limitations" title="Link to this heading">¶</a></h2>
+<p>The nonlinear programs are much more expensive than the linear ones: a step can take from a tenth of a second to several seconds, so on large instances the engine barely moves from its initial layout within typical time limits. It is not part of the automatic selection.</p>
+<p>It can be selected with <code class="code docutils literal notranslate"><span class="pre">--use-local-search-nonlinear-programming</span> <span class="pre">1</span></code> (CLI) or <code class="code docutils literal notranslate"><span class="pre">use_local_search_nonlinear_programming</span></code> (Python).</p>
+</section>
+<section id="source-files">
+<h2>Source files<a class="headerlink" href="#source-files" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">src/irregular/nonlinear_programming/separation_model.hpp</span></code>, <code class="code docutils literal notranslate"><span class="pre">src/irregular/nonlinear_programming/separation_model.cpp</span></code>: the nonlinear program of a step</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">src/irregular/nonlinear_programming/separating_line.hpp</span></code>, <code class="code docutils literal notranslate"><span class="pre">src/irregular/nonlinear_programming/separating_line.cpp</span></code>: the initial separating lines</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">src/irregular/nonlinear_programming/separator.hpp</span></code>, <code class="code docutils literal notranslate"><span class="pre">src/irregular/nonlinear_programming/separator.cpp</span></code>: the separator</p></li>
+</ul>
+<p>References:</p>
+<ul class="simple">
+<li><p>“Quasi-phi-functions and optimal packing of ellipses” (Stoyan, Pankratov and Romanova, 2016)</p>
+<ul>
+<li><p><a class="reference external" href="https://doi.org/10.1007/s10898-015-0331-2">https://doi.org/10.1007/s10898-015-0331-2</a></p></li>
+</ul>
+</li>
+<li><p>“Cutting and packing problems for irregular objects with continuous rotations: mathematical modelling and non-linear optimization” (Stoyan, Pankratov and Romanova, 2016)</p>
+<ul>
+<li><p><a class="reference external" href="https://doi.org/10.1057/jors.2015.94">https://doi.org/10.1057/jors.2015.94</a></p></li>
+</ul>
+</li>
+</ul>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+<h3><a href="../../index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">PackingSolver’s documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../objectives.html">Objectives</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../optimization_modes.html">Optimization modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> solver</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../overview.html">Solver internals</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../tree_search.html">Tree search</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> algorithms</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#trivial-single-item">Trivial single item</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#tree-search">Tree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#tree-search-with-periodic-packings">Tree search with periodic packings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#tree-search-with-maximal-spaces">Tree search with maximal spaces</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#local-search">Local search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#milp-raster">MILP raster</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#benders-decomposition">Benders decomposition</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#tree-search-on-relative-positions">Tree search on relative positions</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../irregular.html#one-dimensional-bound">One-dimensional bound</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../generic_algorithms.html">Generic algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../algorithm_selection.html">Algorithm selection</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="milp_raster.html" title="MILP raster"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="local_search_linear_programming.html" title="Local search: linear programming engine"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../overview.html" >Solver internals</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../irregular.html" ><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms</a> &#187;</li>
+          <li class="nav-item nav-item-3"><a href="local_search.html" >Local search</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Local search: nonlinear programming engine</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2019-2024, Florian Fontan.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.1.
+    </div>
+  </body>
+</html>

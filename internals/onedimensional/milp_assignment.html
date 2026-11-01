@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>MILP assignment &#8212; PackingSolver</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../../_static/classic.css?v=14e077c0" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=a00afc7f" />
+    
+    <script src="../../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Dual feasible functions" href="dual_feasible_functions.html" />
+    <link rel="prev" title="Tree search" href="tree_search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="dual_feasible_functions.html" title="Dual feasible functions"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="tree_search.html" title="Tree search"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../overview.html" >Solver internals</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../onedimensional.html" accesskey="U"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> algorithms</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">MILP assignment</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="milp-assignment">
+<span id="internals-onedimensional-milp-assignment"></span><h1>MILP assignment<a class="headerlink" href="#milp-assignment" title="Link to this heading">¶</a></h1>
+<section id="objectives">
+<h2>Objectives<a class="headerlink" href="#objectives" title="Link to this heading">¶</a></h2>
+<p>This algorithm solves the <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code>, <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code>, <code class="code docutils literal notranslate"><span class="pre">bin-packing</span></code> and <code class="code docutils literal notranslate"><span class="pre">variable-sized-bin-packing</span></code> objectives.</p>
+<p>It doesn’t model the nesting lengths, the maximum stackability and the maximum weight after constraints.</p>
+</section>
+<section id="principle">
+<h2>Principle<a class="headerlink" href="#principle" title="Link to this heading">¶</a></h2>
+<p>It solves the classical assignment (“Kantorovich”) mixed-integer linear program (MILP): each item is assigned to a bin, and the items assigned to a bin must fit in it. Depending on the objective, it is the model of the variable-sized bin packing problem, of the multiple knapsack problem, of the corresponding feasibility problem (all the items in the available bins), or of the bin packing problem where the bin types are used in the order in which they are given.</p>
+</section>
+<section id="model">
+<h2>Model<a class="headerlink" href="#model" title="Link to this heading">¶</a></h2>
+<p><strong>Input</strong>:</p>
+<ul class="simple">
+<li><p>bin types <span class="math notranslate nohighlight">\(t = 1, \ldots, m\)</span>; for each bin type <span class="math notranslate nohighlight">\(t\)</span>: a length <span class="math notranslate nohighlight">\(L_t\)</span>, a maximum weight <span class="math notranslate nohighlight">\(W_t\)</span>, a cost <span class="math notranslate nohighlight">\(c_t\)</span>, a minimum and a maximum number of copies <span class="math notranslate nohighlight">\(m_t\)</span> and <span class="math notranslate nohighlight">\(M_t\)</span>, and, for each resource <span class="math notranslate nohighlight">\(r\)</span>, a capacity <span class="math notranslate nohighlight">\(C_{t,r}\)</span>; the <em>bin instances</em> <span class="math notranslate nohighlight">\((t, k)\)</span>, <span class="math notranslate nohighlight">\(k = 1, \ldots, M_t\)</span>, are the copies of the bin types</p></li>
+<li><p>item types <span class="math notranslate nohighlight">\(i = 1, \ldots, n\)</span>; for each item type <span class="math notranslate nohighlight">\(i\)</span>: a length <span class="math notranslate nohighlight">\(\ell_i\)</span>, a weight <span class="math notranslate nohighlight">\(w_i\)</span>, a profit <span class="math notranslate nohighlight">\(p_i\)</span>, a minimum and a maximum number of copies <span class="math notranslate nohighlight">\(q^{\min}_i\)</span> and <span class="math notranslate nohighlight">\(q_i\)</span>, and, for each resource <span class="math notranslate nohighlight">\(r\)</span>, the consumption <span class="math notranslate nohighlight">\(a_{i,r,c}\)</span> of its <span class="math notranslate nohighlight">\(c\)</span>-th copy in a bin</p></li>
+<li><p>precedences: pairs <span class="math notranslate nohighlight">\((i, i')\)</span> where item type <span class="math notranslate nohighlight">\(i\)</span> dominates item type <span class="math notranslate nohighlight">\(i'\)</span></p></li>
+</ul>
+<p><strong>Variables</strong>:</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(y_{t,k} \in \{0, 1\}\)</span>: <span class="math notranslate nohighlight">\(y_{t,k} = 1\)</span> iff bin instance <span class="math notranslate nohighlight">\((t, k)\)</span> is used (for the <code class="code docutils literal notranslate"><span class="pre">bin-packing</span></code> and <code class="code docutils literal notranslate"><span class="pre">variable-sized-bin-packing</span></code> objectives; for the other objectives, all the bin instances are available, and <span class="math notranslate nohighlight">\(y_{t,k}\)</span> is replaced by 1 below)</p></li>
+<li><p><span class="math notranslate nohighlight">\(x_{i,t,k,c} \in \{0, 1\}\)</span>: <span class="math notranslate nohighlight">\(x_{i,t,k,c} = 1\)</span> iff bin instance <span class="math notranslate nohighlight">\((t, k)\)</span> contains at least <span class="math notranslate nohighlight">\(c\)</span> copies of item type <span class="math notranslate nohighlight">\(i\)</span></p></li>
+<li><p><span class="math notranslate nohighlight">\(z_{i,i'} \in \{0, 1\}\)</span>, for each precedence <span class="math notranslate nohighlight">\((i, i')\)</span>: <span class="math notranslate nohighlight">\(z_{i,i'} = 1\)</span> iff the copies of item type <span class="math notranslate nohighlight">\(i'\)</span> may be packed</p></li>
+</ul>
+<p>Encoding the copies of an item type in a bin as “at least <span class="math notranslate nohighlight">\(c\)</span> copies” variables gives a binary variable per copy without symmetry between the copies, and lets the consumption of a resource depend on the copy.</p>
+<p><strong>Objective</strong>: depending on the objective</p>
+<div class="math notranslate nohighlight">
+\[\max \sum_{i,t,k,c} p_i \, x_{i,t,k,c}
+\qquad \text{(knapsack)}\]</div>
+<div class="math notranslate nohighlight">
+\[\min \sum_{t,k} c_t \, y_{t,k}
+\qquad \text{(variable-sized bin packing)}\]</div>
+<div class="math notranslate nohighlight">
+\[\min \sum_{t,k} y_{t,k}
+\qquad \text{(bin packing)}\]</div>
+<p><strong>Constraints</strong>:</p>
+<ul class="simple">
+<li><p>Ordered copies</p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[\forall i, t, k, c \qquad x_{i,t,k,c+1} \le x_{i,t,k,c}\]</div>
+<ul class="simple">
+<li><p>Demand: each item type is packed between its minimum and its maximum number of copies (for the <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code>, <code class="code docutils literal notranslate"><span class="pre">bin-packing</span></code> and <code class="code docutils literal notranslate"><span class="pre">variable-sized-bin-packing</span></code> objectives, both are the number of copies)</p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[\forall i \qquad q^{\min}_i \le \sum_{t,k,c} x_{i,t,k,c} \le q_i\]</div>
+<ul class="simple">
+<li><p>Length: the items of a bin instance fit in its length, if it is used</p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[\forall t, k \qquad \sum_{i,c} \ell_i \, x_{i,t,k,c} \le L_t \, y_{t,k}\]</div>
+<ul class="simple">
+<li><p>Weight: the items of a bin instance don’t exceed its maximum weight</p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[\forall t, k \qquad \sum_{i,c} w_i \, x_{i,t,k,c} \le W_t \, y_{t,k}\]</div>
+<ul class="simple">
+<li><p>Resources: the items of a bin instance don’t exceed the capacity of its resources</p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[\forall t, k, r \qquad \sum_{i,c} a_{i,r,c} \, x_{i,t,k,c} \le C_{t,r} \, y_{t,k}\]</div>
+<ul class="simple">
+<li><p>Mandatory bins</p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[\forall t, \; \forall k \le m_t \qquad y_{t,k} = 1\]</div>
+<ul class="simple">
+<li><p>Precedences, given with the instance (the <a class="reference internal" href="../rectangle/benders_decomposition.html#internals-rectangle-benders-decomposition"><span class="std std-ref">Benders decomposition for rectangle</span></a> uses them in its master problem): no copy of a dominated item type is packed unless all the copies of the dominating item type are packed. They only matter for the <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code> objective.</p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[\forall (i, i') \qquad \sum_{t,k,c} x_{i,t,k,c} \ge q_i \, z_{i,i'}
+\qquad \sum_{t,k,c} x_{i',t,k,c} \le q_{i'} \, z_{i,i'}\]</div>
+<ul class="simple">
+<li><p>Bin usage order, for the <code class="code docutils literal notranslate"><span class="pre">bin-packing</span></code> objective: the bin instances are used in the order in which they are given, all the instances of a bin type before the ones of the next bin type (with <span class="math notranslate nohighlight">\((t, k)\)</span> and <span class="math notranslate nohighlight">\((t', k')\)</span> consecutive instances in this order); for the <code class="code docutils literal notranslate"><span class="pre">variable-sized-bin-packing</span></code> objective, the same holds within each bin type, which breaks the symmetry between its instances</p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[y_{t,k} \ge y_{t',k'}\]</div>
+<p><strong>Symmetry breaking.</strong> The bin instances of a bin type are interchangeable. The item types are sorted by increasing number of copies, and the copies get consecutive labels in this order; let <span class="math notranslate nohighlight">\(S_i\)</span> be the label of the last copy of item type <span class="math notranslate nohighlight">\(i\)</span>, counting only the item types which fit in bin type <span class="math notranslate nohighlight">\(t\)</span>. Any solution can be relabeled so that its bin instances are ordered by increasing smallest label of the items they contain. Then the bin instance of rank <span class="math notranslate nohighlight">\(k\)</span> (from 0) only contains labels larger than <span class="math notranslate nohighlight">\(k\)</span>, so it contains at most <span class="math notranslate nohighlight">\(\max(0, S_i - k)\)</span> copies of item type <span class="math notranslate nohighlight">\(i\)</span>, and the variables <span class="math notranslate nohighlight">\(x_{i,t,k,c}\)</span> beyond this number are not created. In the example below, item type A has a single copy, labeled 1: only the first bin can contain it.</p>
+<a class="reference internal image-reference" href="../../_images/onedimensional_milp_assignment_symmetry_breaking.svg"><img alt="../../_images/onedimensional_milp_assignment_symmetry_breaking.svg" class="align-center" height="316" src="../../_images/onedimensional_milp_assignment_symmetry_breaking.svg" width="389" />
+</a>
+<p>The number of copies of an item type in a bin is also bounded by its number of copies and by the number of copies fitting in the bin by their length.</p>
+<p><strong>Penalize resources.</strong> A <em>penalize</em> resource doesn’t constrain the bins: its penalty is subtracted from the profit when its capacity is exceeded in a bin. Only the resources of the form “at least <span class="math notranslate nohighlight">\(N\)</span> of a set of copies in the same bin” are supported (an integer capacity, and consumptions of 1 per copy up to a threshold): a binary variable per bin instance pays the penalty, and is forced to 1 by a constraint for each subset of <span class="math notranslate nohighlight">\(N\)</span> copies of the set. These resources come from the subset-row cuts of the column generation, which involve few item types.</p>
+</section>
+<section id="bin-packing">
+<h2>Bin packing<a class="headerlink" href="#bin-packing" title="Link to this heading">¶</a></h2>
+<p>For the <code class="code docutils literal notranslate"><span class="pre">bin-packing</span></code> objective, the MILP is solved, by default, as a sequence of <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code> problems, packing all the items in the first <span class="math notranslate nohighlight">\(b\)</span> bins of the instance (in the order in which the bin types are given), for increasing values of <span class="math notranslate nohighlight">\(b\)</span>: from the best lower bound known when the algorithm starts (computed, for example, by the dual feasible functions) to the number of bins available. The first feasible one is optimal if all the previous ones were proven infeasible; each one proven infeasible raises the lower bound.</p>
+<p>Otherwise (parameter <code class="code docutils literal notranslate"><span class="pre">use_sequential_feasibility</span></code> disabled), the instance is first solved heuristically, with the column generation if there is a single bin type and with the tree search otherwise. If a complete solution is found, its number of bins of each bin type bounds the number of bin instances of each bin type in the model: since the bin types are used in their order, a solution using fewer bins can’t use more bins of a given type. Then a single MILP minimizes the number of bins.</p>
+<p>For the <code class="code docutils literal notranslate"><span class="pre">variable-sized-bin-packing</span></code> objective, the number of bin instances of each bin type in the model is bounded by the number of bins needed to pack, with this bin type alone, all the items which fit in it, computed with the column generation.</p>
+</section>
+<section id="solver">
+<h2>Solver<a class="headerlink" href="#solver" title="Link to this heading">¶</a></h2>
+<p>The MILPs are solved with HiGHS, with the best solution found so far as a starting solution. The solutions found by the solver are reported as they are found, the bound of the solver is reported as a bound of the instance, and the solver is stopped as soon as the best solution is proven optimal.</p>
+</section>
+<section id="automatic-selection">
+<h2>Automatic selection<a class="headerlink" href="#automatic-selection" title="Link to this heading">¶</a></h2>
+<p>It is not part of the automatic selection. It can be selected with <code class="code docutils literal notranslate"><span class="pre">--use-milp-assignment</span> <span class="pre">1</span></code> (CLI) or <code class="code docutils literal notranslate"><span class="pre">use_milp_assignment</span></code> (Python).</p>
+</section>
+<section id="source-files">
+<h2>Source files<a class="headerlink" href="#source-files" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">src/onedimensional/milp_assignment.hpp</span></code>, <code class="code docutils literal notranslate"><span class="pre">src/onedimensional/milp_assignment.cpp</span></code></p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">scripts/doc_figures/onedimensional_milp_assignment.py</span></code>: the figure of the symmetry breaking</p></li>
+</ul>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+<h3><a href="../../index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">PackingSolver’s documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../objectives.html">Objectives</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../optimization_modes.html">Optimization modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> solver</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../overview.html">Solver internals</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../tree_search.html">Tree search</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> algorithms</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../onedimensional.html#trivial-bound">Trivial bound</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../onedimensional.html#dynamic-programming">Dynamic programming</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../onedimensional.html#tree-search">Tree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../onedimensional.html#milp-assignment">MILP assignment</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../onedimensional.html#dual-feasible-functions">Dual feasible functions</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generic_algorithms.html">Generic algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../algorithm_selection.html">Algorithm selection</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="dual_feasible_functions.html" title="Dual feasible functions"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="tree_search.html" title="Tree search"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../overview.html" >Solver internals</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../onedimensional.html" ><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> algorithms</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">MILP assignment</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2019-2024, Florian Fontan.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.1.
+    </div>
+  </body>
+</html>

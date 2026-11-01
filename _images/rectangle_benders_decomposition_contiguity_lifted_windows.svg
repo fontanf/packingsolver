@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="494.0" height="173.0" viewBox="-25.0 -67.0 494.0 173.0">
+<rect x="-25.0" y="-67.0" width="494.0" height="173.0" fill="#ffffff"/>
+<rect x="30" y="-24.0" width="270" height="24.0" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1" stroke-dasharray="3 3" opacity="0.35"/>
+<rect x="30" y="-24.0" width="120" height="24.0" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="90.0" y="-7.8">A</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start"><tspan x="369.0" y="-7.8">x in [1, 6]</tspan></text>
+<rect x="120" y="24.0" width="90" height="24.0" fill="#f8cecc" stroke="#b85450" stroke-width="1" stroke-dasharray="3 3" opacity="0.35"/>
+<rect x="120" y="24.0" width="90" height="24.0" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="165.0" y="40.2">B</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start"><tspan x="369.0" y="40.2">x in [4, 4]</tspan></text>
+<rect x="30" y="72.0" width="270" height="24.0" fill="#d5e8d4" stroke="#82b366" stroke-width="1" stroke-dasharray="3 3" opacity="0.35"/>
+<rect x="180" y="72.0" width="120" height="24.0" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="240.0" y="88.2">C</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start"><tspan x="369.0" y="88.2">x in [1, 6]</tspan></text>
+<polyline points="0,-30 0,-36.0" fill="none" stroke="#666666" stroke-width="1"/>
+<polyline points="30,-30 30,-36.0" fill="none" stroke="#666666" stroke-width="1"/>
+<polyline points="60,-30 60,-36.0" fill="none" stroke="#666666" stroke-width="1"/>
+<polyline points="90,-30 90,-36.0" fill="none" stroke="#666666" stroke-width="1"/>
+<polyline points="120,-30 120,-36.0" fill="none" stroke="#666666" stroke-width="1"/>
+<polyline points="150,-30 150,-36.0" fill="none" stroke="#666666" stroke-width="1"/>
+<polyline points="180,-30 180,-36.0" fill="none" stroke="#666666" stroke-width="1"/>
+<polyline points="210,-30 210,-36.0" fill="none" stroke="#666666" stroke-width="1"/>
+<polyline points="240,-30 240,-36.0" fill="none" stroke="#666666" stroke-width="1"/>
+<polyline points="270,-30 270,-36.0" fill="none" stroke="#666666" stroke-width="1"/>
+<polyline points="300,-30 300,-36.0" fill="none" stroke="#666666" stroke-width="1"/>
+<polyline points="330,-30 330,-36.0" fill="none" stroke="#666666" stroke-width="1"/>
+<polyline points="360,-30 360,-36.0" fill="none" stroke="#666666" stroke-width="1"/>
+<polyline points="0,-30 360,-30" fill="none" stroke="#666666" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#000000" text-anchor="middle"><tspan x="0.0" y="-44.15">0</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#000000" text-anchor="middle"><tspan x="360.0" y="-44.15">12</tspan></text>
+</svg>

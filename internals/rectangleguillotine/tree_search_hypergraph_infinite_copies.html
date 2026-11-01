@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Tree search hypergraph with infinite copies &#8212; PackingSolver</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../../_static/classic.css?v=14e077c0" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=a00afc7f" />
+    
+    <script src="../../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="box algorithms" href="../box.html" />
+    <link rel="prev" title="Tree search hypergraph" href="tree_search_hypergraph.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../box.html" title="box algorithms"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="tree_search_hypergraph.html" title="Tree search hypergraph"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../overview.html" >Solver internals</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../rectangleguillotine.html" accesskey="U"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> algorithms</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Tree search hypergraph with infinite copies</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="tree-search-hypergraph-with-infinite-copies">
+<span id="internals-rectangleguillotine-tree-search-hypergraph-infinite-copies"></span><h1>Tree search hypergraph with infinite copies<a class="headerlink" href="#tree-search-hypergraph-with-infinite-copies" title="Link to this heading">¶</a></h1>
+<section id="objectives">
+<h2>Objectives<a class="headerlink" href="#objectives" title="Link to this heading">¶</a></h2>
+<p>This algorithm solves the <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code> and <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code> objectives, with a single bin, and computes a bound for the <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code> objective.</p>
+<p>It generates guillotine patterns with an unlimited number of stages. It has the same limitations as the <a class="reference internal" href="tree_search_hypergraph.html#internals-rectangleguillotine-tree-search-hypergraph"><span class="std std-ref">tree search hypergraph</span></a> algorithm.</p>
+</section>
+<section id="principle">
+<h2>Principle<a class="headerlink" href="#principle" title="Link to this heading">¶</a></h2>
+<p>It works the same way as the tree search hypergraph algorithm, except that the numbers of copies of the item types are not taken into account. Without them, a block is only described by its dimensions, and the best pattern for each dimensions can be computed by dynamic programming: the best profit in a <span class="math notranslate nohighlight">\(w \times h\)</span> rectangle is the best of the items fitting exactly in it, and of the best patterns of the two parts of each vertical and horizontal guillotine cut of the rectangle.</p>
+<img alt="../../_images/rectangleguillotine_tree_search_hypergraph_infinite_copies_combinations.svg" class="align-center" src="../../_images/rectangleguillotine_tree_search_hypergraph_infinite_copies_combinations.svg" />
+<p><strong>Raster points.</strong> Any guillotine pattern can be transformed into a pattern with the same items whose cuts are at <em>normal positions</em>, the sums of item dimensions (with the cut thickness), by pushing its items towards the origin (Herz, 1972; Christofides and Whitlock, 1977). The dynamic program only needs the rectangles whose dimensions are <em>raster points</em>: what remains of the bin after cutting a normal position (Scheithauer and Terno, 1996). This makes the array of the dynamic program much smaller than one entry per integer width and height. With <span class="math notranslate nohighlight">\(t\)</span> the cut thickness and <span class="math notranslate nohighlight">\(\lfloor x \rfloor\)</span> the largest raster point not larger than <span class="math notranslate nohighlight">\(x\)</span>, the recurrence on the raster points <span class="math notranslate nohighlight">\(w\)</span> and <span class="math notranslate nohighlight">\(h\)</span> is:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\text{dp}(w, h) = \max \begin{cases} \text{profit of an item type of size } w \times h \\ \text{dp}(w', h), \; \text{dp}(w, h') &amp; w', h' \text{ the previous raster points} \\ \text{dp}(x, h) + \text{dp}(\lfloor w - x - t \rfloor, h) &amp; x \text{ raster point}, \; 2x + t \le w \\ \text{dp}(w, y) + \text{dp}(w, \lfloor h - y - t \rfloor) &amp; y \text{ raster point}, \; 2y + t \le h \end{cases}\end{split}\]</div>
+<p><strong>Bound and solution.</strong> Ignoring the numbers of copies is a relaxation, so the profit of the dynamic program is an upper bound for the <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code> objective. Its solution, rebuilt from the dynamic program and with its number of stages reduced, is reported if it satisfies the numbers of copies: it is then optimal. Otherwise, a feasible solution is computed with the same dynamic program restricted to the item types whose copies can’t run out in a bin: the item types with at least as many copies as the area of the bin divided by their area.</p>
+<p><strong>Array size.</strong> When the array of the dynamic program with all the item types is too large, the dynamic program is first solved with only the item types of largest profit per unit area whose array fits, with increasing maximum sizes (<span class="math notranslate nohighlight">\(2^{14}\)</span>, <span class="math notranslate nohighlight">\(2^{16}\)</span>, <span class="math notranslate nohighlight">\(2^{18}\)</span>, …): with fewer item types, there are much fewer raster points, and the solution is often almost as good. In the non-anytime modes, a maximum size is given (parameter <code class="code docutils literal notranslate"><span class="pre">not_anytime_tree_search_hypergraph_infinite_copies_maximum_array_size</span></code>, 1500000 by default): only two dynamic programs are then solved, with a quarter of the maximum size and with the maximum size, and the one with all the item types is only solved if it fits. The bound is only computed with all the item types.</p>
+<p>It is very fast, and its solution is often optimal when the items have many copies.</p>
+</section>
+<section id="automatic-selection">
+<h2>Automatic selection<a class="headerlink" href="#automatic-selection" title="Link to this heading">¶</a></h2>
+<p>With a single bin, it is run for the <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code> objective when the item types have many copies compared to the number of items fitting in the bin (e.g. in the sub-problems of the sequential single knapsack and column generation algorithms), the bin is not too large, the number of stages is unlimited, and none of the features it doesn’t support is used. See <a class="reference internal" href="../algorithm_selection.html#internals-algorithm-selection"><span class="std std-ref">algorithm selection</span></a>.</p>
+<p>It can be forced with <code class="code docutils literal notranslate"><span class="pre">--use-tree-search-hypergraph-infinite-copies</span> <span class="pre">1</span></code> (CLI) or <code class="code docutils literal notranslate"><span class="pre">use_tree_search_hypergraph_infinite_copies</span></code> (Python).</p>
+</section>
+<section id="source-files">
+<h2>Source files<a class="headerlink" href="#source-files" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">src/rectangleguillotine/tree_search_hypergraph_infinite_copies.hpp</span></code>, <code class="code docutils literal notranslate"><span class="pre">src/rectangleguillotine/tree_search_hypergraph_infinite_copies.cpp</span></code></p></li>
+</ul>
+<p>References:</p>
+<ul class="simple">
+<li><p>Herz (1972), for the normal positions</p></li>
+<li><p>“An Algorithm for Two-Dimensional Cutting Problems” (Christofides and Whitlock, 1977)</p>
+<ul>
+<li><p><a class="reference external" href="https://doi.org/10.1287/opre.25.1.30">https://doi.org/10.1287/opre.25.1.30</a></p></li>
+</ul>
+</li>
+<li><p>Scheithauer and Terno (1996), for the raster points</p></li>
+</ul>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+<h3><a href="../../index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">PackingSolver’s documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../objectives.html">Objectives</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../optimization_modes.html">Optimization modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> solver</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../overview.html">Solver internals</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../tree_search.html">Tree search</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> algorithms</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> algorithms</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../rectangleguillotine.html#tree-search">Tree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rectangleguillotine.html#tree-search-with-maximal-spaces">Tree search with maximal spaces</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rectangleguillotine.html#column-generation-strips">Column generation strips</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rectangleguillotine.html#sequential-strips-one-dimensional">Sequential strips / one-dimensional</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rectangleguillotine.html#tree-search-hypergraph">Tree search hypergraph</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rectangleguillotine.html#tree-search-hypergraph-with-infinite-copies">Tree search hypergraph with infinite copies</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../rectangleguillotine.html#dual-feasible-functions">Dual feasible functions</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generic_algorithms.html">Generic algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../algorithm_selection.html">Algorithm selection</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../box.html" title="box algorithms"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="tree_search_hypergraph.html" title="Tree search hypergraph"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../overview.html" >Solver internals</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../rectangleguillotine.html" ><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> algorithms</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Tree search hypergraph with infinite copies</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2019-2024, Florian Fontan.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.1.
+    </div>
+  </body>
+</html>

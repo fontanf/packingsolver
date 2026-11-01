@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Benders decomposition &#8212; PackingSolver</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../../_static/classic.css?v=14e077c0" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=a00afc7f" />
+    
+    <script src="../../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Tree search on relative positions" href="tree_search_relative_positions.html" />
+    <link rel="prev" title="MILP raster" href="milp_raster.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="tree_search_relative_positions.html" title="Tree search on relative positions"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="milp_raster.html" title="MILP raster"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../overview.html" >Solver internals</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../irregular.html" accesskey="U"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Benders decomposition</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="benders-decomposition">
+<span id="internals-irregular-benders-decomposition"></span><h1>Benders decomposition<a class="headerlink" href="#benders-decomposition" title="Link to this heading">¶</a></h1>
+<section id="objectives">
+<h2>Objectives<a class="headerlink" href="#objectives" title="Link to this heading">¶</a></h2>
+<p>This algorithm solves the <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code> objective, with one or several bins, and the <code class="code docutils literal notranslate"><span class="pre">bin-packing</span></code> and <code class="code docutils literal notranslate"><span class="pre">variable-sized-bin-packing</span></code> objectives. It supports the resources of the bins.</p>
+<p>It is an exact method when its subproblems use the <a class="reference internal" href="tree_search_relative_positions.html#internals-irregular-tree-search-relative-positions"><span class="std std-ref">tree search on relative positions</span></a>: when it converges, the solution found is optimal, and before that, the value of its master problem is a bound.</p>
+</section>
+<section id="principle">
+<h2>Principle<a class="headerlink" href="#principle" title="Link to this heading">¶</a></h2>
+<p>It is the combinatorial Benders decomposition of the <a class="reference internal" href="../rectangle/benders_decomposition.html#internals-rectangle-benders-decomposition"><span class="std std-ref">rectangle Benders decomposition</span></a>, with the geometry of irregular items. The problem is split in two:</p>
+<ul class="simple">
+<li><p>the <em>master problem</em> decides which items go in which bin, ignoring the geometry: it is a one-dimensional problem, where each item is reduced to its area and each bin to its area;</p></li>
+<li><p>the <em>subproblems</em> check, for each bin of the solution of the master problem, whether its items actually fit together in the bin.</p></li>
+</ul>
+<p>When the items of a bin don’t fit, <em>no-good cuts</em> are added to the master problem, forbidding infeasible subsets of them in a bin of this type, and the master problem is solved again. Since the master problem is a relaxation of the problem, the value of its optimal solution is a bound. The algorithm stops when the items of every bin fit, or when the solution of the master problem can’t be better than the best solution found: the best solution found is then optimal.</p>
+<p>Unlike in the rectangle version, nothing is known about the geometry before the first iteration: two irregular items which don’t fit side by side or one above the other may still fit together, interlocked or rotated, so there are no cheap incompatible pairs or triplets, and no dual feasible function cuts. By default, all the geometric information of the master problem comes from the subproblems (see <em>Incompatible pairs and triples</em> below).</p>
+</section>
+<section id="master-problem">
+<h2>Master problem<a class="headerlink" href="#master-problem" title="Link to this heading">¶</a></h2>
+<p>The master problem is a <a class="reference internal" href="../onedimensional.html#internals-onedimensional"><span class="std std-ref">onedimensional</span></a> instance, with the objective of the instance:</p>
+<ul class="simple">
+<li><p>each bin type has its area, rounded up, as length, and keeps its copies, its cost and its resources;</p></li>
+<li><p>each item type has its area, rounded down, as length, and keeps its copies and, for the <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code> objective, its profit.</p></li>
+</ul>
+<p>The roundings keep the master problem a relaxation. It is solved with the <a class="reference internal" href="../onedimensional/milp_assignment.html#internals-onedimensional-milp-assignment"><span class="std std-ref">MILP assignment</span></a> algorithm, in non-anytime mode, or in <code class="code docutils literal notranslate"><span class="pre">exact</span></code> mode in the <code class="code docutils literal notranslate"><span class="pre">exact</span></code> mode.</p>
+<p>The cuts are encoded as onedimensional <em>resources</em> on the bin types, as in the rectangle version: a cut forbidding <span class="math notranslate nohighlight">\(n_i\)</span> copies of each item type <span class="math notranslate nohighlight">\(i\)</span> of a set <span class="math notranslate nohighlight">\(S\)</span>, with lifted item types <span class="math notranslate nohighlight">\(L\)</span>, is the resource of capacity <span class="math notranslate nohighlight">\(\sum_{i \in S} n_i - 1\)</span> where the copies of item type <span class="math notranslate nohighlight">\(i \in S\)</span> consume <span class="math notranslate nohighlight">\((1, \ldots, 1, 0)\)</span> (<span class="math notranslate nohighlight">\(n_i\)</span> ones) and the copies of item type <span class="math notranslate nohighlight">\(j \in L\)</span> consume <span class="math notranslate nohighlight">\((1, 0)\)</span>. With the variables <span class="math notranslate nohighlight">\(x_{i,t,k,c}\)</span> of the MILP assignment model (bin <span class="math notranslate nohighlight">\(k\)</span> of type <span class="math notranslate nohighlight">\(t\)</span> contains at least <span class="math notranslate nohighlight">\(c\)</span> copies of item type <span class="math notranslate nohighlight">\(i\)</span>), it is the constraint, for each bin <span class="math notranslate nohighlight">\((t, k)\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[\sum_{i \in S} \sum_{c \le n_i} x_{i,t,k,c} + \sum_{j \in L} x_{j,t,k,1} \le \sum_{i \in S} n_i - 1\]</div>
+</section>
+<section id="iterations">
+<h2>Iterations<a class="headerlink" href="#iterations" title="Link to this heading">¶</a></h2>
+<p>At each iteration, the master problem is solved, then the bins of its solution are checked. With the tree search on relative positions in the subproblems:</p>
+<img alt="../../_images/irregular_benders_decomposition_iteration.svg" class="align-center" src="../../_images/irregular_benders_decomposition_iteration.svg" />
+<p>The steps are:</p>
+<ol class="arabic simple">
+<li><p><strong>Master problem.</strong> If all the cuts are proven (see below), the value of its solution is reported as a bound of the instance. If a solution has already been found, and the solution of the master problem can’t be better (smaller profit for the <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code> objective, as many bins or more for the <code class="code docutils literal notranslate"><span class="pre">bin-packing</span></code> objective, cost as large or larger for the <code class="code docutils literal notranslate"><span class="pre">variable-sized-bin-packing</span></code> objective), the algorithm stops.</p></li>
+<li><p><strong>Subproblems.</strong> The selection of items of each bin of the solution of the master problem is checked (see below). A selection containing the items of a cut added earlier in the same iteration, for another bin, is known to be infeasible and is skipped. The bins whose items fit are assembled into a solution, which is reported if it is better than the best one (for the <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code> objective, a subset of the bins is a feasible solution).</p></li>
+<li><p><strong>Convergence.</strong> If every bin fits, the solution of the master problem is feasible, and the algorithm stops. Otherwise, no-good cuts are added for the bins which don’t fit, and the master problem is solved again.</p></li>
+</ol>
+</section>
+<section id="subproblems">
+<h2>Subproblems<a class="headerlink" href="#subproblems" title="Link to this heading">¶</a></h2>
+<p>Without the tree search on relative positions, the items of a bin are packed by solving a single-bin instance with the <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code> objective with the irregular algorithms, in non-anytime mode (a queue of size 128 for the tree search). This finds packings, but it rarely proves that the items don’t fit, so the cuts are mostly unproven.</p>
+<p>With the <a class="reference internal" href="tree_search_relative_positions.html#internals-irregular-tree-search-relative-positions"><span class="std std-ref">tree search on relative positions</span></a>:</p>
+<ul class="simple">
+<li><p><strong>Infeasible prefix.</strong> The items of the bin are sorted by decreasing area, and the tree search on relative positions is called on the largest one, then on the two largest ones, and so on, until it proves that they don’t fit. Proving it for a few large items is often much cheaper than for all the items of the bin, and a small infeasible subset is what the cuts need anyway. If the tree search on relative positions is inconclusive (time limit, continuous rotations), the search stops.</p></li>
+<li><p><strong>Packing.</strong> If no prefix is proven infeasible, the tree search on relative positions is called on all the items of the bin. If its relaxation is feasible, the positions of its solution are checked, and used as a packing if the items don’t overlap. Otherwise, the single-bin <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code> instance is solved, as above.</p></li>
+</ul>
+<p>The answers of the tree search on relative positions are stored, so that the same selection of items is never checked twice, and the data of the tree search on relative positions (the convex pieces of the pairs of item types, the infeasible rotation combinations) are shared by all its calls.</p>
+</section>
+<section id="no-good-cuts">
+<h2>No-good cuts<a class="headerlink" href="#no-good-cuts" title="Link to this heading">¶</a></h2>
+<p><strong>Minimal infeasible subsets.</strong> The infeasible items of a bin (the infeasible prefix, or all the items of the bin) are reduced to a minimal infeasible subset with the depth-first search of the rectangle version: the items are sorted by increasing area, and removed one at a time, as long as the remaining items don’t fit. Each check is a subproblem, which is expensive for irregular items, so the search stops after a single subset per bin by default. The subset gives a no-good cut: no bin of this type contains at least these copies of these item types.</p>
+<p><strong>Lifting.</strong> A proven cut forbidding a set <span class="math notranslate nohighlight">\(S\)</span> of items is lifted by giving a coefficient 1 to other item types: the cut then forbids any <span class="math notranslate nohighlight">\(|S|\)</span> items among <span class="math notranslate nohighlight">\(S\)</span> and the lifted item types. The item types not in the cut are visited by decreasing area. An item type <span class="math notranslate nohighlight">\(j\)</span> is lifted if every selection made of one copy of <span class="math notranslate nohighlight">\(j\)</span> and of <span class="math notranslate nohighlight">\(|S| - 1\)</span> items among <span class="math notranslate nohighlight">\(S\)</span> and the item types already lifted (<span class="math notranslate nohighlight">\(L\)</span>) is proven infeasible, either because it contains the items of a proven cut, or by the tree search on relative positions. Then no feasible selection reaches <span class="math notranslate nohighlight">\(|S|\)</span> on the lifted cut, so it stays valid. Unlike in the rectangle version, the coefficients are only 0 or 1: there is no cheap bound, like the bar relaxation, on the number of items of the cut which fit together with <span class="math notranslate nohighlight">\(j\)</span>. At most 4 item types are lifted in a cut.</p>
+<p>Lifting makes each cut much stronger, but it is expensive: on <code class="code docutils literal notranslate"><span class="pre">jakobs2_sb</span></code>, it adds about 3 item types per cut, but it takes 60% of the time.</p>
+<p><strong>Proofs.</strong> A cut is <em>proven</em> if every check of its derivation proved that the items don’t fit, which in practice requires the tree search on relative positions. A cut which isn’t proven is still added, so that the algorithm keeps converging, but then the master problem may not be a relaxation anymore: while a cut is unproven, the value of the master problem is not reported as a bound of the instance, and the solution found is not proven optimal.</p>
+<p><strong>Incompatible pairs and triples</strong> (optional, off by default). With the tree search on relative positions, before the first iteration, the pairs of items which don’t fit together in a bin, and then the triples whose pairs fit and whose total area doesn’t exceed the area of the bin, can be proven incompatible, each one giving a proven cut. This pays off with few item types: on <code class="code docutils literal notranslate"><span class="pre">shapes0_sb</span></code> (4 item types), the optimality is proven in 1.4 seconds instead of about 3.5. But the number of checks grows quickly with the number of item types, and most of the incompatibilities are found anyway through the subproblems: with 25 item types, on <code class="code docutils literal notranslate"><span class="pre">jakobs1_sb</span></code>, the pairs alone take 25 seconds, and the proof of optimality goes from about 23 to 37 seconds. They didn’t improve the bound of any of the instances that aren’t solved.</p>
+</section>
+<section id="search-parameters">
+<h2>Search parameters<a class="headerlink" href="#search-parameters" title="Link to this heading">¶</a></h2>
+<p>In anytime mode, the algorithm runs until it converges or reaches the time limit. In the non-anytime modes, it also stops after 32 iterations. In the <code class="code docutils literal notranslate"><span class="pre">exact</span></code> mode, it runs as in anytime mode, its master problem is solved in <code class="code docutils literal notranslate"><span class="pre">exact</span></code> mode, and its subproblems always use the tree search on relative positions, so that its bound is proven.</p>
+</section>
+<section id="automatic-selection">
+<h2>Automatic selection<a class="headerlink" href="#automatic-selection" title="Link to this heading">¶</a></h2>
+<p>In the <code class="code docutils literal notranslate"><span class="pre">exact</span></code> mode, it is run for the <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code> objective with a single bin, alongside the other algorithms. The <a class="reference internal" href="../generic_algorithms/column_generation.html#internals-generic-algorithms-column-generation"><span class="std std-ref">column generation</span></a> algorithm uses it, with the tree search on relative positions, to solve its pricing problems when it needs to prove a bound.</p>
+<p>It can be selected with <code class="code docutils literal notranslate"><span class="pre">--use-benders-decomposition</span> <span class="pre">1</span></code> (CLI) or <code class="code docutils literal notranslate"><span class="pre">use_benders_decomposition</span></code> (Python), and its subproblems use the tree search on relative positions with <code class="code docutils literal notranslate"><span class="pre">--benders-decomposition-use-tree-search-relative-positions</span> <span class="pre">1</span></code>. It only finds a solution once every bin of the solution of its master problem is packed, which may take long, while its bound may be good much earlier: it is best run together with other algorithms (e.g. <code class="code docutils literal notranslate"><span class="pre">--use-tree-search</span> <span class="pre">1</span></code>), whose solutions may then be proven optimal by this bound.</p>
+</section>
+<section id="strengths-and-limitations">
+<h2>Strengths and limitations<a class="headerlink" href="#strengths-and-limitations" title="Link to this heading">¶</a></h2>
+<p>The algorithm proves the optimality of the instances in which few items fit in a bin, or with few item types, whose minimal infeasible subsets are small and shared by many selections. In the <code class="code docutils literal notranslate"><span class="pre">exact</span></code> mode, together with the tree search, which finds the solutions, on the <code class="code docutils literal notranslate"><span class="pre">bin-packing</span></code> instances of <code class="code docutils literal notranslate"><span class="pre">data/irregular/martinez2017</span></code>, it proves the optimality of <code class="code docutils literal notranslate"><span class="pre">albano_sb</span></code>, <code class="code docutils literal notranslate"><span class="pre">dighe1_sb</span></code>, <code class="code docutils literal notranslate"><span class="pre">dighe2_sb</span></code>, <code class="code docutils literal notranslate"><span class="pre">fu_sb</span></code>, <code class="code docutils literal notranslate"><span class="pre">han_sb</span></code>, <code class="code docutils literal notranslate"><span class="pre">jakobs1_sb</span></code>, <code class="code docutils literal notranslate"><span class="pre">jakobs2_sb</span></code>, <code class="code docutils literal notranslate"><span class="pre">mao_sb</span></code>, <code class="code docutils literal notranslate"><span class="pre">poly1a_sb</span></code>, <code class="code docutils literal notranslate"><span class="pre">shapes0_sb</span></code>, <code class="code docutils literal notranslate"><span class="pre">shapes1_sb</span></code> and <code class="code docutils literal notranslate"><span class="pre">shapes2_sb</span></code>, in a few seconds to a few minutes. On <code class="code docutils literal notranslate"><span class="pre">poly1a_sb</span></code> and <code class="code docutils literal notranslate"><span class="pre">jakobs2_sb</span></code>, this requires the tree search on relative positions in the subproblems: with the MILP instead, the bounds stay at 3 and 6 bins, whereas the optimal solutions have 4 and 7 bins.</p>
+<p>When more items fit in a bin, the minimal infeasible subsets have 5 items or more, and each proof takes seconds: on <code class="code docutils literal notranslate"><span class="pre">poly2a_sb</span></code> (15 item types), the bound stays at the area bound, 5 bins, whereas the best solution found has 6 bins.</p>
+</section>
+<section id="source-files">
+<h2>Source files<a class="headerlink" href="#source-files" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">src/irregular/benders_decomposition.hpp</span></code>, <code class="code docutils literal notranslate"><span class="pre">src/irregular/benders_decomposition.cpp</span></code>: the decomposition</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">src/irregular/tree_search_relative_positions.hpp</span></code>, <code class="code docutils literal notranslate"><span class="pre">src/irregular/tree_search_relative_positions.cpp</span></code>: the tree search on relative positions of the subproblems</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">scripts/doc_figures/irregular_benders_decomposition.py</span></code>: the figures of this page</p></li>
+</ul>
+<p>References:</p>
+<ul class="simple">
+<li><p>“Combinatorial Benders Decomposition for the Two-Dimensional Bin Packing Problem” (Côté, Haouari and Iori, 2021)</p>
+<ul>
+<li><p><a class="reference external" href="https://doi.org/10.1287/ijoc.2020.1014">https://doi.org/10.1287/ijoc.2020.1014</a></p></li>
+</ul>
+</li>
+<li><p>“Facets of the knapsack polytope” (Balas, 1975)</p>
+<ul>
+<li><p><a class="reference external" href="https://doi.org/10.1007/BF01580430">https://doi.org/10.1007/BF01580430</a></p></li>
+</ul>
+</li>
+</ul>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+<h3><a href="../../index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">PackingSolver’s documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../objectives.html">Objectives</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../optimization_modes.html">Optimization modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> solver</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../overview.html">Solver internals</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../tree_search.html">Tree search</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> algorithms</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#trivial-single-item">Trivial single item</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#tree-search">Tree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#tree-search-with-periodic-packings">Tree search with periodic packings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#tree-search-with-maximal-spaces">Tree search with maximal spaces</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#local-search">Local search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#milp-raster">MILP raster</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#benders-decomposition">Benders decomposition</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#tree-search-on-relative-positions">Tree search on relative positions</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../irregular.html#one-dimensional-bound">One-dimensional bound</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../generic_algorithms.html">Generic algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../algorithm_selection.html">Algorithm selection</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="tree_search_relative_positions.html" title="Tree search on relative positions"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="milp_raster.html" title="MILP raster"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../overview.html" >Solver internals</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../irregular.html" ><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Benders decomposition</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2019-2024, Florian Fontan.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.1.
+    </div>
+  </body>
+</html>

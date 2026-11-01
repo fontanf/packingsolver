@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Bar relaxation &#8212; PackingSolver</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../../_static/classic.css?v=14e077c0" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=a00afc7f" />
+    
+    <script src="../../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="rectangle-guillotine algorithms" href="../rectangleguillotine.html" />
+    <link rel="prev" title="Conservative scales" href="conservative_scales.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../rectangleguillotine.html" title="rectangle-guillotine algorithms"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="conservative_scales.html" title="Conservative scales"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../overview.html" >Solver internals</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../rectangle.html" accesskey="U"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> algorithms</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Bar relaxation</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="bar-relaxation">
+<span id="internals-rectangle-bar-relaxation"></span><h1>Bar relaxation<a class="headerlink" href="#bar-relaxation" title="Link to this heading">¶</a></h1>
+<section id="objectives">
+<h2>Objectives<a class="headerlink" href="#objectives" title="Link to this heading">¶</a></h2>
+<p>This algorithm computes a bound for the <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code>, <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code>, <code class="code docutils literal notranslate"><span class="pre">bin-packing</span></code> (with a single bin type) and <code class="code docutils literal notranslate"><span class="pre">variable-sized-bin-packing</span></code> objectives. It doesn’t produce solutions.</p>
+<p>It is also used by the <a class="reference internal" href="benders_decomposition.html#internals-rectangle-benders-decomposition"><span class="std std-ref">Benders decomposition</span></a> to lift its no-good cuts.</p>
+</section>
+<section id="principle">
+<h2>Principle<a class="headerlink" href="#principle" title="Link to this heading">¶</a></h2>
+<p>It is the <em>bar relaxation</em> of Scheithauer (1999), in two dimensions, generalized to several bins of possibly different bin types. Instead of requiring a 2D placement of the items, each bin is sliced into unit-height horizontal <em>row-bars</em>, one-dimensional bins of capacity the width of the bin, and into unit-width vertical <em>column-bars</em>, one-dimensional bins of capacity the height of the bin. An item of width <span class="math notranslate nohighlight">\(w\)</span> and height <span class="math notranslate nohighlight">\(h\)</span> placed in the bin crosses <span class="math notranslate nohighlight">\(h\)</span> row-bars, taking a length <span class="math notranslate nohighlight">\(w\)</span> in each, and <span class="math notranslate nohighlight">\(w\)</span> column-bars, taking a length <span class="math notranslate nohighlight">\(h\)</span> in each. The relaxation only requires that the items packed can be distributed among the bars this way, which is a necessary condition for a packing.</p>
+<p>In the figure below, the packing (left) gives 4 row-bars of capacity 6 (middle) and 6 column-bars of capacity 4 (right). Item A, of size 4 × 2, takes a length 4 in 2 row-bars, and a length 2 in 4 column-bars. The relaxation forgets which bars an item uses, as long as the bars aren’t overfilled: the pieces of an item don’t have to be in consecutive bars, nor at the same position in each bar.</p>
+<a class="reference internal image-reference" href="../../_images/rectangle_bar_relaxation_bars.svg"><img alt="../../_images/rectangle_bar_relaxation_bars.svg" class="align-center" height="167" src="../../_images/rectangle_bar_relaxation_bars.svg" width="680" />
+</a>
+</section>
+<section id="model">
+<h2>Model<a class="headerlink" href="#model" title="Link to this heading">¶</a></h2>
+<p><strong>Input</strong>:</p>
+<ul class="simple">
+<li><p>bin types <span class="math notranslate nohighlight">\(t = 1, \ldots, m\)</span>; for each bin type <span class="math notranslate nohighlight">\(t\)</span>: a width <span class="math notranslate nohighlight">\(W_t\)</span>, a height <span class="math notranslate nohighlight">\(H_t\)</span>, a cost <span class="math notranslate nohighlight">\(c_t\)</span>, and a minimum and a maximum number of copies <span class="math notranslate nohighlight">\(m_t\)</span> and <span class="math notranslate nohighlight">\(M_t\)</span></p></li>
+<li><p>item types <span class="math notranslate nohighlight">\(j = 1, \ldots, n\)</span>; for each item type <span class="math notranslate nohighlight">\(j\)</span>: a profit <span class="math notranslate nohighlight">\(p_j\)</span> and a number of copies <span class="math notranslate nohighlight">\(q_j\)</span>; an item type which can be rotated is split into two <em>oriented variants</em>; for each oriented variant <span class="math notranslate nohighlight">\(i\)</span>: its width <span class="math notranslate nohighlight">\(w_i\)</span> and its height <span class="math notranslate nohighlight">\(h_i\)</span>, and <span class="math notranslate nohighlight">\(j(i)\)</span> its item type</p></li>
+<li><p>for each bin type <span class="math notranslate nohighlight">\(t\)</span>, the <em>row patterns</em> <span class="math notranslate nohighlight">\(q\)</span>, sets of oriented variants whose widths sum to at most <span class="math notranslate nohighlight">\(W_t\)</span>, and the <em>column patterns</em> <span class="math notranslate nohighlight">\(p\)</span>, sets of oriented variants whose heights sum to at most <span class="math notranslate nohighlight">\(H_t\)</span>; <span class="math notranslate nohighlight">\(a_{iq}\)</span> (resp. <span class="math notranslate nohighlight">\(b_{ip}\)</span>) is the number of copies of variant <span class="math notranslate nohighlight">\(i\)</span> in pattern <span class="math notranslate nohighlight">\(q\)</span> (resp. <span class="math notranslate nohighlight">\(p\)</span>)</p></li>
+</ul>
+<p><strong>Variables</strong>:</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(k_t \ge 0\)</span>: number of bins of type <span class="math notranslate nohighlight">\(t\)</span> used</p></li>
+<li><p><span class="math notranslate nohighlight">\(n_{i,t} \ge 0\)</span>: number of copies of oriented variant <span class="math notranslate nohighlight">\(i\)</span> packed in bins of type <span class="math notranslate nohighlight">\(t\)</span></p></li>
+<li><p><span class="math notranslate nohighlight">\(y_q^t \ge 0\)</span>: number of row-bars of bin type <span class="math notranslate nohighlight">\(t\)</span> filled with row pattern <span class="math notranslate nohighlight">\(q\)</span></p></li>
+<li><p><span class="math notranslate nohighlight">\(x_p^t \ge 0\)</span>: number of column-bars of bin type <span class="math notranslate nohighlight">\(t\)</span> filled with column pattern <span class="math notranslate nohighlight">\(p\)</span></p></li>
+</ul>
+<p><strong>Objective</strong>: depending on the objective</p>
+<div class="math notranslate nohighlight">
+\[\max \sum_{i,t} p_{j(i)} \, n_{i,t}
+\qquad \text{(knapsack)}\]</div>
+<div class="math notranslate nohighlight">
+\[\min \sum_t c_t \, k_t
+\qquad \text{(bin packing, variable-sized bin packing)}\]</div>
+<p>For the <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code> objective, there is no objective: only the constraints.</p>
+<p><strong>Constraints</strong>:</p>
+<ul class="simple">
+<li><p>Row-bars: an item of height <span class="math notranslate nohighlight">\(h_i\)</span> crosses <span class="math notranslate nohighlight">\(h_i\)</span> row-bars</p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[\forall i, t \qquad \sum_q a_{iq} \, y_q^t = h_i \, n_{i,t}\]</div>
+<ul class="simple">
+<li><p>Column-bars: an item of width <span class="math notranslate nohighlight">\(w_i\)</span> crosses <span class="math notranslate nohighlight">\(w_i\)</span> column-bars</p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[\forall i, t \qquad \sum_p b_{ip} \, x_p^t = w_i \, n_{i,t}\]</div>
+<ul class="simple">
+<li><p>Number of row-bars: a bin of height <span class="math notranslate nohighlight">\(H_t\)</span> has <span class="math notranslate nohighlight">\(H_t\)</span> row-bars</p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[\forall t \qquad \sum_q y_q^t \le H_t \, k_t\]</div>
+<ul class="simple">
+<li><p>Number of column-bars: a bin of width <span class="math notranslate nohighlight">\(W_t\)</span> has <span class="math notranslate nohighlight">\(W_t\)</span> column-bars</p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[\forall t \qquad \sum_p x_p^t \le W_t \, k_t\]</div>
+<ul class="simple">
+<li><p>Number of bins</p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[\forall t \qquad m_t \le k_t \le M_t\]</div>
+<ul class="simple">
+<li><p>Item copies: each item type is packed at most (<code class="code docutils literal notranslate"><span class="pre">knapsack</span></code>) or exactly (other objectives) its number of copies</p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[\forall j \qquad \sum_{i : j(i) = j} \; \sum_t n_{i,t} \le q_j\]</div>
+</section>
+<section id="solution-method">
+<h2>Solution method<a class="headerlink" href="#solution-method" title="Link to this heading">¶</a></h2>
+<p>The patterns are generated by column generation. The pricing problem of the row patterns (resp. column patterns) of a bin type is a knapsack problem over the oriented variants fitting in the bin type, of capacity <span class="math notranslate nohighlight">\(W_t\)</span> (resp. <span class="math notranslate nohighlight">\(H_t\)</span>), where each variant has the number of copies of its item type and, as profit, the dual value of its row-bar (resp. column-bar) constraint; the variants with a non-positive profit are left out. It is solved with the <a class="reference internal" href="../onedimensional.html#internals-onedimensional"><span class="std std-ref">onedimensional</span></a> algorithms.</p>
+<p>Before the column generation converges, a valid bound is already available: the value of the current linear program, corrected by the reduced cost of the best row pattern and of the best column pattern of each bin type, times the maximum number of row-bars (resp. column-bars) of this bin type.</p>
+<p>The optimal value of the linear program is a bound: a profit bound for the <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code> objective, a cost bound for the <code class="code docutils literal notranslate"><span class="pre">variable-sized-bin-packing</span></code> objective, converted into a number of bins for the <code class="code docutils literal notranslate"><span class="pre">bin-packing</span></code> objective. For the <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code> objective, an infeasible linear program proves that the instance is infeasible.</p>
+<p>The defects and the fixed items are not modeled. Dropping them only relaxes the problem, so the bounds stay valid, but they may be weaker on the instances where they matter.</p>
+</section>
+<section id="automatic-selection">
+<h2>Automatic selection<a class="headerlink" href="#automatic-selection" title="Link to this heading">¶</a></h2>
+<p>It is computed automatically with a single bin, a single bin type of width and height at most 100, and the <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code> or <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code> objective (the size of the model grows with the dimensions of the bins). It can be forced with <code class="code docutils literal notranslate"><span class="pre">--use-bar-relaxation</span> <span class="pre">1</span></code> (CLI) or <code class="code docutils literal notranslate"><span class="pre">use_bar_relaxation</span></code> (Python).</p>
+</section>
+<section id="source-files">
+<h2>Source files<a class="headerlink" href="#source-files" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">src/rectangle/bar_relaxation.hpp</span></code>, <code class="code docutils literal notranslate"><span class="pre">src/rectangle/bar_relaxation.cpp</span></code></p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">scripts/doc_figures/rectangle_bar_relaxation.py</span></code>: the figure of this page</p></li>
+</ul>
+<p>References:</p>
+<ul class="simple">
+<li><p>“LP-based bounds for the container and multi-container loading problem” (Scheithauer, 1999)</p>
+<ul>
+<li><p><a class="reference external" href="https://doi.org/10.1016/S0969-6016(98)00035-5">https://doi.org/10.1016/S0969-6016(98)00035-5</a></p></li>
+</ul>
+</li>
+<li><p>“Combinatorial Benders Decomposition for the Two-Dimensional Bin Packing Problem” (Côté, Haouari and Iori, 2021)</p>
+<ul>
+<li><p><a class="reference external" href="https://doi.org/10.1287/ijoc.2020.1014">https://doi.org/10.1287/ijoc.2020.1014</a></p></li>
+</ul>
+</li>
+</ul>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+<h3><a href="../../index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">PackingSolver’s documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../objectives.html">Objectives</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../optimization_modes.html">Optimization modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> solver</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../overview.html">Solver internals</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../tree_search.html">Tree search</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> algorithms</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> algorithms</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../rectangle.html#tree-search">Tree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rectangle.html#tree-search-with-maximal-spaces">Tree search with maximal spaces</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rectangle.html#benders-decomposition">Benders decomposition</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rectangle.html#benders-decomposition-with-contiguity">Benders decomposition with contiguity</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rectangle.html#dual-feasible-functions">Dual feasible functions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rectangle.html#conservative-scales">Conservative scales</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../rectangle.html#bar-relaxation">Bar relaxation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generic_algorithms.html">Generic algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../algorithm_selection.html">Algorithm selection</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../rectangleguillotine.html" title="rectangle-guillotine algorithms"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="conservative_scales.html" title="Conservative scales"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../overview.html" >Solver internals</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../rectangle.html" ><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> algorithms</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Bar relaxation</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2019-2024, Florian Fontan.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.1.
+    </div>
+  </body>
+</html>

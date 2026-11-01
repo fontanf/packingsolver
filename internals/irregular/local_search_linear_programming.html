@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Local search: linear programming engine &#8212; PackingSolver</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../../_static/classic.css?v=14e077c0" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=a00afc7f" />
+    
+    <script src="../../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Local search: nonlinear programming engine" href="local_search_nonlinear_programming.html" />
+    <link rel="prev" title="Local search: direct trigonometry engine" href="local_search_direct_trigonometry.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="local_search_nonlinear_programming.html" title="Local search: nonlinear programming engine"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="local_search_direct_trigonometry.html" title="Local search: direct trigonometry engine"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../overview.html" >Solver internals</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../irregular.html" ><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms</a> &#187;</li>
+          <li class="nav-item nav-item-3"><a href="local_search.html" accesskey="U">Local search</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Local search: linear programming engine</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="local-search-linear-programming-engine">
+<span id="internals-irregular-local-search-linear-programming"></span><h1>Local search: linear programming engine<a class="headerlink" href="#local-search-linear-programming-engine" title="Link to this heading">¶</a></h1>
+<p>This page describes the separator of the linear programming engine of the <a class="reference internal" href="local_search.html#internals-irregular-local-search"><span class="std std-ref">local search</span></a>.</p>
+<section id="principle">
+<h2>Principle<a class="headerlink" href="#principle" title="Link to this heading">¶</a></h2>
+<p>Instead of overlapping, the items may be <em>shrunk</em>: each item <span class="math notranslate nohighlight">\(i\)</span> has a scale <span class="math notranslate nohighlight">\(\lambda_i \in [0, 1]\)</span>, and an item with scale 1 has its full size. A layout is feasible when all the items have their full size, without overlap. A separation solves a sequence of linear programs, each one moving the items slightly and maximizing their weighted scales, while keeping all the (shrunk) items separated.</p>
+</section>
+<section id="shrunk-items">
+<h2>Shrunk items<a class="headerlink" href="#shrunk-items" title="Link to this heading">¶</a></h2>
+<p>The items are decomposed into convex parts. In an item with scale <span class="math notranslate nohighlight">\(\lambda\)</span>, each convex part is scaled by <span class="math notranslate nohighlight">\(\lambda\)</span> around its <em>center</em>, the average of its vertices. Since the center is in the part, a scaled part is in the part, so a shrunk item is in the item. With a null scale, the parts are reduced to their centers.</p>
+<p>The <em>loss</em> of a layout is the area lost by shrinking the items: <span class="math notranslate nohighlight">\(\sum_i a_i (1 - \lambda_i)\)</span>, where <span class="math notranslate nohighlight">\(a_i\)</span> is the area of item <span class="math notranslate nohighlight">\(i\)</span>. In the rare case where the shrunk items still overlap beyond a small tolerance, the loss is the total area of the items plus the largest penetration.</p>
+</section>
+<section id="linear-program-of-a-step">
+<h2>Linear program of a step<a class="headerlink" href="#linear-program-of-a-step" title="Link to this heading">¶</a></h2>
+<p>A step builds a linear program for each bin, around the current layout. The orientations of the items are fixed.</p>
+<p><strong>Input</strong>:</p>
+<ul class="simple">
+<li><p>the items <span class="math notranslate nohighlight">\(i\)</span> of the bin; for each item <span class="math notranslate nohighlight">\(i\)</span>: its current position <span class="math notranslate nohighlight">\(\bar{p}_i\)</span>, the maximum move <span class="math notranslate nohighlight">\(\delta_i\)</span> (a <em>movement ratio</em> times the largest side of its bounding box), its area <span class="math notranslate nohighlight">\(a_i\)</span> and its guided local search weight <span class="math notranslate nohighlight">\(g_i\)</span></p></li>
+<li><p>the convex parts of the items; for each part <span class="math notranslate nohighlight">\(P\)</span> of an item <span class="math notranslate nohighlight">\(i(P)\)</span>: its vertices and its center <span class="math notranslate nohighlight">\(c_P\)</span> (the average of its vertices), relative to the reference point of the item</p></li>
+<li><p>the obstacles of the bin (borders, defects and fixed items), also decomposed into convex parts, which don’t move</p></li>
+<li><p>the pairs of parts which may get close to each other during the step (their bounding boxes, expanded by the maximum moves and the spacing, intersect); for each pair, the selected edge <span class="math notranslate nohighlight">\(e\)</span> of one of the two parts, with its outward normal <span class="math notranslate nohighlight">\(n\)</span>, and the vertex <span class="math notranslate nohighlight">\(v\)</span> of the other part which is the closest to it, both relative to the reference points of their items</p></li>
+<li><p>the spacing <span class="math notranslate nohighlight">\(s\)</span> of each pair, the bounding box of the bin and the item-bin spacing</p></li>
+</ul>
+<p>The position in the bin of a vertex <span class="math notranslate nohighlight">\(u\)</span> of a part <span class="math notranslate nohighlight">\(P\)</span> of an item at position <span class="math notranslate nohighlight">\(p\)</span> with scale <span class="math notranslate nohighlight">\(\lambda\)</span> is <span class="math notranslate nohighlight">\(p + c_P + \lambda (u - c_P)\)</span>. For an obstacle, it is the vertex itself.</p>
+<p><strong>Variables</strong>:</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(p_i \in \mathbb{R}^2\)</span>: the position of the reference point of item <span class="math notranslate nohighlight">\(i\)</span>, in the box <span class="math notranslate nohighlight">\(\bar{p}_i \pm \delta_i\)</span>, and such that the centers of its parts are in the bin</p></li>
+<li><p><span class="math notranslate nohighlight">\(\lambda_i \in [0, 1]\)</span>: the scale of item <span class="math notranslate nohighlight">\(i\)</span></p></li>
+</ul>
+<p><strong>Objective</strong>: maximize the weighted scales of the items</p>
+<div class="math notranslate nohighlight">
+\[\max \sum_i g_i \, a_i \, \lambda_i\]</div>
+<p><strong>Constraints</strong>:</p>
+<ul class="simple">
+<li><p>Separation: for each pair of parts <span class="math notranslate nohighlight">\((P, Q)\)</span> with the selected edge <span class="math notranslate nohighlight">\(e\)</span> of <span class="math notranslate nohighlight">\(P\)</span> and the vertex <span class="math notranslate nohighlight">\(v\)</span> of <span class="math notranslate nohighlight">\(Q\)</span>, the vertex is beyond the line through the edge, by at least the spacing</p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[n \cdot \big( p_{i(Q)} + c_Q + \lambda_{i(Q)} (v - c_Q) \big)
+- n \cdot \big( p_{i(P)} + c_P + \lambda_{i(P)} (e - c_P) \big)
+\ge s\]</div>
+<ul class="simple">
+<li><p>Containment: for each part <span class="math notranslate nohighlight">\(P\)</span>, the bounding box <span class="math notranslate nohighlight">\([x^{\min}_P, x^{\max}_P] \times [y^{\min}_P, y^{\max}_P]\)</span> of the scaled part is in the bin, minus the item-bin spacing; for the left side of the bin, for example:</p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[x_{i(P)} + c_{P,x} + \lambda_{i(P)} (x^{\min}_P - c_{P,x}) \ge X^{\min} + s_{\text{bin}}\]</div>
+<p>For a fixed edge, the closest vertex doesn’t depend on the translations and the scales of the parts, so the constraint is linear in the positions and the scales. It proves that the two parts don’t overlap: the line separates them.</p>
+<p><strong>Always feasible.</strong> The linear program always has a solution: the current positions with null scales. With null scales, the parts are reduced to their centers, which are in the bin. And the edge of each pair of parts is selected among the edges whose constraint is satisfied by the centers of the two parts (with the spacing): the one which separates the two parts the best in the current layout. When two parts don’t overlap, the edge which separates them the best always separates their centers, since the centers are in the parts; so the restriction only matters for the parts which overlap. If no edge separates the centers (two centers closer than the spacing, or a center in an obstacle), the edge which separates the parts the best is selected, and the linear program may be infeasible.</p>
+<p>This is the separation model of the <a class="reference internal" href="local_search_nonlinear_programming.html#internals-irregular-local-search-nonlinear-programming"><span class="std std-ref">nonlinear programming engine</span></a>, where the separating line of each pair of parts is a variable, with the direction of the line fixed during the step.</p>
+<p>The linear programs are solved with HiGHS, without warm start.</p>
+</section>
+<section id="separation">
+<h2>Separation<a class="headerlink" href="#separation" title="Link to this heading">¶</a></h2>
+<p>A separation solves linear programs as long as they improve the loss. The movement ratio acts as a trust region: it starts at 5%, and after a linear program which doesn’t improve the loss, the layout goes back to the best one found and the movement ratio is halved, down to 0.01%. The separation stops after 4 linear programs in a row without improvement (2 while the loss is above the reference loss of the iterated local search, 24 for the initial layout).</p>
+<p>After each step, the guided local search weight of each item which is still shrunk is increased by 1, so that the items which stay shrunk are favored by the next linear programs.</p>
+<p>The separation succeeds when all the items have their full size and the layout, checked with the exact shapes at full scale, has no overlap.</p>
+</section>
+<section id="initial-layout-and-disruption">
+<h2>Initial layout and disruption<a class="headerlink" href="#initial-layout-and-disruption" title="Link to this heading">¶</a></h2>
+<p>When a solution is loaded, its items keep their positions with their full size; the missing items are inserted at random positions, with a null scale. They are placed so that their bounding box at full size is in the bin, so that the centers of their parts are in the bin.</p>
+<p>A layout is disrupted by taking the most shrunk item out and inserting it again in a random bin, at a random position, in a random allowed orientation, with a null scale. This is the only way for an item to change orientation.</p>
+<p>The distance between two layouts, used by the population of the iterated local search, is the mean over the items of 1 if the item is in a different bin or orientation, and otherwise of its displacement divided by the square root of its area, capped at 1.</p>
+</section>
+<section id="strengths-and-limitations">
+<h2>Strengths and limitations<a class="headerlink" href="#strengths-and-limitations" title="Link to this heading">¶</a></h2>
+<p>Each linear program only moves the items slightly, so an item can’t jump to a free space far away, except through the disruptions. On the literature strip packing benchmarks, the engine is clearly behind the <a class="reference internal" href="local_search_direct_trigonometry.html#internals-irregular-local-search-direct-trigonometry"><span class="std std-ref">direct trigonometry engine</span></a>, whose moves sample the whole bins. It is not part of the automatic selection.</p>
+<p>It can be selected with <code class="code docutils literal notranslate"><span class="pre">--use-local-search-linear-programming</span> <span class="pre">1</span></code> (CLI) or <code class="code docutils literal notranslate"><span class="pre">use_local_search_linear_programming</span></code> (Python).</p>
+</section>
+<section id="source-files">
+<h2>Source files<a class="headerlink" href="#source-files" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">src/irregular/linear_programming/separation_model.hpp</span></code>, <code class="code docutils literal notranslate"><span class="pre">src/irregular/linear_programming/separation_model.cpp</span></code>: the linear program of a step</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">src/irregular/linear_programming/separator.hpp</span></code>, <code class="code docutils literal notranslate"><span class="pre">src/irregular/linear_programming/separator.cpp</span></code>: the separator</p></li>
+</ul>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+<h3><a href="../../index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">PackingSolver’s documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../objectives.html">Objectives</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../optimization_modes.html">Optimization modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> solver</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../overview.html">Solver internals</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../tree_search.html">Tree search</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> algorithms</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#trivial-single-item">Trivial single item</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#tree-search">Tree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#tree-search-with-periodic-packings">Tree search with periodic packings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#tree-search-with-maximal-spaces">Tree search with maximal spaces</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#local-search">Local search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#milp-raster">MILP raster</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#benders-decomposition">Benders decomposition</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#tree-search-on-relative-positions">Tree search on relative positions</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../irregular.html#one-dimensional-bound">One-dimensional bound</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../generic_algorithms.html">Generic algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../algorithm_selection.html">Algorithm selection</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="local_search_nonlinear_programming.html" title="Local search: nonlinear programming engine"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="local_search_direct_trigonometry.html" title="Local search: direct trigonometry engine"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../overview.html" >Solver internals</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../irregular.html" ><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms</a> &#187;</li>
+          <li class="nav-item nav-item-3"><a href="local_search.html" >Local search</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Local search: linear programming engine</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2019-2024, Florian Fontan.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.1.
+    </div>
+  </body>
+</html>

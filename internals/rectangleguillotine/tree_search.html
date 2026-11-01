@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Tree search &#8212; PackingSolver</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../../_static/classic.css?v=14e077c0" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=a00afc7f" />
+    
+    <script src="../../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Tree search with maximal spaces" href="tree_search_maximal_spaces.html" />
+    <link rel="prev" title="rectangle-guillotine algorithms" href="../rectangleguillotine.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="tree_search_maximal_spaces.html" title="Tree search with maximal spaces"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="../rectangleguillotine.html" title="rectangle-guillotine algorithms"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../overview.html" >Solver internals</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../rectangleguillotine.html" accesskey="U"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> algorithms</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Tree search</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="tree-search">
+<span id="internals-rectangleguillotine-tree-search"></span><h1>Tree search<a class="headerlink" href="#tree-search" title="Link to this heading">¶</a></h1>
+<section id="objectives">
+<h2>Objectives<a class="headerlink" href="#objectives" title="Link to this heading">¶</a></h2>
+<p>This algorithm solves the <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code>, <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code>, <code class="code docutils literal notranslate"><span class="pre">open-dimension-x</span></code>, <code class="code docutils literal notranslate"><span class="pre">open-dimension-y</span></code>, <code class="code docutils literal notranslate"><span class="pre">bin-packing</span></code>, <code class="code docutils literal notranslate"><span class="pre">bin-packing-with-leftovers</span></code> and <code class="code docutils literal notranslate"><span class="pre">bin-packing-cutting-cost</span></code> objectives.</p>
+<p>It generates 2-staged and 3-staged guillotine patterns, and supports all the features of the <code class="code docutils literal notranslate"><span class="pre">rectangleguillotine</span></code> problem type: the cut types, the defects, the stacks, the trims, the cut thickness, the minimum waste length, the minimum and maximum distances between cuts, the maximum numbers of cuts, the cutting costs and the resources.</p>
+</section>
+<section id="principle">
+<h2>Principle<a class="headerlink" href="#principle" title="Link to this heading">¶</a></h2>
+<p>It is a constructive tree search. A pattern is described by its cuts: the 1-cuts split the bin into first-level sub-plates, the 2-cuts split a first-level sub-plate into second-level sub-plates, and the 3-cuts split a second-level sub-plate into third-level sub-plates, which contain the items. In the following, the 1-cuts are vertical; with horizontal 1-cuts, the algorithm is the same on the instance where the x and y axes are exchanged.</p>
+<p>At each stage, a new third-level sub-plate is filled, either:</p>
+<ul class="simple">
+<li><p>in the current second-level sub-plate, to the right of the last third-level sub-plate;</p></li>
+<li><p>in the current first-level sub-plate, in a new second-level sub-plate, above the last one;</p></li>
+<li><p>in the current bin, in a new first-level sub-plate, to the right of the last one;</p></li>
+<li><p>in a new bin.</p></li>
+</ul>
+<p>The figure below shows a node (top) and its children of the first three kinds inserting the items 3 and 4 (bottom); the dashed lines are the first- and second-level sub-plates, which grow to contain the new item. Item 4 doesn’t fit in a new second-level sub-plate:</p>
+<img alt="../../_images/rectangleguillotine_tree_search_children.svg" class="align-center" src="../../_images/rectangleguillotine_tree_search_children.svg" />
+<p>A third-level sub-plate contains a single item at its bottom (with possibly some waste above it), a single item at its top (when it would intersect a defect at the bottom), two items of the same width one above the other (with the <code class="code docutils literal notranslate"><span class="pre">roadef2018</span></code> cut type), or no item (to skip a defect).</p>
+<p>The positions of the items are fixed once they are inserted, but the positions of the <em>current</em> cuts, the right side of the current first-level sub-plate, the top of the current second-level sub-plate and the right side of the current third-level sub-plate, may still move when other items are inserted: an item taller than the current second-level sub-plate moves its 2-cut up, and an item wider than the current first-level sub-plate moves its 1-cut to the right.</p>
+<p><strong>Two stages.</strong> A 2-staged pattern is handled as a 3-staged pattern with a single first-level sub-plate covering the whole bin, whose 2-cuts play the role of the 1-cuts: the orientation of the cuts, the minimum and maximum distances between cuts, and the maximum numbers of cuts are shifted by one level.</p>
+<p><strong>Orientation of the 1-cuts.</strong> It is given by the parameters. When it is free and there is a single bin type, both orientations are searched in separate searches; with several bin types, it is chosen for each new bin, both orientations giving children.</p>
+<p><strong>Order of the bins.</strong> The bins are opened in a fixed order: in the order in which they appear in the instance, or by increasing area for the <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code> objective.</p>
+</section>
+<section id="nodes">
+<h2>Nodes<a class="headerlink" href="#nodes" title="Link to this heading">¶</a></h2>
+<p>A node stores:</p>
+<ul class="simple">
+<li><p>its parent, the items it inserted and its insertion, from which the solution is rebuilt at the end;</p></li>
+<li><p>the number of bins used, and the orientation of the 1-cuts of the current bin;</p></li>
+<li><p>its <em>front</em>: the positions <span class="math notranslate nohighlight">\(x_1^{prev}\)</span> of the last closed 1-cut, <span class="math notranslate nohighlight">\(x_1^{curr}\)</span> of the current 1-cut, <span class="math notranslate nohighlight">\(y_2^{prev}\)</span> of the last closed 2-cut, <span class="math notranslate nohighlight">\(y_2^{curr}\)</span> of the current 2-cut and <span class="math notranslate nohighlight">\(x_3^{curr}\)</span> of the current 3-cut;</p></li>
+<li><p>for the current cuts, whether they can still be moved by any length, or only by at least the minimum waste length, or not at all, and the farthest positions they can be moved to (because of the defects and of the maximum distances between cuts);</p></li>
+<li><p>the items placed on top of their third-level sub-plate in the current second-level sub-plate, which move with its 2-cut;</p></li>
+<li><p>for each stack, the number of its items packed;</p></li>
+<li><p>the number of items packed, their area and their profit, the numbers and lengths of the cuts of each stage, the cutting cost and the resource consumption of the current bin.</p></li>
+</ul>
+<a class="reference internal image-reference" href="../../_images/rectangleguillotine_tree_search_front.svg"><img alt="../../_images/rectangleguillotine_tree_search_front.svg" class="align-center" height="276" src="../../_images/rectangleguillotine_tree_search_front.svg" width="474" />
+</a>
+<p><strong>Current area and waste.</strong> The <em>current area</em> of a node (in yellow above) is the area that the next items can’t use anymore: the area of the bins before the current one, plus the area of the current bin to the left of <span class="math notranslate nohighlight">\(x_1^{prev}\)</span>, plus the area of the current first-level sub-plate below <span class="math notranslate nohighlight">\(y_2^{prev}\)</span>, plus the area of the current second-level sub-plate to the left of <span class="math notranslate nohighlight">\(x_3^{curr}\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[A_{prev} + x_1^{prev} H + (x_1^{curr} - x_1^{prev}) \, y_2^{prev} + (x_3^{curr} - x_1^{prev}) (y_2^{curr} - y_2^{prev})\]</div>
+<p>Once all the items are packed, it is the area of the bins before the current one plus <span class="math notranslate nohighlight">\(x_1^{curr} H\)</span>. The <em>waste</em> of a node is its current area minus the area of the items packed.</p>
+</section>
+<section id="children">
+<h2>Children<a class="headerlink" href="#children" title="Link to this heading">¶</a></h2>
+<p><strong>Items.</strong> The items of an item type are organized in <em>stacks</em>, and an item can only be inserted once all the items before it in its stack are packed: only the next item of each stack is a candidate. When two stacks contain identical item types in the same order, the second one can’t get ahead of the first one. Each candidate item is tried in each of its allowed orientations, at the bottom-left corner of the new third-level sub-plate:</p>
+<ul class="simple">
+<li><p>it must fit in the bin, minus its trims;</p></li>
+<li><p>with the <code class="code docutils literal notranslate"><span class="pre">homogenous</span></code> cut type, it must have the same item type as the other items of the second-level sub-plate;</p></li>
+<li><p>if it intersects a defect, or if the cut above it intersects a defect: with the <code class="code docutils literal notranslate"><span class="pre">roadef2018</span></code> and <code class="code docutils literal notranslate"><span class="pre">non-exact</span></code> cut types, it is placed on top of its third-level sub-plate instead, above at least the cut thickness and the minimum waste length; with the other cut types, the insertion is discarded.</p></li>
+</ul>
+<p>With the <code class="code docutils literal notranslate"><span class="pre">exact</span></code> and <code class="code docutils literal notranslate"><span class="pre">homogenous</span></code> cut types, the third-level sub-plates contain no waste above their item: the 2-cut is fixed at the top of the first item of the second-level sub-plate, and the next items of the second-level sub-plate must have the same height. With the <code class="code docutils literal notranslate"><span class="pre">roadef2018</span></code> cut type, two items of the same width can also be inserted one above the other.</p>
+<p><strong>Defects.</strong> A third-level sub-plate can also contain no item, to skip a defect: it then extends to the right of (or above) the defect. Such a node is never kept as it is: its children replace it among the children of its parent.</p>
+<p><strong>Positions of the cuts.</strong> Then the positions of the cuts are updated, and the insertion is discarded if no valid position exists:</p>
+<ul class="simple">
+<li><p>the current cuts only move outwards: the 1-cut to the right of the new item, the 2-cut above it;</p></li>
+<li><p>when a cut moves, it must move by at least the cut thickness plus the minimum waste length, so that the waste created is not too small;</p></li>
+<li><p>the distances between consecutive 1-cuts (resp. 2-cuts) must be at least the minimum distance between 1-cuts (resp. 2-cuts); when the maximum number of 1-cuts (resp. 2-cuts) is reached, the current sub-plate extends to the end of the bin;</p></li>
+<li><p>unless cutting through defects is allowed, a cut can’t cross a defect: it is moved to the right of (or above) the defect; the items on top of their third-level sub-plate move with the 2-cut, and must not intersect a defect either;</p></li>
+<li><p>the cuts can’t go beyond the farthest positions allowed by the maximum distances between cuts and by the defects, nor beyond the hard trims; the soft trims may be used by the last sub-plates;</p></li>
+<li><p>the capacities of the resources of the bin must not be exceeded (a <em>penalize</em> resource never discards an insertion; its penalty is subtracted from the profit instead).</p></li>
+</ul>
+<p><strong>Restricting the children.</strong> A new second-level sub-plate is only opened if no item fits in the current second-level sub-plate without moving its cuts; a new first-level sub-plate is only opened if no item fits in the current first-level sub-plate without moving its 1-cut; a new bin is only opened if no item fits in the current bin. Among the children of a node, a child whose front dominates the front of another child with the same items (see below) discards it.</p>
+</section>
+<section id="guides">
+<h2>Guides<a class="headerlink" href="#guides" title="Link to this heading">¶</a></h2>
+<p>The guides compare the current area of a node to the area or to the profit of its items. With <span class="math notranslate nohighlight">\(A_c\)</span> the current area, <span class="math notranslate nohighlight">\(A\)</span> the area of the items packed, <span class="math notranslate nohighlight">\(P\)</span> their profit, <span class="math notranslate nohighlight">\(n\)</span> their number, <span class="math notranslate nohighlight">\(r\)</span> the waste rate <span class="math notranslate nohighlight">\((A_c - A) / A_c\)</span> (replaced by <span class="math notranslate nohighlight">\(0.01 + r / 2\)</span> when it is below 0.02) and <span class="math notranslate nohighlight">\(C\)</span> the cutting cost:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 14.3%" />
+<col style="width: 28.6%" />
+<col style="width: 57.1%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Guide</p></th>
+<th class="head"><p>Value</p></th>
+<th class="head"><p>Idea</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>0</p></td>
+<td><p><span class="math notranslate nohighlight">\(A_c / A\)</span></p></td>
+<td><p>Little consumed area per area packed.</p></td>
+</tr>
+<tr class="row-odd"><td><p>1</p></td>
+<td><p><span class="math notranslate nohighlight">\(r / A \times n\)</span></p></td>
+<td><p>Little waste, favoring the large items.</p></td>
+</tr>
+<tr class="row-even"><td><p>4</p></td>
+<td><p><span class="math notranslate nohighlight">\(A_c / P\)</span></p></td>
+<td><p>Little consumed area per profit packed.</p></td>
+</tr>
+<tr class="row-odd"><td><p>5</p></td>
+<td><p><span class="math notranslate nohighlight">\(A_c / P / A \times n\)</span></p></td>
+<td><p>Same, favoring the large items.</p></td>
+</tr>
+<tr class="row-even"><td><p>9</p></td>
+<td><p><span class="math notranslate nohighlight">\(C / A\)</span></p></td>
+<td><p>Little cutting cost per area packed.</p></td>
+</tr>
+<tr class="row-odd"><td><p>10</p></td>
+<td><p><span class="math notranslate nohighlight">\(C / A / A \times n\)</span></p></td>
+<td><p>Same, favoring the large items.</p></td>
+</tr>
+</tbody>
+</table>
+<p>By default, guides 4 and 5 are used for the <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code> objective, guides 9 and 10 for the <code class="code docutils literal notranslate"><span class="pre">bin-packing-cutting-cost</span></code> objective, and guides 0 and 1 for the other objectives.</p>
+</section>
+<section id="solutions-and-bounds">
+<h2>Solutions and bounds<a class="headerlink" href="#solutions-and-bounds" title="Link to this heading">¶</a></h2>
+<p><strong>Solutions.</strong> Each node generated is compared to the best solution found so far:</p>
+<ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">knapsack</span></code> and <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code>: any node is a solution, compared by profit;</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">bin-packing</span></code>: the leaves (all the items packed), compared by number of bins;</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">bin-packing-with-leftovers</span></code>: the leaves, compared by waste, then by the area of the second leftover (the part of the last first-level sub-plate above the items);</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">open-dimension-x</span></code> and <code class="code docutils literal notranslate"><span class="pre">open-dimension-y</span></code>: the leaves, compared by length used;</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">bin-packing-cutting-cost</span></code>: the leaves, compared by cutting cost: the cost of the bins, of the cuts and of the waste.</p></li>
+</ul>
+<p><strong>Bounds.</strong> A node is discarded if it can’t lead to a better solution than the best one found:</p>
+<ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">bin-packing</span></code>: the area of all the items plus the waste of the node must fit in the bins, in their order; if the bins needed are at least as many as in the best solution, the node is discarded;</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">bin-packing-with-leftovers</span></code>: if its waste is larger than the waste of the best solution;</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">knapsack</span></code>: if the profit of the node plus the remaining area of the bins times the largest profit per area of the item types (or the total profit, if the remaining items fit in the remaining area) isn’t larger than the profit of the best solution;</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">open-dimension-x</span></code> and <code class="code docutils literal notranslate"><span class="pre">open-dimension-y</span></code>: the length used is at least the current 1-cut, and at least the area of all the items plus the waste of the node, divided by the height of the bin;</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">bin-packing-cutting-cost</span></code>: if its cutting cost is at least the cutting cost of the best solution;</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">feasibility</span></code>: once a solution packing all the items is found.</p></li>
+</ul>
+</section>
+<section id="dominance">
+<h2>Dominance<a class="headerlink" href="#dominance" title="Link to this heading">¶</a></h2>
+<p>Two nodes with the same number of items packed in each stack can be compared, unless one of them just skipped a defect. Node 1 dominates node 2 if its cutting cost isn’t larger (for the <code class="code docutils literal notranslate"><span class="pre">bin-packing-cutting-cost</span></code> objective), if the resource consumption of its current bin isn’t larger when both are in the same bin, and if its front dominates the front of node 2:</p>
+<ul class="simple">
+<li><p>node 1 is in an earlier bin; or</p></li>
+<li><p>both are in the same bin, with the same orientation of the 1-cuts, and the front of node 1 is nowhere beyond the front of node 2: for example, <span class="math notranslate nohighlight">\(x_1^{curr}\)</span> of node 1 is not larger than <span class="math notranslate nohighlight">\(x_1^{prev}\)</span> of node 2, or the five positions of the front of node 1 are not larger than the ones of node 2 (with special cases when the current second-level sub-plate reaches the top of the bin).</p></li>
+</ul>
+<a class="reference internal image-reference" href="../../_images/rectangleguillotine_tree_search_dominance.svg"><img alt="../../_images/rectangleguillotine_tree_search_dominance.svg" class="align-center" height="256" src="../../_images/rectangleguillotine_tree_search_dominance.svg" width="404" />
+</a>
+</section>
+<section id="search">
+<h2>Search<a class="headerlink" href="#search" title="Link to this heading">¶</a></h2>
+<p>The tree is explored by the <a class="reference internal" href="../tree_search.html#internals-tree-search"><span class="std std-ref">iterative beam search</span></a>, which generates all the children of a node at once. The depth of a node is its number of items packed.</p>
+<p>In anytime mode, an iterative beam search is run for each pair (guide, orientation of the 1-cuts), in parallel. When there are at most two pairs, each one is run twice, with the growth factors 1.33 and 1.5; otherwise, the growth factor is 1.5. In the non-anytime modes, each search is run with a queue of size 1, then with a queue of the size given by the parameter <code class="code docutils literal notranslate"><span class="pre">not_anytime_tree_search_queue_size</span></code> (2048 by default).</p>
+</section>
+<section id="automatic-selection">
+<h2>Automatic selection<a class="headerlink" href="#automatic-selection" title="Link to this heading">¶</a></h2>
+<p>It is the default algorithm for the instances whose features or numbers of stages are not supported by the other algorithms, and, with several bins, for the instances where the item types have few copies compared to the number of items fitting in a bin. See <a class="reference internal" href="../algorithm_selection.html#internals-algorithm-selection"><span class="std std-ref">algorithm selection</span></a>.</p>
+<p>It can be forced with <code class="code docutils literal notranslate"><span class="pre">--use-tree-search</span> <span class="pre">1</span></code> (CLI) or <code class="code docutils literal notranslate"><span class="pre">use_tree_search</span></code> (Python).</p>
+</section>
+<section id="source-files">
+<h2>Source files<a class="headerlink" href="#source-files" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">src/rectangleguillotine/tree_search.hpp</span></code>, <code class="code docutils literal notranslate"><span class="pre">src/rectangleguillotine/tree_search.cpp</span></code></p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">scripts/doc_figures/rectangleguillotine_tree_search.py</span></code>: the figures of the front and of the dominance</p></li>
+</ul>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+<h3><a href="../../index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">PackingSolver’s documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../objectives.html">Objectives</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../optimization_modes.html">Optimization modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> solver</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../overview.html">Solver internals</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../tree_search.html">Tree search</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> algorithms</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> algorithms</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../rectangleguillotine.html#tree-search">Tree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rectangleguillotine.html#tree-search-with-maximal-spaces">Tree search with maximal spaces</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rectangleguillotine.html#column-generation-strips">Column generation strips</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rectangleguillotine.html#sequential-strips-one-dimensional">Sequential strips / one-dimensional</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rectangleguillotine.html#tree-search-hypergraph">Tree search hypergraph</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rectangleguillotine.html#tree-search-hypergraph-with-infinite-copies">Tree search hypergraph with infinite copies</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../rectangleguillotine.html#dual-feasible-functions">Dual feasible functions</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generic_algorithms.html">Generic algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../algorithm_selection.html">Algorithm selection</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="tree_search_maximal_spaces.html" title="Tree search with maximal spaces"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="../rectangleguillotine.html" title="rectangle-guillotine algorithms"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../overview.html" >Solver internals</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../rectangleguillotine.html" ><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> algorithms</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Tree search</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2019-2024, Florian Fontan.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.1.
+    </div>
+  </body>
+</html>

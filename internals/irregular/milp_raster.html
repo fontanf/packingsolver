@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>MILP raster &#8212; PackingSolver</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../../_static/classic.css?v=14e077c0" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=a00afc7f" />
+    
+    <script src="../../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Benders decomposition" href="benders_decomposition.html" />
+    <link rel="prev" title="Local search: nonlinear programming engine" href="local_search_nonlinear_programming.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="benders_decomposition.html" title="Benders decomposition"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="local_search_nonlinear_programming.html" title="Local search: nonlinear programming engine"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../overview.html" >Solver internals</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../irregular.html" accesskey="U"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">MILP raster</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="milp-raster">
+<span id="internals-irregular-milp-raster"></span><h1>MILP raster<a class="headerlink" href="#milp-raster" title="Link to this heading">¶</a></h1>
+<section id="objectives">
+<h2>Objectives<a class="headerlink" href="#objectives" title="Link to this heading">¶</a></h2>
+<p>This algorithm solves the <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code> and <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code> objectives, with one or several bins.</p>
+<p>In the <code class="code docutils literal notranslate"><span class="pre">exact</span></code> mode, it also computes a bound, with a relaxation on the same grids: a knapsack bound for the <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code> objective, or a proof that the instance is infeasible.</p>
+</section>
+<section id="principle">
+<h2>Principle<a class="headerlink" href="#principle" title="Link to this heading">¶</a></h2>
+<p>The bins are discretized into a grid of square cells, and the items are only placed at positions of the grid. The problem then becomes a set packing problem: select placements of the items, such that no two placements cover the same cell, maximizing the profit of the items placed. It is solved as a mixed-integer linear program (MILP). The grid is then refined, and the program solved again.</p>
+<img alt="../../_images/irregular_milp_raster.svg" class="align-center" src="../../_images/irregular_milp_raster.svg" />
+</section>
+<section id="rasterization">
+<h2>Rasterization<a class="headerlink" href="#rasterization" title="Link to this heading">¶</a></h2>
+<p>The rasterization is conservative, so that the solutions of the program are feasible packings:</p>
+<ul class="simple">
+<li><p>a cell is <em>covered</em> by an item as soon as the item covers a part of it, however small;</p></li>
+<li><p>a cell is <em>unavailable</em> in a bin as soon as a border of the bin or a defect covers a part of it, and the cells covered by fixed items are left to them.</p></li>
+</ul>
+<p>For each item type and each of its orientations (the allowed angles, or a finite set of angles for the item types with continuous rotations), the item is rasterized once. Its <em>placements</em> are all the translations of this pattern by whole cells such that all its cells are available.</p>
+<p><strong>Minimum spacings.</strong> They are taken into account by inflating the shapes before rasterizing them:</p>
+<ul class="simple">
+<li><p>item-defect spacing: the defects are inflated by their spacing;</p></li>
+<li><p>item-bin spacing: the borders of the bin (the parts of its bounding box outside of it) are inflated by the spacing, and the cells within the spacing of the sides of the bounding box are unavailable too. This is how the spacing is enforced for a rectangular bin, which has no borders;</p></li>
+<li><p>item-item spacing: each placement also has the cells of the item inflated by half the spacing, which are the ones used in the cell conflict constraints below; the fixed items are inflated by half the spacing too. Two placements whose inflated cells don’t overlap are at least the spacing apart.</p></li>
+</ul>
+</section>
+<section id="model">
+<h2>Model<a class="headerlink" href="#model" title="Link to this heading">¶</a></h2>
+<p><strong>Input</strong>:</p>
+<ul class="simple">
+<li><p>the cells <span class="math notranslate nohighlight">\(G\)</span> of the grids of the bins</p></li>
+<li><p>the placements <span class="math notranslate nohighlight">\(P\)</span>; for each placement <span class="math notranslate nohighlight">\(p\)</span>, its item type <span class="math notranslate nohighlight">\(j(p)\)</span> and the set of cells <span class="math notranslate nohighlight">\(C_p \subseteq G\)</span> it covers (with the item inflated by half the item-item spacing)</p></li>
+<li><p>the item types <span class="math notranslate nohighlight">\(j = 1, \ldots, n\)</span>; for each item type <span class="math notranslate nohighlight">\(j\)</span>, its profit <span class="math notranslate nohighlight">\(v_j\)</span>, and its minimum and maximum numbers of copies <span class="math notranslate nohighlight">\(q^{\min}_j\)</span> and <span class="math notranslate nohighlight">\(q_j\)</span> (without its fixed copies)</p></li>
+</ul>
+<p><strong>Variables</strong>:</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(x_p \in \{0, 1\}\)</span>, <span class="math notranslate nohighlight">\(p \in P\)</span>: <span class="math notranslate nohighlight">\(x_p = 1\)</span> iff placement <span class="math notranslate nohighlight">\(p\)</span> is selected</p></li>
+</ul>
+<p><strong>Objective</strong>: maximize the profit of the items placed</p>
+<div class="math notranslate nohighlight">
+\[\max \sum_{p \in P} v_{j(p)} \, x_p\]</div>
+<p><strong>Constraints</strong>:</p>
+<ul class="simple">
+<li><p>Copies: each item type is placed between its minimum and its maximum number of copies. For the <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code> objective, the minimum is the number of copies, so all the items must be placed.</p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[\forall j \qquad q^{\min}_j \le \sum_{p \,:\, j(p) = j} x_p \le q_j\]</div>
+<ul class="simple">
+<li><p>Cell conflicts: each cell is covered by at most one placement.</p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[\forall c \in G \qquad \sum_{p \,:\, c \, \in \, C_p} x_p \le 1\]</div>
+</section>
+<section id="grid-refinement">
+<h2>Grid refinement<a class="headerlink" href="#grid-refinement" title="Link to this heading">¶</a></h2>
+<p>The initial size of the cells is computed from the coordinates of the vertices of the shapes: if they are all multiples of a common value, the size of the cells is this value times a power of two, so that, once the grid has been refined down to this value, the shapes made of axis-aligned edges on this grid are rasterized exactly. The size of the cells is halved after each program, until the time limit.</p>
+<p>The programs are solved with HiGHS. For the <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code> objective, the solutions found by the solver are reported as they are found, and the solver stops as soon as its bound shows that it can’t improve the best solution found.</p>
+</section>
+<section id="bound">
+<h2>Bound<a class="headerlink" href="#bound" title="Link to this heading">¶</a></h2>
+<p>In the <code class="code docutils literal notranslate"><span class="pre">exact</span></code> mode, a <em>relaxation</em> of the problem is solved on the same grids as the restriction above, for the same decreasing cell sizes, in another thread. It is only used if every allowed rotation of the item types is a single angle.</p>
+<p>In the restriction, an item is placed at a point of the grid and occupies every cell it touches. In the relaxation, a placement <span class="math notranslate nohighlight">\(p\)</span> of an item type <span class="math notranslate nohighlight">\(j(p)\)</span>, in a rotation, at a cell <span class="math notranslate nohighlight">\(k\)</span>, means that the bottom-left corner of the bounding box of the item is <em>anywhere</em> in cell <span class="math notranslate nohighlight">\(k\)</span>, so every position of the item is covered by a placement. Several copies may share a placement.</p>
+<p><strong>Coefficients.</strong> The coefficient <span class="math notranslate nohighlight">\(a_{p,c}\)</span> of placement <span class="math notranslate nohighlight">\(p\)</span> in cell <span class="math notranslate nohighlight">\(c\)</span> is a lower bound on the area of cell <span class="math notranslate nohighlight">\(c\)</span> covered by the item, wherever its corner is in cell <span class="math notranslate nohighlight">\(k\)</span>. The item is partitioned into convex parts. For a convex part, the square root of the area of its intersection with the cell is concave in their relative position (Brunn-Minkowski inequality), so its minimum over the positions in cell <span class="math notranslate nohighlight">\(k\)</span> is reached at a corner of cell <span class="math notranslate nohighlight">\(k\)</span>. Each convex part is rasterized at the 4 corners, and <span class="math notranslate nohighlight">\(a_{p,c}\)</span> is the sum over the convex parts of the minimum of their coverage of cell <span class="math notranslate nohighlight">\(c\)</span> over the 4 corners.</p>
+<p><strong>Capacities.</strong> The capacity <span class="math notranslate nohighlight">\(b_c\)</span> of a cell is the area of the cell inside the bin, minus the area of the fixed items in it. The defects and the item-item spacing are ignored, which keeps the relaxation valid.</p>
+<p><strong>Variables</strong>:</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(y_p \in \mathbb{N}\)</span>, <span class="math notranslate nohighlight">\(p \in P\)</span>: the number of copies placed at placement <span class="math notranslate nohighlight">\(p\)</span></p></li>
+</ul>
+<p><strong>Objective</strong>: for the <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code> objective, maximize the profit of the items placed</p>
+<div class="math notranslate nohighlight">
+\[\max \sum_{p \in P} v_{j(p)} \, y_p\]</div>
+<p><strong>Constraints</strong>:</p>
+<ul class="simple">
+<li><p>Copies:</p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[\forall j \qquad q^{\min}_j \le \sum_{p \,:\, j(p) = j} y_p \le q_j\]</div>
+<ul class="simple">
+<li><p>Cell capacities:</p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[\forall c \in G \qquad \sum_{p \in P} a_{p,c} \, y_p \le b_c\]</div>
+<ul class="simple">
+<li><p>Areas: the coefficients <span class="math notranslate nohighlight">\(a_{p,c}\)</span> underestimate the areas of the items, so the area of the items placed in a bin, <span class="math notranslate nohighlight">\(A_{j(p)}\)</span> for each copy, is also bounded by the sum <span class="math notranslate nohighlight">\(B\)</span> of the capacities of its cells.</p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[\forall \text{ bin} \qquad \sum_{p \text{ in the bin}} A_{j(p)} \, y_p \le B\]</div>
+<p>The value of the relaxation is a knapsack bound, and if it is infeasible, the instance is infeasible. On <code class="code docutils literal notranslate"><span class="pre">data/irregular/tests/knapsack_incompatible_crosses.json</span></code>, three crosses which fit by area can’t be packed together, since each of them covers the center of the bin: the area bounds count all three, while the relaxation proves the optimality of a solution with a single one.</p>
+<p>There is no limit on the size of the program of the relaxation: its solve may not stop at the time limit, which is acceptable in the <code class="code docutils literal notranslate"><span class="pre">exact</span></code> mode only.</p>
+</section>
+<section id="strengths-and-limitations">
+<h2>Strengths and limitations<a class="headerlink" href="#strengths-and-limitations" title="Link to this heading">¶</a></h2>
+<p>The rasterization wastes space along the boundaries of the items, so the algorithm is well suited to items made of axis-aligned edges on a common grid, like polyominoes and calendar puzzles, where it is exact. On general shapes, the number of cells, and so the size of the program, grows quickly as the grid is refined.</p>
+</section>
+<section id="automatic-selection">
+<h2>Automatic selection<a class="headerlink" href="#automatic-selection" title="Link to this heading">¶</a></h2>
+<p>It is not part of the automatic selection. It can be selected with <code class="code docutils literal notranslate"><span class="pre">--use-milp-raster</span> <span class="pre">1</span></code> (CLI) or <code class="code docutils literal notranslate"><span class="pre">use_milp_raster</span></code> (Python).</p>
+</section>
+<section id="source-files">
+<h2>Source files<a class="headerlink" href="#source-files" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">src/irregular/milp_raster.hpp</span></code>, <code class="code docutils literal notranslate"><span class="pre">src/irregular/milp_raster.cpp</span></code></p></li>
+</ul>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+<h3><a href="../../index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">PackingSolver’s documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../objectives.html">Objectives</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../optimization_modes.html">Optimization modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> solver</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../overview.html">Solver internals</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../tree_search.html">Tree search</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> algorithms</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#trivial-single-item">Trivial single item</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#tree-search">Tree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#tree-search-with-periodic-packings">Tree search with periodic packings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#tree-search-with-maximal-spaces">Tree search with maximal spaces</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#local-search">Local search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#milp-raster">MILP raster</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#benders-decomposition">Benders decomposition</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#tree-search-on-relative-positions">Tree search on relative positions</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../irregular.html#one-dimensional-bound">One-dimensional bound</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../generic_algorithms.html">Generic algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../algorithm_selection.html">Algorithm selection</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="benders_decomposition.html" title="Benders decomposition"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="local_search_nonlinear_programming.html" title="Local search: nonlinear programming engine"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../overview.html" >Solver internals</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../irregular.html" ><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">MILP raster</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2019-2024, Florian Fontan.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.1.
+    </div>
+  </body>
+</html>

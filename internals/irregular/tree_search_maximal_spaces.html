@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Tree search with maximal spaces &#8212; PackingSolver</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../../_static/classic.css?v=14e077c0" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=a00afc7f" />
+    
+    <script src="../../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Local search" href="local_search.html" />
+    <link rel="prev" title="Tree search with periodic packings" href="tree_search_periodic_packing.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="local_search.html" title="Local search"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="tree_search_periodic_packing.html" title="Tree search with periodic packings"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../overview.html" >Solver internals</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../irregular.html" accesskey="U"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Tree search with maximal spaces</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="tree-search-with-maximal-spaces">
+<span id="internals-irregular-tree-search-maximal-spaces"></span><h1>Tree search with maximal spaces<a class="headerlink" href="#tree-search-with-maximal-spaces" title="Link to this heading">¶</a></h1>
+<section id="objectives">
+<h2>Objectives<a class="headerlink" href="#objectives" title="Link to this heading">¶</a></h2>
+<p>This algorithm only handles instances with a single bin. It solves the <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code> and <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code> objectives directly, and the <code class="code docutils literal notranslate"><span class="pre">bin-packing</span></code>, <code class="code docutils literal notranslate"><span class="pre">bin-packing-with-leftovers</span></code>, <code class="code docutils literal notranslate"><span class="pre">open-dimension-x</span></code>, <code class="code docutils literal notranslate"><span class="pre">open-dimension-y</span></code> and <code class="code docutils literal notranslate"><span class="pre">open-dimension-xy</span></code> objectives through the <a class="reference internal" href="../generic_algorithms/sequential_feasibility.html#internals-generic-algorithms-sequential-feasibility"><span class="std std-ref">sequential feasibility</span></a> algorithm, which solves a sequence of <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code> sub-problems with this algorithm.</p>
+</section>
+<section id="principle">
+<h2>Principle<a class="headerlink" href="#principle" title="Link to this heading">¶</a></h2>
+<p>It lies between the <a class="reference internal" href="tree_search.html#internals-irregular-tree-search"><span class="std std-ref">tree search</span></a> and the <a class="reference internal" href="tree_search_periodic_packing.html#internals-irregular-tree-search-periodic-packing"><span class="std std-ref">tree search with periodic packings</span></a>:</p>
+<ul class="simple">
+<li><p>like the latter, a node stores the <em>maximal empty spaces</em> of the bin, a <em>block</em> of items is packed at each stage, in the empty space closest to the bottom-left corner of the bin, and the nodes are evaluated by completing them greedily;</p></li>
+<li><p>like the former, the items are described by their actual (simplified) shapes, decomposed into trapezoids, and a block is inserted by resting it on a supporting part of the bin or of the blocks already packed and by sliding it to the right until it doesn’t overlap them.</p></li>
+</ul>
+<p>The algorithm thus works on two representations of the geometry at the same time:</p>
+<ul class="simple">
+<li><p>a <strong>coarse one, made of rectangles</strong>, which gives the maximal empty spaces. It is only used to decide <em>where</em> to try to insert a block: which empty space, which supporting parts, which blocks;</p></li>
+<li><p>an <strong>exact one, made of trapezoids</strong>, which decides <em>whether</em> a block can be inserted at a position. A position is valid if and only if the trapezoids of the block don’t overlap the trapezoids of the items already packed and of the obstacles of the bin.</p></li>
+</ul>
+<p>Unlike in the tree search, a block can be packed in any empty space, including the gaps left behind the front of the items already packed. Unlike in the tree search with periodic packings, the blocks are not reduced to their bounding boxes: a block doesn’t have to fit inside the empty space it is inserted in, and may stick out of it, for example to slide down a slope of an item already packed, or into one of its concavities.</p>
+</section>
+<section id="frame">
+<h2>Frame<a class="headerlink" href="#frame" title="Link to this heading">¶</a></h2>
+<p>As in the tree search, everything is computed in the frame of a <em>direction</em>, obtained by mirroring and transposing the instance: the bin and the items are converted into this frame, the algorithm packs the items towards the bottom-left corner of the frame, and the positions found are converted back at the end. Two directions are used, in parallel:</p>
+<ul class="simple">
+<li><p>from left to right then from bottom to top (the original frame);</p></li>
+<li><p>from bottom to top then from left to right (the frame where the x and y axes are exchanged).</p></li>
+</ul>
+<p>In the following, “left”, “bottom”, etc. refer to the frame of the direction.</p>
+<p>All the lengths are scaled (see <code class="code docutils literal notranslate"><span class="pre">scale_value</span></code> in the instance parameters).</p>
+</section>
+<section id="preprocessing">
+<h2>Preprocessing<a class="headerlink" href="#preprocessing" title="Link to this heading">¶</a></h2>
+<p><strong>Simplified shapes and orientations.</strong> The shapes are simplified, and the item types are considered in a finite set of orientations, exactly as for the <a class="reference internal" href="tree_search.html#internals-irregular-tree-search"><span class="std std-ref">tree search</span></a>. The simplified shapes of the items, of the bin borders and of the defects contain the original ones, so that a packing of the simplified shapes is a packing of the original ones.</p>
+<p><strong>Trapezoid sets.</strong> For each item type and orientation, a <em>trapezoid set</em> is built as in the tree search:</p>
+<ul class="simple">
+<li><p>the simplified shape and the simplified shape inflated by the item-item spacing are both decomposed into generalized trapezoids (trapezoids whose parallel sides are horizontal);</p></li>
+<li><p>the <em>supporting parts</em>, chains of edges with the material below them, on which another item can rest, are computed on the inflated shape;</p></li>
+<li><p>the <em>supported parts</em>, chains of edges with the material above them, with which the item rests on another one, are computed on the non-inflated shape.</p></li>
+</ul>
+<p>The bin is also decomposed into trapezoids: a strip below the bin, a strip above the bin, its borders (the parts of its bounding box outside of its shape), its defects and its fixed items, all inflated by their spacings. These are the <em>obstacles</em> of the bin. The bin has its own supporting parts: its floor, and the top of its borders, defects and fixed items.</p>
+<p><strong>Blocks.</strong> A block is a set of items with fixed relative positions. The blocks are:</p>
+<ul class="simple">
+<li><p>one block for each item type in each of its orientations, with a single item;</p></li>
+<li><p>the blocks of the <a class="reference internal" href="tree_search_periodic_packing.html#internals-irregular-tree-search-periodic-packing"><span class="std std-ref">periodic packings</span></a> already computed by the instance builder, that is, only for the item types with many copies (no periodic packing is computed by this algorithm). The blocks of a single item, and the ones aligning the bounding boxes of the items on a grid, are not kept: packing these items one by one does at least as well on their actual shapes. If a periodic block uses an orientation which is not among the orientations of its item type, the trapezoid set of this orientation is built.</p></li>
+</ul>
+<p>The trapezoids of a block are the trapezoids of its items, shifted by their positions in the block. A block is described by:</p>
+<ul class="simple">
+<li><p>its trapezoids, non-inflated and inflated;</p></li>
+<li><p>its supporting parts: the supporting parts of its items which are not covered by another item of the block. A supporting part is covered if a trapezoid of another item of the block overlaps it horizontally and has its bottom at or above the lowest point of the supporting part, that is, if another item of the block lies on top of it;</p></li>
+<li><p>its supported parts: the supported parts of its <em>lowest</em> item (the one whose bottom is the lowest, then the leftmost one) which are not covered by another item of the block. A supported part is covered if a trapezoid of another item of the block overlaps it horizontally and has its top at or below the highest point of the supported part. Only the lowest item is used, since resting the block on the bottom of its other items would mostly lead to the same positions, for a much larger number of slides;</p></li>
+<li><p>its rectangles: the rectangles covering its items (see below), and its <em>core rectangle</em>, the largest of them;</p></li>
+<li><p>its number of items, the area of its items and their profit.</p></li>
+</ul>
+<p><strong>Rectangles.</strong> Each item, in each orientation, is covered by rectangles: its inflated simplified shape, in the frame of the direction, is given to <code class="code docutils literal notranslate"><span class="pre">shape::outer_approximation_by_rectangles</span></code>, with a maximum waste (area of the rectangles minus the area of the shape) of 10% of the area of the shape. While this gives more than 8 rectangles, the maximum waste is doubled and the rectangles are computed again: the number of maximal empty spaces grows quickly with the number of rectangles, and so does the time needed to update them. For example, a frame whose hole represents 20% of its area is covered by 4 rectangles, which keeps its hole free, but it would be covered by its bounding box alone with a maximum waste of 30%.</p>
+<p>The obstacles of the bin are covered by rectangles too, in the original frame and with a maximum waste of 10% of the smallest of the area of the bin and of the total area of the items, then converted into the frame of the direction.</p>
+</section>
+<section id="nodes">
+<h2>Nodes<a class="headerlink" href="#nodes" title="Link to this heading">¶</a></h2>
+<p>A node stores:</p>
+<ul class="simple">
+<li><p>the blocks packed, with their positions;</p></li>
+<li><p>the trapezoids which a new block must not overlap: the obstacles of the bin and the inflated trapezoids of the items packed;</p></li>
+<li><p>the maximal empty spaces;</p></li>
+<li><p>for each item type, its number of copies packed, and the blocks which don’t use more copies than available, called the <em>valid</em> blocks;</p></li>
+<li><p>the number of items packed, their area, their profit, and the profit of the greedy completion of the node (see below).</p></li>
+</ul>
+<p><strong>Maximal empty spaces.</strong> An empty space is an axis-aligned rectangle of the bin which doesn’t overlap the rectangles covering the items packed and the obstacles. An empty space is <em>maximal</em> if it isn’t contained in another empty space. The maximal empty spaces may overlap each other.</p>
+<p>Since the rectangles contain the items, the empty spaces are really empty, but they don’t cover all the free space: the parts of the rectangles outside of the items (their waste) are free but in no empty space. This is why the empty spaces are only used to select where to try to insert a block, and why the blocks are allowed to stick out of them.</p>
+<p>The root node has a single empty space, the bounding box of the bin shrunk by the item-bin spacing, which is then cut by the rectangles of the obstacles.</p>
+<p>When a block is packed, its rectangles, at its position, are removed from the empty spaces: each empty space overlapping at least one of them is cut by all of them, which replaces it by its maximal parts on the left, on the right, below and above each rectangle. Then, the new parts contained in another empty space are discarded.</p>
+<p><strong>Unusable empty spaces.</strong> A block <em>may fit</em> in an empty space if:</p>
+<ul class="simple">
+<li><p>its core rectangle fits in the empty space, up to 10%: its width is at most 1.1 times the width of the empty space, and its height at most 1.1 times its height;</p></li>
+<li><p>its bounding box fits in the bin.</p></li>
+</ul>
+<p>This is only a rough necessary condition, the actual check being made on the trapezoids. After each insertion, the empty spaces in which no valid block may fit are discarded; and when cutting the empty spaces, the new parts narrower (or lower) than the narrowest (or lowest) core rectangle of the valid blocks, divided by 1.1, are discarded right away.</p>
+</section>
+<section id="insertions">
+<h2>Insertions<a class="headerlink" href="#insertions" title="Link to this heading">¶</a></h2>
+<p>The insertions of a node are computed as follows.</p>
+<p><strong>1. Selection of the empty space.</strong> The empty space whose bottom-left corner is the closest to the bottom-left corner of the bin, in Manhattan distance, is selected; in case of a tie, the largest one.</p>
+<p><strong>2. Candidate blocks.</strong> The candidate blocks are the valid blocks which may fit in the selected empty space.</p>
+<p><strong>3. Candidate supporting parts.</strong> The candidate supporting parts are the ones which touch the bottom side of the empty space: they overlap it horizontally, and their lowest point is at or below it while their highest point is at or above it. They are searched among the supporting parts of the bin and of the blocks already packed (only for the blocks whose bounding box crosses the bottom side of the empty space). The bottom side of an empty space is usually the top of a rectangle covering an item, which is also the top of the item, so the supporting part of the item at the top of this rectangle touches it.</p>
+<p><strong>4. Obstacles.</strong> For each candidate supporting part, the trapezoids which a block resting on it may overlap are selected among the trapezoids of the node: the ones whose right is to the right of the left side of the empty space minus the width of the widest candidate block, and which overlap vertically the supporting part extended, above and below, by the height of the highest candidate block. The other trapezoids can’t be reached by the slides below.</p>
+<p><strong>5. Slides.</strong> For each candidate block, for each candidate supporting part, and for each supported part of the block:</p>
+<ul class="simple">
+<li><p>the block is put on the supporting part: the first point of the supported part is put on the first point of the supporting part;</p></li>
+<li><p>it is slid to the right of a vertical <em>wall</em>, at the left side of the empty space minus the width of the block (and at least at the left side of the bin). The wall lets the block stick out of the empty space on the left by at most its own width, but prevents it from going back to the gaps further left, which belong to other empty spaces;</p></li>
+<li><p>it is slid until it doesn’t overlap the obstacles of the supporting part.</p></li>
+</ul>
+<p>A slide is the one of the tree search (see <code class="code docutils literal notranslate"><span class="pre">TrapezoidSetSlider</span></code>): the block moves to the right along the supporting part, its supported part staying in contact with it, following the larger of the slopes of the two current edges (the supporting edge and the supported edge), and changing edge when it reaches the end of one of them. When a trapezoid of the block overlaps an obstacle, the block moves by the smallest distance getting it out of the obstacle; this is repeated until it overlaps no obstacle. Each move is the smallest one, so the final position is the first position along the supporting part, at or after the initial one, without overlap.</p>
+<p>The slide fails, and the position is discarded, if the end of the supporting part is reached, or if the block goes beyond the right side of the bin. The bottom and the top of the bin are obstacles, so they are respected by the slide too. Otherwise, the position is valid; it is kept if the bounding box of the block overlaps the empty space.</p>
+<p><strong>6. Score.</strong> Each position is scored by</p>
+<div class="math notranslate nohighlight">
+\[V \times D^\beta \times N^{-\gamma}\]</div>
+<p>where:</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(V\)</span> is the profit of the block;</p></li>
+<li><p><span class="math notranslate nohighlight">\(N\)</span> is its number of items;</p></li>
+<li><p><span class="math notranslate nohighlight">\(D\)</span> is its <em>density</em>: the area of its items divided by the area of the rectangle going from the bottom-left corner of the empty space (or from the bottom-left corner of the bounding box of the block, if it is lower or more to the left) to the top-right corner of the bounding box of the block, capped at 1. It penalizes the blocks leaving free space between them and the corner of the empty space, and the blocks wasting space inside their own bounding box.</p></li>
+</ul>
+<p>By default, <span class="math notranslate nohighlight">\(\beta = 2\)</span> and <span class="math notranslate nohighlight">\(\gamma = 0.4\)</span>. A larger <span class="math notranslate nohighlight">\(\beta\)</span> favors the dense positions, a larger <span class="math notranslate nohighlight">\(\gamma\)</span> the blocks of few items.</p>
+<p>For each block, only its best position is kept. The insertions of the node are these positions, sorted by decreasing score.</p>
+<p><strong>7. Failed empty spaces.</strong> If no block has a valid position in the selected empty space, the empty space is removed from the node and the next one is selected, until an insertion is found or no empty space is left. This is valid since a block which can’t be inserted in an empty space can’t be inserted there later either: later, there are more items packed and fewer valid blocks.</p>
+<p>Applying an insertion to a node adds the block to the node, adds its inflated trapezoids to the trapezoids of the node, updates the numbers of copies and the valid blocks, and cuts the empty spaces by its rectangles.</p>
+</section>
+<section id="example">
+<h2>Example<a class="headerlink" href="#example" title="Link to this heading">¶</a></h2>
+<p>Consider a bin with an L-shaped item already packed in its bottom-left corner, its vertical arm on the left. The rectangles covering the L are the rectangles of its two arms. The empty space closest to the bottom-left corner of the bin is then the one above the horizontal arm and to the right of the vertical arm, in the concavity of the L.</p>
+<p>The supporting part touching the bottom of this empty space is the top of the horizontal arm of the L, which starts at the inner corner of the L. A right triangle resting on it with one of its legs is put at the start of this supporting part, against the vertical arm of the L; the wall, at the left side of the empty space minus the width of the triangle, doesn’t move it. If the triangle doesn’t overlap anything there, this is its position: in the corner of the concavity. Otherwise, for example if another item already lies there, it is slid to the right until it doesn’t overlap it.</p>
+<p>If the top of the horizontal arm was sloped down to the right, the triangle would slide down along it, and its bounding box could end below the bottom of the empty space: this position is still kept since its bounding box overlaps the empty space.</p>
+</section>
+<section id="search">
+<h2>Search<a class="headerlink" href="#search" title="Link to this heading">¶</a></h2>
+<p><strong>Greedy completion.</strong> A node is completed greedily by applying, at each stage, its insertion of best score, until it has no insertion left. Only the best insertion is computed at each stage, but this still requires sliding all the candidate blocks, so a greedy completion costs about as many slides as the number of stages times the number of candidate blocks. The greedy completion checks the time limit at each stage, and stops early when it is reached.</p>
+<p><strong>Children.</strong> The children of a node are generated one by one, in the order of the scores of its insertions. Each child is evaluated by its greedy completion: its <em>greedy value</em> is the profit of the greedy completion. The solution of a node is its greedy completion, converted back into the original frame.</p>
+<p><strong>Beam search.</strong> The tree is explored by an iterative beam search (<code class="code docutils literal notranslate"><span class="pre">treesearchsolver::iterative_beam_search</span></code>). At each depth, the beam keeps the nodes with the largest greedy values (then the largest profits); at most as many children as the size of the beam are generated for each node. The best solution found is the one of the node with the largest greedy value.</p>
+<p><strong>Dominance.</strong> Among the nodes with the same number of copies of each item type, only the one with the largest greedy value is kept (with a history shared by all the depths).</p>
+<p>In anytime mode, the size of the beam grows at each restart. In the non-anytime modes, a beam search of size 1 then one of size <code class="code docutils literal notranslate"><span class="pre">not_anytime_tree_search_maximal_spaces_queue_size</span></code> (4 by default) are run.</p>
+</section>
+<section id="parameters">
+<h2>Parameters<a class="headerlink" href="#parameters" title="Link to this heading">¶</a></h2>
+<p>The parameters of the branching scheme (<code class="code docutils literal notranslate"><span class="pre">BranchingSchemeMaximalSpaces::Parameters</span></code>) are:</p>
+<ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">direction</span></code>: the direction;</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">maximum_approximation_ratio</span></code> (default 5%): the maximum approximation ratio of the shape simplification, taken from <code class="code docutils literal notranslate"><span class="pre">not_anytime_maximum_approximation_ratio</span></code> when the algorithm is run from <code class="code docutils literal notranslate"><span class="pre">optimize</span></code>;</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">rectangle_approximation_ratio</span></code> (default 0.1): the initial maximum waste of the rectangles covering an item, as a ratio of its area; also the tolerance of the test “may fit”;</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">maximum_number_of_rectangles</span></code> (default 8): the maximum number of rectangles covering an item;</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">use_periodic_blocks</span></code> (default true): whether to use the periodic blocks, or only the single items;</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">beta</span></code> (default 2) and <code class="code docutils literal notranslate"><span class="pre">gamma</span></code> (default 0.4): the exponents of the score.</p></li>
+</ul>
+</section>
+<section id="limitations">
+<h2>Limitations<a class="headerlink" href="#limitations" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>The defects are always obstacles, whatever the quality rules of the items.</p></li>
+<li><p>The empty spaces are approximations of the free space: a block which only fits across several empty spaces, or whose core rectangle is too large for the empty spaces of a concavity, may be missed.</p></li>
+<li><p>Only the bottom-left corner of the bin is used as anchor (in each direction), unlike in the tree search with periodic packings, where the empty space closest to any corner of the bin is selected.</p></li>
+<li><p>The greedy completions dominate the running time: since each child is evaluated by a greedy completion, which slides all the candidate blocks at each stage, the algorithm gets slow on instances with many different item types.</p></li>
+</ul>
+</section>
+<section id="automatic-selection">
+<h2>Automatic selection<a class="headerlink" href="#automatic-selection" title="Link to this heading">¶</a></h2>
+<p>The algorithm is never selected automatically. It can be forced with <code class="code docutils literal notranslate"><span class="pre">--use-tree-search-maximal-spaces</span> <span class="pre">1</span></code> (CLI) or <code class="code docutils literal notranslate"><span class="pre">use_tree_search_maximal_spaces</span></code> (Python).</p>
+</section>
+<section id="source-files">
+<h2>Source files<a class="headerlink" href="#source-files" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">src/irregular/trapezoid_set.hpp</span></code>, <code class="code docutils literal notranslate"><span class="pre">src/irregular/trapezoid_set.cpp</span></code>: the directions, the trapezoid sets and the supports, shared with the tree search</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">src/irregular/trapezoid_slider.hpp</span></code>, <code class="code docutils literal notranslate"><span class="pre">src/irregular/trapezoid_slider.cpp</span></code>: the slide of a trapezoid set along a supporting part, shared with the tree search</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">src/irregular/empty_spaces.hpp</span></code>, <code class="code docutils literal notranslate"><span class="pre">src/irregular/empty_spaces.cpp</span></code>: the maximal empty spaces, shared with the tree search with periodic packings</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">src/irregular/tree_search_maximal_spaces.hpp</span></code>, <code class="code docutils literal notranslate"><span class="pre">src/irregular/tree_search_maximal_spaces.cpp</span></code>: the blocks, the branching scheme and the search</p></li>
+</ul>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+<h3><a href="../../index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">PackingSolver’s documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../objectives.html">Objectives</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../optimization_modes.html">Optimization modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> solver</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../overview.html">Solver internals</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../tree_search.html">Tree search</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> algorithms</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#trivial-single-item">Trivial single item</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#tree-search">Tree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#tree-search-with-periodic-packings">Tree search with periodic packings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#tree-search-with-maximal-spaces">Tree search with maximal spaces</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#local-search">Local search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#milp-raster">MILP raster</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#benders-decomposition">Benders decomposition</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#tree-search-on-relative-positions">Tree search on relative positions</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../irregular.html#one-dimensional-bound">One-dimensional bound</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../generic_algorithms.html">Generic algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../algorithm_selection.html">Algorithm selection</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="local_search.html" title="Local search"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="tree_search_periodic_packing.html" title="Tree search with periodic packings"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../overview.html" >Solver internals</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../irregular.html" ><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Tree search with maximal spaces</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2019-2024, Florian Fontan.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.1.
+    </div>
+  </body>
+</html>

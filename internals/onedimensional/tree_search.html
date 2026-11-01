@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Tree search &#8212; PackingSolver</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../../_static/classic.css?v=14e077c0" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=a00afc7f" />
+    
+    <script src="../../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="MILP assignment" href="milp_assignment.html" />
+    <link rel="prev" title="Dynamic programming" href="dynamic_programming.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="milp_assignment.html" title="MILP assignment"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="dynamic_programming.html" title="Dynamic programming"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../overview.html" >Solver internals</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../onedimensional.html" accesskey="U"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> algorithms</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Tree search</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="tree-search">
+<span id="internals-onedimensional-tree-search"></span><h1>Tree search<a class="headerlink" href="#tree-search" title="Link to this heading">¶</a></h1>
+<section id="objectives">
+<h2>Objectives<a class="headerlink" href="#objectives" title="Link to this heading">¶</a></h2>
+<p>This algorithm solves the <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code>, <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code>, <code class="code docutils literal notranslate"><span class="pre">bin-packing</span></code> and <code class="code docutils literal notranslate"><span class="pre">bin-packing-with-leftovers</span></code> objectives, and the <code class="code docutils literal notranslate"><span class="pre">variable-sized-bin-packing</span></code> objective when there is a single bin type (it is then a bin packing problem). It supports all the constraints of onedimensional: the nesting lengths, the maximum stackability, the maximum weight of the bins, the maximum weight after an item, the eligibility and the resources.</p>
+</section>
+<section id="principle">
+<h2>Principle<a class="headerlink" href="#principle" title="Link to this heading">¶</a></h2>
+<p>It is a constructive tree search where a single item is packed at each stage:</p>
+<ul class="simple">
+<li><p>the root node is the empty solution;</p></li>
+<li><p>a node is a partial solution: the items packed so far, bin by bin, each bin filled in order;</p></li>
+<li><p>the children of a node are obtained by packing one more item after the last item of the current (last) bin, or in a new bin if no item can be packed in the current bin anymore;</p></li>
+<li><p>a node is a <em>leaf</em> when all the items are packed.</p></li>
+</ul>
+<p>The figure below shows the beginning of the tree, with four item types A (length 5), B (4), C (1) and D (2), with a single copy each, and bins of length 8. Each child adds one item on top of the bin of its parent:</p>
+<img alt="../../_images/onedimensional_tree_search_tree.svg" class="align-center" src="../../_images/onedimensional_tree_search_tree.svg" />
+<p>The tree is explored by the <a class="reference internal" href="../tree_search.html#internals-tree-search"><span class="std std-ref">iterative beam search</span></a>, guided by the guides below. Many nodes are also discarded by the dominance and the bounds.</p>
+<p><strong>Order of the bins.</strong> The bins are opened in a fixed order: in the order in which they appear in the instance, or by increasing length for the <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code> objective.</p>
+</section>
+<section id="nodes">
+<h2>Nodes<a class="headerlink" href="#nodes" title="Link to this heading">¶</a></h2>
+<p>A node stores:</p>
+<ul class="simple">
+<li><p>its parent, and the item type of the item it packed, from which the solution is rebuilt at the end;</p></li>
+<li><p>for each item type, its number of copies packed;</p></li>
+<li><p>the number of bins used;</p></li>
+<li><p>for the current bin: the length used, the weight of its items, its number of items, the smallest maximum stackability of its items, the weight still allowed after its items, and the consumption of each resource;</p></li>
+<li><p>the number of items packed, their length, their nested length and their profit;</p></li>
+<li><p>its <em>current length</em>: the total length of the bins before the current one, plus the length used in the current bin; and its <em>waste</em>: the current length minus the length of the items packed.</p></li>
+</ul>
+</section>
+<section id="children">
+<h2>Children<a class="headerlink" href="#children" title="Link to this heading">¶</a></h2>
+<p><strong>Same bin.</strong> For each item type allowed in the bin type of the current bin, and with copies left, an item is packed after the last item of the current bin, if:</p>
+<ul class="simple">
+<li><p>the length of the bin is not exceeded; an item packed after another item only needs its length minus its nesting length;</p></li>
+<li><p>the maximum weight of the bin is not exceeded;</p></li>
+<li><p>the number of items of the bin doesn’t exceed the smallest maximum stackability of its items, including the new one;</p></li>
+<li><p>the weight of the new item doesn’t exceed the weight still allowed after the items of the bin: the smallest, over the items of the bin, of the maximum weight allowed after the item minus the weight of the items packed after it;</p></li>
+<li><p>the capacities of the resources of the bin are not exceeded. A <em>penalize</em> resource never blocks an insertion: its penalty is subtracted from the profit of the node instead, once its capacity is exceeded.</p></li>
+</ul>
+<p>In the figure below, items P and Q are packed in a bin of length 10 and of maximum weight 10, and Q allows a weight of at most 3 after it. Each candidate item is shown with the first condition it violates:</p>
+<a class="reference internal image-reference" href="../../_images/onedimensional_tree_search_insertions.svg"><img alt="../../_images/onedimensional_tree_search_insertions.svg" class="align-center" height="180" src="../../_images/onedimensional_tree_search_insertions.svg" width="759" />
+</a>
+<p><strong>New bin.</strong> If no item can be packed in the current bin, a new bin is opened, and each item type allowed in it, with copies left, whose length, weight and resource consumption fit in the bin, gives a child. A new bin is never opened while an item still fits in the current one. If no item fits in the next bin, the bin after it is tried, and so on.</p>
+</section>
+<section id="guides">
+<h2>Guides<a class="headerlink" href="#guides" title="Link to this heading">¶</a></h2>
+<p>The guides compare the current length of a node, i.e. the length it has already “consumed”, to the length or the profit of its items. With <span class="math notranslate nohighlight">\(L_c\)</span> the current length, <span class="math notranslate nohighlight">\(L\)</span> the length of the items packed, <span class="math notranslate nohighlight">\(P\)</span> their profit, <span class="math notranslate nohighlight">\(n\)</span> their number, <span class="math notranslate nohighlight">\(\bar{\ell} = L / n\)</span> their mean length, <span class="math notranslate nohighlight">\(\bar{\ell^2}\)</span> the mean of their squared lengths, and <span class="math notranslate nohighlight">\(r = (L_c - L) / L_c\)</span> the waste ratio:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 14.3%" />
+<col style="width: 28.6%" />
+<col style="width: 57.1%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Guide</p></th>
+<th class="head"><p>Value</p></th>
+<th class="head"><p>Idea</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>0</p></td>
+<td><p><span class="math notranslate nohighlight">\(L_c / L\)</span></p></td>
+<td><p>Little consumed length per length packed.</p></td>
+</tr>
+<tr class="row-odd"><td><p>1</p></td>
+<td><p><span class="math notranslate nohighlight">\(L_c / L / \bar{\ell}\)</span></p></td>
+<td><p>Same, favoring the long items.</p></td>
+</tr>
+<tr class="row-even"><td><p>2</p></td>
+<td><p><span class="math notranslate nohighlight">\((0.1 + r) / \bar{\ell}\)</span></p></td>
+<td><p>Little waste, favoring the long items.</p></td>
+</tr>
+<tr class="row-odd"><td><p>3</p></td>
+<td><p><span class="math notranslate nohighlight">\((0.1 + r) / \bar{\ell^2}\)</span></p></td>
+<td><p>Same, favoring the long items more.</p></td>
+</tr>
+<tr class="row-even"><td><p>4</p></td>
+<td><p><span class="math notranslate nohighlight">\(L_c / P\)</span></p></td>
+<td><p>Little consumed length per profit packed.</p></td>
+</tr>
+<tr class="row-odd"><td><p>5</p></td>
+<td><p><span class="math notranslate nohighlight">\(L_c / P / \bar{\ell}\)</span></p></td>
+<td><p>Same, favoring the long items.</p></td>
+</tr>
+<tr class="row-even"><td><p>6</p></td>
+<td><p><span class="math notranslate nohighlight">\(L_c - L\)</span></p></td>
+<td><p>Little waste.</p></td>
+</tr>
+<tr class="row-odd"><td><p>7, 8</p></td>
+<td><p>knapsack bound</p></td>
+<td><p>Largest bound first: the profit of the node plus the remaining length of the bins times the largest profit per nested length of the item types (then little waste, for guide 8).</p></td>
+</tr>
+</tbody>
+</table>
+<p>By default, guides 4 and 5 are used for the <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code> objective, guides 0 and 1 for the <code class="code docutils literal notranslate"><span class="pre">bin-packing-with-leftovers</span></code> objective, and guides 0 and 2 for the other objectives.</p>
+</section>
+<section id="solutions-and-bounds">
+<h2>Solutions and bounds<a class="headerlink" href="#solutions-and-bounds" title="Link to this heading">¶</a></h2>
+<p><strong>Solutions.</strong> Each node generated is compared to the best solution found so far:</p>
+<ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">knapsack</span></code> and <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code>: any node is a solution, compared by profit;</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">bin-packing</span></code> and <code class="code docutils literal notranslate"><span class="pre">variable-sized-bin-packing</span></code>: the leaves, compared by number of bins;</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">bin-packing-with-leftovers</span></code>: the leaves, compared by waste: the smallest waste leaves the longest leftover in the last bin.</p></li>
+</ul>
+<p><strong>Bounds.</strong> A node is discarded if it can’t lead to a better solution than the best one found:</p>
+<ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">bin-packing</span></code> and <code class="code docutils literal notranslate"><span class="pre">variable-sized-bin-packing</span></code>: the bins, in their order, must contain the current length of the node plus the nested length of the remaining items (the length of an item minus its nesting length, the least it can take). If the bins needed are at least as many as in the best solution, the node is discarded;</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">bin-packing-with-leftovers</span></code>: if its waste is at least the waste of the best solution, since the waste can only increase;</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">feasibility</span></code>: once a solution packing all the items is found;</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">knapsack</span></code>: no node is discarded by a bound.</p></li>
+</ul>
+</section>
+<section id="dominance">
+<h2>Dominance<a class="headerlink" href="#dominance" title="Link to this heading">¶</a></h2>
+<p>Two nodes with the same number of copies of each item type packed can be compared. Node 1 dominates node 2 if:</p>
+<ul class="simple">
+<li><p>its last item has the same item type as the last item of node 2;</p></li>
+<li><p>it uses as many bins;</p></li>
+<li><p>its current length is not larger;</p></li>
+<li><p>its profit is not smaller (which only matters with <em>penalize</em> resources);</p></li>
+<li><p>the resource consumption of its current bin is not larger, for each resource.</p></li>
+</ul>
+<p>In the example below, the bins have a length of 10, and both nodes pack the items A (6), B (5), C (4) and D (2), with D last. In node 1, A and C fill the first bin; in node 2, B and C leave a gap of 1 in it, in which no remaining item fits. Node 1 dominates node 2.</p>
+<a class="reference internal image-reference" href="../../_images/onedimensional_tree_search_dominance.svg"><img alt="../../_images/onedimensional_tree_search_dominance.svg" class="align-center" height="152" src="../../_images/onedimensional_tree_search_dominance.svg" width="308" />
+</a>
+</section>
+<section id="search">
+<h2>Search<a class="headerlink" href="#search" title="Link to this heading">¶</a></h2>
+<p>The tree is explored by the <a class="reference internal" href="../tree_search.html#internals-tree-search"><span class="std std-ref">iterative beam search</span></a>, which generates all the children of a node at once. The depth of a node is its number of items packed.</p>
+<p>In anytime mode, an iterative beam search is run for each guide, in parallel. When there are at most two guides, which is the case by default, each one is run twice, with the growth factors 1.33 and 1.5; otherwise, the growth factor is 1.5. In the non-anytime modes, each search is run with a queue of size 1, then with a queue of the size given by the parameter <code class="code docutils literal notranslate"><span class="pre">not_anytime_tree_search_queue_size</span></code> (4096 by default).</p>
+</section>
+<section id="automatic-selection">
+<h2>Automatic selection<a class="headerlink" href="#automatic-selection" title="Link to this heading">¶</a></h2>
+<p>With a single bin, the tree search is run unless another algorithm has been selected explicitly. With several bins, it is run when the item types have few copies compared to the number of items fitting in a bin, alongside the generic algorithms using it to solve their sub-problems. See <a class="reference internal" href="../algorithm_selection.html#internals-algorithm-selection"><span class="std std-ref">algorithm selection</span></a>.</p>
+<p>It can be forced with <code class="code docutils literal notranslate"><span class="pre">--use-tree-search</span> <span class="pre">1</span></code> (CLI) or <code class="code docutils literal notranslate"><span class="pre">use_tree_search</span></code> (Python).</p>
+</section>
+<section id="source-files">
+<h2>Source files<a class="headerlink" href="#source-files" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">src/onedimensional/tree_search.hpp</span></code>, <code class="code docutils literal notranslate"><span class="pre">src/onedimensional/tree_search.cpp</span></code></p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">scripts/doc_figures/onedimensional_tree_search.py</span></code>: the figures of the insertions and of the dominance</p></li>
+</ul>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+<h3><a href="../../index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">PackingSolver’s documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../objectives.html">Objectives</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../optimization_modes.html">Optimization modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> solver</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../overview.html">Solver internals</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../tree_search.html">Tree search</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> algorithms</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../onedimensional.html#trivial-bound">Trivial bound</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../onedimensional.html#dynamic-programming">Dynamic programming</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../onedimensional.html#tree-search">Tree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../onedimensional.html#milp-assignment">MILP assignment</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../onedimensional.html#dual-feasible-functions">Dual feasible functions</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generic_algorithms.html">Generic algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../algorithm_selection.html">Algorithm selection</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="milp_assignment.html" title="MILP assignment"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="dynamic_programming.html" title="Dynamic programming"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../overview.html" >Solver internals</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../onedimensional.html" ><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> algorithms</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Tree search</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2019-2024, Florian Fontan.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.1.
+    </div>
+  </body>
+</html>

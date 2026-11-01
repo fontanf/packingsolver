@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Tree search on relative positions &#8212; PackingSolver</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../../_static/classic.css?v=14e077c0" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=a00afc7f" />
+    
+    <script src="../../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Generic algorithms" href="../generic_algorithms.html" />
+    <link rel="prev" title="Benders decomposition" href="benders_decomposition.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../generic_algorithms.html" title="Generic algorithms"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="benders_decomposition.html" title="Benders decomposition"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../overview.html" >Solver internals</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../irregular.html" accesskey="U"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Tree search on relative positions</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="tree-search-on-relative-positions">
+<span id="internals-irregular-tree-search-relative-positions"></span><h1>Tree search on relative positions<a class="headerlink" href="#tree-search-on-relative-positions" title="Link to this heading">¶</a></h1>
+<section id="objectives">
+<h2>Objectives<a class="headerlink" href="#objectives" title="Link to this heading">¶</a></h2>
+<p>Given a bin type and a set of items, this algorithm tries to prove that the items don’t fit in a bin of this type. It is used in the subproblems of the <a class="reference internal" href="benders_decomposition.html#internals-irregular-benders-decomposition"><span class="std std-ref">Benders decomposition</span></a>.</p>
+<p>It also solves the <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code> objective with a single bin. If it doesn’t prove that the instance is infeasible, the positions of the solution of its relaxation are checked, and used as a solution if the items don’t overlap.</p>
+<p>It returns <em>infeasible</em> (proven), <em>feasible</em> (the relaxation is feasible, so the items may fit), or <em>unknown</em> (time limit, or an item type with a continuous rotation range).</p>
+</section>
+<section id="principle">
+<h2>Principle<a class="headerlink" href="#principle" title="Link to this heading">¶</a></h2>
+<p>The rotations of the items are enumerated. For a given rotation of each item, the positions of two items which don’t overlap are described exactly by their <em>no-fit polygon</em>: item <span class="math notranslate nohighlight">\(j\)</span> overlaps item <span class="math notranslate nohighlight">\(i\)</span> if and only if the relative position <span class="math notranslate nohighlight">\(p_j - p_i\)</span> of their reference points is in the interior of the no-fit polygon <span class="math notranslate nohighlight">\(\text{NFP}_{ij}\)</span>. The complement of the no-fit polygon is not convex, so it is partitioned into convex pieces, and the relative position of each pair of items must be in one of them.</p>
+<p>Choosing a piece for each pair gives a linear program. The choice is made by a tree search, which fixes the piece of a pair at each node and propagates the consequences to the positions of the other pairs (see <em>Tree search</em> below). The choice can also be made by the binary variables of the mixed-integer linear program (MILP) of Fischetti and Luzzi (2009), with the bounding box of the bin instead of a strip (see <em>MILP</em> below), which is much slower.</p>
+<p>In the example below, item <span class="math notranslate nohighlight">\(i\)</span> is a 4 × 3 rectangle with a 1 × 2 notch, item <span class="math notranslate nohighlight">\(j\)</span> a 1 × 2 rectangle, and the bin is 8 × 6. The relative positions allowed by the bin form the rectangle <span class="math notranslate nohighlight">\(R\)</span>. The no-fit polygon covers its middle, and the region outside of it is partitioned into the convex pieces <span class="math notranslate nohighlight">\(F_1\)</span> to <span class="math notranslate nohighlight">\(F_4\)</span>. Item <span class="math notranslate nohighlight">\(j\)</span> also fits exactly in the notch: its relative positions there form a segment inside the no-fit polygon, an additional piece (see <em>Exact fits</em> below):</p>
+<img alt="../../_images/irregular_tree_search_relative_positions_pieces.svg" class="align-center" src="../../_images/irregular_tree_search_relative_positions_pieces.svg" />
+<p>The items don’t fit if the program of every rotation combination is infeasible. The programs of the rotation combinations are independent, so they are solved in parallel (4 threads by default), and the search stops as soon as one of them is feasible. A single program in which binary variables select the rotations was tried, but its linear relaxation is much weaker and it was several times slower.</p>
+<p>The model is a relaxation, so that an infeasible program is a proof:</p>
+<ul class="simple">
+<li><p>the bin is replaced by its bounding box; the defects, the fixed items and the item-item spacing are ignored;</p></li>
+<li><p>the circular arcs of the regions below are approximated by line segments outside of them.</p></li>
+</ul>
+</section>
+<section id="program">
+<h2>Program<a class="headerlink" href="#program" title="Link to this heading">¶</a></h2>
+<p><strong>Input</strong>, for a rotation combination:</p>
+<ul class="simple">
+<li><p>the items <span class="math notranslate nohighlight">\(i = 1, \ldots, n\)</span>, each with its rotation;</p></li>
+<li><p>for each item <span class="math notranslate nohighlight">\(i\)</span>, its <em>inner-fit rectangle</em> <span class="math notranslate nohighlight">\(\text{IFP}_i\)</span>: the positions of its reference point for which its bounding box is in the bounding box of the bin (minus the item-bin spacing);</p></li>
+<li><p>for each pair of items <span class="math notranslate nohighlight">\((i, j)\)</span>, the region <span class="math notranslate nohighlight">\(R_{ij} = \text{IFP}_j - \text{IFP}_i\)</span> of the relative positions allowed by the inner-fit rectangles, and the region <span class="math notranslate nohighlight">\(F_{ij} = R_{ij} \setminus \text{int}(\text{NFP}_{ij})\)</span> of the ones for which the items don’t overlap, partitioned into convex pieces <span class="math notranslate nohighlight">\(k \in K_{ij}\)</span>. Each piece is described by its edges <span class="math notranslate nohighlight">\((n, c)\)</span>, the half-planes <span class="math notranslate nohighlight">\(n \cdot d \ge c\)</span>.</p></li>
+</ul>
+<p><strong>Problem</strong>: find positions <span class="math notranslate nohighlight">\(p_i \in \text{IFP}_i\)</span> of the reference points of the items, and a piece <span class="math notranslate nohighlight">\(k_{ij} \in K_{ij}\)</span> for each pair of items, such that</p>
+<div class="math notranslate nohighlight">
+\[\forall (i, j) \qquad p_j - p_i \in k_{ij}\]</div>
+<p>There is no objective: only the feasibility matters. Identical items with the same rotation are sorted by <span class="math notranslate nohighlight">\(x\)</span> (symmetry breaking).</p>
+<p><strong>Exact fits.</strong> An item may fit exactly in a notch of another one, or two items may touch along a whole edge: the relative position is then on a line segment or at a point strictly inside the no-fit polygon, but on no edge of the region <span class="math notranslate nohighlight">\(F_{ij}\)</span>. These feasible positions of null area are returned by the no-fit polygon computation, and each one is an additional convex piece of <span class="math notranslate nohighlight">\(F_{ij}\)</span>, so that the program stays a relaxation.</p>
+</section>
+<section id="tree-search">
+<h2>Tree search<a class="headerlink" href="#tree-search" title="Link to this heading">¶</a></h2>
+<p>The program of a rotation combination is solved by a depth-first search. A node keeps, for each pair of items, the pieces still allowed, and bounds on the positions:</p>
+<ul class="simple">
+<li><p><strong>Difference-bound matrices.</strong> All the constraints on the positions which the search uses are bounds on differences of coordinates: <span class="math notranslate nohighlight">\(x_j - x_i \le u^x_{ij}\)</span>, and the same for <span class="math notranslate nohighlight">\(y\)</span>. The inner-fit rectangles are differences with an origin, and the symmetry breaking is <span class="math notranslate nohighlight">\(x_{i+1} - x_i \ge 0\)</span>. These bounds form two matrices, one for each axis, and their closure, a shortest path computation, gives the tightest bounds they imply. They are infeasible if a matrix has a negative cycle. For a pair of items, the closed bounds give the box of its possible relative positions, which takes into account the other pairs: for example, <span class="math notranslate nohighlight">\(x_k - x_i \le u^x_{ij} + u^x_{jk}\)</span>.</p></li>
+<li><p><strong>Propagation.</strong> For each pair, the pieces which don’t intersect the box of the pair are removed, and the box is shrunk to the bounding box of the remaining pieces clipped to it. The matrices are closed again, and so on, until nothing changes. A node is infeasible if a pair has no piece left.</p></li>
+<li><p><strong>Branching.</strong> The search branches on the pair with the fewest pieces left, with a child for each of its pieces.</p></li>
+<li><p><strong>Leaves.</strong> Once each pair has a single piece, the program is a linear program, with the edges of the pieces as constraints, solved with HiGHS.</p></li>
+</ul>
+<p>The propagation only uses bounding boxes, so a node in which every pair has a single piece may still be infeasible, which the linear program detects. But it removes most of the pieces: on the 5 items of <code class="code docutils literal notranslate"><span class="pre">data/irregular/tests/feasibility_poly2a_five_items_infeasible.json</span></code>, the proof takes 8603 nodes and 462 linear programs for 738 programs of rotation combinations and sub-combinations.</p>
+</section>
+<section id="milp">
+<h2>MILP<a class="headerlink" href="#milp" title="Link to this heading">¶</a></h2>
+<p>Alternatively, the program can be solved as a mixed-integer linear program.</p>
+<p><strong>Variables</strong>:</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(p_i \in \text{IFP}_i\)</span>: the position of the reference point of item <span class="math notranslate nohighlight">\(i\)</span></p></li>
+<li><p><span class="math notranslate nohighlight">\(z^{ij}_k \in \{0, 1\}\)</span>, <span class="math notranslate nohighlight">\(k \in K_{ij}\)</span>: <span class="math notranslate nohighlight">\(z^{ij}_k = 1\)</span> iff the relative position of items <span class="math notranslate nohighlight">\(i\)</span> and <span class="math notranslate nohighlight">\(j\)</span> is in piece <span class="math notranslate nohighlight">\(k\)</span></p></li>
+</ul>
+<p><strong>Constraints</strong>:</p>
+<ul class="simple">
+<li><p>Piece selection: the relative position of each pair of items is in one of the pieces.</p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[\forall (i, j) \qquad \sum_{k \in K_{ij}} z^{ij}_k = 1\]</div>
+<ul class="simple">
+<li><p>Pieces: the edges of a piece are relaxed with big-M coefficients when the piece isn’t selected.</p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[\forall (i, j), \; \forall k \in K_{ij}, \; \forall \text{ edge } (n, c) \text{ of } k \qquad n \cdot (p_j - p_i) \ge c - M (1 - z^{ij}_k)\]</div>
+<p>where <span class="math notranslate nohighlight">\(M = c - \min_{d \in R_{ij}} n \cdot d\)</span> is the smallest value for which the constraint is always satisfied in <span class="math notranslate nohighlight">\(R_{ij}\)</span>.</p>
+<ul class="simple">
+<li><p>Symmetry breaking: identical items with the same rotation are sorted by <span class="math notranslate nohighlight">\(x\)</span>.</p></li>
+</ul>
+<p>The linear relaxation of the big-M constraints is weak, so the MILP solver explores many nodes, each of them with a linear program on all the pieces. On the 5 items of <code class="code docutils literal notranslate"><span class="pre">data/irregular/tests/feasibility_poly2a_five_items_infeasible.json</span></code>, with a single thread, the proof takes 37.8 seconds with the MILP and 1.9 seconds with the tree search; on the feasible set of <code class="code docutils literal notranslate"><span class="pre">data/irregular/tests/feasibility_poly2a_five_items_feasible.json</span></code>, 11.3 and 1.6 seconds.</p>
+<p><strong>Three-item cuts</strong> (optional, off by default). For three items <span class="math notranslate nohighlight">\(i &lt; j &lt; u\)</span>, the relative positions satisfy <span class="math notranslate nohighlight">\(d_{iu} = d_{ij} + d_{ju}\)</span>. So if the piece <span class="math notranslate nohighlight">\(a\)</span> of <span class="math notranslate nohighlight">\(F_{ij}\)</span> and the piece <span class="math notranslate nohighlight">\(b\)</span> of <span class="math notranslate nohighlight">\(F_{ju}\)</span> are selected, <span class="math notranslate nohighlight">\(d_{iu}\)</span> is in the Minkowski sum <span class="math notranslate nohighlight">\(a \oplus b\)</span>, and the pieces <span class="math notranslate nohighlight">\(c\)</span> of <span class="math notranslate nohighlight">\(F_{iu}\)</span> which don’t intersect it can’t be selected:</p>
+<div class="math notranslate nohighlight">
+\[z^{ij}_a + z^{ju}_b + \sum_{c \in K_{iu}, \; c \cap (a \oplus b) = \emptyset} z^{iu}_c \le 2\]</div>
+<p>The pieces are first clipped to the rectangles <span class="math notranslate nohighlight">\(R\)</span>, and a cut is only added when the separation of the two convex sets is larger than a small tolerance, so that the program stays a relaxation. The cuts of each triple of item types and rotations are computed once and cached, and they are only added to programs with 4 items or more. They are the feasibility cuts of Lastra-Díaz and Ortuño (2024), restricted to three items. On the 5 items of <code class="code docutils literal notranslate"><span class="pre">data/irregular/tests/feasibility_poly2a_five_items_infeasible.json</span></code>, they make the proof of the MILP 3 times faster, but they slow down the other calls, and they didn’t improve any bound of the Benders decomposition, so they are off by default. The tree search doesn’t use them.</p>
+</section>
+<section id="rotation-combinations">
+<h2>Rotation combinations<a class="headerlink" href="#rotation-combinations" title="Link to this heading">¶</a></h2>
+<p>The rotation combinations are enumerated item by item. Some of them are never solved:</p>
+<ul class="simple">
+<li><p><strong>Identical rotations.</strong> Two rotations of an item type which give the same shape (for example, the rotations by 0 and 180 degrees of a rectangle) are only considered once.</p></li>
+<li><p><strong>Identical items.</strong> The rotations of identical items are non-decreasing.</p></li>
+<li><p><strong>Symmetry of the bin.</strong> The program only considers the bounding box of the bin, so turning a solution by 180 degrees gives another solution. If every rotation of every item type has its counterpart turned by 180 degrees, then an item, the only copy of its item type, is restricted to one rotation of each such pair.</p></li>
+<li><p><strong>Pairs.</strong> A partial combination in which the region <span class="math notranslate nohighlight">\(F_{ij}\)</span> of a pair of items is empty isn’t extended.</p></li>
+</ul>
+<p>Before solving the program of a rotation combination:</p>
+<ol class="arabic simple">
+<li><p><strong>Core widening.</strong> A cheap area test may prove it infeasible (see below).</p></li>
+<li><p><strong>Sub-combinations.</strong> Its sub-combinations without one of the items are checked first: if one of them is infeasible, so is the combination. Their programs are cheaper, and each of them is shared by several combinations.</p></li>
+</ol>
+<p>The statuses of the combinations and of the sub-combinations are cached, as well as the convex pieces of the pairs of item types, so that the next calls on other sets of items reuse them. On the 5 items of <code class="code docutils literal notranslate"><span class="pre">data/irregular/tests/feasibility_poly2a_five_items_infeasible.json</span></code>, 406 of the 512 rotation combinations are proven infeasible by a sub-combination, and the proof with the MILP goes from 17.6 to 13 seconds.</p>
+</section>
+<section id="core-widening">
+<h2>Core widening<a class="headerlink" href="#core-widening" title="Link to this heading">¶</a></h2>
+<p>The <em>core</em> of an item is the part of its <span class="math notranslate nohighlight">\(y\)</span>-range that no other item can reach, given the regions <span class="math notranslate nohighlight">\(F_{ij}\)</span> (each piece is convex, so its <span class="math notranslate nohighlight">\(y\)</span>-range gives exactly the heights at which the other item can be). Since the rotations are fixed, no other item has any point in the horizontal band of the core of an item, across the whole bin. So the item can be counted as widened to the width <span class="math notranslate nohighlight">\(W\)</span> of the bin on its core:</p>
+<div class="math notranslate nohighlight">
+\[\text{widened area}(i) = W \times \text{core height}(i) + \text{area of } i \text{ outside of its core}\]</div>
+<p>In the example below, items <span class="math notranslate nohighlight">\(j\)</span> and <span class="math notranslate nohighlight">\(k\)</span> can’t be lower than the top of the foot of item <span class="math notranslate nohighlight">\(i\)</span>, so the band of the foot belongs to item <span class="math notranslate nohighlight">\(i\)</span> alone, across the whole bin:</p>
+<img alt="../../_images/irregular_tree_search_relative_positions_core_widening.svg" class="align-center" src="../../_images/irregular_tree_search_relative_positions_core_widening.svg" />
+<p>The cores of different items are disjoint, so the rotation combination is infeasible if the sum of the widened areas exceeds the area of the bin.</p>
+<p>This is not a reduction: the parts of an item outside of its core may be interlocked with other items, so the item can’t always be moved against a side of the bin to actually be widened. The test helps when the items are large compared to the bin; when they fill less than about three quarters of it, the cores are usually empty.</p>
+</section>
+<section id="search-parameters">
+<h2>Search parameters<a class="headerlink" href="#search-parameters" title="Link to this heading">¶</a></h2>
+<p>The programs of the rotation combinations are solved with 4 threads by default, until the time limit. When the algorithm is run on its own, in the <code class="code docutils literal notranslate"><span class="pre">not-anytime-sequential</span></code> mode, a single thread is used. The linear programs of the leaves of the tree search, and the MILPs, are solved with HiGHS.</p>
+</section>
+<section id="automatic-selection">
+<h2>Automatic selection<a class="headerlink" href="#automatic-selection" title="Link to this heading">¶</a></h2>
+<p>In the <code class="code docutils literal notranslate"><span class="pre">exact</span></code> mode, it is run for the <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code> objective with a single bin, alongside the other algorithms. It is always used in the subproblems of the <a class="reference internal" href="benders_decomposition.html#internals-irregular-benders-decomposition"><span class="std std-ref">Benders decomposition</span></a> in the <code class="code docutils literal notranslate"><span class="pre">exact</span></code> mode.</p>
+<p>It can be selected with <code class="code docutils literal notranslate"><span class="pre">--use-tree-search-relative-positions</span> <span class="pre">1</span></code> (CLI) or <code class="code docutils literal notranslate"><span class="pre">use_tree_search_relative_positions</span></code> (Python), for the <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code> objective with a single bin only.</p>
+</section>
+<section id="strengths-and-limitations">
+<h2>Strengths and limitations<a class="headerlink" href="#strengths-and-limitations" title="Link to this heading">¶</a></h2>
+<p>The number of rotation combinations grows exponentially with the number of items, and the programs get harder as the items get smaller compared to the bin, since the regions <span class="math notranslate nohighlight">\(F_{ij}\)</span> then have more pieces, and the boxes of the propagation remove fewer of them. The algorithm proves in a fraction of a second that 2 or 3 large items don’t fit; for 5 items with 4 rotations each, a proof takes a few seconds.</p>
+</section>
+<section id="source-files">
+<h2>Source files<a class="headerlink" href="#source-files" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">src/irregular/tree_search_relative_positions.hpp</span></code>, <code class="code docutils literal notranslate"><span class="pre">src/irregular/tree_search_relative_positions.cpp</span></code>: the algorithm</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">scripts/doc_figures/irregular_tree_search_relative_positions.py</span></code>: the figures of this page</p></li>
+</ul>
+<p>References:</p>
+<ul class="simple">
+<li><p>“Mixed-integer programming models for nesting problems” (Fischetti and Luzzi, 2009)</p>
+<ul>
+<li><p><a class="reference external" href="https://doi.org/10.1007/s10732-008-9088-9">https://doi.org/10.1007/s10732-008-9088-9</a></p></li>
+</ul>
+</li>
+<li><p>“A branch &amp; bound algorithm for cutting and packing irregularly shaped pieces” (Alvarez-Valdes, Martinez and Tamarit, 2013)</p>
+<ul>
+<li><p><a class="reference external" href="https://doi.org/10.1016/j.ijpe.2013.04.007">https://doi.org/10.1016/j.ijpe.2013.04.007</a></p></li>
+</ul>
+</li>
+<li><p>“Mixed-integer programming models for irregular strip packing based on vertical slices and feasibility cuts” (Lastra-Díaz and Ortuño, 2024)</p>
+<ul>
+<li><p><a class="reference external" href="https://doi.org/10.1016/j.ejor.2023.08.009">https://doi.org/10.1016/j.ejor.2023.08.009</a></p></li>
+</ul>
+</li>
+</ul>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+<h3><a href="../../index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">PackingSolver’s documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../objectives.html">Objectives</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../optimization_modes.html">Optimization modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> solver</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../overview.html">Solver internals</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../tree_search.html">Tree search</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> algorithms</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#trivial-single-item">Trivial single item</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#tree-search">Tree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#tree-search-with-periodic-packings">Tree search with periodic packings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#tree-search-with-maximal-spaces">Tree search with maximal spaces</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#local-search">Local search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#milp-raster">MILP raster</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#benders-decomposition">Benders decomposition</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#tree-search-on-relative-positions">Tree search on relative positions</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../irregular.html#one-dimensional-bound">One-dimensional bound</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../generic_algorithms.html">Generic algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../algorithm_selection.html">Algorithm selection</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../generic_algorithms.html" title="Generic algorithms"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="benders_decomposition.html" title="Benders decomposition"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../overview.html" >Solver internals</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../irregular.html" ><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Tree search on relative positions</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2019-2024, Florian Fontan.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.1.
+    </div>
+  </body>
+</html>

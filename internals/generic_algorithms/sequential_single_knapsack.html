@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Sequential single knapsack &#8212; PackingSolver</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../../_static/classic.css?v=14e077c0" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=a00afc7f" />
+    
+    <script src="../../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Sequential value correction" href="sequential_value_correction.html" />
+    <link rel="prev" title="Generic algorithms" href="../generic_algorithms.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="sequential_value_correction.html" title="Sequential value correction"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="../generic_algorithms.html" title="Generic algorithms"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../overview.html" >Solver internals</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../generic_algorithms.html" accesskey="U">Generic algorithms</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Sequential single knapsack</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="sequential-single-knapsack">
+<span id="internals-generic-algorithms-sequential-single-knapsack"></span><h1>Sequential single knapsack<a class="headerlink" href="#sequential-single-knapsack" title="Link to this heading">¶</a></h1>
+<section id="objectives">
+<h2>Objectives<a class="headerlink" href="#objectives" title="Link to this heading">¶</a></h2>
+<p>This algorithm solves the <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code>, <code class="code docutils literal notranslate"><span class="pre">bin-packing</span></code>, <code class="code docutils literal notranslate"><span class="pre">bin-packing-with-leftovers</span></code> and <code class="code docutils literal notranslate"><span class="pre">variable-sized-bin-packing</span></code> objectives, with several bins. It is available for all the problem types. For the <code class="code docutils literal notranslate"><span class="pre">variable-sized-bin-packing</span></code> objective, it doesn’t handle the minimum numbers of copies of the bin types.</p>
+</section>
+<section id="principle">
+<h2>Principle<a class="headerlink" href="#principle" title="Link to this heading">¶</a></h2>
+<p>It builds a solution bin by bin. For the first bin, it solves a <em>single knapsack</em> sub-problem: a <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code> instance with this bin only and all the items. The items packed are removed, and the next bin is filled the same way with the remaining items, until all the items are packed or there is no bin left.</p>
+<p>The profit of an item in the sub-problems is its own profit for the <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code> objective, and its space (length, area or volume) for the other objectives: each bin is filled as much as possible.</p>
+<p><strong>Repeated bins.</strong> When the item types have many copies, the content of a bin can be used for several bins. Once a bin is filled, it is copied as many times as the remaining items allow: for each item type in the bin, the number of remaining copies divided by its number of copies in the bin (rounded down), and at most the number of bins left of the bin type. A single sub-problem then fills many bins.</p>
+<p>In the example below, the bins have a length of 10. The first sub-problem fills a bin with an item A and an item B; since 4 copies of A remain, this bin is used 4 times. The second sub-problem only has the remaining items, B (2 copies) and C (5 copies), and so on:</p>
+<img alt="../../_images/generic_algorithms_sequential_single_knapsack.svg" class="align-center" src="../../_images/generic_algorithms_sequential_single_knapsack.svg" />
+<p>It is the <a class="reference internal" href="sequential_value_correction.html#internals-generic-algorithms-sequential-value-correction"><span class="std std-ref">sequential value correction</span></a> algorithm with a single pass, so the details below are described on its page:</p>
+<ul class="simple">
+<li><p><strong>Order of the bins.</strong> The bins are filled in the order of the instance, or by increasing space for the <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code> objective. If the sub-problem of a bin packs no item, the bin is left empty, and the next bin is tried.</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">variable-sized-bin-packing</span></code>: the sub-problem is solved for each bin type with copies left (restricted to the bin types in which the item type fitting in the fewest available bins fits), and the bin type with the best ratio between the profit of its solution and its cost is kept. The item types which only fit in a few bin types get a larger initial profit.</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">bin-packing-with-leftovers</span></code>: the last bin is re-optimized to maximize its leftover.</p></li>
+</ul>
+<p>The sub-problems are solved with the regular algorithms of the problem type (e.g. the tree search), in a non-anytime mode, with a given effort: the size of the queue of the tree searches.</p>
+</section>
+<section id="search">
+<h2>Search<a class="headerlink" href="#search" title="Link to this heading">¶</a></h2>
+<p>In anytime mode, a first pass is performed with a queue of size 1 for the tree searches of the sub-problems; then, after each pass, a new pass is performed with a queue twice as large, until the time limit. Each pass is a new solution, and the best one is kept. For the irregular problem type, the effort of each algorithm of the sub-problems grows the same way from its own initial value (queue of size 1 for the tree search, 4 for the tree search with periodic packings, a factor 4 on the number of moves of the local search).</p>
+<p>In the non-anytime modes, a single pass is performed, with the effort given by the parameters (e.g. <code class="code docutils literal notranslate"><span class="pre">not_anytime_sequential_single_knapsack_subproblem_tree_search_queue_size</span></code>, 2048 for rectangle).</p>
+<p>Each pass is cheap when the sub-problems are, so it is well suited to the instances where many items fit in a bin and the item types have many copies: then, packing the bins one by one wastes little space, and the repeated bins make the passes fast.</p>
+</section>
+<section id="automatic-selection">
+<h2>Automatic selection<a class="headerlink" href="#automatic-selection" title="Link to this heading">¶</a></h2>
+<p>With several bins, it is run when the item types have many copies compared to the number of items fitting in a bin, and many items fit in a bin. See <a class="reference internal" href="../algorithm_selection.html#internals-algorithm-selection"><span class="std std-ref">algorithm selection</span></a>.</p>
+<p>It can be forced with <code class="code docutils literal notranslate"><span class="pre">--use-sequential-single-knapsack</span> <span class="pre">1</span></code> (CLI) or <code class="code docutils literal notranslate"><span class="pre">use_sequential_single_knapsack</span></code> (Python).</p>
+</section>
+<section id="source-files">
+<h2>Source files<a class="headerlink" href="#source-files" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">src/algorithms/sequential_value_correction.hpp</span></code>: the algorithm</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">src/&lt;problem</span> <span class="pre">type&gt;/optimize.cpp</span></code>: the sub-problems and the increasing effort</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">scripts/doc_figures/generic_algorithms.py</span></code>: the figure</p></li>
+</ul>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+<h3><a href="../../index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">PackingSolver’s documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../objectives.html">Objectives</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../optimization_modes.html">Optimization modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> solver</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../overview.html">Solver internals</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../tree_search.html">Tree search</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../generic_algorithms.html">Generic algorithms</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../generic_algorithms.html#sequential-single-knapsack">Sequential single knapsack</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../generic_algorithms.html#sequential-value-correction">Sequential value correction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../generic_algorithms.html#dichotomic-search">Dichotomic search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../generic_algorithms.html#column-generation">Column generation</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../generic_algorithms.html#sequential-feasibility">Sequential feasibility</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../algorithm_selection.html">Algorithm selection</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="sequential_value_correction.html" title="Sequential value correction"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="../generic_algorithms.html" title="Generic algorithms"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../overview.html" >Solver internals</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../generic_algorithms.html" >Generic algorithms</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Sequential single knapsack</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2019-2024, Florian Fontan.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.1.
+    </div>
+  </body>
+</html>

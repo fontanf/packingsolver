@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Algorithm selection &#8212; PackingSolver</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=14e077c0" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=a00afc7f" />
+    
+    <script src="../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/design-tabs.js?v=f930bc37"></script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="prev" title="Sequential feasibility" href="generic_algorithms/sequential_feasibility.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="generic_algorithms/sequential_feasibility.html" title="Sequential feasibility"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="overview.html" accesskey="U">Solver internals</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Algorithm selection</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="algorithm-selection">
+<span id="internals-algorithm-selection"></span><h1>Algorithm selection<a class="headerlink" href="#algorithm-selection" title="Link to this heading">¶</a></h1>
+<p>For a given instance, each problem type usually has several applicable algorithms. All of them can be enabled or disabled individually with a <code class="docutils literal notranslate"><span class="pre">--use-&lt;algorithm&gt;</span></code> option (e.g. <code class="docutils literal notranslate"><span class="pre">--use-tree-search</span> <span class="pre">1</span></code>, <code class="docutils literal notranslate"><span class="pre">--use-column-generation</span> <span class="pre">0</span></code>); several can be enabled at once, in which case they run concurrently (in anytime mode) and the best solution found by any of them is kept, along with the best bound found by any of them. If none of the <code class="docutils literal notranslate"><span class="pre">--use-&lt;algorithm&gt;</span></code> options is set, the solver picks a combination automatically, as described below.</p>
+<section id="steps">
+<h2>Steps<a class="headerlink" href="#steps" title="Link to this heading">¶</a></h2>
+<p>The <code class="code docutils literal notranslate"><span class="pre">optimize</span></code> function of each problem type follows the same steps:</p>
+<ol class="arabic simple">
+<li><p><strong>Reduction.</strong> The instance is simplified (for example, the identical item types are merged), the reduced instance is solved by a recursive call, and its solutions and bounds are converted back.</p></li>
+<li><p><strong>Bounds.</strong> Cheap bounds are computed first: the trivial bound (the total space of the items divided by the space of the bins), and, depending on the problem type, the bound of a one-dimensional relaxation (only its trivial bound with 100 item types or more), the <a class="reference internal" href="rectangle/dual_feasible_functions.html#internals-rectangle-dual-feasible-functions"><span class="std std-ref">dual feasible functions</span></a> (with a single bin type and at most 100 items, 50 for <code class="code docutils literal notranslate"><span class="pre">box</span></code>), the conservative scales, or the bar relaxation. If a bound already proves a solution optimal, or the instance infeasible, the solver stops.</p></li>
+<li><p><strong>Exact algorithms for easy cases.</strong> For example, for the onedimensional <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code> objective with a single bin, the <a class="reference internal" href="onedimensional/dynamic_programming.html#internals-onedimensional-dynamic-programming"><span class="std std-ref">dynamic programming</span></a> algorithm is run first, and often proves its solution optimal.</p></li>
+<li><p><strong>Selection</strong> of the algorithms to run (see below).</p></li>
+<li><p><strong>Run.</strong> The algorithms selected are run in parallel, each one reporting its solutions and bounds to the common output; all stop as soon as the best solution is proven optimal. In the <code class="code docutils literal notranslate"><span class="pre">not-anytime-deterministic</span></code> mode, each algorithm reports to its own output, and the outputs are merged at the end in a fixed order. In the <code class="code docutils literal notranslate"><span class="pre">not-anytime-sequential</span></code> mode, the algorithms are run one after the other.</p></li>
+<li><p><strong>Post-processing.</strong> For example, for the <code class="code docutils literal notranslate"><span class="pre">bin-packing-with-leftovers</span></code> objective in the non-anytime modes, the last bin of the solution is re-optimized to maximize its leftover.</p></li>
+</ol>
+</section>
+<section id="characteristics-of-the-instance">
+<h2>Characteristics of the instance<a class="headerlink" href="#characteristics-of-the-instance" title="Link to this heading">¶</a></h2>
+<p>The selection is based on the objective, on the number of bins, and on two quantities:</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(\bar{n}\)</span>, the <em>mean number of items in a bin</em>: the space (length, area or volume) of the largest bin divided by the mean space of the items;</p></li>
+<li><p><span class="math notranslate nohighlight">\(\bar{q}\)</span>, the <em>mean number of copies</em> of the item types: the number of items divided by the number of item types.</p></li>
+</ul>
+<p>The item types have <em>many copies</em> if <span class="math notranslate nohighlight">\(\bar{q} &gt; \bar{n}\)</span>: then, the patterns of the bins are likely to be repeated in the solutions, as in cutting stock problems. <em>Many items fit in a bin</em> if <span class="math notranslate nohighlight">\(\bar{n} &gt; 16\)</span>. Both thresholds are parameters (<code class="code docutils literal notranslate"><span class="pre">many_item_type_copies_factor</span></code> and <code class="code docutils literal notranslate"><span class="pre">many_items_in_bins_threshold</span></code>).</p>
+</section>
+<section id="a-single-bin">
+<h2>A single bin<a class="headerlink" href="#a-single-bin" title="Link to this heading">¶</a></h2>
+<p>With a single bin, the problem is a single <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code>, <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code> or open dimension problem, and only the pattern-generating algorithms apply. The tree search of the problem type is the default; the variants are chosen from the shape of the instance:</p>
+<ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code>: the tree search in the directions in which few items fit in a section of the bin (at most 4 on average), and otherwise the <a class="reference internal" href="rectangle/tree_search_maximal_spaces.html#internals-rectangle-tree-search-maximal-spaces"><span class="std std-ref">tree search with maximal spaces</span></a>; the bar relaxation for the small bins (at most 100 × 100); in the <code class="code docutils literal notranslate"><span class="pre">exact</span></code> mode, the <a class="reference internal" href="rectangle/benders_decomposition.html#internals-rectangle-benders-decomposition"><span class="std std-ref">Benders decomposition</span></a> for the <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code> objective, and the <a class="reference internal" href="rectangle/benders_decomposition_contiguity.html#internals-rectangle-benders-decomposition-contiguity"><span class="std std-ref">Benders decomposition with contiguity</span></a> for the <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code> objective;</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">rectangleguillotine</span></code>: depending on the number of stages, the cut type and the features used, the <a class="reference internal" href="rectangleguillotine/tree_search.html#internals-rectangleguillotine-tree-search"><span class="std std-ref">tree search</span></a>, the <a class="reference internal" href="rectangleguillotine/column_generation_strips.html#internals-rectangleguillotine-column-generation-strips"><span class="std std-ref">column generation strips</span></a>, the <a class="reference internal" href="rectangleguillotine/tree_search_maximal_spaces.html#internals-rectangleguillotine-tree-search-maximal-spaces"><span class="std std-ref">tree search with maximal spaces</span></a>, or the <a class="reference internal" href="rectangleguillotine/tree_search_hypergraph_infinite_copies.html#internals-rectangleguillotine-tree-search-hypergraph-infinite-copies"><span class="std std-ref">tree search hypergraph with infinite copies</span></a> when the item types have many copies;</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">box</span></code>: the tree search; for the <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code> and <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code> objectives, only in the directions in which few items fit in a section of the bin (at most 8 on average), or the <a class="reference internal" href="box/tree_search_maximal_spaces.html#internals-box-tree-search-maximal-spaces"><span class="std std-ref">tree search with maximal spaces</span></a> if there is no such direction;</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">boxstacks</span></code>: the <a class="reference internal" href="boxstacks/sequential_onedimensional_rectangle.html#internals-boxstacks-sequential-onedimensional-rectangle"><span class="std std-ref">sequential one-dimensional / rectangle</span></a> algorithm;</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">irregular</span></code>: the tree search, or the <a class="reference internal" href="irregular/tree_search_periodic_packing.html#internals-irregular-tree-search-periodic-packing"><span class="std std-ref">tree search with periodic packings</span></a> when the instance is dominated by item types with many copies (together with the tree search if fewer than 64 items fit in the bin), and the <a class="reference internal" href="irregular/local_search.html#internals-irregular-local-search"><span class="std std-ref">local search</span></a> for the objectives it supports; in the <code class="code docutils literal notranslate"><span class="pre">exact</span></code> mode, the <a class="reference internal" href="irregular/benders_decomposition.html#internals-irregular-benders-decomposition"><span class="std std-ref">Benders decomposition</span></a> for the <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code> objective, and the <a class="reference internal" href="irregular/tree_search_relative_positions.html#internals-irregular-tree-search-relative-positions"><span class="std std-ref">tree search on relative positions</span></a> for the <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code> objective.</p></li>
+</ul>
+</section>
+<section id="several-bins">
+<h2>Several bins<a class="headerlink" href="#several-bins" title="Link to this heading">¶</a></h2>
+<p>With several bins, the generic algorithms are added. The rule is the same for most problem types and objectives:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 25.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Copies</p></th>
+<th class="head"><p>Items in a bin</p></th>
+<th class="head"><p>Algorithms</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>many</p></td>
+<td><p>many</p></td>
+<td><p><a class="reference internal" href="generic_algorithms/sequential_single_knapsack.html#internals-generic-algorithms-sequential-single-knapsack"><span class="std std-ref">sequential single knapsack</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p>many</p></td>
+<td><p>few</p></td>
+<td><p><a class="reference internal" href="generic_algorithms/sequential_value_correction.html#internals-generic-algorithms-sequential-value-correction"><span class="std std-ref">sequential value correction</span></a> and <a class="reference internal" href="generic_algorithms/column_generation.html#internals-generic-algorithms-column-generation"><span class="std std-ref">column generation</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p>few</p></td>
+<td><p>any</p></td>
+<td><p>tree search and <a class="reference internal" href="generic_algorithms/column_generation.html#internals-generic-algorithms-column-generation"><span class="std std-ref">column generation</span></a></p></td>
+</tr>
+</tbody>
+</table>
+<p>The ideas behind it:</p>
+<ul class="simple">
+<li><p>when the item types have many copies and many items fit in a bin, packing the bins one by one wastes little space, and the sequential single knapsack algorithm does it quickly;</p></li>
+<li><p>when the item types have many copies but few items fit in a bin, the choice of the combinations of items in the bins matters, which is what the sequential value correction and the column generation are good at;</p></li>
+<li><p>when the item types have few copies, the tree search builds all the bins at once, and the column generation gives good bounds.</p></li>
+</ul>
+<p>The variations by objective and problem type:</p>
+<ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">bin-packing</span></code> and <code class="code docutils literal notranslate"><span class="pre">bin-packing-with-leftovers</span></code>: with few copies, the tree search is run together with the sequential single knapsack algorithm (if many items fit in a bin) or with the sequential value correction and the column generation (otherwise). For onedimensional, the tree search is skipped when the instance has no constraint other than the lengths: its sub-problems are then solved by dynamic programming, and the tree search wouldn’t find better solutions. The column generation doesn’t support the <code class="code docutils literal notranslate"><span class="pre">bin-packing-with-leftovers</span></code> objective with several bin types;</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">variable-sized-bin-packing</span></code>: the <a class="reference internal" href="generic_algorithms/dichotomic_search.html#internals-generic-algorithms-dichotomic-search"><span class="std std-ref">dichotomic search</span></a> is also used with several bin types, as illustrated below;</p></li>
+<li><p>the algorithms which don’t support an objective or a feature of the instance are removed from the selection.</p></li>
+</ul>
+<img alt="../_images/algorithm_selection_variable_sized_bin_packing.svg" class="align-center" src="../_images/algorithm_selection_variable_sized_bin_packing.svg" />
+<p>The details for each algorithm are given in the <em>Automatic selection</em> section of its page.</p>
+</section>
+<section id="source-files">
+<h2>Source files<a class="headerlink" href="#source-files" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">src/&lt;problem</span> <span class="pre">type&gt;/optimize.cpp</span></code>: the steps and the selection</p></li>
+</ul>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+<h3><a href="../index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../index.html">PackingSolver’s documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../objectives.html">Objectives</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../optimization_modes.html">Optimization modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> solver</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="overview.html">Solver internals</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="tree_search.html">Tree search</a></li>
+<li class="toctree-l2"><a class="reference internal" href="onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="generic_algorithms.html">Generic algorithms</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Algorithm selection</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#steps">Steps</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#characteristics-of-the-instance">Characteristics of the instance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#a-single-bin">A single bin</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#several-bins">Several bins</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#source-files">Source files</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="generic_algorithms/sequential_feasibility.html" title="Sequential feasibility"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="overview.html" >Solver internals</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Algorithm selection</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2019-2024, Florian Fontan.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.1.
+    </div>
+  </body>
+</html>
