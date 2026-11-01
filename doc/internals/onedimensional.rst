@@ -5,6 +5,17 @@
 
 See :ref:`onedimensional<onedimensional>` for the input/output format and CLI usage of this solver.
 
+Trivial bound
+-------------
+
+This algorithm computes a bound for the :code:`knapsack`, :code:`bin-packing` and :code:`variable-sized-bin-packing` objectives, from the total length of the items and the lengths of the bins only:
+
+* :code:`knapsack`: the continuous relaxation where the lengths of all the bins are pooled together;
+* :code:`bin-packing`: the number of bins, in the order of the instance, needed to cover the total length of the items;
+* :code:`variable-sized-bin-packing`: the minimum cost of a selection of bins whose total length covers the total length of the items, a knapsack problem solved by dynamic programming.
+
+It is run first, before the other algorithms. It is also used by the other problem types to bound their one-dimensional relaxation when it has too many item types to be solved.
+
 Dynamic programming
 -------------------
 

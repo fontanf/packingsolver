@@ -12,7 +12,8 @@ target_sources(PackingSolver_onedimensional PRIVATE
     milp_assignment.cpp
     post_process.cpp
     reduction.cpp
-    tree_search.cpp)
+    tree_search.cpp
+    trivial_bound.cpp)
 target_include_directories(PackingSolver_onedimensional PUBLIC
     ${PROJECT_SOURCE_DIR}/include)
 target_include_directories(PackingSolver_onedimensional PRIVATE
