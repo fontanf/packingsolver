@@ -1,5 +1,6 @@
 #include "packingsolver/irregular/instance_builder.hpp"
 #include "packingsolver/irregular/optimize.hpp"
+#include "irregular/benders_decomposition.hpp"
 
 #include <gtest/gtest.h>
 
@@ -174,4 +175,31 @@ TEST(IrregularBendersDecomposition, KnapsackGoal)
             EXPECT_TRUE(output.is_proven_optimal());
         }
     }
+}
+
+TEST(IrregularBendersDecomposition, IncompatiblePairsAndTriples)
+{
+    // In a 100 x 100 bin, two 60 x 60 items don't fit together; a 60 x 60
+    // item and a 60 x 40 item fit, but not with another 60 x 40 item; two
+    // 60 x 40 items fit, but not three: one pair and two triples are
+    // incompatible, and three bins are needed.
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(Objective::BinPacking);
+    BinTypeId bin_type_id = instance_builder.add_bin_type(shape::build_rectangle(0, 100, 0, 100));
+    instance_builder.set_bin_type_copies(bin_type_id, 4);
+    add_rectangle_item_type(instance_builder, 60, 60, 1, 2);
+    add_rectangle_item_type(instance_builder, 60, 40, 1, 3);
+    Instance instance = instance_builder.build();
+
+    BendersDecompositionParameters parameters;
+    parameters.verbosity_level = 0;
+    parameters.optimization_mode = OptimizationMode::NotAnytimeSequential;
+    parameters.subproblem_use_milp_nfp = true;
+    parameters.compute_incompatible_pairs = true;
+    parameters.compute_incompatible_triples = true;
+    BendersDecompositionOutput output = benders_decomposition(instance, parameters);
+    EXPECT_EQ(output.number_of_incompatible_pairs, 1);
+    EXPECT_EQ(output.number_of_incompatible_triples, 2);
+    EXPECT_EQ(output.solution_pool.best().number_of_bins(), 3);
+    EXPECT_EQ(output.bin_packing_bound, 3);
 }

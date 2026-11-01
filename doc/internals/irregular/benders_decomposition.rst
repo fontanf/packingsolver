@@ -20,7 +20,7 @@ It is the combinatorial Benders decomposition of the :ref:`rectangle Benders dec
 
 When the items of a bin don't fit, *no-good cuts* are added to the master problem, forbidding infeasible subsets of them in a bin of this type, and the master problem is solved again. Since the master problem is a relaxation of the problem, the value of its optimal solution is a bound. The algorithm stops when the items of every bin fit, or when the solution of the master problem can't be better than the best solution found: the best solution found is then optimal.
 
-Unlike in the rectangle version, nothing is known about the geometry before the first iteration: two irregular items which don't fit side by side or one above the other may still fit together, interlocked or rotated, so there are no incompatible pairs or triplets, and no dual feasible function cuts. All the geometric information of the master problem comes from the subproblems.
+Unlike in the rectangle version, nothing is known about the geometry before the first iteration: two irregular items which don't fit side by side or one above the other may still fit together, interlocked or rotated, so there are no cheap incompatible pairs or triplets, and no dual feasible function cuts. By default, all the geometric information of the master problem comes from the subproblems (see *Incompatible pairs and triples* below).
 
 Master problem
 --------------
@@ -74,6 +74,8 @@ No-good cuts
 Lifting makes each cut much stronger, but it is expensive: on :code:`jakobs2_sb`, it adds about 3 item types per cut, but it takes 60% of the time.
 
 **Proofs.** A cut is *proven* if every check of its derivation proved that the items don't fit, which in practice requires the MILP NFP algorithm. A cut which isn't proven is still added, so that the algorithm keeps converging, but then the master problem may not be a relaxation anymore: while a cut is unproven, the value of the master problem is not reported as a bound of the instance, and the solution found is not proven optimal.
+
+**Incompatible pairs and triples** (optional, off by default). With the MILP NFP algorithm, before the first iteration, the pairs of items which don't fit together in a bin, and then the triples whose pairs fit and whose total area doesn't exceed the area of the bin, can be proven incompatible, each one giving a proven cut. This pays off with few item types: on :code:`shapes0_sb` (4 item types), the optimality is proven in 1.4 seconds instead of about 3.5. But the number of checks grows quickly with the number of item types, and most of the incompatibilities are found anyway through the subproblems: with 25 item types, on :code:`jakobs1_sb`, the pairs alone take 25 seconds, and the proof of optimality goes from about 23 to 37 seconds. They didn't improve the bound of any of the instances that aren't solved.
 
 Search parameters
 -----------------

@@ -37,10 +37,12 @@ Instance build_instance(
 
 MilpNfpStatus status(
         const Instance& instance,
-        const std::vector<ItemTypeId>& item_type_ids)
+        const std::vector<ItemTypeId>& item_type_ids,
+        bool three_item_cuts = false)
 {
     MilpNfpParameters parameters;
     parameters.verbosity_level = 0;
+    parameters.three_item_cuts = three_item_cuts;
     return milp_nfp(instance, 0, item_type_ids, parameters).status;
 }
 
@@ -162,6 +164,26 @@ TEST(IrregularMilpNfp, Packing)
     EXPECT_TRUE(overlapping_items.item_item_pairs.empty());
     EXPECT_TRUE(overlapping_items.item_border_pairs.empty());
     EXPECT_TRUE(overlapping_items.items_outside_bin.empty());
+}
+
+TEST(IrregularMilpNfp, ThreeItemCuts)
+{
+    // The three-item cuts don't change the statuses. Four 50 x 50 squares
+    // exactly fit in a 100 x 100 bin, five don't; the steps, a square and a
+    // rectangle fit.
+    Instance instance_squares = build_instance(100, 100, {{shape::build_square(50), {0}}});
+    EXPECT_EQ(status(instance_squares, {0, 0, 0, 0}, true), MilpNfpStatus::Feasible);
+    EXPECT_EQ(status(instance_squares, {0, 0, 0, 0, 0}, true), MilpNfpStatus::Infeasible);
+    Instance instance = build_instance(100, 100, {
+            {build_step(), {0, 180}},
+            {shape::build_square(30), {0}},
+            {shape::build_rectangle(0, 60, 0, 25), {0}}});
+    MilpNfpParameters parameters;
+    parameters.verbosity_level = 0;
+    parameters.three_item_cuts = true;
+    MilpNfpOutput output = milp_nfp(instance, 0, {0, 0, 1, 2}, parameters);
+    EXPECT_EQ(output.status, MilpNfpStatus::Feasible);
+    EXPECT_GT(output.number_of_three_item_cuts, 0);
 }
 
 TEST(IrregularMilpNfp, OptimizeExactInfeasible)

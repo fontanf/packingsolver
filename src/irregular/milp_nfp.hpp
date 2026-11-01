@@ -99,6 +99,9 @@ struct MilpNfpOutput
      */
     Counter number_of_rotation_combinations_pruned_by_sub_combinations = 0;
 
+    /** Number of three-item cuts in the cache, over the triples of rotations. */
+    Counter number_of_three_item_cuts = 0;
+
     /** Maximum number of convex pieces of a pair of items. */
     Counter maximum_number_of_pieces = 0;
 
@@ -148,6 +151,16 @@ struct MilpNfpParameters: optimizationtools::Parameters
      * sub-combinations without one of the items.
      */
     bool check_sub_combinations = true;
+
+    /**
+     * Add the three-item cuts: for items i < j < u, d_iu = d_ij + d_ju, so
+     * if the pieces a of (i, j) and b of (j, u) are selected, the pieces of
+     * (i, u) which don't intersect a + b (Minkowski sum) can't be.
+     *
+     * They speed up the proofs of infeasibility of sets of items, but slow
+     * down the other calls.
+     */
+    bool three_item_cuts = false;
 
     /** Cache, kept between calls on the same instance (optional). */
     MilpNfpCache* cache = nullptr;
