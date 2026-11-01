@@ -1205,9 +1205,9 @@ struct LbdResult
  * no-good cuts, and, if it in turn gets stuck, its own nested LBD) LBMP(I)
  * needs, with nothing left here to reimplement. The bin type (dimensions,
  * resources, ...) is copied unchanged from 'instance' via the
- * 'add_bin_type(instance, id)' "copy from original" overload, which also
+ * 'add_bin_type_from_original_instance', which also
  * carries every relevant resource's consumption schedule over (see
- * 'add_item_type(instance, id)') - so this sub-instance remains subject to
+ * 'add_item_type_from_original_instance') - so this sub-instance remains subject to
  * the same resource constraints as 'instance' itself, even though the
  * outer BMP's own 'add_resource_constraints' rows already guarantee I
  * itself is resource-feasible (repositioning I can't change its resource
@@ -1230,14 +1230,15 @@ LbdResult run_lbd(
     InstanceBuilder lbmp_instance_builder;
     lbmp_instance_builder.set_objective(Objective::Feasibility);
     lbmp_instance_builder.set_parameters(instance.parameters());
-    lbmp_instance_builder.add_bin_type(instance, 0);
+    lbmp_instance_builder.set_original_instance(instance);
+    lbmp_instance_builder.add_bin_type_from_original_instance(0);
     std::vector<ItemTypeId> sub_to_original_item_type_id;
     for (ItemTypeId item_type_id = 0;
             item_type_id < instance.number_of_item_types();
             ++item_type_id) {
         if (unit_counts[item_type_id] == 0)
             continue;
-        ItemTypeId sub_item_type_id = lbmp_instance_builder.add_item_type(instance, item_type_id);
+        ItemTypeId sub_item_type_id = lbmp_instance_builder.add_item_type_from_original_instance(item_type_id);
         lbmp_instance_builder.set_item_type_copies(sub_item_type_id, unit_counts[item_type_id]);
         sub_to_original_item_type_id.push_back(item_type_id);
     }

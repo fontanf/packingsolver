@@ -1801,6 +1801,7 @@ Instance Reduction::reduction_to_instance(
     InstanceBuilder instance_builder;
     instance_builder.set_objective(original_instance_->objective());
     instance_builder.set_parameters(original_instance_->parameters());
+    instance_builder.set_original_instance(*original_instance_);
     instance_builder.set_feasibility_callback(original_instance_->feasibility_callback());
 
     BinPos number_of_dedicated_bins = this->number_of_dedicated_bins();
@@ -1842,7 +1843,7 @@ Instance Reduction::reduction_to_instance(
             // in the reduced instance.
             continue;
         }
-        BinTypeId new_bin_type_id = instance_builder.add_bin_type(*original_instance_, bin_type_id);
+        BinTypeId new_bin_type_id = instance_builder.add_bin_type_from_original_instance(bin_type_id);
         original_to_reduced_bin_type_id[bin_type_id] = new_bin_type_id;
         reduced_to_original_bin_type_id_.push_back(bin_type_id);
         // Override to this bin's own true, possibly-shrunk dimensions (see

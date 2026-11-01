@@ -59,8 +59,9 @@ TEST(OneDimensional, ResourceConsumptionCopiedFromOriginalInstance)
     const Instance instance = instance_builder.build();
 
     InstanceBuilder sub_instance_builder;
-    packingsolver::BinTypeId sub_bin_type_id = sub_instance_builder.add_bin_type(instance, bin_type_id);
-    packingsolver::ItemTypeId sub_item_type_id = sub_instance_builder.add_item_type(instance, item_type_id);
+    sub_instance_builder.set_original_instance(instance);
+    packingsolver::BinTypeId sub_bin_type_id = sub_instance_builder.add_bin_type_from_original_instance(bin_type_id);
+    packingsolver::ItemTypeId sub_item_type_id = sub_instance_builder.add_item_type_from_original_instance(item_type_id);
     const Instance sub_instance = sub_instance_builder.build();
 
     EXPECT_EQ(sub_instance.bin_type(sub_bin_type_id).number_of_resources(), 1);

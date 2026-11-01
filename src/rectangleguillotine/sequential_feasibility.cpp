@@ -79,6 +79,7 @@ SequentialFeasibilityOutput packingsolver::rectangleguillotine::sequential_feasi
         InstanceBuilder sub_instance_builder;
         sub_instance_builder.set_objective(Objective::Feasibility);
         sub_instance_builder.set_parameters(instance.parameters());
+        sub_instance_builder.set_original_instance(instance);
         std::vector<BinTypeId> sub_to_orig_bin_type_ids;
         if (instance.objective() == Objective::BinPacking) {
             BinPos remaining_bins = current_number_of_bins;
@@ -124,7 +125,7 @@ SequentialFeasibilityOutput packingsolver::rectangleguillotine::sequential_feasi
         for (ItemTypeId item_type_id = 0;
                 item_type_id < instance.number_of_item_types();
                 ++item_type_id) {
-            sub_instance_builder.add_item_type(instance, item_type_id);
+            sub_instance_builder.add_item_type_from_original_instance(item_type_id);
         }
         Instance sub_instance = sub_instance_builder.build();
 

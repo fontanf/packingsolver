@@ -400,6 +400,7 @@ SequentialFeasibilityOutput packingsolver::irregular::sequential_feasibility(
         InstanceBuilder sub_instance_builder;
         sub_instance_builder.set_objective(Objective::Feasibility);
         sub_instance_builder.set_parameters(instance.parameters());
+        sub_instance_builder.set_original_instance(instance);
         std::vector<BinTypeId> sub_to_orig_bin_type_ids;
         bool fixed_item_outside = false;
         if (instance.objective() == Objective::BinPacking) {
@@ -410,7 +411,7 @@ SequentialFeasibilityOutput packingsolver::irregular::sequential_feasibility(
                     ++bin_type_id) {
                 const BinType& bin_type = instance.bin_type(bin_type_id);
                 BinPos copies = std::min(bin_type.copies, remaining_bins);
-                BinTypeId sub_bin_type_id = sub_instance_builder.add_bin_type(instance, bin_type_id);
+                BinTypeId sub_bin_type_id = sub_instance_builder.add_bin_type_from_original_instance(bin_type_id);
                 sub_instance_builder.set_bin_type_copies(sub_bin_type_id, copies);
                 sub_instance_builder.set_bin_type_copies_min(sub_bin_type_id, 0);
                 sub_to_orig_bin_type_ids.push_back(bin_type_id);
@@ -430,7 +431,7 @@ SequentialFeasibilityOutput packingsolver::irregular::sequential_feasibility(
                 remaining_bins -= copies;
                 BinPos copies_full = (remaining_bins == 0)? copies - 1: copies;
                 if (copies_full > 0) {
-                    BinTypeId sub_bin_type_id = sub_instance_builder.add_bin_type(instance, bin_type_id);
+                    BinTypeId sub_bin_type_id = sub_instance_builder.add_bin_type_from_original_instance(bin_type_id);
                     sub_instance_builder.set_bin_type_copies(sub_bin_type_id, copies_full);
                     sub_instance_builder.set_bin_type_copies_min(sub_bin_type_id, 0);
                     sub_to_orig_bin_type_ids.push_back(bin_type_id);
@@ -474,7 +475,7 @@ SequentialFeasibilityOutput packingsolver::irregular::sequential_feasibility(
         for (ItemTypeId item_type_id = 0;
                 item_type_id < instance.number_of_item_types();
                 ++item_type_id) {
-            sub_instance_builder.add_item_type(instance, item_type_id);
+            sub_instance_builder.add_item_type_from_original_instance(item_type_id);
         }
         Instance sub_instance = sub_instance_builder.build();
 

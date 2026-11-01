@@ -160,10 +160,21 @@ DefectId InstanceBuilder::add_defect(
     return bin_type.defects.size() - 1;
 }
 
-BinTypeId InstanceBuilder::add_bin_type(
-        const Instance& original_instance,
+const Instance& InstanceBuilder::original_instance() const
+{
+    if (original_instance_ == nullptr) {
+        throw std::logic_error(
+                FUNC_SIGNATURE + ": "
+                "the original instance must be set with "
+                "'set_original_instance'.");
+    }
+    return *original_instance_;
+}
+
+BinTypeId InstanceBuilder::add_bin_type_from_original_instance(
         BinTypeId original_bin_type_id)
 {
+    const Instance& original_instance = this->original_instance();
     const BinType& bin_type = original_instance.bin_type(original_bin_type_id);
     BinTypeId bin_type_id = add_bin_type(
             bin_type.box.x,
@@ -492,10 +503,10 @@ void InstanceBuilder::set_item_type_maximum_weight_above(
     instance_.item_types_[item_type_id].maximum_weight_above = maximum_weight_above;
 }
 
-ItemTypeId InstanceBuilder::add_item_type(
-        const Instance& original_instance,
+ItemTypeId InstanceBuilder::add_item_type_from_original_instance(
         ItemTypeId original_item_type_id)
 {
+    const Instance& original_instance = this->original_instance();
     const ItemType& item_type = original_instance.item_type(original_item_type_id);
     ItemTypeId item_type_id = this->add_item_type(
             item_type.box.x,

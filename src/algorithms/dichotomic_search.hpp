@@ -203,11 +203,12 @@ DichotomicSearchOutput<Instance, Solution, Output> dichotomic_search(
         InstanceBuilder bpp_instance_builder;
         bpp_instance_builder.set_objective(Objective::BinPacking);
         bpp_instance_builder.set_parameters(instance.parameters());
+        bpp_instance_builder.set_original_instance(instance);
         // Add all items.
         for (ItemTypeId item_type_id = 0;
                 item_type_id < instance.number_of_item_types();
                 ++item_type_id) {
-            bpp_instance_builder.add_item_type(instance, item_type_id);
+            bpp_instance_builder.add_item_type_from_original_instance(item_type_id);
         }
         std::vector<ItemTypeId> item_types_bpp2ps(instance.number_of_item_types());
         std::iota(item_types_bpp2ps.begin(), item_types_bpp2ps.end(), 0);
@@ -231,7 +232,7 @@ DichotomicSearchOutput<Instance, Solution, Output> dichotomic_search(
             for (BinTypeId bin_type_id: sorted_bin_types) {
                 if (bin_copies[bin_type_id] > 0) {
                     //std::cout << "bin_type_id " << i << " " << bin_copies[i] << " " << instance.bin_type(i).space() << std::endl;
-                    BinTypeId bpp_bin_type_id = bpp_instance_builder.add_bin_type(instance, bin_type_id);
+                    BinTypeId bpp_bin_type_id = bpp_instance_builder.add_bin_type_from_original_instance(bin_type_id);
                     bpp_instance_builder.set_bin_type_copies(bpp_bin_type_id, bin_copies[bin_type_id]);
                     bpp_instance_builder.set_bin_type_copies_min(bpp_bin_type_id, 0);
                     bin_types_bpp2ps.push_back(bin_type_id);
@@ -243,7 +244,7 @@ DichotomicSearchOutput<Instance, Solution, Output> dichotomic_search(
                 auto copies = bin_type.copies - bin_copies[bin_type_id];
                 if (copies > 0) {
                     //std::cout << "bin_type_id " << i << " " << bin_copies[i] << " " << instance.bin_type(i).space() << std::endl;
-                    BinTypeId bpp_bin_type_id = bpp_instance_builder.add_bin_type(instance, bin_type_id);
+                    BinTypeId bpp_bin_type_id = bpp_instance_builder.add_bin_type_from_original_instance(bin_type_id);
                     bpp_instance_builder.set_bin_type_copies(bpp_bin_type_id, copies);
                     bpp_instance_builder.set_bin_type_copies_min(bpp_bin_type_id, 0);
                     bin_types_bpp2ps.push_back(bin_type_id);

@@ -442,7 +442,8 @@ PricingOutput ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution,
         InstanceBuilder kp_instance_builder = InstanceBuilder();
         kp_instance_builder.set_objective(Objective::Knapsack);
         kp_instance_builder.set_parameters(instance_.parameters());
-        BinTypeId kp_bin_type_id = kp_instance_builder.add_bin_type(instance_, bin_type_id);
+        kp_instance_builder.set_original_instance(instance_);
+        BinTypeId kp_bin_type_id = kp_instance_builder.add_bin_type_from_original_instance(bin_type_id);
         kp_instance_builder.set_bin_type_copies(kp_bin_type_id, 1);
         kp_instance_builder.set_bin_type_copies_min(kp_bin_type_id, 0);
         std::vector<ItemTypeId> kp2vbpp;
@@ -485,7 +486,7 @@ PricingOutput ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution,
             //std::cout << "item_type_id " << item_type_id << " profit " << profit << std::endl;
             if (copies <= 0)
                 continue;
-            ItemTypeId kp_item_type_id = kp_instance_builder.add_item_type(instance_, item_type_id);
+            ItemTypeId kp_item_type_id = kp_instance_builder.add_item_type_from_original_instance(item_type_id);
             kp_instance_builder.set_item_type_profit(kp_item_type_id, profit);
             kp_instance_builder.set_item_type_copies(kp_item_type_id, copies);
             kp2vbpp.push_back(item_type_id);
@@ -1490,14 +1491,15 @@ Instance build_sequential_feasibility_sub_instance(
     InstanceBuilder sub_instance_builder;
     sub_instance_builder.set_objective(Objective::Feasibility);
     sub_instance_builder.set_parameters(instance.parameters());
+    sub_instance_builder.set_original_instance(instance);
     BinPos remaining_bins = number_of_bins;
     for (BinTypeId bin_type_id = 0;
             bin_type_id < instance.number_of_bin_types() && remaining_bins > 0;
             ++bin_type_id) {
         const auto& bin_type = instance.bin_type(bin_type_id);
         BinPos copies = (std::min)(bin_type.copies, remaining_bins);
-        BinTypeId sub_bin_type_id = sub_instance_builder.add_bin_type(instance, bin_type_id);
-        // Reset 'copies_min' to 0 before 'copies': 'add_bin_type' copied the
+        BinTypeId sub_bin_type_id = sub_instance_builder.add_bin_type_from_original_instance(bin_type_id);
+        // Reset 'copies_min' to 0 before 'copies': 'add_bin_type_from_original_instance' copied the
         // original bin type's own 'copies_min', which could otherwise be
         // larger than the subset 'copies' computed above and make
         // 'set_bin_type_copies' reject it.
@@ -1508,7 +1510,7 @@ Instance build_sequential_feasibility_sub_instance(
     for (ItemTypeId item_type_id = 0;
             item_type_id < instance.number_of_item_types();
             ++item_type_id) {
-        sub_instance_builder.add_item_type(instance, item_type_id);
+        sub_instance_builder.add_item_type_from_original_instance(item_type_id);
     }
     return sub_instance_builder.build();
 }

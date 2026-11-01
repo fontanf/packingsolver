@@ -1063,6 +1063,7 @@ Instance Reduction::reduction_to_instance(
     InstanceBuilder instance_builder;
     instance_builder.set_objective(original_instance_->objective());
     instance_builder.set_parameters(original_instance_->parameters());
+    instance_builder.set_original_instance(*original_instance_);
     instance_builder.set_feasibility_callback(original_instance_->feasibility_callback());
 
     BinPos number_of_dedicated_bins = this->number_of_dedicated_bins();
@@ -1093,7 +1094,7 @@ Instance Reduction::reduction_to_instance(
                 && bin_type_removed[bin_type_id]) {
             continue;
         }
-        BinTypeId new_bin_type_id = instance_builder.add_bin_type(*original_instance_, bin_type_id);
+        BinTypeId new_bin_type_id = instance_builder.add_bin_type_from_original_instance(bin_type_id);
         reduced_to_original_bin_type_id_.push_back(bin_type_id);
         if (number_of_dedicated_bins > 0) {
             // Fold the dedicated bins' capacity out of the reduced
@@ -1170,7 +1171,7 @@ Instance Reduction::reduction_to_instance(
                 origin_runs.push_back({other_item_type_id, merged_copies});
         }
 
-        // 'add_item_type(original_instance, item_type_id)' already copies
+        // 'add_item_type_from_original_instance' already copies
         // every other field (length, weight, nesting length, maximum
         // stackability, maximum weight after, eligibility, resource
         // consumption, profit) as-is, and resolves this item type's own
@@ -1181,7 +1182,7 @@ Instance Reduction::reduction_to_instance(
         // with 'item.length' - the original length unless 'lift_item_lengths'
         // grew it, in which case this is the only place that grown length
         // ever reaches the reduced instance the downstream solve sees.
-        ItemTypeId new_item_type_id = instance_builder.add_item_type(*original_instance_, item_type_id);
+        ItemTypeId new_item_type_id = instance_builder.add_item_type_from_original_instance(item_type_id);
         instance_builder.set_item_type_length(new_item_type_id, item.length);
         instance_builder.set_item_type_copies(new_item_type_id, total_copies);
         instance_builder.set_item_type_copies_min(new_item_type_id, total_copies_min);

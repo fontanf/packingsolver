@@ -396,10 +396,21 @@ void InstanceBuilder::add_resource_consumption(
     bin_type.resources[resource_id].item_consumptions.push_back({item_type_id, schedule});
 }
 
-BinTypeId InstanceBuilder::add_bin_type(
-        const Instance& original_instance,
+const Instance& InstanceBuilder::original_instance() const
+{
+    if (original_instance_ == nullptr) {
+        throw std::logic_error(
+                FUNC_SIGNATURE + ": "
+                "the original instance must be set with "
+                "'set_original_instance'.");
+    }
+    return *original_instance_;
+}
+
+BinTypeId InstanceBuilder::add_bin_type_from_original_instance(
         BinTypeId original_bin_type_id)
 {
+    const Instance& original_instance = this->original_instance();
     const BinType& bin_type = original_instance.bin_type(original_bin_type_id);
     BinTypeId bin_type_id = add_bin_type(
             bin_type.rect.w,
@@ -587,10 +598,10 @@ ItemTypeId InstanceBuilder::add_item_type(
     return instance_.item_types_.size() - 1;
 }
 
-ItemTypeId InstanceBuilder::add_item_type(
-        const Instance& original_instance,
+ItemTypeId InstanceBuilder::add_item_type_from_original_instance(
         ItemTypeId original_item_type_id)
 {
+    const Instance& original_instance = this->original_instance();
     const ItemType& item_type = original_instance.item_type(original_item_type_id);
     ItemTypeId item_type_id = add_item_type(
             item_type.rect.w,
@@ -604,7 +615,7 @@ ItemTypeId InstanceBuilder::add_item_type(
     set_item_type_copies(item_type_id, item_type.copies);
     // Copy the consumption of this item type for the resources of
     // already-added bin types. Assumes the relevant bin types have already
-    // been added via 'add_bin_type(original_instance, ...)'.
+    // been added via 'add_bin_type_from_original_instance'.
     for (BinTypeId original_bin_type_id = 0;
             original_bin_type_id < (BinTypeId)orig_to_sub_bin_type_ids_.size();
             ++original_bin_type_id) {

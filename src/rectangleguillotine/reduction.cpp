@@ -1090,6 +1090,7 @@ Instance Reduction::reduction_to_instance(
     instance_builder.set_objective(original_instance_->objective());
     instance_builder.set_knapsack_goal(original_instance_->knapsack_goal());
     instance_builder.set_parameters(original_instance_->parameters());
+    instance_builder.set_original_instance(*original_instance_);
     instance_builder.set_feasibility_callback(original_instance_->feasibility_callback());
 
     // Every bin type not dominated (see 'compute_dominated_bin_types') is
@@ -1105,7 +1106,7 @@ Instance Reduction::reduction_to_instance(
             continue;
         }
         original_to_reduced_bin_type_id[bin_type_id]
-            = instance_builder.add_bin_type(*original_instance_, bin_type_id);
+            = instance_builder.add_bin_type_from_original_instance(bin_type_id);
         reduced_to_original_bin_type_id_.push_back(bin_type_id);
         // The dedicated bins (see 'reduce_full_bin_items'/
         // 'reduce_perfect_pairs', single bin type) are left out of the

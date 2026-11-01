@@ -653,10 +653,11 @@ TEST_P(RectangleGuillotineTreeSearchRoadef2018FixedStackTest, RectangleGuillotin
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_parameters(instance_0.parameters());
+    instance_builder.set_original_instance(instance_0);
     for (BinTypeId bin_type_id = 0;
             bin_type_id < instance_0.number_of_bin_types();
             ++bin_type_id) {
-        instance_builder.add_bin_type(instance_0, bin_type_id);
+        instance_builder.add_bin_type_from_original_instance(bin_type_id);
     }
     for (ItemTypeId item_type_id: sorted_item_type_ids) {
         const ItemType& item_type = instance_0.item_type(item_type_id);
