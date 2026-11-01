@@ -3,10 +3,11 @@
 Optimization modes
 ==================
 
-PackingSolver provides 4 optimization modes:
+PackingSolver provides 5 optimization modes:
 
 * Anytime
 * Not-anytime
+* Not-anytime deterministic
 * Not-anytime sequential
 * Exact
 
@@ -142,9 +143,11 @@ Non-anytime modes are more complex to use, since defining accurately the desired
 
     Non-anytime mode: let the solver find a solution of a given quality
 
-There are 2 non-anytime modes. The `not-anytime` mode uses multiple threads, typically about 8 threads. The `not-anytime-sequential` mode uses a single thread.
+There are 3 non-anytime modes. The `not-anytime` mode uses multiple threads, typically about 8 threads. The `not-anytime-deterministic` mode uses multiple threads as well, but the result doesn't depend on the order in which the threads find their solutions. The `not-anytime-sequential` mode uses a single thread.
 
-The `not-anytime-sequential` mode is **deterministic**. The other optimization modes may not be deterministic even if they should be most of the time.
+The `not-anytime-deterministic` and `not-anytime-sequential` modes are **deterministic**. The other optimization modes may not be deterministic even if they should be most of the time.
+
+Here, deterministic means that the same input gives the same result when PackingSolver is run again with the same build on the same machine: same operating system, same compiler and standard library, same versions. The result may differ on another platform or with another standard library, since, for example, the order of elements that compare equal when sorting, the iteration order of hash containers and the last bits of floating-point computations may differ.
 
 **Example**
 
