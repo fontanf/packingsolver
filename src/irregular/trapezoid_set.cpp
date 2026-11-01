@@ -174,6 +174,9 @@ TrapezoidSet packingsolver::irregular::build_trapezoid_set(
     trapezoid_set.item_type_id = item_type_id;
     trapezoid_set.angle = rotation.angle;
     trapezoid_set.mirror = rotation.mirror;
+    trapezoid_set.item_type_aabb_orig = item_type.compute_min_max(
+            rotation.angle,
+            rotation.mirror);
 
     for (ItemShapePos item_shape_pos = 0;
             item_shape_pos < (ItemShapePos)item_type.shapes.size();
