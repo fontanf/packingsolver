@@ -17,6 +17,7 @@
 #include "algorithms/thread_pool.hpp"
 #include "packingsolver/onedimensional/instance_builder.hpp"
 #include "packingsolver/onedimensional/optimize.hpp"
+#include "onedimensional/trivial_bound.hpp"
 
 using namespace packingsolver;
 using namespace packingsolver::irregular;
@@ -216,7 +217,17 @@ void optimize_onedimensional_bound(
         OptimizationMode::NotAnytimeSequential:
         OptimizationMode::NotAnytime;
     onedim_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
-    auto onedim_output = optimize(onedim_instance, onedim_parameters);
+    onedimensional::TrivialBoundParameters onedim_trivial_bound_parameters;
+    onedim_trivial_bound_parameters.verbosity_level = 0;
+    onedim_trivial_bound_parameters.timer = parameters.timer;
+    onedim_trivial_bound_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+    onedim_trivial_bound_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
+    // With many item types, solving the onedimensional instance may take a
+    // long time (e.g. column generation), so only its trivial bound is
+    // computed.
+    onedimensional::Output onedim_output = (instance.number_of_item_types() < 100)?
+        onedimensional::optimize(onedim_instance, onedim_parameters):
+        onedimensional::trivial_bound(onedim_instance, onedim_trivial_bound_parameters);
 
     // The one-dimensional instance is a relaxation: if it is infeasible, so
     // is the instance.
