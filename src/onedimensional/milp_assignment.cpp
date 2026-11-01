@@ -55,7 +55,8 @@ BinPos compute_bin_instance_upper_bound(
     InstanceBuilder sub_instance_builder;
     sub_instance_builder.set_objective(Objective::BinPacking);
     sub_instance_builder.set_parameters(instance.parameters());
-    BinTypeId sub_bin_type_id = sub_instance_builder.add_bin_type(instance, bin_type_id);
+    sub_instance_builder.set_original_instance(instance);
+    BinTypeId sub_bin_type_id = sub_instance_builder.add_bin_type_from_original_instance(bin_type_id);
     sub_instance_builder.set_bin_type_copies(sub_bin_type_id, -1);
     sub_instance_builder.set_bin_type_copies_min(sub_bin_type_id, 0);
 
@@ -77,7 +78,7 @@ BinPos compute_bin_instance_upper_bound(
             ++item_type_id) {
         if (!instance.item_type_fits_bin_type(item_type_id, bin_type_id))
             continue;
-        sub_instance_builder.add_item_type(instance, item_type_id);
+        sub_instance_builder.add_item_type_from_original_instance(item_type_id);
         sub_item_type_ids.push_back(item_type_id);
         total_compatible_item_copies += instance.item_type(item_type_id).copies;
     }
@@ -1417,6 +1418,7 @@ Instance build_sequential_feasibility_sub_instance(
     InstanceBuilder sub_instance_builder;
     sub_instance_builder.set_objective(Objective::Feasibility);
     sub_instance_builder.set_parameters(instance.parameters());
+    sub_instance_builder.set_original_instance(instance);
     BinPos remaining_bins = number_of_bins;
     for (BinTypeId bin_type_id = 0;
             bin_type_id < instance.number_of_bin_types() && remaining_bins > 0;
@@ -1425,8 +1427,8 @@ Instance build_sequential_feasibility_sub_instance(
         BinPos copies = (bin_type.copies == -1)?
             remaining_bins:
             std::min(bin_type.copies, remaining_bins);
-        BinTypeId sub_bin_type_id = sub_instance_builder.add_bin_type(instance, bin_type_id);
-        // Reset 'copies_min' to 0 before 'copies': 'add_bin_type' copied the
+        BinTypeId sub_bin_type_id = sub_instance_builder.add_bin_type_from_original_instance(bin_type_id);
+        // Reset 'copies_min' to 0 before 'copies': 'add_bin_type_from_original_instance' copied the
         // original bin type's own 'copies_min', which could otherwise be
         // larger than the subset 'copies' computed above and make
         // 'set_bin_type_copies' reject it.
@@ -1437,7 +1439,7 @@ Instance build_sequential_feasibility_sub_instance(
     for (ItemTypeId item_type_id = 0;
             item_type_id < instance.number_of_item_types();
             ++item_type_id) {
-        sub_instance_builder.add_item_type(instance, item_type_id);
+        sub_instance_builder.add_item_type_from_original_instance(item_type_id);
     }
     return sub_instance_builder.build();
 }

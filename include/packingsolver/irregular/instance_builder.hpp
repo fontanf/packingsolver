@@ -119,12 +119,19 @@ public:
             const std::vector<double>& schedule);
 
     /**
-     * Add a bin type from another bin type.
+     * Set the original instance, from which bin types and item types are
+     * added by 'add_bin_type_from_original_instance' and
+     * 'add_item_type_from_original_instance'.
      *
-     * This method is used in the column generation procedure.
+     * It is used to build sub-instances of an instance, for example in the
+     * column generation or in the sequential value correction algorithms.
+     *
+     * The original instance must remain valid until 'build' is called.
      */
-    BinTypeId add_bin_type(
-            const Instance& original_instance,
+    void set_original_instance(const Instance& original_instance) { original_instance_ = &original_instance; }
+
+    /** Add a bin type from a bin type of the original instance. */
+    BinTypeId add_bin_type_from_original_instance(
             BinTypeId original_bin_type_id);
 
     /** Set the number of copies of a bin type. */
@@ -176,13 +183,8 @@ public:
             Angle end_angle,
             bool mirror);
 
-    /**
-     * Add an item type from another item type.
-     *
-     * This method is used in the column generation procedure.
-     */
-    ItemTypeId add_item_type(
-            const Instance& original_instance,
+    /** Add an item type from an item type of the original instance. */
+    ItemTypeId add_item_type_from_original_instance(
             ItemTypeId original_item_type_id);
 
     /** Set the profit of an item type. */
@@ -243,6 +245,13 @@ public:
 
 private:
 
+    /**
+     * Return the original instance.
+     *
+     * Throw if it has not been set with 'set_original_instance'.
+     */
+    const Instance& original_instance() const;
+
     /*
      * Private methods
      */
@@ -274,34 +283,13 @@ private:
 
     /**
      * Periodic packings of a single item type carried over from the
-     * original instances by 'add_item_type(original_instance, ...)', with
+     * original instance by 'add_item_type_from_original_instance', with
      * their item type ids already mapped to the sub-instance ones.
      */
     std::vector<PeriodicItemPacking> periodic_packings_;
 
-    /**
-     * Original instance the item types are added from by
-     * 'add_item_type(original_instance, ...)', used to carry over its
-     * periodic packings of several item types. Only used to identify it:
-     * its periodic packings of several item types are copied into
-     * 'original_multiple_item_types_periodic_packings_' on the first call.
-     */
+    /** Original instance; see 'set_original_instance'. */
     const Instance* original_instance_ = nullptr;
-
-    /**
-     * Periodic packings of several item types of 'original_instance_', with
-     * the original item type ids, carried over in 'build()' when all their
-     * item types have been added.
-     */
-    std::vector<PeriodicItemPacking> original_multiple_item_types_periodic_packings_;
-
-    /**
-     * True iff item types have been added from several original instances,
-     * in which case periodic packings of several item types are not carried
-     * over, since 'orig_to_sub_item_type_ids_' can't tell the original
-     * instances apart.
-     */
-    bool several_original_instances_ = false;
 
 };
 

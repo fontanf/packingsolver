@@ -153,12 +153,19 @@ public:
             const std::vector<double>& schedule);
 
     /**
-     * Add a bin type from another bin type.
+     * Set the original instance, from which bin types and item types are
+     * added by 'add_bin_type_from_original_instance' and
+     * 'add_item_type_from_original_instance'.
      *
-     * This method is used in the column generation procedure.
+     * It is used to build sub-instances of an instance, for example in the
+     * column generation or in the sequential value correction algorithms.
+     *
+     * The original instance must remain valid until 'build' is called.
      */
-    BinTypeId add_bin_type(
-            const Instance& original_instance,
+    void set_original_instance(const Instance& original_instance) { original_instance_ = &original_instance; }
+
+    /** Add a bin type from a bin type of the original instance. */
+    BinTypeId add_bin_type_from_original_instance(
             BinTypeId original_bin_type_id);
 
     /** Set the number of copies of a bin type. */
@@ -227,13 +234,8 @@ public:
             ItemTypeId item_type_id,
             EligibilityId eligibility_id);
 
-    /**
-     * Add an item type from another item type.
-     *
-     * This method is used in the column generation procedure.
-     */
-    ItemTypeId add_item_type(
-            const Instance& original_instance,
+    /** Add an item type from an item type of the original instance. */
+    ItemTypeId add_item_type_from_original_instance(
             ItemTypeId original_item_type_id);
 
     /** Set the profit of an item type. */
@@ -281,6 +283,13 @@ public:
 
 private:
 
+    /**
+     * Return the original instance.
+     *
+     * Throw if it has not been set with 'set_original_instance'.
+     */
+    const Instance& original_instance() const;
+
     /*
      * Private methods
      */
@@ -306,6 +315,9 @@ private:
 
     /** Instance. */
     Instance instance_;
+
+    /** Original instance; see 'set_original_instance'. */
+    const Instance* original_instance_ = nullptr;
 
     /** Mapping from original bin type IDs to sub-instance bin type IDs. */
     std::vector<BinTypeId> orig_to_sub_bin_type_ids_;
