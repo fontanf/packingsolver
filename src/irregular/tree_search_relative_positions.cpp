@@ -1,4 +1,4 @@
-#include "irregular/milp_nfp.hpp"
+#include "irregular/tree_search_relative_positions.hpp"
 
 #include "irregular/solution_builder.hpp"
 
@@ -19,6 +19,7 @@
 #include <algorithm>
 #include <functional>
 #include <map>
+#include <numeric>
 #include <tuple>
 
 using namespace packingsolver;
@@ -78,13 +79,13 @@ struct Piece
 };
 
 /** Bin type, and item type and rotation of each item of a pair. */
-using MilpNfpPairKey = std::tuple<BinTypeId, ItemTypeId, Counter, ItemTypeId, Counter>;
+using TreeSearchRelativePositionsPairKey = std::tuple<BinTypeId, ItemTypeId, Counter, ItemTypeId, Counter>;
 
 /**
  * Bin type, and sorted item types and rotations of the items of a rotation
  * combination.
  */
-using MilpNfpCombinationKey = std::pair<BinTypeId, std::vector<std::pair<ItemTypeId, Counter>>>;
+using TreeSearchRelativePositionsCombinationKey = std::pair<BinTypeId, std::vector<std::pair<ItemTypeId, Counter>>>;
 
 struct PairData
 {
@@ -425,7 +426,7 @@ PairData compute_pair_data(
 }
 
 /** Bin type, and item type and rotation of each item of a triple. */
-using MilpNfpTripleKey = std::tuple<BinTypeId, ItemTypeId, Counter, ItemTypeId, Counter, ItemTypeId, Counter>;
+using TreeSearchRelativePositionsTripleKey = std::tuple<BinTypeId, ItemTypeId, Counter, ItemTypeId, Counter, ItemTypeId, Counter>;
 
 /**
  * Three-item cut of a triple of items (i, j, u): if the pieces a of (i, j)
@@ -441,35 +442,35 @@ struct ThreeItemCut
 
 }
 
-struct packingsolver::irregular::MilpNfpCache::Data
+struct packingsolver::irregular::TreeSearchRelativePositionsCache::Data
 {
-    std::map<MilpNfpPairKey, PairData> pairs_data;
+    std::map<TreeSearchRelativePositionsPairKey, PairData> pairs_data;
 
     /** Three-item cuts of the triples of items. */
-    std::map<MilpNfpTripleKey, std::vector<ThreeItemCut>> three_item_cuts;
+    std::map<TreeSearchRelativePositionsTripleKey, std::vector<ThreeItemCut>> three_item_cuts;
 
     /** Mutex of 'three_item_cuts', which the threads update. */
     std::mutex three_item_cuts_mutex;
 
     /** Proven statuses of rotation combinations. */
-    std::map<MilpNfpCombinationKey, MilpNfpStatus> combinations_statuses;
+    std::map<TreeSearchRelativePositionsCombinationKey, TreeSearchRelativePositionsStatus> combinations_statuses;
 
     /** Mutex of 'combinations_statuses', which the threads update. */
     std::mutex combinations_statuses_mutex;
 };
 
-packingsolver::irregular::MilpNfpCache::MilpNfpCache():
+packingsolver::irregular::TreeSearchRelativePositionsCache::TreeSearchRelativePositionsCache():
     data_(new Data()) { }
 
-packingsolver::irregular::MilpNfpCache::~MilpNfpCache() { }
+packingsolver::irregular::TreeSearchRelativePositionsCache::~TreeSearchRelativePositionsCache() { }
 
-MilpNfpOutput packingsolver::irregular::milp_nfp(
+TreeSearchRelativePositionsOutput packingsolver::irregular::tree_search_relative_positions(
         const Instance& instance,
         BinTypeId bin_type_id,
         const std::vector<ItemTypeId>& item_type_ids,
-        const MilpNfpParameters& parameters)
+        const TreeSearchRelativePositionsParameters& parameters)
 {
-    MilpNfpOutput output;
+    TreeSearchRelativePositionsOutput output;
     const BinType& bin_type = instance.bin_type(bin_type_id);
     const AxisAlignedBoundingBox& bin_aabb = bin_type.aabb_scaled;
     LengthDbl bin_spacing = instance.bin_spacing_scaled(bin_type_id);
@@ -489,7 +490,7 @@ MilpNfpOutput packingsolver::irregular::milp_nfp(
             continue;
         const ItemType& item_type = instance.item_type(item_type_id);
         if (!item_type.has_only_discrete_rotations()) {
-            output.status = MilpNfpStatus::Unknown;
+            output.status = TreeSearchRelativePositionsStatus::Unknown;
             return output;
         }
         std::vector<ItemTypeRotationData>& item_type_rotations = rotations[item_type_id];
@@ -538,12 +539,12 @@ MilpNfpOutput packingsolver::irregular::milp_nfp(
             item_type_rotations.push_back(rotation);
         }
         if (item_type_rotations.empty()) {
-            output.status = MilpNfpStatus::Infeasible;
+            output.status = TreeSearchRelativePositionsStatus::Infeasible;
             return output;
         }
     }
     if (number_of_items <= 1) {
-        output.status = MilpNfpStatus::Feasible;
+        output.status = TreeSearchRelativePositionsStatus::Feasible;
         return output;
     }
 
@@ -625,11 +626,11 @@ MilpNfpOutput packingsolver::irregular::milp_nfp(
 
     // Data of the pairs of item types in each of their rotations, computed
     // when first needed, and kept in the cache if one is given.
-    MilpNfpCache local_cache;
-    MilpNfpCache::Data& cache_data = (parameters.cache != nullptr)?
+    TreeSearchRelativePositionsCache local_cache;
+    TreeSearchRelativePositionsCache::Data& cache_data = (parameters.cache != nullptr)?
         *parameters.cache->data_:
         *local_cache.data_;
-    std::map<MilpNfpPairKey, PairData>& pairs_data = cache_data.pairs_data;
+    std::map<TreeSearchRelativePositionsPairKey, PairData>& pairs_data = cache_data.pairs_data;
     auto pair_data = [&](
             ItemPos item_pos_1,
             ItemPos item_pos_2,
@@ -638,7 +639,7 @@ MilpNfpOutput packingsolver::irregular::milp_nfp(
     {
         ItemTypeId item_type_id_1 = sorted_item_type_ids[item_pos_1];
         ItemTypeId item_type_id_2 = sorted_item_type_ids[item_pos_2];
-        MilpNfpPairKey key = std::make_tuple(
+        TreeSearchRelativePositionsPairKey key = std::make_tuple(
                 bin_type_id,
                 item_type_id_1,
                 rotation_id_1,
@@ -699,12 +700,12 @@ MilpNfpOutput packingsolver::irregular::milp_nfp(
         enumerate(0);
     }
     if (parameters.timer.needs_to_end()) {
-        output.status = MilpNfpStatus::Unknown;
+        output.status = TreeSearchRelativePositionsStatus::Unknown;
         return output;
     }
 
-    // Return 'true' if a rotation combination is proven infeasible without a
-    // MILP, by the core widening.
+    // Return 'true' if a rotation combination is proven infeasible without
+    // solving its program, by the core widening.
     auto prune = [&](const std::vector<Counter>& rotation_ids) -> bool
     {
         // Core widening.
@@ -849,7 +850,7 @@ MilpNfpOutput packingsolver::irregular::milp_nfp(
     };
     // Three-item cuts of the triples of (item type, rotation), computed when
     // first needed, and kept in the cache.
-    std::map<MilpNfpTripleKey, std::vector<ThreeItemCut>>& three_item_cuts = cache_data.three_item_cuts;
+    std::map<TreeSearchRelativePositionsTripleKey, std::vector<ThreeItemCut>>& three_item_cuts = cache_data.three_item_cuts;
     std::mutex& three_item_cuts_mutex = cache_data.three_item_cuts_mutex;
     auto compute_three_item_cuts = [](
             const PairData& pair_12,
@@ -978,7 +979,7 @@ MilpNfpOutput packingsolver::irregular::milp_nfp(
                         int first_13 = first_piece_variable_ids[item_pos_1][item_pos_3];
                         if (first_12 == -1 || first_23 == -1 || first_13 == -1)
                             continue;
-                        MilpNfpTripleKey key = std::make_tuple(
+                        TreeSearchRelativePositionsTripleKey key = std::make_tuple(
                                 bin_type_id,
                                 sorted_item_type_ids[item_pos_1], rotation_ids[item_pos_1],
                                 sorted_item_type_ids[item_pos_2], rotation_ids[item_pos_2],
@@ -1020,11 +1021,11 @@ MilpNfpOutput packingsolver::irregular::milp_nfp(
         return model;
     };
 
-    // Solve a MILP; 'stop' interrupts it.
+    // Solve a linear program or a MILP; 'stop' interrupts it.
     std::atomic<bool> stop(false);
     auto solve_model = [&](
             const mathoptsolverscmake::MathOptModel& model,
-            std::vector<double>& values) -> MilpNfpStatus
+            std::vector<double>& values) -> TreeSearchRelativePositionsStatus
     {
         if (parameters.solver == mathoptsolverscmake::SolverName::Highs) {
 #ifdef HIGHS_FOUND
@@ -1049,12 +1050,12 @@ MilpNfpOutput packingsolver::irregular::milp_nfp(
             mathoptsolverscmake::solve(highs);
             HighsModelStatus status = highs.getModelStatus();
             if (status == HighsModelStatus::kInfeasible)
-                return MilpNfpStatus::Infeasible;
+                return TreeSearchRelativePositionsStatus::Infeasible;
             if (status == HighsModelStatus::kOptimal) {
                 values = highs.getSolution().col_value;
-                return MilpNfpStatus::Feasible;
+                return TreeSearchRelativePositionsStatus::Feasible;
             }
-            return MilpNfpStatus::Unknown;
+            return TreeSearchRelativePositionsStatus::Unknown;
 #else
             throw std::invalid_argument(FUNC_SIGNATURE);
 #endif
@@ -1063,11 +1064,266 @@ MilpNfpOutput packingsolver::irregular::milp_nfp(
         }
     };
 
+    // Tree search on the pieces of the pairs, for the program of a rotation
+    // combination restricted to the items 'active'.
+    //
+    // A node fixes a subset of the pieces of each pair. Its relative
+    // positions are bounded by two difference-bound matrices, one for each
+    // axis, on the reference points of the items and an origin: 'ub[a][b]'
+    // bounds 'v_b - v_a' from above. The propagation alternates the closure
+    // of the matrices with the filtering of the pieces: the pieces which
+    // don't intersect the box of their pair are removed, and the box is
+    // shrunk to the bounding box of the remaining pieces clipped to it. Once
+    // a single piece is left for each pair, the program is a linear program.
+    std::atomic<Counter> number_of_nodes(0);
+    std::atomic<Counter> number_of_linear_programs(0);
+    auto solve_tree_search = [&](
+            const std::vector<Counter>& rotation_ids,
+            const std::vector<bool>& active,
+            std::vector<double>& values) -> TreeSearchRelativePositionsStatus
+    {
+        // Active items, node 0 being the origin.
+        std::vector<ItemPos> item_positions;
+        for (ItemPos item_pos = 0; item_pos < number_of_items; ++item_pos)
+            if (active.empty() || active[item_pos])
+                item_positions.push_back(item_pos);
+        ItemPos k = item_positions.size();
+        ItemPos m = k + 1;
+        LengthDbl tolerance = 1e-6 * (bin_width + bin_height + 1);
+        const LengthDbl inf = std::numeric_limits<LengthDbl>::infinity();
+
+        // Pairs of active items which interact.
+        struct BranchAndBoundPair
+        {
+            ItemPos node_1;
+            ItemPos node_2;
+            const PairData* pair;
+        };
+        std::vector<BranchAndBoundPair> pairs;
+        for (ItemPos node_1 = 1; node_1 <= k; ++node_1) {
+            for (ItemPos node_2 = node_1 + 1; node_2 <= k; ++node_2) {
+                const PairData& pair = pair_data(
+                        item_positions[node_1 - 1],
+                        item_positions[node_2 - 1],
+                        rotation_ids[item_positions[node_1 - 1]],
+                        rotation_ids[item_positions[node_2 - 1]]);
+                if (!pair.interact)
+                    continue;
+                pairs.push_back({node_1, node_2, &pair});
+            }
+        }
+
+        struct Node
+        {
+            /** Difference-bound matrices, for x and y, of size m * m. */
+            std::vector<LengthDbl> ub_x;
+            std::vector<LengthDbl> ub_y;
+
+            /** Remaining pieces of each pair. */
+            std::vector<std::vector<Counter>> domains;
+        };
+        Node root;
+        root.ub_x.assign(m * m, inf);
+        root.ub_y.assign(m * m, inf);
+        for (ItemPos a = 0; a < m; ++a) {
+            root.ub_x[a * m + a] = 0;
+            root.ub_y[a * m + a] = 0;
+        }
+        for (ItemPos node = 1; node <= k; ++node) {
+            const ItemTypeRotationData& rotation = rotations[sorted_item_type_ids[item_positions[node - 1]]][rotation_ids[item_positions[node - 1]]];
+            root.ub_x[0 * m + node] = rotation.x_max;
+            root.ub_x[node * m + 0] = -rotation.x_min;
+            root.ub_y[0 * m + node] = rotation.y_max;
+            root.ub_y[node * m + 0] = -rotation.y_min;
+        }
+        // Symmetry breaking: identical items are sorted by x.
+        for (ItemPos node = 1; node < k; ++node) {
+            ItemPos item_pos_1 = item_positions[node - 1];
+            ItemPos item_pos_2 = item_positions[node];
+            if (sorted_item_type_ids[item_pos_1] == sorted_item_type_ids[item_pos_2]
+                    && rotation_ids[item_pos_1] == rotation_ids[item_pos_2]) {
+                root.ub_x[(node + 1) * m + node] = 0;
+            }
+        }
+        for (const BranchAndBoundPair& pair: pairs) {
+            std::vector<Counter> domain(pair.pair->pieces.size());
+            std::iota(domain.begin(), domain.end(), 0);
+            root.domains.push_back(domain);
+        }
+
+        // Tighten 'ub[a][b]' to 'value'; return 'true' if it changed.
+        auto tighten = [&](std::vector<LengthDbl>& ub, ItemPos a, ItemPos b, LengthDbl value)
+        {
+            if (value < ub[a * m + b] - tolerance) {
+                ub[a * m + b] = value;
+                return true;
+            }
+            return false;
+        };
+        // Close a matrix; return 'false' if it is inconsistent.
+        auto close = [&](std::vector<LengthDbl>& ub)
+        {
+            for (ItemPos c = 0; c < m; ++c)
+                for (ItemPos a = 0; a < m; ++a)
+                    for (ItemPos b = 0; b < m; ++b)
+                        if (ub[a * m + c] + ub[c * m + b] < ub[a * m + b])
+                            ub[a * m + b] = ub[a * m + c] + ub[c * m + b];
+            for (ItemPos a = 0; a < m; ++a)
+                if (ub[a * m + a] < -tolerance)
+                    return false;
+            return true;
+        };
+        // Propagate; return 'false' if the node is infeasible.
+        auto propagate = [&](Node& node) -> bool
+        {
+            for (;;) {
+                if (!close(node.ub_x) || !close(node.ub_y))
+                    return false;
+                bool changed = false;
+                for (std::size_t pair_pos = 0; pair_pos < pairs.size(); ++pair_pos) {
+                    const BranchAndBoundPair& pair = pairs[pair_pos];
+                    ItemPos a = pair.node_1;
+                    ItemPos b = pair.node_2;
+                    LengthDbl x_min = -node.ub_x[b * m + a] - tolerance;
+                    LengthDbl x_max = node.ub_x[a * m + b] + tolerance;
+                    LengthDbl y_min = -node.ub_y[b * m + a] - tolerance;
+                    LengthDbl y_max = node.ub_y[a * m + b] + tolerance;
+                    std::vector<Counter>& domain = node.domains[pair_pos];
+                    std::vector<Counter> new_domain;
+                    LengthDbl hull_x_min = inf;
+                    LengthDbl hull_x_max = -inf;
+                    LengthDbl hull_y_min = inf;
+                    LengthDbl hull_y_max = -inf;
+                    for (Counter piece_pos: domain) {
+                        const Piece& piece = pair.pair->pieces[piece_pos];
+                        if (piece.x_min > x_max || piece.x_max < x_min
+                                || piece.y_min > y_max || piece.y_max < y_min) {
+                            continue;
+                        }
+                        std::vector<Point> clipped = clip(piece.vertices, x_min, x_max, y_min, y_max);
+                        if (clipped.empty())
+                            continue;
+                        new_domain.push_back(piece_pos);
+                        for (const Point& point: clipped) {
+                            hull_x_min = (std::min)(hull_x_min, point.x);
+                            hull_x_max = (std::max)(hull_x_max, point.x);
+                            hull_y_min = (std::min)(hull_y_min, point.y);
+                            hull_y_max = (std::max)(hull_y_max, point.y);
+                        }
+                    }
+                    if (new_domain.empty())
+                        return false;
+                    if (new_domain.size() != domain.size()) {
+                        domain.swap(new_domain);
+                        changed = true;
+                    }
+                    if (tighten(node.ub_x, a, b, hull_x_max))
+                        changed = true;
+                    if (tighten(node.ub_x, b, a, -hull_x_min))
+                        changed = true;
+                    if (tighten(node.ub_y, a, b, hull_y_max))
+                        changed = true;
+                    if (tighten(node.ub_y, b, a, -hull_y_min))
+                        changed = true;
+                }
+                if (!changed)
+                    return true;
+            }
+        };
+        // Linear program of a node in which each pair has a single piece.
+        auto solve_leaf = [&](const Node& node) -> TreeSearchRelativePositionsStatus
+        {
+            number_of_linear_programs++;
+            mathoptsolverscmake::MathOptModel model;
+            model.objective_direction = mathoptsolverscmake::ObjectiveDirection::Minimize;
+            for (ItemPos item_pos = 0; item_pos < number_of_items; ++item_pos) {
+                const ItemTypeRotationData& rotation = rotations[sorted_item_type_ids[item_pos]][rotation_ids[item_pos]];
+                add_variable(model, rotation.x_min, rotation.x_max, mathoptsolverscmake::VariableType::Continuous);
+                add_variable(model, rotation.y_min, rotation.y_max, mathoptsolverscmake::VariableType::Continuous);
+            }
+            for (ItemPos a = 1; a < m; ++a) {
+                for (ItemPos b = 1; b < m; ++b) {
+                    if (a == b)
+                        continue;
+                    ItemPos item_pos_a = item_positions[a - 1];
+                    ItemPos item_pos_b = item_positions[b - 1];
+                    if (node.ub_x[a * m + b] < inf) {
+                        add_constraint(model, -inf, node.ub_x[a * m + b] + tolerance,
+                                {{2 * item_pos_b, 1.0}, {2 * item_pos_a, -1.0}});
+                    }
+                    if (node.ub_y[a * m + b] < inf) {
+                        add_constraint(model, -inf, node.ub_y[a * m + b] + tolerance,
+                                {{2 * item_pos_b + 1, 1.0}, {2 * item_pos_a + 1, -1.0}});
+                    }
+                }
+            }
+            for (std::size_t pair_pos = 0; pair_pos < pairs.size(); ++pair_pos) {
+                const BranchAndBoundPair& pair = pairs[pair_pos];
+                ItemPos item_pos_1 = item_positions[pair.node_1 - 1];
+                ItemPos item_pos_2 = item_positions[pair.node_2 - 1];
+                const Piece& piece = pair.pair->pieces[node.domains[pair_pos].front()];
+                for (const HalfPlane& half_plane: piece.half_planes) {
+                    add_constraint(model, half_plane.c, inf, {
+                            {2 * item_pos_2, half_plane.nx},
+                            {2 * item_pos_2 + 1, half_plane.ny},
+                            {2 * item_pos_1, -half_plane.nx},
+                            {2 * item_pos_1 + 1, -half_plane.ny}});
+                }
+            }
+            return solve_model(model, values);
+        };
+
+        // Depth-first search.
+        std::function<TreeSearchRelativePositionsStatus(Node&)> search = [&](Node& node) -> TreeSearchRelativePositionsStatus
+        {
+            number_of_nodes++;
+            if (stop || parameters.timer.needs_to_end())
+                return TreeSearchRelativePositionsStatus::Unknown;
+            if (!propagate(node))
+                return TreeSearchRelativePositionsStatus::Infeasible;
+            // Branch on the pair with the fewest remaining pieces.
+            std::size_t branching_pair_pos = pairs.size();
+            for (std::size_t pair_pos = 0; pair_pos < pairs.size(); ++pair_pos) {
+                if (node.domains[pair_pos].size() <= 1)
+                    continue;
+                if (branching_pair_pos == pairs.size()
+                        || node.domains[pair_pos].size() < node.domains[branching_pair_pos].size()) {
+                    branching_pair_pos = pair_pos;
+                }
+            }
+            if (branching_pair_pos == pairs.size())
+                return solve_leaf(node);
+            TreeSearchRelativePositionsStatus node_status = TreeSearchRelativePositionsStatus::Infeasible;
+            for (Counter piece_pos: node.domains[branching_pair_pos]) {
+                Node child = node;
+                child.domains[branching_pair_pos] = {piece_pos};
+                TreeSearchRelativePositionsStatus child_status = search(child);
+                if (child_status == TreeSearchRelativePositionsStatus::Feasible)
+                    return child_status;
+                if (child_status == TreeSearchRelativePositionsStatus::Unknown)
+                    node_status = TreeSearchRelativePositionsStatus::Unknown;
+            }
+            return node_status;
+        };
+        return search(root);
+    };
+    // Solve the program of a rotation combination restricted to the items
+    // 'active' (all the items if it is empty).
+    auto solve_combination = [&](
+            const std::vector<Counter>& rotation_ids,
+            const std::vector<bool>& active,
+            std::vector<double>& values) -> TreeSearchRelativePositionsStatus
+    {
+        if (parameters.use_milp)
+            return solve_model(build_model(rotation_ids, active), values);
+        return solve_tree_search(rotation_ids, active, values);
+    };
+
     // Prune the rotation combinations.
     std::vector<std::vector<Counter>> kept_combinations;
     for (const std::vector<Counter>& combination: combinations) {
         if (parameters.timer.needs_to_end()) {
-            output.status = MilpNfpStatus::Unknown;
+            output.status = TreeSearchRelativePositionsStatus::Unknown;
             return output;
         }
         output.number_of_rotation_combinations++;
@@ -1091,11 +1347,11 @@ MilpNfpOutput packingsolver::irregular::milp_nfp(
         }
     }
     if (kept_combinations.empty()) {
-        output.status = MilpNfpStatus::Infeasible;
+        output.status = TreeSearchRelativePositionsStatus::Infeasible;
         return output;
     }
 
-    // Solve the MILPs of the kept combinations, in parallel. Stop as soon as
+    // Solve the programs of the kept combinations, in parallel. Stop as soon as
     // one isn't proven infeasible.
     //
     // A combination is infeasible if one of its sub-combinations without one
@@ -1104,16 +1360,16 @@ MilpNfpOutput packingsolver::irregular::milp_nfp(
     // combinations, are kept in the cache, so that they are also reused by
     // the next calls.
     std::atomic<Counter> next_combination_pos(0);
-    std::atomic<Counter> number_of_milps(0);
-    std::atomic<Counter> number_of_sub_combination_milps(0);
+    std::atomic<Counter> number_of_programs(0);
+    std::atomic<Counter> number_of_sub_combination_programs(0);
     std::atomic<Counter> number_of_rotation_combinations_pruned_by_sub_combinations(0);
     std::mutex status_mutex;
-    MilpNfpStatus status = MilpNfpStatus::Infeasible;
+    TreeSearchRelativePositionsStatus status = TreeSearchRelativePositionsStatus::Infeasible;
     auto combination_key = [&](
             const std::vector<Counter>& rotation_ids,
             const std::vector<bool>& active)
     {
-        MilpNfpCombinationKey key;
+        TreeSearchRelativePositionsCombinationKey key;
         key.first = bin_type_id;
         for (ItemPos item_pos = 0; item_pos < number_of_items; ++item_pos)
             if (active.empty() || active[item_pos])
@@ -1121,19 +1377,19 @@ MilpNfpOutput packingsolver::irregular::milp_nfp(
         std::sort(key.second.begin(), key.second.end());
         return key;
     };
-    auto cached_status = [&cache_data](const MilpNfpCombinationKey& key)
+    auto cached_status = [&cache_data](const TreeSearchRelativePositionsCombinationKey& key)
     {
         std::lock_guard<std::mutex> lock(cache_data.combinations_statuses_mutex);
         auto it = cache_data.combinations_statuses.find(key);
         return (it == cache_data.combinations_statuses.end())?
-            MilpNfpStatus::Unknown:
+            TreeSearchRelativePositionsStatus::Unknown:
             it->second;
     };
     auto cache_status = [&cache_data](
-            const MilpNfpCombinationKey& key,
-            MilpNfpStatus combination_status)
+            const TreeSearchRelativePositionsCombinationKey& key,
+            TreeSearchRelativePositionsStatus combination_status)
     {
-        if (combination_status == MilpNfpStatus::Unknown)
+        if (combination_status == TreeSearchRelativePositionsStatus::Unknown)
             return;
         std::lock_guard<std::mutex> lock(cache_data.combinations_statuses_mutex);
         cache_data.combinations_statuses[key] = combination_status;
@@ -1147,8 +1403,8 @@ MilpNfpOutput packingsolver::irregular::milp_nfp(
             if (combination_pos >= (Counter)kept_combinations.size())
                 return;
             const std::vector<Counter>& combination = kept_combinations[combination_pos];
-            MilpNfpCombinationKey key = combination_key(combination, {});
-            if (cached_status(key) == MilpNfpStatus::Infeasible)
+            TreeSearchRelativePositionsCombinationKey key = combination_key(combination, {});
+            if (cached_status(key) == TreeSearchRelativePositionsStatus::Infeasible)
                 continue;
 
             // Sub-combinations without one of the items.
@@ -1166,17 +1422,17 @@ MilpNfpOutput packingsolver::irregular::milp_nfp(
                     }
                     std::vector<bool> active(number_of_items, true);
                     active[removed_item_pos] = false;
-                    MilpNfpCombinationKey sub_key = combination_key(combination, active);
-                    MilpNfpStatus sub_status = cached_status(sub_key);
-                    if (sub_status == MilpNfpStatus::Unknown) {
-                        number_of_sub_combination_milps++;
+                    TreeSearchRelativePositionsCombinationKey sub_key = combination_key(combination, active);
+                    TreeSearchRelativePositionsStatus sub_status = cached_status(sub_key);
+                    if (sub_status == TreeSearchRelativePositionsStatus::Unknown) {
+                        number_of_sub_combination_programs++;
                         std::vector<double> sub_values;
-                        sub_status = solve_model(build_model(combination, active), sub_values);
+                        sub_status = solve_combination(combination, active, sub_values);
                         if (stop)
                             return;
                         cache_status(sub_key, sub_status);
                     }
-                    if (sub_status == MilpNfpStatus::Infeasible) {
+                    if (sub_status == TreeSearchRelativePositionsStatus::Infeasible) {
                         infeasible_sub_combination = true;
                         break;
                     }
@@ -1184,21 +1440,21 @@ MilpNfpOutput packingsolver::irregular::milp_nfp(
             }
             if (infeasible_sub_combination) {
                 number_of_rotation_combinations_pruned_by_sub_combinations++;
-                cache_status(key, MilpNfpStatus::Infeasible);
+                cache_status(key, TreeSearchRelativePositionsStatus::Infeasible);
                 continue;
             }
 
-            number_of_milps++;
+            number_of_programs++;
             std::vector<double> values;
-            MilpNfpStatus combination_status = solve_model(build_model(combination), values);
+            TreeSearchRelativePositionsStatus combination_status = solve_combination(combination, {}, values);
             cache_status(key, combination_status);
-            if (combination_status != MilpNfpStatus::Infeasible) {
+            if (combination_status != TreeSearchRelativePositionsStatus::Infeasible) {
                 std::lock_guard<std::mutex> lock(status_mutex);
                 // 'Feasible' is a definitive answer; 'Unknown' may come from
                 // the interruption of another thread.
-                if (status != MilpNfpStatus::Feasible) {
+                if (status != TreeSearchRelativePositionsStatus::Feasible) {
                     status = combination_status;
-                    if (status == MilpNfpStatus::Feasible) {
+                    if (status == TreeSearchRelativePositionsStatus::Feasible) {
                         // Positions of the items.
                         LengthDbl scale_value = instance.parameters().scale_value;
                         output.items.clear();
@@ -1228,8 +1484,10 @@ MilpNfpOutput packingsolver::irregular::milp_nfp(
     worker();
     for (std::thread& thread: threads)
         thread.join();
-    output.number_of_milps = number_of_milps;
-    output.number_of_sub_combination_milps = number_of_sub_combination_milps;
+    output.number_of_programs = number_of_programs;
+    output.number_of_sub_combination_programs = number_of_sub_combination_programs;
+    output.number_of_nodes = number_of_nodes;
+    output.number_of_linear_programs = number_of_linear_programs;
     output.number_of_rotation_combinations_pruned_by_sub_combinations
         = number_of_rotation_combinations_pruned_by_sub_combinations;
     {
@@ -1241,13 +1499,13 @@ MilpNfpOutput packingsolver::irregular::milp_nfp(
     return output;
 }
 
-bool packingsolver::irregular::milp_nfp_solution(
+bool packingsolver::irregular::tree_search_relative_positions_solution(
         const Instance& instance,
         BinTypeId bin_type_id,
-        const MilpNfpOutput& output,
+        const TreeSearchRelativePositionsOutput& output,
         Solution& solution)
 {
-    if (output.status != MilpNfpStatus::Feasible
+    if (output.status != TreeSearchRelativePositionsStatus::Feasible
             || output.items.empty()
             || instance.parameters().item_item_minimum_spacing > 0
             || !instance.bin_type(bin_type_id).fixed_items.empty()) {

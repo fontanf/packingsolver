@@ -18,6 +18,7 @@ target_sources(PackingSolver_irregular PRIVATE
     tree_search.cpp
     tree_search_periodic_packing.cpp
     tree_search_maximal_spaces.cpp
+    tree_search_relative_positions.cpp
     linear_programming/anchor.cpp
     linear_programming/separation_model.cpp
     linear_programming/separator.cpp
@@ -25,7 +26,6 @@ target_sources(PackingSolver_irregular PRIVATE
     nonlinear_programming/separation_model.cpp
     nonlinear_programming/separator.cpp
     milp_raster.cpp
-    milp_nfp.cpp
     benders_decomposition.cpp
     trivial.cpp
     direct_trigonometry/polygon.cpp

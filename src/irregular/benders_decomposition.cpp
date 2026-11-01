@@ -2,7 +2,7 @@
 
 #include "packingsolver/irregular/algorithm_formatter.hpp"
 #include "packingsolver/irregular/instance_builder.hpp"
-#include "irregular/milp_nfp.hpp"
+#include "irregular/tree_search_relative_positions.hpp"
 
 #include "packingsolver/onedimensional/instance_builder.hpp"
 #include "packingsolver/onedimensional/optimize.hpp"
@@ -65,17 +65,20 @@ ResourceCut no_good_cut(
 struct SubproblemCache
 {
     /**
-     * Outputs of the MILP NFP algorithm, for each bin type and selection of
-     * items, so that the same selection is never checked twice (the minimal
-     * infeasible subsets of different bins, and of different iterations,
-     * often share subsets).
+     * Outputs of the tree search on relative positions, for each bin type
+     * and selection of items, so that the same selection is never checked
+     * twice (the minimal infeasible subsets of different bins, and of
+     * different iterations, often share subsets).
      */
     std::map<
         std::pair<BinTypeId, std::vector<std::pair<ItemTypeId, ItemPos>>>,
-        MilpNfpOutput> outputs;
+        TreeSearchRelativePositionsOutput> outputs;
 
-    /** Data of the MILP NFP algorithm (the pieces of the pairs of items). */
-    MilpNfpCache milp_nfp_cache;
+    /**
+     * Data of the tree search on relative positions (the pieces of the pairs
+     * of items).
+     */
+    TreeSearchRelativePositionsCache tsrp_cache;
 };
 
 /** Result of checking whether a selection of items fits in a bin. */
@@ -87,10 +90,10 @@ enum class SelectionFeasibility
 };
 
 /**
- * Output of the MILP NFP algorithm for a selection of items, through the
- * cache.
+ * Output of the tree search on relative positions for a selection of items,
+ * through the cache.
  */
-MilpNfpOutput milp_nfp_output(
+TreeSearchRelativePositionsOutput tree_search_relative_positions_output(
         const Instance& instance,
         BinTypeId bin_type_id,
         const std::vector<std::pair<ItemTypeId, ItemPos>>& selected_items,
@@ -105,19 +108,19 @@ MilpNfpOutput milp_nfp_output(
     for (const std::pair<ItemTypeId, ItemPos>& p: selected_items)
         for (ItemPos copy = 0; copy < p.second; ++copy)
             item_type_ids.push_back(p.first);
-    MilpNfpParameters milp_nfp_parameters;
-    milp_nfp_parameters.verbosity_level = 0;
-    milp_nfp_parameters.timer = parameters.timer;
+    TreeSearchRelativePositionsParameters tsrp_parameters;
+    tsrp_parameters.verbosity_level = 0;
+    tsrp_parameters.timer = parameters.timer;
     if (parameters.optimization_mode == OptimizationMode::NotAnytimeSequential)
-        milp_nfp_parameters.number_of_threads = 1;
-    milp_nfp_parameters.cache = &subproblem_cache.milp_nfp_cache;
-    MilpNfpOutput output = milp_nfp(
+        tsrp_parameters.number_of_threads = 1;
+    tsrp_parameters.cache = &subproblem_cache.tsrp_cache;
+    TreeSearchRelativePositionsOutput output = tree_search_relative_positions(
             instance,
             bin_type_id,
             item_type_ids,
-            milp_nfp_parameters);
+            tsrp_parameters);
     // 'Unknown' may come from the timer, so it isn't stored.
-    if (output.status != MilpNfpStatus::Unknown)
+    if (output.status != TreeSearchRelativePositionsStatus::Unknown)
         subproblem_cache.outputs[key] = output;
     return output;
 }
@@ -127,9 +130,9 @@ MilpNfpOutput milp_nfp_output(
  *
  * If 'need_packing' is 'true', a selection is only 'Feasible' if a packing
  * is found, and the packing is written in 'packing' (a solution of
- * 'instance' with a single bin). Otherwise, a selection which the MILP NFP
- * algorithm doesn't prove infeasible may also be considered 'Feasible',
- * without a packing.
+ * 'instance' with a single bin). Otherwise, a selection which the tree search
+ * on relative positions doesn't prove infeasible may also be considered
+ * 'Feasible', without a packing.
  */
 SelectionFeasibility selection_feasibility(
         const Instance& instance,
@@ -143,24 +146,25 @@ SelectionFeasibility selection_feasibility(
     if (selected_items.empty())
         return SelectionFeasibility::Feasible;
 
-    if (parameters.subproblem_use_milp_nfp) {
-        MilpNfpOutput milp_nfp_output_ = milp_nfp_output(
+    if (parameters.subproblem_use_tree_search_relative_positions) {
+        TreeSearchRelativePositionsOutput tsrp_output
+            = tree_search_relative_positions_output(
                 instance,
                 bin_type_id,
                 selected_items,
                 parameters,
                 subproblem_cache);
-        if (milp_nfp_output_.status == MilpNfpStatus::Infeasible)
+        if (tsrp_output.status == TreeSearchRelativePositionsStatus::Infeasible)
             return SelectionFeasibility::ProvenInfeasible;
-        if (milp_nfp_output_.status == MilpNfpStatus::Feasible) {
+        if (tsrp_output.status == TreeSearchRelativePositionsStatus::Feasible) {
             if (!need_packing)
                 return SelectionFeasibility::Feasible;
             // The solution of the relaxation may be a packing.
             if (packing != nullptr
-                    && milp_nfp_solution(
+                    && tree_search_relative_positions_solution(
                         instance,
                         bin_type_id,
-                        milp_nfp_output_,
+                        tsrp_output,
                         *packing)) {
                 return SelectionFeasibility::Feasible;
             }
@@ -291,12 +295,12 @@ ResourceCut lift_no_good_cut(
         for (const auto& cut_items: proven_cut_items)
             if (contains(selection, cut_items))
                 return true;
-        return milp_nfp_output(
+        return tree_search_relative_positions_output(
                 instance,
                 bin_type_id,
                 selection,
                 parameters,
-                subproblem_cache).status == MilpNfpStatus::Infeasible;
+                subproblem_cache).status == TreeSearchRelativePositionsStatus::Infeasible;
     };
 
     std::vector<ItemTypeId> candidates;
@@ -366,8 +370,8 @@ ResourceCut lift_no_good_cut(
 }
 
 /**
- * Search for an infeasible subset of a selection of items with the MILP NFP
- * algorithm, by adding its items one by one, largest first. Return the first
+ * Search for an infeasible subset of a selection of items with the tree search
+ * on relative positions, by adding its items one by one, largest first. Return the first
  * subset proven infeasible, or an empty one if none is.
  *
  * Proving that a large selection doesn't fit may be much more expensive than
@@ -400,15 +404,15 @@ std::vector<std::pair<ItemTypeId, ItemPos>> find_infeasible_prefix(
         removed[unit_pos] = false;
         std::vector<std::pair<ItemTypeId, ItemPos>> prefix
             = aggregate_units(instance, units, removed);
-        MilpNfpStatus status = milp_nfp_output(
+        TreeSearchRelativePositionsStatus status = tree_search_relative_positions_output(
                 instance,
                 bin_type_id,
                 prefix,
                 parameters,
                 subproblem_cache).status;
-        if (status == MilpNfpStatus::Infeasible)
+        if (status == TreeSearchRelativePositionsStatus::Infeasible)
             return prefix;
-        if (status == MilpNfpStatus::Unknown)
+        if (status == TreeSearchRelativePositionsStatus::Unknown)
             break;
     }
     return {};
@@ -701,10 +705,10 @@ BendersDecompositionOutput packingsolver::irregular::benders_decomposition(
     // the master problem is not a bound of the instance.
     bool all_cuts_proven = true;
 
-    // Incompatible pairs and triples of items, proven by the MILP NFP
-    // algorithm: they give permanent cuts, instead of being found through
+    // Incompatible pairs and triples of items, proven by the tree search on
+    // relative positions: they give permanent cuts, instead of being found through
     // the subproblems one by one.
-    if (parameters.subproblem_use_milp_nfp
+    if (parameters.subproblem_use_tree_search_relative_positions
             && parameters.compute_incompatible_pairs) {
         auto incompatible_subsets_begin = std::chrono::steady_clock::now();
         for (BinTypeId bin_type_id = 0;
@@ -722,12 +726,12 @@ BendersDecompositionOutput packingsolver::irregular::benders_decomposition(
             // Return 'true' iff the items are proven not to fit.
             auto incompatible = [&](const std::vector<std::pair<ItemTypeId, ItemPos>>& items)
             {
-                return milp_nfp_output(
+                return tree_search_relative_positions_output(
                         instance,
                         bin_type_id,
                         items,
                         parameters,
-                        subproblem_cache).status == MilpNfpStatus::Infeasible;
+                        subproblem_cache).status == TreeSearchRelativePositionsStatus::Infeasible;
             };
             // Aggregate a list of item types (one per copy, sorted).
             auto aggregate = [](const std::vector<ItemTypeId>& item_type_ids)
@@ -912,7 +916,7 @@ BendersDecompositionOutput packingsolver::irregular::benders_decomposition(
                 all_bins_feasible = false;
                 continue;
             }
-            if (parameters.subproblem_use_milp_nfp) {
+            if (parameters.subproblem_use_tree_search_relative_positions) {
                 infeasible_items = find_infeasible_prefix(
                         instance,
                         master_bin.bin_type_id,
@@ -962,7 +966,7 @@ BendersDecompositionOutput packingsolver::irregular::benders_decomposition(
                     subproblem_cache);
             output.minimal_infeasible_subsets_time += elapsed_time(minimal_infeasible_subsets_begin);
             for (const MinimalInfeasibleSubset& subset: subsets) {
-                if (parameters.subproblem_use_milp_nfp
+                if (parameters.subproblem_use_tree_search_relative_positions
                         && subset.proven
                         && parameters.maximum_number_of_lifted_item_types > 0) {
                     auto lifting_begin = std::chrono::steady_clock::now();

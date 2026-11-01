@@ -272,18 +272,20 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
     bool use_benders_decomposition = false;
 
     /**
-     * Use the MILP NFP algorithm in the subproblems of the Benders
-     * decomposition algorithm, to prove that the items of a bin don't fit.
+     * Use the tree search on relative positions in the subproblems of the
+     * Benders decomposition algorithm, to prove that the items of a bin
+     * don't fit.
      *
      * Always used in 'Exact' mode.
      */
-    bool benders_decomposition_use_milp_nfp = false;
+    bool benders_decomposition_use_tree_search_relative_positions = false;
 
     /**
-     * Use the MILP NFP algorithm (only for the 'Feasibility' objective with a
-     * single bin; only selected automatically in 'Exact' mode).
+     * Use the tree search on relative positions (only for the 'Feasibility'
+     * objective with a single bin; only selected automatically in 'Exact'
+     * mode).
      */
-    bool use_milp_nfp = false;
+    bool use_tree_search_relative_positions = false;
 
     /** Initial maximum approximation ratio. */
     double initial_maximum_approximation_ratio = 0.20;
