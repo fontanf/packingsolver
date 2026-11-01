@@ -500,6 +500,16 @@ public:
 
     /**
      * Return 'true' iff item type 'item_type_id' fits (in either
+     * orientation, if allowed) in bin type 'bin_type_id'.
+     *
+     * Trims and defects are ignored: this is a cheap necessary condition.
+     */
+    bool item_type_fits_bin_type(
+            ItemTypeId item_type_id,
+            BinTypeId bin_type_id) const;
+
+    /**
+     * Return 'true' iff item type 'item_type_id' fits (in either
      * orientation, if allowed) in at least one bin type.
      *
      * Trims and defects are ignored: this is a cheap necessary condition.

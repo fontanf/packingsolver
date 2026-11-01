@@ -96,6 +96,8 @@ int main(int argc, char *argv[])
             ("use-dichotomic-search,", po::value<bool>(), "enable dichotomic search")
             ("use-milp-assignment,", po::value<bool>(), "enable MILP assignment algorithm")
             ("sequential-value-correction-number-of-iterations,", po::value<Counter>(), "set sequential value correction number of iterations")
+            ("sequential-value-correction-restrict-bin-types,", po::value<bool>(), "")
+            ("sequential-value-correction-scarce-item-types-profit-factor-exponent,", po::value<double>(), "")
             ("column-generation-subproblem-tree-search-queue-size,", po::value<NodeId>(), "set column generation subproblem queue size")
             ("dynamic-programming-subset-sum-maximum-size,", po::value<Counter>(), "set the maximum size of the dynamic programming of subset sum problems")
             ("dynamic-programming-knapsack-maximum-number-of-states,", po::value<Counter>(), "set the maximum number of states of the dynamic programming of knapsack problems")
@@ -204,6 +206,10 @@ int main(int argc, char *argv[])
 
         if (vm.count("sequential-value-correction-subproblem-tree-search-queue-size"))
             parameters.sequential_value_correction_subproblem_tree_search_queue_size = vm["sequential-value-correction-subproblem-tree-search-queue-size"].as<NodeId>();
+        if (vm.count("sequential-value-correction-restrict-bin-types"))
+            parameters.sequential_value_correction_restrict_bin_types = vm["sequential-value-correction-restrict-bin-types"].as<bool>();
+        if (vm.count("sequential-value-correction-scarce-item-types-profit-factor-exponent"))
+            parameters.sequential_value_correction_scarce_item_types_profit_factor_exponent = vm["sequential-value-correction-scarce-item-types-profit-factor-exponent"].as<double>();
         if (vm.count("column-generation-subproblem-tree-search-queue-size"))
             parameters.column_generation_subproblem_tree_search_queue_size = vm["column-generation-subproblem-tree-search-queue-size"].as<NodeId>();
         if (vm.count("dynamic-programming-subset-sum-maximum-size"))

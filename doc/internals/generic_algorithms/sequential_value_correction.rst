@@ -27,7 +27,7 @@ A pass
 * if a bin type hasn't reached its minimum number of copies, the smallest such bin type is used;
 * otherwise, the sub-problem is solved for each bin type with copies left, and the bin type whose solution has the largest ratio between its profit and the cost of the bin is kept. The solution of a bin type is kept from one step to the next, and only solved again once some of its items are packed in another bin.
 
-For the irregular problem type, the bin types tried can be restricted: among the remaining item types, the one which fits in the fewest available bins (the largest one in case of a tie) must be packed in one of them anyway, so only the bin types in which it fits are tried.
+The bin types tried are restricted: among the remaining item types, the one which fits in the fewest available bins (the largest one in case of a tie) must be packed in one of them anyway, so only the bin types in which it fits are tried. Whether an item type fits in a bin type is a cheap necessary condition: the dimensions of the item, in some allowed rotation, don't exceed those of the bin, and, for onedimensional and rectangle, the item type is eligible for the bin type (for the irregular problem type, the bounding box of the item is used; an item type with a continuous range of rotations is considered to fit in all the bin types). The restriction can be disabled with :code:`--sequential-value-correction-restrict-bin-types 0` (CLI) or :code:`sequential_value_correction_restrict_bin_types` (Python).
 
 **Leftovers.** For the :code:`bin-packing-with-leftovers` objective, when the content of a bin packs all the remaining items, this last bin is solved again as a :code:`bin-packing-with-leftovers` sub-problem with these items, to maximize its leftover.
 
@@ -36,7 +36,7 @@ Profit correction
 
 **Initial profits.** For the :code:`knapsack` objective, the profit of an item is its own profit. For the other objectives, it is its space (length, area or volume) raised to the power 1.1: larger items are slightly preferred, which breaks the ties between solutions of the same space.
 
-For the irregular problem type with the :code:`variable-sized-bin-packing` objective, the item types which only fit in a few bin types also get an initial profit increased by a factor: the ratio between the space of the items competing for these bin types divided by the space of these bins, and the same ratio for all the bins (when it is larger than 1). They are packed first.
+For the :code:`variable-sized-bin-packing` objective, the item types which only fit in a few bin types also get an initial profit increased by a factor: the ratio between the space of the items competing for these bin types divided by the space of these bins, and the same ratio for all the bins (when it is larger than 1), raised to the power given by the parameter :code:`sequential_value_correction_scarce_item_types_profit_factor_exponent` (1 by default, 0 disables it). They are packed first.
 
 **Adjusted space.** During a pass, each bin spreads its waste over its items, in proportion to their space: an item of space :math:`s` in a bin of space :math:`B` whose items have a total space :math:`S` gets an *adjusted space*
 

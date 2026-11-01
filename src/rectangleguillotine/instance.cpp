@@ -188,22 +188,31 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
     return os;
 }
 
+bool Instance::item_type_fits_bin_type(
+        ItemTypeId item_type_id,
+        BinTypeId bin_type_id) const
+{
+    const ItemType& item_type = this->item_type(item_type_id);
+    const BinType& bin_type = this->bin_type(bin_type_id);
+    for (bool rotate: {false, true}) {
+        if (rotate && item_type.oriented)
+            continue;
+        if (item_type.width(rotate) <= bin_type.rect.w
+                && item_type.height(rotate) <= bin_type.rect.h) {
+            return true;
+        }
+    }
+    return false;
+}
+
 bool Instance::fits_some_bin(
         ItemTypeId item_type_id) const
 {
-    const ItemType& item_type = this->item_type(item_type_id);
     for (BinTypeId bin_type_id = 0;
             bin_type_id < number_of_bin_types();
             ++bin_type_id) {
-        const BinType& bin_type = this->bin_type(bin_type_id);
-        for (bool rotate: {false, true}) {
-            if (rotate && item_type.oriented)
-                continue;
-            if (item_type.width(rotate) <= bin_type.rect.w
-                    && item_type.height(rotate) <= bin_type.rect.h) {
-                return true;
-            }
-        }
+        if (item_type_fits_bin_type(item_type_id, bin_type_id))
+            return true;
     }
     return false;
 }

@@ -25,7 +25,7 @@ In the example below, the bins have a length of 10. The first sub-problem fills 
 It is the :ref:`sequential value correction <internals_generic_algorithms_sequential_value_correction>` algorithm with a single pass, so the details below are described on its page:
 
 * **Order of the bins.** The bins are filled in the order of the instance, or by increasing space for the :code:`knapsack` objective. If the sub-problem of a bin packs no item, the bin is left empty, and the next bin is tried.
-* :code:`variable-sized-bin-packing`: the sub-problem is solved for each bin type with copies left, and the bin type with the best ratio between the profit of its solution and its cost is kept.
+* :code:`variable-sized-bin-packing`: the sub-problem is solved for each bin type with copies left (restricted to the bin types in which the item type fitting in the fewest available bins fits), and the bin type with the best ratio between the profit of its solution and its cost is kept. The item types which only fit in a few bin types get a larger initial profit.
 * :code:`bin-packing-with-leftovers`: the last bin is re-optimized to maximize its leftover.
 
 The sub-problems are solved with the regular algorithms of the problem type (e.g. the tree search), in a non-anytime mode, with a given effort: the size of the queue of the tree searches.

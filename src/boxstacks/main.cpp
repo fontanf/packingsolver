@@ -101,6 +101,8 @@ int main(int argc, char *argv[])
             ("many-items-in-bins-threshold-2,", po::value<Counter>(), "")
             ("many-item-type-copies-factor,", po::value<Counter>(), "")
             ("sequential-value-correction-subproblem-tree-search-queue-size,", po::value<NodeId>(), "set sequential value correction subproblem queue size")
+            ("sequential-value-correction-restrict-bin-types,", po::value<bool>(), "")
+            ("sequential-value-correction-scarce-item-types-profit-factor-exponent,", po::value<double>(), "")
             ("column-generation-subproblem-tree-search-queue-size,", po::value<NodeId>(), "set column generation subproblem queue size")
             ("anytime-tree-search-initial-queue-size,", po::value<NodeId>(), "")
             ("anytime-sequential-onedimensional-rectangle-rectangle-initial-queue-size,", po::value<NodeId>(), "")
@@ -234,6 +236,10 @@ int main(int argc, char *argv[])
             parameters.many_item_type_copies_factor = vm["many-item-type-copies-factor"].as<Counter>();
         if (vm.count("sequential-value-correction-subproblem-tree-search-queue-size"))
             parameters.sequential_value_correction_subproblem_tree_search_queue_size = vm["sequential-value-correction-subproblem-tree-search-queue-size"].as<NodeId>();
+        if (vm.count("sequential-value-correction-restrict-bin-types"))
+            parameters.sequential_value_correction_restrict_bin_types = vm["sequential-value-correction-restrict-bin-types"].as<bool>();
+        if (vm.count("sequential-value-correction-scarce-item-types-profit-factor-exponent"))
+            parameters.sequential_value_correction_scarce_item_types_profit_factor_exponent = vm["sequential-value-correction-scarce-item-types-profit-factor-exponent"].as<double>();
         if (vm.count("column-generation-subproblem-tree-search-queue-size"))
             parameters.column_generation_subproblem_tree_search_queue_size = vm["column-generation-subproblem-tree-search-queue-size"].as<NodeId>();
         if (vm.count("anytime-tree-search-initial-queue-size"))
