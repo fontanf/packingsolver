@@ -16,9 +16,10 @@
  * The subproblem is solved with the 'Feasibility' objective of 'optimize'.
  * It finds packings, but rarely proves that items don't fit, so the cuts are
  * then mostly not proven, and the bound of the master problem is not
- * reported. With 'subproblem_use_milp_nfp', the MILP NFP algorithm (see
- * 'milp_nfp.hpp') is first used to prove that the items don't fit; the cuts
- * it generates are proven.
+ * reported. With 'subproblem_use_tree_search_relative_positions', the tree
+ * search on relative positions (see 'tree_search_relative_positions.hpp') is
+ * first used to prove that the items don't fit; the cuts it generates are
+ * proven.
  *
  * Supported objectives: 'Knapsack', 'BinPacking', 'VariableSizedBinPacking'.
  */
@@ -132,9 +133,10 @@ struct BendersDecompositionParameters: packingsolver::Parameters<Instance, Solut
     NodeId subproblem_queue_size = 512;
 
     /**
-     * Use the MILP NFP algorithm to prove that the items of a bin don't fit.
+     * Use the tree search on relative positions to prove that the items of a
+     * bin don't fit.
      */
-    bool subproblem_use_milp_nfp = false;
+    bool subproblem_use_tree_search_relative_positions = false;
 
     /**
      * Maximum number of minimal infeasible subsets, and thus of no-good cuts,
@@ -147,15 +149,16 @@ struct BendersDecompositionParameters: packingsolver::Parameters<Instance, Solut
 
     /**
      * Maximum number of item types lifted in a no-good cut (see
-     * 'lift_no_good_cut' in 'benders_decomposition.cpp'). Only with the MILP
-     * NFP algorithm, which proves that the selections don't fit.
+     * 'lift_no_good_cut' in 'benders_decomposition.cpp'). Only with the tree
+     * search on relative positions, which proves that the selections don't
+     * fit.
      */
     Counter maximum_number_of_lifted_item_types = 4;
 
     /**
-     * Before the first iteration, prove with the MILP NFP algorithm which
-     * pairs of items don't fit together in a bin, and add a cut for each of
-     * them. Only with the MILP NFP algorithm.
+     * Before the first iteration, prove with the tree search on relative
+     * positions which pairs of items don't fit together in a bin, and add a
+     * cut for each of them. Only with the tree search on relative positions.
      *
      * It pays off on instances with few item types, but with many item
      * types, it takes longer than finding them through the subproblems.

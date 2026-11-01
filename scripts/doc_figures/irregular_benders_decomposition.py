@@ -18,7 +18,7 @@ PREFIX = "irregular_benders_decomposition_"
 
 
 def figure_iteration():
-    """Flow of an iteration, with the MILP NFP algorithm in the
+    """Flow of an iteration, with the tree search on relative positions in the
     subproblems."""
     fig = figure.Figure(unit=30)
     bw, bh = 11, 1.2
@@ -27,7 +27,7 @@ def figure_iteration():
     steps = [
         ("solve the master problem", BLUE, None),
         ("can its solution beat the best one?", YELLOW, ("no", "stop")),
-        ("for each bin, add its items, largest first,\nuntil MILP NFP proves that they don't fit", BLUE, None),
+        ("for each bin, add its items, largest first,\nuntil the tree search proves that they don't fit", BLUE, None),
         ("if none is proven infeasible,\npack the items of the bin", BLUE, None),
         ("does every bin fit?", YELLOW, ("yes", "stop")),
         ("minimal infeasible subset\nof each bin which doesn't fit", BLUE, None),

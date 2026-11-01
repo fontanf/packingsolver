@@ -1,9 +1,9 @@
-"""Figures of the detailed description of the MILP NFP algorithm of
-irregular.
+"""Figures of the detailed description of the tree search on relative
+positions of irregular.
 
 Usage, from the root of the repository:
 
-    python3 scripts/doc_figures/irregular_milp_nfp.py
+    python3 scripts/doc_figures/irregular_tree_search_relative_positions.py
 """
 
 import os
@@ -14,7 +14,7 @@ import figure
 from figure import BLUE, GREEN, YELLOW, NONE
 
 SVG_DIR = "doc/img"
-PREFIX = "irregular_milp_nfp_"
+PREFIX = "irregular_tree_search_relative_positions_"
 
 DARK_GRAY = "fillColor=#cccccc;strokeColor=#666666;"
 DOT = "fillColor=#000000;strokeColor=#000000;ellipse;"

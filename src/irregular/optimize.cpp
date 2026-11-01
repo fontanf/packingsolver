@@ -9,7 +9,7 @@
 #include "irregular/tree_search_maximal_spaces.hpp"
 #include "irregular/milp_raster.hpp"
 #include "irregular/benders_decomposition.hpp"
-#include "irregular/milp_nfp.hpp"
+#include "irregular/tree_search_relative_positions.hpp"
 #include "irregular/local_search.hpp"
 #include "algorithms/dichotomic_search.hpp"
 #include "algorithms/sequential_value_correction.hpp"
@@ -756,15 +756,15 @@ void optimize_column_generation(
             kp_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
             kp_parameters.local_search_weighting_scheme = parameters.local_search_weighting_scheme;
             // 'PricingType::Dual' calls are rare and exist to prove a bound:
-            // force the Benders decomposition alone, with the MILP NFP
-            // algorithm in its subproblems so that its cuts, and so its
-            // bound, are proven. In 'Exact' mode, also solved in 'Exact'
+            // force the Benders decomposition alone, with the tree search on
+            // relative positions in its subproblems so that its cuts, and so
+            // its bound, are proven. In 'Exact' mode, also solved in 'Exact'
             // mode so that the bound is actually proven.
             if (pricing_type == PricingType::Dual) {
                 if (parameters.optimization_mode == OptimizationMode::Exact)
                     kp_parameters.optimization_mode = OptimizationMode::Exact;
                 kp_parameters.use_benders_decomposition = true;
-                kp_parameters.benders_decomposition_use_milp_nfp = true;
+                kp_parameters.benders_decomposition_use_tree_search_relative_positions = true;
             }
             return optimize(kp_instance, kp_parameters);
         };
@@ -868,9 +868,10 @@ void optimize_benders_decomposition(
         = parameters.not_anytime_benders_decomposition_number_of_iterations;
     bd_parameters.subproblem_queue_size
         = parameters.benders_decomposition_subproblem_tree_search_queue_size;
-    // In 'Exact' mode, the MILP NFP algorithm is used so that the cuts are
-    // proven.
-    bd_parameters.subproblem_use_milp_nfp = parameters.benders_decomposition_use_milp_nfp
+    // In 'Exact' mode, the tree search on relative positions is used so that
+    // the cuts are proven.
+    bd_parameters.subproblem_use_tree_search_relative_positions
+        = parameters.benders_decomposition_use_tree_search_relative_positions
         || parameters.optimization_mode == OptimizationMode::Exact;
     bd_parameters.new_solution_callback = [&algorithm_formatter](
             const irregular::Output& output)
@@ -885,7 +886,7 @@ void optimize_benders_decomposition(
     benders_decomposition(instance, bd_parameters);
 }
 
-void optimize_milp_nfp(
+void optimize_tree_search_relative_positions(
         const Instance& instance,
         const OptimizeParameters& parameters,
         AlgorithmFormatter& algorithm_formatter)
@@ -901,23 +902,23 @@ void optimize_milp_nfp(
         for (ItemPos copy = item_type.copies_fixed; copy < item_type.copies; ++copy)
             item_type_ids.push_back(item_type_id);
     }
-    MilpNfpParameters milp_nfp_parameters;
-    milp_nfp_parameters.verbosity_level = 0;
-    milp_nfp_parameters.timer = parameters.timer;
-    milp_nfp_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+    TreeSearchRelativePositionsParameters tsrp_parameters;
+    tsrp_parameters.verbosity_level = 0;
+    tsrp_parameters.timer = parameters.timer;
+    tsrp_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
     if (parameters.optimization_mode == OptimizationMode::NotAnytimeSequential)
-        milp_nfp_parameters.number_of_threads = 1;
-    MilpNfpOutput milp_nfp_output = milp_nfp(
+        tsrp_parameters.number_of_threads = 1;
+    TreeSearchRelativePositionsOutput tsrp_output = tree_search_relative_positions(
             instance,
             bin_type_id,
             item_type_ids,
-            milp_nfp_parameters);
-    if (milp_nfp_output.status == MilpNfpStatus::Infeasible) {
+            tsrp_parameters);
+    if (tsrp_output.status == TreeSearchRelativePositionsStatus::Infeasible) {
         algorithm_formatter.update_is_proven_infeasible();
     } else {
         Solution solution(instance);
-        if (milp_nfp_solution(instance, bin_type_id, milp_nfp_output, solution))
-            algorithm_formatter.update_solution(solution, "MILP NFP");
+        if (tree_search_relative_positions_solution(instance, bin_type_id, tsrp_output, solution))
+            algorithm_formatter.update_solution(solution, "TSRP");
     }
 }
 
@@ -1118,12 +1119,12 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
     bool use_column_generation = parameters.use_column_generation;
     bool use_milp_raster = parameters.use_milp_raster;
     bool use_benders_decomposition = parameters.use_benders_decomposition;
-    bool use_milp_nfp = parameters.use_milp_nfp;
-    // The MILP NFP algorithm only supports the 'Feasibility' objective with a
-    // single bin.
+    bool use_tree_search_relative_positions = parameters.use_tree_search_relative_positions;
+    // The tree search on relative positions only supports the 'Feasibility'
+    // objective with a single bin.
     if (instance.objective() != Objective::Feasibility
             || instance.number_of_bins() != 1) {
-        use_milp_nfp = false;
+        use_tree_search_relative_positions = false;
     }
     // Benders decomposition only supports these objectives.
     if (instance.objective() != Objective::Knapsack
@@ -1148,7 +1149,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         // Automatic selection.
         if (!use_tree_search
                 && !use_benders_decomposition
-                && !use_milp_nfp
+                && !use_tree_search_relative_positions
                 && !use_tree_search_periodic_packing
                 && !use_tree_search_maximal_spaces
                 && !use_local_search_linear_programming
@@ -1194,7 +1195,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
                     use_benders_decomposition = true;
                 if (instance.objective() == Objective::Feasibility
                         && instance.number_of_bins() == 1) {
-                    use_milp_nfp = true;
+                    use_tree_search_relative_positions = true;
                 }
             }
         }
@@ -1600,13 +1601,13 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
                     *context.second);
         });
     }
-    // MILP NFP.
-    if (use_milp_nfp) {
+    // Tree search on relative positions.
+    if (use_tree_search_relative_positions) {
         exception_ptr_list.push_front(std::exception_ptr());
         std::exception_ptr& exception_ptr = exception_ptr_list.front();
         auto context = task_context();
         tasks.push_back([&exception_ptr, &instance, context]() {
-            wrapper<decltype(&optimize_milp_nfp), optimize_milp_nfp>(
+            wrapper<decltype(&optimize_tree_search_relative_positions), optimize_tree_search_relative_positions>(
                     exception_ptr,
                     instance,
                     *context.first,

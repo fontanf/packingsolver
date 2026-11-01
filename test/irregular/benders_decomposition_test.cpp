@@ -28,13 +28,13 @@ ItemTypeId add_rectangle_item_type(
     return item_type_id;
 }
 
-OptimizeParameters benders_decomposition_parameters(bool use_milp_nfp)
+OptimizeParameters benders_decomposition_parameters(bool use_tree_search_relative_positions)
 {
     OptimizeParameters parameters;
     parameters.verbosity_level = 0;
     parameters.optimization_mode = OptimizationMode::NotAnytimeSequential;
     parameters.use_benders_decomposition = true;
-    parameters.benders_decomposition_use_milp_nfp = use_milp_nfp;
+    parameters.benders_decomposition_use_tree_search_relative_positions = use_tree_search_relative_positions;
     return parameters;
 }
 
@@ -60,10 +60,10 @@ TEST(IrregularBendersDecomposition, BinPacking)
     EXPECT_EQ(output.bin_packing_bound, 2);
 }
 
-TEST(IrregularBendersDecomposition, BinPackingWithoutMilpNfp)
+TEST(IrregularBendersDecomposition, BinPackingWithoutTreeSearchRelativePositions)
 {
-    // Without the MILP NFP algorithm, the subproblems don't prove that the
-    // bins are infeasible, but the solution is still found.
+    // Without the tree search on relative positions, the subproblems don't
+    // prove that the bins are infeasible, but the solution is still found.
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPacking);
     BinTypeId bin_type_id = instance_builder.add_bin_type(shape::build_rectangle(0, 100, 0, 100));
@@ -133,8 +133,8 @@ TEST(IrregularColumnGeneration, BinPackingDualPricing)
 {
     // Five 60 x 40 items in 100 x 100 bins: by area, they fit in two bins,
     // but a bin holds at most two of them. The 'Dual' pricing (a Benders
-    // decomposition with the MILP NFP algorithm) proves it, so the bound of
-    // the column generation is 3.
+    // decomposition with the tree search on relative positions) proves it,
+    // so the bound of the column generation is 3.
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPacking);
     BinTypeId bin_type_id = instance_builder.add_bin_type(shape::build_rectangle(0, 100, 0, 100));
@@ -194,7 +194,7 @@ TEST(IrregularBendersDecomposition, IncompatiblePairsAndTriples)
     BendersDecompositionParameters parameters;
     parameters.verbosity_level = 0;
     parameters.optimization_mode = OptimizationMode::NotAnytimeSequential;
-    parameters.subproblem_use_milp_nfp = true;
+    parameters.subproblem_use_tree_search_relative_positions = true;
     parameters.compute_incompatible_pairs = true;
     parameters.compute_incompatible_triples = true;
     BendersDecompositionOutput output = benders_decomposition(instance, parameters);

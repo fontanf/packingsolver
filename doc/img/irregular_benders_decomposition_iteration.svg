@@ -13,7 +13,7 @@
 <rect x="225.0" y="42.0" width="72.0" height="36.0" rx="5.4" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
 <text font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#000000" text-anchor="middle"><tspan x="261.0" y="63.85">stop</tspan></text>
 <rect x="-165.0" y="102.0" width="330" height="36.0" rx="5.4" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
-<text font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#000000" text-anchor="middle"><tspan x="0.0" y="117.25">for each bin, add its items, largest first,</tspan><tspan x="0.0" y="130.45">until MILP NFP proves that they don&#x27;t fit</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#000000" text-anchor="middle"><tspan x="0.0" y="117.25">for each bin, add its items, largest first,</tspan><tspan x="0.0" y="130.45">until the tree search proves that they don&#x27;t fit</tspan></text>
 <polyline points="0,138.0 0,162.0" fill="none" stroke="#333333" stroke-width="1" marker-end="url(#arrow0)"/>
 <rect x="-165.0" y="162.0" width="330" height="36.0" rx="5.4" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
 <text font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#000000" text-anchor="middle"><tspan x="0.0" y="177.25">if none is proven infeasible,</tspan><tspan x="0.0" y="190.45">pack the items of the bin</tspan></text>
