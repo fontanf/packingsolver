@@ -62,6 +62,15 @@ struct BendersDecompositionOutput: Output
     /** Total time spent lifting the no-good cuts. */
     double lifting_time = 0.0;
 
+    /** Number of incompatible pairs of items, computed upfront. */
+    Counter number_of_incompatible_pairs = 0;
+
+    /** Number of incompatible triples of items, computed upfront. */
+    Counter number_of_incompatible_triples = 0;
+
+    /** Time spent computing the incompatible pairs and triples. */
+    double incompatible_subsets_time = 0.0;
+
     virtual nlohmann::json to_json() const override
     {
         nlohmann::json json = Output::to_json();
@@ -73,6 +82,9 @@ struct BendersDecompositionOutput: Output
         json["MinimalInfeasibleSubsetsTime"] = minimal_infeasible_subsets_time;
         json["NumberOfLiftedCoefficients"] = number_of_lifted_coefficients;
         json["LiftingTime"] = lifting_time;
+        json["NumberOfIncompatiblePairs"] = number_of_incompatible_pairs;
+        json["NumberOfIncompatibleTriples"] = number_of_incompatible_triples;
+        json["IncompatibleSubsetsTime"] = incompatible_subsets_time;
         return json;
     }
 
@@ -94,6 +106,9 @@ struct BendersDecompositionOutput: Output
             << std::setw(width) << std::left << "Minimal infeasible subsets time (s): " << minimal_infeasible_subsets_time << std::endl
             << std::setw(width) << std::left << "Number of lifted coefficients: " << number_of_lifted_coefficients << std::endl
             << std::setw(width) << std::left << "Lifting time (s): " << lifting_time << std::endl
+            << std::setw(width) << std::left << "Number of incompatible pairs: " << number_of_incompatible_pairs << std::endl
+            << std::setw(width) << std::left << "Number of incompatible triples: " << number_of_incompatible_triples << std::endl
+            << std::setw(width) << std::left << "Incompatible subsets time (s): " << incompatible_subsets_time << std::endl
             ;
     }
 };
@@ -136,6 +151,24 @@ struct BendersDecompositionParameters: packingsolver::Parameters<Instance, Solut
      * NFP algorithm, which proves that the selections don't fit.
      */
     Counter maximum_number_of_lifted_item_types = 4;
+
+    /**
+     * Before the first iteration, prove with the MILP NFP algorithm which
+     * pairs of items don't fit together in a bin, and add a cut for each of
+     * them. Only with the MILP NFP algorithm.
+     *
+     * It pays off on instances with few item types, but with many item
+     * types, it takes longer than finding them through the subproblems.
+     */
+    bool compute_incompatible_pairs = false;
+
+    /**
+     * Same for the triples of items whose pairs fit and whose total area
+     * doesn't exceed the area of the bin (requires
+     * 'compute_incompatible_pairs'). Their number grows quickly with the
+     * number of item types.
+     */
+    bool compute_incompatible_triples = false;
 };
 
 BendersDecompositionOutput benders_decomposition(

@@ -65,6 +65,14 @@ where :math:`M = c - \min_{d \in R_{ij}} n \cdot d` is the smallest value for wh
 
 **Exact fits.** An item may fit exactly in a notch of another one, or two items may touch along a whole edge: the relative position is then on a line segment or at a point strictly inside the no-fit polygon, but on no edge of the region :math:`F_{ij}`. These feasible positions of null area are returned by the no-fit polygon computation, and each one is an additional convex piece of :math:`F_{ij}`, so that the program stays a relaxation.
 
+**Three-item cuts** (optional, off by default). For three items :math:`i < j < u`, the relative positions satisfy :math:`d_{iu} = d_{ij} + d_{ju}`. So if the piece :math:`a` of :math:`F_{ij}` and the piece :math:`b` of :math:`F_{ju}` are selected, :math:`d_{iu}` is in the Minkowski sum :math:`a \oplus b`, and the pieces :math:`c` of :math:`F_{iu}` which don't intersect it can't be selected:
+
+.. math::
+
+   z^{ij}_a + z^{ju}_b + \sum_{c \in K_{iu}, \; c \cap (a \oplus b) = \emptyset} z^{iu}_c \le 2
+
+The pieces are first clipped to the rectangles :math:`R`, and a cut is only added when the separation of the two convex sets is larger than a small tolerance, so that the program stays a relaxation. The cuts of each triple of item types and rotations are computed once and cached, and they are only added to programs with 4 items or more. They are the feasibility cuts of Lastra-Díaz and Ortuño (2024), restricted to three items. On the 5 items of :code:`data/irregular/tests/feasibility_poly2a_five_items_infeasible.json`, they make the proof 3 times faster, but they slow down the other calls, and they didn't improve any bound of the Benders decomposition, so they are off by default.
+
 Rotation combinations
 ---------------------
 
@@ -132,3 +140,7 @@ References:
 * "A branch & bound algorithm for cutting and packing irregularly shaped pieces" (Alvarez-Valdes, Martinez and Tamarit, 2013)
 
   * https://doi.org/10.1016/j.ijpe.2013.04.007
+
+* "Mixed-integer programming models for irregular strip packing based on vertical slices and feasibility cuts" (Lastra-Díaz and Ortuño, 2024)
+
+  * https://doi.org/10.1016/j.ejor.2023.08.009

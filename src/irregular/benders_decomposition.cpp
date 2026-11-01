@@ -701,6 +701,106 @@ BendersDecompositionOutput packingsolver::irregular::benders_decomposition(
     // the master problem is not a bound of the instance.
     bool all_cuts_proven = true;
 
+    // Incompatible pairs and triples of items, proven by the MILP NFP
+    // algorithm: they give permanent cuts, instead of being found through
+    // the subproblems one by one.
+    if (parameters.subproblem_use_milp_nfp
+            && parameters.compute_incompatible_pairs) {
+        auto incompatible_subsets_begin = std::chrono::steady_clock::now();
+        for (BinTypeId bin_type_id = 0;
+                bin_type_id < instance.number_of_bin_types();
+                ++bin_type_id) {
+            const BinType& bin_type = instance.bin_type(bin_type_id);
+            // Add a proven cut forbidding 'items' in a bin of this type.
+            auto add_cut = [&](const std::vector<std::pair<ItemTypeId, ItemPos>>& items)
+            {
+                cuts_by_bin_type[bin_type_id].push_back(no_good_cut(items));
+                cut_items_by_bin_type[bin_type_id].push_back(items);
+                proven_cut_items_by_bin_type[bin_type_id].push_back(items);
+                output.number_of_no_good_cuts++;
+            };
+            // Return 'true' iff the items are proven not to fit.
+            auto incompatible = [&](const std::vector<std::pair<ItemTypeId, ItemPos>>& items)
+            {
+                return milp_nfp_output(
+                        instance,
+                        bin_type_id,
+                        items,
+                        parameters,
+                        subproblem_cache).status == MilpNfpStatus::Infeasible;
+            };
+            // Aggregate a list of item types (one per copy, sorted).
+            auto aggregate = [](const std::vector<ItemTypeId>& item_type_ids)
+            {
+                std::vector<std::pair<ItemTypeId, ItemPos>> items;
+                for (ItemTypeId item_type_id: item_type_ids) {
+                    if (!items.empty() && items.back().first == item_type_id) {
+                        items.back().second++;
+                    } else {
+                        items.push_back({item_type_id, 1});
+                    }
+                }
+                return items;
+            };
+
+            ItemTypeId n = instance.number_of_item_types();
+            // pair_incompatible[i][j], i <= j.
+            std::vector<std::vector<bool>> pair_incompatible(n, std::vector<bool>(n, false));
+            for (ItemTypeId item_type_id_1 = 0; item_type_id_1 < n; ++item_type_id_1) {
+                for (ItemTypeId item_type_id_2 = item_type_id_1; item_type_id_2 < n; ++item_type_id_2) {
+                    if (parameters.timer.needs_to_end())
+                        break;
+                    if (item_type_id_1 == item_type_id_2
+                            && instance.item_type(item_type_id_1).copies < 2) {
+                        continue;
+                    }
+                    if (incompatible(aggregate({item_type_id_1, item_type_id_2}))) {
+                        pair_incompatible[item_type_id_1][item_type_id_2] = true;
+                        add_cut(aggregate({item_type_id_1, item_type_id_2}));
+                        output.number_of_incompatible_pairs++;
+                    }
+                }
+            }
+
+            if (!parameters.compute_incompatible_triples)
+                continue;
+            for (ItemTypeId item_type_id_1 = 0; item_type_id_1 < n; ++item_type_id_1) {
+                for (ItemTypeId item_type_id_2 = item_type_id_1; item_type_id_2 < n; ++item_type_id_2) {
+                    if (pair_incompatible[item_type_id_1][item_type_id_2])
+                        continue;
+                    for (ItemTypeId item_type_id_3 = item_type_id_2; item_type_id_3 < n; ++item_type_id_3) {
+                        if (parameters.timer.needs_to_end())
+                            break;
+                        if (pair_incompatible[item_type_id_1][item_type_id_3]
+                                || pair_incompatible[item_type_id_2][item_type_id_3]) {
+                            continue;
+                        }
+                        std::vector<std::pair<ItemTypeId, ItemPos>> items
+                            = aggregate({item_type_id_1, item_type_id_2, item_type_id_3});
+                        bool enough_copies = true;
+                        AreaDbl area = 0;
+                        for (const std::pair<ItemTypeId, ItemPos>& p: items) {
+                            if (instance.item_type(p.first).copies < p.second)
+                                enough_copies = false;
+                            area += p.second * instance.item_type(p.first).area_scaled;
+                        }
+                        if (!enough_copies)
+                            continue;
+                        // Infeasible by area: the master problem already
+                        // forbids it.
+                        if (area > bin_type.area_scaled)
+                            continue;
+                        if (incompatible(items)) {
+                            add_cut(items);
+                            output.number_of_incompatible_triples++;
+                        }
+                    }
+                }
+            }
+        }
+        output.incompatible_subsets_time = elapsed_time(incompatible_subsets_begin);
+    }
+
     for (output.number_of_iterations = 0;
             ;
             ++output.number_of_iterations) {

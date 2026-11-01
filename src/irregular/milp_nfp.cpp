@@ -67,6 +67,9 @@ struct Piece
     /** Half-planes of the edges. */
     std::vector<HalfPlane> half_planes;
 
+    /** Vertices of the piece (two for a line segment, one for a point). */
+    std::vector<Point> vertices;
+
     /** Bounding box of the relative positions of the piece. */
     LengthDbl x_min = std::numeric_limits<LengthDbl>::infinity();
     LengthDbl x_max = -std::numeric_limits<LengthDbl>::infinity();
@@ -132,6 +135,7 @@ void add_convex_polygon(
         const std::vector<Point>& vertices,
         Piece& piece)
 {
+    piece.vertices.insert(piece.vertices.end(), vertices.begin(), vertices.end());
     for (std::size_t vertex_pos = 0; vertex_pos < vertices.size(); ++vertex_pos) {
         const Point& start = vertices[vertex_pos];
         const Point& end = vertices[(vertex_pos + 1) % vertices.size()];
@@ -180,11 +184,154 @@ Piece rectangle_piece(const AxisAlignedBoundingBox& aabb)
         {-1, 0, -aabb.x_max},
         {0, 1, aabb.y_min},
         {0, -1, -aabb.y_max}};
+    piece.vertices = {
+        {aabb.x_min, aabb.y_min},
+        {aabb.x_max, aabb.y_min},
+        {aabb.x_max, aabb.y_max},
+        {aabb.x_min, aabb.y_max}};
     piece.x_min = aabb.x_min;
     piece.x_max = aabb.x_max;
     piece.y_min = aabb.y_min;
     piece.y_max = aabb.y_max;
     return piece;
+}
+
+/** Convex hull, anticlockwise, of a set of points. */
+std::vector<Point> convex_hull(std::vector<Point> points)
+{
+    std::sort(
+            points.begin(),
+            points.end(),
+            [](const Point& point_1, const Point& point_2)
+            {
+                return (point_1.x != point_2.x)?
+                    point_1.x < point_2.x:
+                    point_1.y < point_2.y;
+            });
+    // Identical points would all be removed below.
+    points.erase(
+            std::unique(
+                points.begin(),
+                points.end(),
+                [](const Point& point_1, const Point& point_2)
+                {
+                    return point_1.x == point_2.x && point_1.y == point_2.y;
+                }),
+            points.end());
+    if (points.size() <= 2)
+        return points;
+    auto cross = [](const Point& o, const Point& a, const Point& b)
+    {
+        return (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+    };
+    std::vector<Point> hull(2 * points.size());
+    std::size_t k = 0;
+    for (std::size_t pos = 0; pos < points.size(); ++pos) {
+        while (k >= 2 && cross(hull[k - 2], hull[k - 1], points[pos]) <= 0)
+            k--;
+        hull[k++] = points[pos];
+    }
+    for (std::size_t pos = points.size() - 1, t = k + 1; pos > 0; --pos) {
+        while (k >= t && cross(hull[k - 2], hull[k - 1], points[pos - 1]) <= 0)
+            k--;
+        hull[k++] = points[pos - 1];
+    }
+    hull.resize(k - 1);
+    return hull;
+}
+
+/**
+ * Intersection of a convex polygon (or segment, or point) with an
+ * axis-aligned box.
+ */
+std::vector<Point> clip(
+        const std::vector<Point>& vertices,
+        LengthDbl x_min,
+        LengthDbl x_max,
+        LengthDbl y_min,
+        LengthDbl y_max)
+{
+    std::vector<Point> result = convex_hull(vertices);
+    // Half-planes 'n . p >= c' of the box.
+    const std::array<HalfPlane, 4> half_planes = {{
+        {1, 0, x_min}, {-1, 0, -x_max}, {0, 1, y_min}, {0, -1, -y_max}}};
+    for (const HalfPlane& half_plane: half_planes) {
+        if (result.empty())
+            break;
+        auto value = [&half_plane](const Point& point)
+        {
+            return half_plane.nx * point.x + half_plane.ny * point.y - half_plane.c;
+        };
+        std::vector<Point> next;
+        for (std::size_t pos = 0; pos < result.size(); ++pos) {
+            const Point& current = result[pos];
+            const Point& following = result[(pos + 1) % result.size()];
+            LengthDbl value_current = value(current);
+            LengthDbl value_following = value(following);
+            if (value_current >= 0)
+                next.push_back(current);
+            if ((value_current >= 0) != (value_following >= 0)) {
+                LengthDbl t = value_current / (value_current - value_following);
+                next.push_back({
+                        current.x + t * (following.x - current.x),
+                        current.y + t * (following.y - current.y)});
+            }
+            if (result.size() == 1)
+                break;
+        }
+        result = convex_hull(next);
+    }
+    return result;
+}
+
+/**
+ * Return 'true' if two convex sets of points are separated by a gap larger
+ * than 'tolerance' along an axis: the normal or the direction of one of
+ * their edges.
+ *
+ * Returning 'false' doesn't mean that they intersect.
+ */
+bool separated(
+        const std::vector<Point>& points_1,
+        const std::vector<Point>& points_2,
+        LengthDbl tolerance)
+{
+    if (points_1.empty() || points_2.empty())
+        return true;
+    auto separated_along = [&](LengthDbl ax, LengthDbl ay)
+    {
+        LengthDbl norm = std::sqrt(ax * ax + ay * ay);
+        if (norm == 0)
+            return false;
+        ax /= norm;
+        ay /= norm;
+        LengthDbl min_1 = std::numeric_limits<LengthDbl>::infinity();
+        LengthDbl max_1 = -std::numeric_limits<LengthDbl>::infinity();
+        for (const Point& point: points_1) {
+            min_1 = (std::min)(min_1, ax * point.x + ay * point.y);
+            max_1 = (std::max)(max_1, ax * point.x + ay * point.y);
+        }
+        LengthDbl min_2 = std::numeric_limits<LengthDbl>::infinity();
+        LengthDbl max_2 = -std::numeric_limits<LengthDbl>::infinity();
+        for (const Point& point: points_2) {
+            min_2 = (std::min)(min_2, ax * point.x + ay * point.y);
+            max_2 = (std::max)(max_2, ax * point.x + ay * point.y);
+        }
+        return min_2 > max_1 + tolerance || min_1 > max_2 + tolerance;
+    };
+    if (separated_along(1, 0) || separated_along(0, 1))
+        return true;
+    for (const std::vector<Point>* points: {&points_1, &points_2}) {
+        for (std::size_t pos = 0; pos < points->size(); ++pos) {
+            const Point& start = (*points)[pos];
+            const Point& end = (*points)[(pos + 1) % points->size()];
+            LengthDbl ex = end.x - start.x;
+            LengthDbl ey = end.y - start.y;
+            if (separated_along(-ey, ex) || separated_along(ex, ey))
+                return true;
+        }
+    }
+    return false;
 }
 
 PairData compute_pair_data(
@@ -277,11 +424,32 @@ PairData compute_pair_data(
     return pair_data;
 }
 
+/** Bin type, and item type and rotation of each item of a triple. */
+using MilpNfpTripleKey = std::tuple<BinTypeId, ItemTypeId, Counter, ItemTypeId, Counter, ItemTypeId, Counter>;
+
+/**
+ * Three-item cut of a triple of items (i, j, u): if the pieces a of (i, j)
+ * and b of (j, u) are selected, the pieces of (i, u) which don't intersect
+ * a + b can't be.
+ */
+struct ThreeItemCut
+{
+    Counter piece_pos_12;
+    Counter piece_pos_23;
+    std::vector<Counter> pieces_pos_13;
+};
+
 }
 
 struct packingsolver::irregular::MilpNfpCache::Data
 {
     std::map<MilpNfpPairKey, PairData> pairs_data;
+
+    /** Three-item cuts of the triples of items. */
+    std::map<MilpNfpTripleKey, std::vector<ThreeItemCut>> three_item_cuts;
+
+    /** Mutex of 'three_item_cuts', which the threads update. */
+    std::mutex three_item_cuts_mutex;
 
     /** Proven statuses of rotation combinations. */
     std::map<MilpNfpCombinationKey, MilpNfpStatus> combinations_statuses;
@@ -679,6 +847,50 @@ MilpNfpOutput packingsolver::irregular::milp_nfp(
             model.elements_coefficients.push_back(element.second);
         }
     };
+    // Three-item cuts of the triples of (item type, rotation), computed when
+    // first needed, and kept in the cache.
+    std::map<MilpNfpTripleKey, std::vector<ThreeItemCut>>& three_item_cuts = cache_data.three_item_cuts;
+    std::mutex& three_item_cuts_mutex = cache_data.three_item_cuts_mutex;
+    auto compute_three_item_cuts = [](
+            const PairData& pair_12,
+            const PairData& pair_23,
+            const PairData& pair_13)
+    {
+        auto clipped_pieces = [](const PairData& pair)
+        {
+            std::vector<std::vector<Point>> pieces;
+            for (const Piece& piece: pair.pieces)
+                pieces.push_back(clip(piece.vertices, pair.x_min, pair.x_max, pair.y_min, pair.y_max));
+            return pieces;
+        };
+        std::vector<std::vector<Point>> pieces_12 = clipped_pieces(pair_12);
+        std::vector<std::vector<Point>> pieces_23 = clipped_pieces(pair_23);
+        std::vector<std::vector<Point>> pieces_13 = clipped_pieces(pair_13);
+        LengthDbl tolerance = 1e-6 * (
+                (pair_13.x_max - pair_13.x_min)
+                + (pair_13.y_max - pair_13.y_min) + 1);
+        std::vector<ThreeItemCut> cuts;
+        for (Counter piece_pos_12 = 0; piece_pos_12 < (Counter)pieces_12.size(); ++piece_pos_12) {
+            for (Counter piece_pos_23 = 0; piece_pos_23 < (Counter)pieces_23.size(); ++piece_pos_23) {
+                // An empty clipped piece can't be selected.
+                std::vector<Point> sum_points;
+                for (const Point& point_12: pieces_12[piece_pos_12])
+                    for (const Point& point_23: pieces_23[piece_pos_23])
+                        sum_points.push_back({point_12.x + point_23.x, point_12.y + point_23.y});
+                std::vector<Point> sum = convex_hull(sum_points);
+                ThreeItemCut cut;
+                cut.piece_pos_12 = piece_pos_12;
+                cut.piece_pos_23 = piece_pos_23;
+                for (Counter piece_pos_13 = 0; piece_pos_13 < (Counter)pieces_13.size(); ++piece_pos_13)
+                    if (separated(sum, pieces_13[piece_pos_13], tolerance))
+                        cut.pieces_pos_13.push_back(piece_pos_13);
+                if (!cut.pieces_pos_13.empty())
+                    cuts.push_back(cut);
+            }
+        }
+        return cuts;
+    };
+
     // Build the MILP of a rotation combination, restricted to the items
     // 'active' (all the items if it is empty); the positions of the other
     // items are free.
@@ -715,7 +927,11 @@ MilpNfpOutput packingsolver::irregular::milp_nfp(
                     {{2 * item_pos, 1.0}, {2 * (item_pos + 1), -1.0}});
         }
 
-        // Non-overlap constraints.
+        // Non-overlap constraints. First variable of the pieces of each pair,
+        // -1 if the items don't interact.
+        std::vector<std::vector<int>> first_piece_variable_ids(
+                number_of_items,
+                std::vector<int>(number_of_items, -1));
         for (ItemPos item_pos_1 = 0; item_pos_1 < number_of_items; ++item_pos_1) {
             if (!is_active(item_pos_1))
                 continue;
@@ -730,6 +946,7 @@ MilpNfpOutput packingsolver::irregular::milp_nfp(
                 if (!pair.interact)
                     continue;
                 // Exactly one piece.
+                first_piece_variable_ids[item_pos_1][item_pos_2] = model.variables_lower_bounds.size();
                 std::vector<std::pair<int, double>> elements;
                 for (const Piece& piece: pair.pieces) {
                     int piece_variable_id = add_variable(model, 0, 1, mathoptsolverscmake::VariableType::Binary);
@@ -743,6 +960,61 @@ MilpNfpOutput packingsolver::irregular::milp_nfp(
                             {pair.x_min, pair.x_max, pair.y_min, pair.y_max});
                 }
                 add_constraint(model, 1.0, 1.0, elements);
+            }
+        }
+
+        // Three-item cuts: 'z_a + z_b + sum_c z_c <= 2'.
+        ItemPos number_of_active_items = 0;
+        for (ItemPos item_pos = 0; item_pos < number_of_items; ++item_pos)
+            if (is_active(item_pos))
+                number_of_active_items++;
+        // With 3 items, the cuts don't pay off.
+        if (parameters.three_item_cuts && number_of_active_items >= 4) {
+            for (ItemPos item_pos_1 = 0; item_pos_1 < number_of_items; ++item_pos_1) {
+                for (ItemPos item_pos_2 = item_pos_1 + 1; item_pos_2 < number_of_items; ++item_pos_2) {
+                    for (ItemPos item_pos_3 = item_pos_2 + 1; item_pos_3 < number_of_items; ++item_pos_3) {
+                        int first_12 = first_piece_variable_ids[item_pos_1][item_pos_2];
+                        int first_23 = first_piece_variable_ids[item_pos_2][item_pos_3];
+                        int first_13 = first_piece_variable_ids[item_pos_1][item_pos_3];
+                        if (first_12 == -1 || first_23 == -1 || first_13 == -1)
+                            continue;
+                        MilpNfpTripleKey key = std::make_tuple(
+                                bin_type_id,
+                                sorted_item_type_ids[item_pos_1], rotation_ids[item_pos_1],
+                                sorted_item_type_ids[item_pos_2], rotation_ids[item_pos_2],
+                                sorted_item_type_ids[item_pos_3], rotation_ids[item_pos_3]);
+                        std::vector<ThreeItemCut> cuts;
+                        bool found = false;
+                        {
+                            std::lock_guard<std::mutex> lock(three_item_cuts_mutex);
+                            auto it = three_item_cuts.find(key);
+                            if (it != three_item_cuts.end()) {
+                                cuts = it->second;
+                                found = true;
+                            }
+                        }
+                        if (!found) {
+                            cuts = compute_three_item_cuts(
+                                    pair_data(item_pos_1, item_pos_2, rotation_ids[item_pos_1], rotation_ids[item_pos_2]),
+                                    pair_data(item_pos_2, item_pos_3, rotation_ids[item_pos_2], rotation_ids[item_pos_3]),
+                                    pair_data(item_pos_1, item_pos_3, rotation_ids[item_pos_1], rotation_ids[item_pos_3]));
+                            std::lock_guard<std::mutex> lock(three_item_cuts_mutex);
+                            three_item_cuts.insert({key, cuts});
+                        }
+                        for (const ThreeItemCut& cut: cuts) {
+                            std::vector<std::pair<int, double>> elements = {
+                                {first_12 + cut.piece_pos_12, 1.0},
+                                {first_23 + cut.piece_pos_23, 1.0}};
+                            for (Counter piece_pos_13: cut.pieces_pos_13)
+                                elements.push_back({first_13 + piece_pos_13, 1.0});
+                            add_constraint(
+                                    model,
+                                    -std::numeric_limits<double>::infinity(),
+                                    2.0,
+                                    elements);
+                        }
+                    }
+                }
             }
         }
         return model;
@@ -960,6 +1232,11 @@ MilpNfpOutput packingsolver::irregular::milp_nfp(
     output.number_of_sub_combination_milps = number_of_sub_combination_milps;
     output.number_of_rotation_combinations_pruned_by_sub_combinations
         = number_of_rotation_combinations_pruned_by_sub_combinations;
+    {
+        std::lock_guard<std::mutex> lock(three_item_cuts_mutex);
+        for (const auto& p: three_item_cuts)
+            output.number_of_three_item_cuts += p.second.size();
+    }
     output.status = status;
     return output;
 }
