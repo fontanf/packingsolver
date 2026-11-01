@@ -526,7 +526,7 @@ TEST(ComputePeriodicPackingsInstanceTest, AabbScaledMatchesPlacedItems)
 
 // The periodic packings computed by InstanceBuilder::build() are stored in
 // the instance, and carried over, with their item type ids remapped, to the
-// sub-instances built with InstanceBuilder::add_item_type(instance, id),
+// sub-instances built with InstanceBuilder::add_item_type_from_original_instance,
 // instead of being recomputed.
 TEST(ComputePeriodicPackingsInstanceTest, PeriodicPackingsCarriedOverToSubInstances)
 {
@@ -552,9 +552,10 @@ TEST(ComputePeriodicPackingsInstanceTest, PeriodicPackingsCarriedOverToSubInstan
 
     // Sub-instance with the item types in the reverse order.
     InstanceBuilder sub_instance_builder;
+    sub_instance_builder.set_original_instance(instance);
     sub_instance_builder.add_bin_type(shape::build_rectangle(2000, 2000));
-    ItemTypeId sub_item_type_id_1 = sub_instance_builder.add_item_type(instance, item_type_id_1);
-    sub_instance_builder.add_item_type(instance, item_type_id_0);
+    ItemTypeId sub_item_type_id_1 = sub_instance_builder.add_item_type_from_original_instance(item_type_id_1);
+    sub_instance_builder.add_item_type_from_original_instance(item_type_id_0);
     Instance sub_instance = sub_instance_builder.build();
 
     ASSERT_EQ(sub_instance.periodic_packings().size(), instance.periodic_packings().size());
@@ -579,8 +580,9 @@ TEST(ComputePeriodicPackingsInstanceTest, PeriodicPackingsCarriedOverToSubInstan
 
     // Sub-instance without that item type: no periodic packing.
     InstanceBuilder sub_instance_builder_2;
+    sub_instance_builder_2.set_original_instance(instance);
     sub_instance_builder_2.add_bin_type(shape::build_rectangle(2000, 2000));
-    sub_instance_builder_2.add_item_type(instance, item_type_id_0);
+    sub_instance_builder_2.add_item_type_from_original_instance(item_type_id_0);
     Instance sub_instance_2 = sub_instance_builder_2.build();
     EXPECT_TRUE(sub_instance_2.periodic_packings().empty());
 }

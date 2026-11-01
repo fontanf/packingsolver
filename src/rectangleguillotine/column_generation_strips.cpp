@@ -1730,6 +1730,7 @@ void ColumnGenerationPricingSolver::generate_lower_stage_patterns(
         // outer level, so it is not inherited either.
         sub_parameters.maximum_number_2_cuts = -1;
         sub_instance_builder.set_parameters(sub_parameters);
+        sub_instance_builder.set_original_instance(instance_);
         sub_instance_builder.add_bin_type(width, height);
 
         for (ItemTypeId item_type_id: sub2orig) {
@@ -1741,7 +1742,7 @@ void ColumnGenerationPricingSolver::generate_lower_stage_patterns(
             } else if (instance_.objective() == Objective::Knapsack) {
                 profit = (solve_feasibility? 0: item_type.profit) - duals[item_type_id] * multiplier_profit;
             }
-            ItemTypeId sub_item_type_id = sub_instance_builder.add_item_type(instance_, item_type_id);
+            ItemTypeId sub_item_type_id = sub_instance_builder.add_item_type_from_original_instance(item_type_id);
             sub_instance_builder.set_item_type_profit(sub_item_type_id, profit);
             sub_instance_builder.set_item_type_copies(sub_item_type_id, copies);
         }

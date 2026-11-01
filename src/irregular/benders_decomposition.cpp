@@ -121,12 +121,13 @@ Instance build_subproblem_instance(
     InstanceBuilder sub_instance_builder;
     sub_instance_builder.set_objective(Objective::Feasibility);
     sub_instance_builder.set_parameters(instance.parameters());
-    BinTypeId sub_bin_type_id = sub_instance_builder.add_bin_type(instance, bin_type_id);
+    sub_instance_builder.set_original_instance(instance);
+    BinTypeId sub_bin_type_id = sub_instance_builder.add_bin_type_from_original_instance(bin_type_id);
     sub_instance_builder.set_bin_type_copies(sub_bin_type_id, 1);
     sub_instance_builder.set_bin_type_copies_min(sub_bin_type_id, 0);
     sub_to_orig.clear();
     for (const std::pair<ItemTypeId, ItemPos>& p: selected_items) {
-        ItemTypeId sub_item_type_id = sub_instance_builder.add_item_type(instance, p.first);
+        ItemTypeId sub_item_type_id = sub_instance_builder.add_item_type_from_original_instance(p.first);
         sub_instance_builder.set_item_type_copies(sub_item_type_id, p.second);
         sub_to_orig.push_back(p.first);
     }

@@ -331,7 +331,7 @@ struct ItemType
      * are stored in Instance::periodic_packings().
      *
      * Copied along with the item type by
-     * InstanceBuilder::add_item_type(instance, id), together with its
+     * InstanceBuilder::add_item_type_from_original_instance, together with its
      * periodic packings, instead of recomputing them for every sub-instance
      * built from this item type (e.g. successive sequential_feasibility
      * iterations).

@@ -297,13 +297,14 @@ void sequential_strips_onedimensional_oriented(
         first_stage_length:
         std::min(phase1_parameters.maximum_distance_1_cuts, first_stage_length);
     phase1_instance_builder.set_parameters(phase1_parameters);
-    BinTypeId phase1_bin_type_id = phase1_instance_builder.add_bin_type(instance, 0);
+    phase1_instance_builder.set_original_instance(instance);
+    BinTypeId phase1_bin_type_id = phase1_instance_builder.add_bin_type_from_original_instance(0);
     phase1_instance_builder.set_bin_type_copies(phase1_bin_type_id, 1);
     phase1_instance_builder.set_bin_type_copies_min(phase1_bin_type_id, 0);
     for (ItemTypeId item_type_id = 0;
             item_type_id < instance.number_of_item_types();
             ++item_type_id) {
-        phase1_instance_builder.add_item_type(instance, item_type_id);
+        phase1_instance_builder.add_item_type_from_original_instance(item_type_id);
     }
     if (orientation == CutOrientation::Vertical) {
         phase1_instance_builder.set_bin_types_infinite_x();

@@ -686,6 +686,7 @@ Instance Reduction::reduction_to_instance(
     InstanceBuilder instance_builder;
     instance_builder.set_objective(original_instance_->objective());
     instance_builder.set_parameters(original_instance_->parameters());
+    instance_builder.set_original_instance(*original_instance_);
     instance_builder.set_feasibility_callback(original_instance_->feasibility_callback());
 
     reduced_to_original_bin_type_id_.clear();
@@ -696,7 +697,7 @@ Instance Reduction::reduction_to_instance(
                 && bin_type_removed[bin_type_id]) {
             continue;
         }
-        instance_builder.add_bin_type(*original_instance_, bin_type_id);
+        instance_builder.add_bin_type_from_original_instance(bin_type_id);
         reduced_to_original_bin_type_id_.push_back(bin_type_id);
     }
 
@@ -730,7 +731,7 @@ Instance Reduction::reduction_to_instance(
                 origin_runs.push_back({other_item_type_id, merged_copies});
         }
 
-        ItemTypeId new_item_type_id = instance_builder.add_item_type(*original_instance_, item_type_id);
+        ItemTypeId new_item_type_id = instance_builder.add_item_type_from_original_instance(item_type_id);
         instance_builder.set_item_type_copies(new_item_type_id, total_copies);
         instance_builder.set_item_type_copies_min(new_item_type_id, total_copies_min);
         instance_builder.set_item_type_rotations(new_item_type_id, item.rotations);
