@@ -50,9 +50,10 @@ TEST(IrregularLocalSearch, ConvertInitialSolutionDropsBins)
     InstanceBuilder sub_instance_builder;
     sub_instance_builder.set_objective(Objective::Feasibility);
     sub_instance_builder.set_parameters(instance.parameters());
-    BinTypeId sub_bin_type_id = sub_instance_builder.add_bin_type(instance, bin_type_id);
+    sub_instance_builder.set_original_instance(instance);
+    BinTypeId sub_bin_type_id = sub_instance_builder.add_bin_type_from_original_instance(bin_type_id);
     sub_instance_builder.set_bin_type_copies(sub_bin_type_id, 2);
-    sub_instance_builder.add_item_type(instance, item_type_id);
+    sub_instance_builder.add_item_type_from_original_instance(item_type_id);
     Instance sub_instance = sub_instance_builder.build();
 
     Solution converted_solution = convert_initial_solution(sub_instance, solution);
@@ -83,8 +84,9 @@ TEST(IrregularLocalSearch, ConvertInitialSolutionKeepsPositions)
     InstanceBuilder sub_instance_builder;
     sub_instance_builder.set_objective(Objective::Feasibility);
     sub_instance_builder.set_parameters(instance.parameters());
+    sub_instance_builder.set_original_instance(instance);
     sub_instance_builder.add_bin_type(rectangle_shape(29.7, 10));
-    sub_instance_builder.add_item_type(instance, item_type_id);
+    sub_instance_builder.add_item_type_from_original_instance(item_type_id);
     Instance sub_instance = sub_instance_builder.build();
 
     Solution converted_solution = convert_initial_solution(sub_instance, solution);

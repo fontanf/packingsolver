@@ -81,6 +81,7 @@ SequentialFeasibilityOutput packingsolver::rectangleguillotine::sequential_feasi
         InstanceBuilder sub_instance_builder;
         sub_instance_builder.set_objective(Objective::Feasibility);
         sub_instance_builder.set_parameters(instance.parameters());
+        sub_instance_builder.set_original_instance(instance);
         std::vector<BinTypeId> sub_to_orig_bin_type_ids;
         if (instance.objective() == Objective::BinPacking) {
             BinPos remaining_bins = current_number_of_bins;
@@ -89,7 +90,7 @@ SequentialFeasibilityOutput packingsolver::rectangleguillotine::sequential_feasi
                     ++bin_type_id_iter) {
                 const BinType& bin_type_iter = instance.bin_type(bin_type_id_iter);
                 BinPos copies = std::min(bin_type_iter.copies, remaining_bins);
-                BinTypeId sub_bin_type_id = sub_instance_builder.add_bin_type(instance, bin_type_id_iter);
+                BinTypeId sub_bin_type_id = sub_instance_builder.add_bin_type_from_original_instance(bin_type_id_iter);
                 sub_instance_builder.set_bin_type_copies_min(sub_bin_type_id, 0);
                 sub_instance_builder.set_bin_type_copies(sub_bin_type_id, copies);
                 sub_to_orig_bin_type_ids.push_back(bin_type_id_iter);
@@ -102,7 +103,7 @@ SequentialFeasibilityOutput packingsolver::rectangleguillotine::sequential_feasi
                     ++bin_type_id_iter) {
                 const BinType& bin_type_iter = instance.bin_type(bin_type_id_iter);
                 BinPos copies = std::min(bin_type_iter.copies, remaining_bins);
-                BinTypeId sub_bin_type_id = sub_instance_builder.add_bin_type(instance, bin_type_id_iter);
+                BinTypeId sub_bin_type_id = sub_instance_builder.add_bin_type_from_original_instance(bin_type_id_iter);
                 sub_instance_builder.set_bin_type_copies_min(sub_bin_type_id, 0);
                 sub_instance_builder.set_bin_type_copies(sub_bin_type_id, copies);
                 sub_instance_builder.crop_bin_type(sub_bin_type_id, current_x, bin_type_iter.rect.h);
@@ -110,12 +111,12 @@ SequentialFeasibilityOutput packingsolver::rectangleguillotine::sequential_feasi
                 remaining_bins -= copies;
             }
         } else if (instance.objective() == Objective::OpenDimensionX) {
-            BinTypeId sub_bin_type_id = sub_instance_builder.add_bin_type(instance, bin_type_id);
+            BinTypeId sub_bin_type_id = sub_instance_builder.add_bin_type_from_original_instance(bin_type_id);
             sub_instance_builder.set_bin_type_copies_min(sub_bin_type_id, 0);
             sub_instance_builder.set_bin_type_copies(sub_bin_type_id, 1);
             sub_instance_builder.crop_bin_type(sub_bin_type_id, current_x, bin_type.rect.h);
         } else {  // OpenDimensionY
-            BinTypeId sub_bin_type_id = sub_instance_builder.add_bin_type(instance, bin_type_id);
+            BinTypeId sub_bin_type_id = sub_instance_builder.add_bin_type_from_original_instance(bin_type_id);
             sub_instance_builder.set_bin_type_copies_min(sub_bin_type_id, 0);
             sub_instance_builder.set_bin_type_copies(sub_bin_type_id, 1);
             sub_instance_builder.crop_bin_type(sub_bin_type_id, bin_type.rect.w, current_y);
@@ -123,7 +124,7 @@ SequentialFeasibilityOutput packingsolver::rectangleguillotine::sequential_feasi
         for (ItemTypeId item_type_id = 0;
                 item_type_id < instance.number_of_item_types();
                 ++item_type_id) {
-            sub_instance_builder.add_item_type(instance, item_type_id);
+            sub_instance_builder.add_item_type_from_original_instance(item_type_id);
         }
         Instance sub_instance = sub_instance_builder.build();
 

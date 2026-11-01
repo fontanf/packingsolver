@@ -109,13 +109,14 @@ LargeItemFirstOutput packingsolver::irregular::large_item_first(
     InstanceBuilder phase1_instance_builder;
     phase1_instance_builder.set_objective(instance.objective());
     phase1_instance_builder.set_parameters(instance.parameters());
+    phase1_instance_builder.set_original_instance(instance);
 
     // Add all bin types (carrying their fixed items).
     std::vector<BinTypeId> phase1_to_orig_bin_type_ids;
     for (BinTypeId bin_type_id = 0;
             bin_type_id < instance.number_of_bin_types();
             ++bin_type_id) {
-        phase1_instance_builder.add_bin_type(instance, bin_type_id);
+        phase1_instance_builder.add_bin_type_from_original_instance(bin_type_id);
         phase1_to_orig_bin_type_ids.push_back(bin_type_id);
     }
 
@@ -129,7 +130,7 @@ LargeItemFirstOutput packingsolver::irregular::large_item_first(
         if (!is_large[item_type_id])
             continue;
         phase1_sub_to_orig_item_type_ids.push_back(item_type_id);
-        phase1_instance_builder.add_item_type(instance, item_type_id);
+        phase1_instance_builder.add_item_type_from_original_instance(item_type_id);
     }
 
     Instance phase1_instance = phase1_instance_builder.build();
@@ -169,6 +170,7 @@ LargeItemFirstOutput packingsolver::irregular::large_item_first(
     InstanceBuilder phase2_instance_builder;
     phase2_instance_builder.set_objective(instance.objective());
     phase2_instance_builder.set_parameters(instance.parameters());
+    phase2_instance_builder.set_original_instance(instance);
 
     // For each bin in the phase 1 solution, add a bin type with the large
     // items fixed at their found positions.
@@ -182,7 +184,7 @@ LargeItemFirstOutput packingsolver::irregular::large_item_first(
         // bin type carry original item type IDs, consistent with the item type
         // mapping built below from instance.
         BinTypeId orig_bin_type_id = solution_bin.bin_type_id;
-        BinTypeId phase2_bin_type_id = phase2_instance_builder.add_bin_type(instance, orig_bin_type_id);
+        BinTypeId phase2_bin_type_id = phase2_instance_builder.add_bin_type_from_original_instance(orig_bin_type_id);
         phase2_instance_builder.set_bin_type_copies(phase2_bin_type_id, solution_bin.copies);
         phase2_instance_builder.set_bin_type_copies_min(phase2_bin_type_id, 0);
         phase2_to_orig_bin_type_ids.push_back(orig_bin_type_id);
@@ -212,7 +214,7 @@ LargeItemFirstOutput packingsolver::irregular::large_item_first(
         ItemPos copies = is_large[item_type_id]
             ? item_type.copies_fixed + large_item_placed_copies[item_type_id]
             : item_type.copies;
-        ItemTypeId phase2_item_type_id = phase2_instance_builder.add_item_type(instance, item_type_id);
+        ItemTypeId phase2_item_type_id = phase2_instance_builder.add_item_type_from_original_instance(item_type_id);
         phase2_instance_builder.set_item_type_copies(phase2_item_type_id, copies);
     }
 
