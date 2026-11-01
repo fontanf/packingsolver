@@ -101,6 +101,12 @@ struct TrapezoidSet
 
     LengthDbl y_max;
 
+    /**
+     * Bounding box of the original shapes of the item type in this
+     * orientation (not scaled and not converted to the direction).
+     */
+    AxisAlignedBoundingBox item_type_aabb_orig;
+
     void write_svg(
             const std::string& file_path) const;
 };

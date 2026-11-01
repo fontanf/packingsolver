@@ -720,9 +720,7 @@ BranchingScheme::Node BranchingScheme::child_tmp(
     // Compute node.x_max and node.y_max.
     Point xy = convert_point_back({node.x, node.y}, node.last_bin_direction);
     xy = (1.0 / instance().parameters().scale_value) * xy;
-    AxisAlignedBoundingBox aabb = item_type.compute_min_max(
-            trapezoid_set.angle,
-            trapezoid_set.mirror);
+    const AxisAlignedBoundingBox& aabb = trapezoid_set.item_type_aabb_orig;
     if (insertion.new_bin_direction == Direction::Any) {  // Same bin
         node.x_min = std::min(parent.x_min, xy.x + aabb.x_min);
         node.x_max = std::max(parent.x_max, xy.x + aabb.x_max);
