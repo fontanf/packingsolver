@@ -1262,6 +1262,18 @@ void BranchingScheme::insertion_trapezoid_set(
     if (slider.out_of_bounds(insertion))
         return;
 
+    // Check that the item can fit between the bottom and the top of the bin.
+    // While sliding, the y-coordinate of the trapezoid set remains in the
+    // range given by the bounding boxes of the supporting and supported parts.
+    LengthDbl y_lowest = supporting_part.aabb.y_min + supporting_part_y
+        - supported_part.aabb.y_max;
+    LengthDbl y_highest = supporting_part.aabb.y_max + supporting_part_y
+        - supported_part.aabb.y_min;
+    if (strictly_greater(y_lowest + trapezoid_set.y_max, bb_bin_type.y_max)
+            || strictly_lesser(y_highest + trapezoid_set.y_min, bb_bin_type.y_min)) {
+        return;
+    }
+
     // Move the item to the right of the left side of the bin.
     if (!slider.slide_right_of(
                 insertion,
