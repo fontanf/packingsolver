@@ -317,10 +317,15 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
     bool use_tree_search_relative_positions = false;
 
     /** Initial maximum approximation ratio. */
-    double initial_maximum_approximation_ratio = 0.20;
+    double initial_maximum_approximation_ratio = 0.10;
 
     /** Decrease factor for the maximum approximation ratio. */
     double maximum_approximation_ratio_factor = 0.75;
+
+    /**
+     * Minimum value of the maximum approximation ratio when it decreases.
+     */
+    double minimum_maximum_approximation_ratio = 0.005;
 
     /** Threshold to consider that a bin contains "many" items. */
     Counter many_items_in_bins_threshold = 16;

@@ -1987,7 +1987,9 @@ void tree_search_worker(
         queue_size = std::max(
                 queue_size + 1,
                 (NodeId)(queue_size * 1.5));
-        maximum_approximation_ratio *= parameters.maximum_approximation_ratio_factor;
+        maximum_approximation_ratio = (std::max)(
+                parameters.minimum_maximum_approximation_ratio,
+                maximum_approximation_ratio * parameters.maximum_approximation_ratio_factor);
     }
 }
 
@@ -2021,6 +2023,8 @@ const packingsolver::irregular::TreeSearchOutput packingsolver::irregular::tree_
                 = parameters.not_anytime_maximum_approximation_ratio;
             inner_parameters.maximum_approximation_ratio_factor
                 = parameters.maximum_approximation_ratio_factor;
+            inner_parameters.minimum_maximum_approximation_ratio
+                = parameters.minimum_maximum_approximation_ratio;
             return tree_search(sub_instance, inner_parameters).solution_pool;
         };
 
