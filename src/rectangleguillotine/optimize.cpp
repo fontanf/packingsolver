@@ -852,6 +852,18 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
         use_dichotomic_search = false;
         use_column_generation = false;
         use_sequential_strips_onedimensional = false;
+        // 'tree_search_maximal_spaces' doesn't support all objectives, which
+        // may have a single bin here (e.g. 'VariableSizedBinPacking' with a
+        // single item).
+        bool tree_search_maximal_spaces_supported = (
+                instance.objective() == Objective::Knapsack
+                || instance.objective() == Objective::Feasibility
+                || instance.objective() == Objective::BinPacking
+                || instance.objective() == Objective::BinPackingWithLeftovers
+                || instance.objective() == Objective::OpenDimensionX
+                || instance.objective() == Objective::OpenDimensionY);
+        if (!tree_search_maximal_spaces_supported)
+            use_tree_search_maximal_spaces = false;
         // Automatic selection.
         if (!use_tree_search
                 && !use_tree_search_maximal_spaces
@@ -887,7 +899,8 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
                     && instance.parameters().maximum_number_2_cuts == -1
                     ) {
                 use_tree_search_hypergraph_infinite_copies = true;
-            } else if (instance.number_of_stages_unlimited()
+            } else if (tree_search_maximal_spaces_supported
+                    && instance.number_of_stages_unlimited()
                     //&& mean_number_of_items_in_bins > parameters.many_items_in_bins_threshold_2
                     && instance.number_of_defects() == 0
                     && instance.number_of_stacks() == instance.number_of_item_types()
