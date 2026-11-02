@@ -443,6 +443,67 @@ BinTypeId InstanceBuilder::add_bin_type(
     return bin_type_id;
 }
 
+void InstanceBuilder::crop_bin_type(
+        BinTypeId bin_type_id,
+        Length width,
+        Length height)
+{
+    if (bin_type_id < 0 || bin_type_id >= instance_.bin_types_.size()) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "invalid 'bin_type_id'; "
+                "bin_type_id: " + std::to_string(bin_type_id) + "; "
+                "instance_.bin_types_.size(): " + std::to_string(instance_.bin_types_.size()) + ".");
+    }
+
+    BinType& bin_type = instance_.bin_types_[bin_type_id];
+    if (width <= 0 || width > bin_type.rect.w) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "requires '0 < width <= w'; "
+                "width: " + std::to_string(width) + "; "
+                "w: " + std::to_string(bin_type.rect.w) + ".");
+    }
+    if (height <= 0 || height > bin_type.rect.h) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "requires '0 < height <= h'; "
+                "height: " + std::to_string(height) + "; "
+                "h: " + std::to_string(bin_type.rect.h) + ".");
+    }
+
+    // Trims.
+    Length right_trim = (std::max)(
+            Length(0),
+            bin_type.right_trim - (bin_type.rect.w - width));
+    Length top_trim = (std::max)(
+            Length(0),
+            bin_type.top_trim - (bin_type.rect.h - height));
+    bin_type.rect.w = width;
+    bin_type.rect.h = height;
+    add_trims(
+            bin_type_id,
+            bin_type.left_trim,
+            bin_type.left_trim_type,
+            right_trim,
+            bin_type.right_trim_type,
+            bin_type.bottom_trim,
+            bin_type.bottom_trim_type,
+            top_trim,
+            bin_type.top_trim_type);
+
+    // Defects.
+    std::vector<Defect> defects;
+    for (Defect defect: bin_type.defects) {
+        if (defect.left() >= width || defect.bottom() >= height)
+            continue;
+        defect.rect.w = (std::min)(defect.right(), width) - defect.left();
+        defect.rect.h = (std::min)(defect.top(), height) - defect.bottom();
+        defects.push_back(defect);
+    }
+    bin_type.defects = defects;
+}
+
 void InstanceBuilder::set_bin_type_copies(
         BinTypeId bin_type_id,
         BinPos copies)

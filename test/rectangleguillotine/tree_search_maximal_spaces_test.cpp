@@ -77,4 +77,9 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_unlimited_stages_soft_trims" / "bins.csv",
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_unlimited_stages_soft_trims" / "parameters.csv",
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_unlimited_stages_soft_trims" / "solution.csv",
+            }, {
+                fs::path("data") / "rectangleguillotine" / "tests" / "bin_packing_unlimited_stages_hard_trims" / "items.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "bin_packing_unlimited_stages_hard_trims" / "bins.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "bin_packing_unlimited_stages_hard_trims" / "parameters.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "bin_packing_unlimited_stages_hard_trims" / "solution.csv",
             }}));
