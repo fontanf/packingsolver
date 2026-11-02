@@ -299,6 +299,7 @@ void optimize_tree_search(
     ts_parameters.initial_maximum_approximation_ratio = parameters.initial_maximum_approximation_ratio;
     ts_parameters.not_anytime_maximum_approximation_ratio = parameters.not_anytime_maximum_approximation_ratio;
     ts_parameters.maximum_approximation_ratio_factor = parameters.maximum_approximation_ratio_factor;
+    ts_parameters.minimum_maximum_approximation_ratio = parameters.minimum_maximum_approximation_ratio;
     ts_parameters.json_search_tree_path = parameters.json_search_tree_path;
     ts_parameters.new_solution_callback = [&algorithm_formatter](
             const irregular::Output& ts_output)
@@ -596,7 +597,9 @@ void optimize_sequential_single_knapsack(
                 growth_factor + 1,
                 (Counter)(growth_factor * 2));
         // Update maximum approximation ratio.
-        maximum_approximation_ratio *= parameters.maximum_approximation_ratio_factor;
+        maximum_approximation_ratio = (std::max)(
+                parameters.minimum_maximum_approximation_ratio,
+                maximum_approximation_ratio * parameters.maximum_approximation_ratio_factor);
     }
 }
 
@@ -726,7 +729,9 @@ void optimize_dichotomic_search(
                 queue_size + 1,
                 (NodeId)(queue_size * 2));
         // Update maximum approximation ratio.
-        maximum_approximation_ratio *= parameters.maximum_approximation_ratio_factor;
+        maximum_approximation_ratio = (std::max)(
+                parameters.minimum_maximum_approximation_ratio,
+                maximum_approximation_ratio * parameters.maximum_approximation_ratio_factor);
 
         waste_percentage_upper_bound = ds_output.waste_percentage_upper_bound;
     }

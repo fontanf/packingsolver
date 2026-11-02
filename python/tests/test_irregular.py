@@ -558,8 +558,11 @@ def test_parameters():
     assert parameters.local_search_weighting_scheme == psi.LocalSearchWeightingScheme.Multiplicative
     parameters.local_search_weighting_scheme = psi.LocalSearchWeightingScheme.Additive
     assert parameters.local_search_weighting_scheme == psi.LocalSearchWeightingScheme.Additive
-    parameters.initial_maximum_approximation_ratio = 0.1
-    assert parameters.initial_maximum_approximation_ratio == pytest.approx(0.1)
+    parameters.initial_maximum_approximation_ratio = 0.05
+    assert parameters.initial_maximum_approximation_ratio == pytest.approx(0.05)
+    assert parameters.minimum_maximum_approximation_ratio == pytest.approx(0.005)
+    parameters.minimum_maximum_approximation_ratio = 0.01
+    assert parameters.minimum_maximum_approximation_ratio == pytest.approx(0.01)
     parameters.reduction_parameters.reduce = False
     assert not parameters.reduction_parameters.reduce
     parameters.verbosity_level = 0
