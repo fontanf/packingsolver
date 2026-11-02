@@ -198,3 +198,17 @@ TEST(Box, LeftoverModeJson)
     default_builder.add_item_type(5, 5, 5);
     EXPECT_EQ(default_builder.build().parameters().leftover_mode, LeftoverMode::XYZ);
 }
+
+TEST(Box, InstanceBuilderCropBinType)
+{
+    InstanceBuilder instance_builder;
+    instance_builder.add_item_type(10, 10, 10);
+    packingsolver::BinTypeId bin_type_id = instance_builder.add_bin_type(100, 90, 80);
+    instance_builder.crop_bin_type(bin_type_id, 60, 50, 40);
+    Instance instance = instance_builder.build();
+
+    const BinType& bin_type = instance.bin_type(bin_type_id);
+    EXPECT_EQ(bin_type.box.x, 60);
+    EXPECT_EQ(bin_type.box.y, 50);
+    EXPECT_EQ(bin_type.box.z, 40);
+}

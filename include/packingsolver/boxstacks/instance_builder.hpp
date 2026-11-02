@@ -128,6 +128,23 @@ public:
             const Instance& original_instance,
             BinTypeId original_bin_type_id);
 
+    /**
+     * Crop a bin type to its bottom-left-back part of dimensions 'x' x 'y'
+     * x 'z'.
+     *
+     * The defects are cut to the part kept. The fixed items are kept as
+     * they are.
+     *
+     * This method is used to build the sub-instances of the sequential
+     * feasibility algorithm, whose solutions are copied into the original
+     * bins.
+     */
+    void crop_bin_type(
+            BinTypeId bin_type_id,
+            Length x,
+            Length y,
+            Length z);
+
     /** Set the number of copies of a bin type. */
     void set_bin_type_copies(
             BinTypeId bin_type_id,

@@ -106,6 +106,21 @@ public:
             Length x,
             Length y);
 
+    /**
+     * Crop a bin type to its bottom-left part of dimensions 'x' x 'y'.
+     *
+     * The defects are cut to the part kept. The fixed items are kept as
+     * they are.
+     *
+     * This method is used to build the sub-instances of the sequential
+     * feasibility algorithm, whose solutions are copied into the original
+     * bins.
+     */
+    void crop_bin_type(
+            BinTypeId bin_type_id,
+            Length x,
+            Length y);
+
     /** Set the maximum weight of a bin type. */
     void set_bin_type_maximum_weight(
             BinTypeId bin_type_id,

@@ -184,6 +184,57 @@ void InstanceBuilder::set_bin_type_cost(
         cost;
 }
 
+void InstanceBuilder::crop_bin_type(
+        BinTypeId bin_type_id,
+        LengthDbl x,
+        LengthDbl y)
+{
+    if (bin_type_id < 0 || bin_type_id >= (BinTypeId)instance_.bin_types_.size()) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "invalid 'bin_type_id'; "
+                "bin_type_id: " + std::to_string(bin_type_id) + "; "
+                "instance_.bin_types_.size(): " + std::to_string(instance_.bin_types_.size()) + ".");
+    }
+    if (x <= 0 || y <= 0) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "requires 'x > 0' and 'y > 0'; "
+                "x: " + std::to_string(x) + "; "
+                "y: " + std::to_string(y) + ".");
+    }
+
+    BinType& bin_type = instance_.bin_types_[bin_type_id];
+    AxisAlignedBoundingBox cropping_aabb = bin_type.aabb_orig;
+    cropping_aabb.x_max = (std::min)(cropping_aabb.x_max, cropping_aabb.x_min + x);
+    cropping_aabb.y_max = (std::min)(cropping_aabb.y_max, cropping_aabb.y_min + y);
+    const Shape cropping_rectangle = shape::build_rectangle(cropping_aabb);
+
+    const shape::MultiShapeWithHoles intersection = shape::compute_intersection(
+            {{bin_type.shape_orig}, {cropping_rectangle}});
+    if (intersection.shapes_with_holes.empty()) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "the part kept is empty.");
+    }
+    bin_type.shape_orig = intersection.shapes_with_holes[0].shape;
+    bin_type.area_orig = bin_type.shape_orig.compute_area();
+    bin_type.aabb_orig = bin_type.shape_orig.compute_min_max();
+
+    // Defects.
+    std::vector<Defect> defects;
+    for (const Defect& defect: bin_type.defects) {
+        const shape::MultiShapeWithHoles defect_intersection = shape::compute_intersection(
+                {{defect.shape_orig}, {cropping_rectangle}});
+        for (const ShapeWithHoles& shape: defect_intersection.shapes_with_holes) {
+            Defect cropped_defect = defect;
+            cropped_defect.shape_orig = shape;
+            defects.push_back(cropped_defect);
+        }
+    }
+    bin_type.defects = defects;
+}
+
 void InstanceBuilder::set_bin_type_copies(
         BinTypeId bin_type_id,
         BinPos copies)

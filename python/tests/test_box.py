@@ -217,8 +217,6 @@ RENAMED = {
 NOT_BOUND = {
     "add_bin_type_resource":
         "creates a resource with its own id; kept as a builder method",
-    "set_bin_type_box":
-        "the dimensions are the positional arguments of add_bin_type",
     "set_item_type_box":
         "the dimensions are the positional arguments of add_item_type",
 }
