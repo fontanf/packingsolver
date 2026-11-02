@@ -131,12 +131,12 @@ SequentialFeasibilityOutput packingsolver::rectangle::sequential_feasibility(
                 sub_instance_builder.set_bin_type_copies(sub_bin_type_id, 1);
                 sub_instance_builder.set_bin_type_copies_min(sub_bin_type_id, 0);
                 if (instance.parameters().leftover_mode == LeftoverMode::Y) {
-                    sub_instance_builder.set_bin_type_rect(
+                    sub_instance_builder.crop_bin_type(
                             sub_bin_type_id,
                             bin_type_cur.rect.x,
                             current_length);
                 } else {
-                    sub_instance_builder.set_bin_type_rect(
+                    sub_instance_builder.crop_bin_type(
                             sub_bin_type_id,
                             current_length,
                             bin_type_cur.rect.y);
@@ -148,12 +148,12 @@ SequentialFeasibilityOutput packingsolver::rectangle::sequential_feasibility(
             sub_instance_builder.set_bin_type_copies(sub_bin_type_id, 1);
             sub_instance_builder.set_bin_type_copies_min(sub_bin_type_id, 0);
             if (instance.objective() == Objective::OpenDimensionX) {
-                sub_instance_builder.set_bin_type_rect(
+                sub_instance_builder.crop_bin_type(
                         sub_bin_type_id,
                         current_length,
                         bin_type.rect.y);
             } else {  // OpenDimensionY
-                sub_instance_builder.set_bin_type_rect(
+                sub_instance_builder.crop_bin_type(
                         sub_bin_type_id,
                         bin_type.rect.x,
                         current_length);

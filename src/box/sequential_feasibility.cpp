@@ -168,7 +168,7 @@ SequentialFeasibilityOutput packingsolver::box::sequential_feasibility(
                 sub_instance_builder.set_bin_type_copies(sub_bin_type_id, 1);
                 sub_instance_builder.set_bin_type_copies_min(sub_bin_type_id, 0);
                 Box box = shrink(bin_type_cur.box, dimension, current_length);
-                sub_instance_builder.set_bin_type_box(sub_bin_type_id, box.x, box.y, box.z);
+                sub_instance_builder.crop_bin_type(sub_bin_type_id, box.x, box.y, box.z);
                 sub_to_orig_bin_type_ids.push_back(bin_type_id);
             }
         } else {
@@ -176,7 +176,7 @@ SequentialFeasibilityOutput packingsolver::box::sequential_feasibility(
             sub_instance_builder.set_bin_type_copies(sub_bin_type_id, 1);
             sub_instance_builder.set_bin_type_copies_min(sub_bin_type_id, 0);
             Box box = shrink(bin_type.box, dimension, current_length);
-            sub_instance_builder.set_bin_type_box(sub_bin_type_id, box.x, box.y, box.z);
+            sub_instance_builder.crop_bin_type(sub_bin_type_id, box.x, box.y, box.z);
             sub_to_orig_bin_type_ids.push_back(instance.bin_type_id(0));
         }
         for (ItemTypeId item_type_id = 0;

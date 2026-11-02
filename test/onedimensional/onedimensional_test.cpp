@@ -365,3 +365,14 @@ TEST(OneDimensional, ItemNestedLength)
     EXPECT_EQ(solution.waste(), 0);
     EXPECT_EQ(solution.full_waste(), 310);
 }
+
+TEST(Onedimensional, InstanceBuilderCropBinType)
+{
+    InstanceBuilder instance_builder;
+    instance_builder.add_item_type(10);
+    packingsolver::BinTypeId bin_type_id = instance_builder.add_bin_type(100);
+    instance_builder.crop_bin_type(bin_type_id, 60);
+    Instance instance = instance_builder.build();
+
+    EXPECT_EQ(instance.bin_type(bin_type_id).length, 60);
+}

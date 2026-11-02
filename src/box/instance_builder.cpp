@@ -49,33 +49,6 @@ BinTypeId InstanceBuilder::add_bin_type(
     return instance_.bin_types_.size() - 1;
 }
 
-void InstanceBuilder::set_bin_type_box(
-        BinTypeId bin_type_id,
-        Length x,
-        Length y,
-        Length z)
-{
-    if (bin_type_id < 0 || bin_type_id >= (BinTypeId)instance_.bin_types_.size()) {
-        throw std::invalid_argument(
-                FUNC_SIGNATURE + ": "
-                "invalid 'bin_type_id'; "
-                "bin_type_id: " + std::to_string(bin_type_id) + "; "
-                "instance_.bin_types_.size(): " + std::to_string(instance_.bin_types_.size()) + ".");
-    }
-    if (x <= 0 || y <= 0 || z <= 0) {
-        throw std::invalid_argument(
-                FUNC_SIGNATURE + ": "
-                "bin dimensions must be > 0; "
-                "x: " + std::to_string(x) + "; "
-                "y: " + std::to_string(y) + "; "
-                "z: " + std::to_string(z) + ".");
-    }
-
-    instance_.bin_types_[bin_type_id].box.x = x;
-    instance_.bin_types_[bin_type_id].box.y = y;
-    instance_.bin_types_[bin_type_id].box.z = z;
-}
-
 void InstanceBuilder::set_bin_type_cost(
         BinTypeId bin_type_id,
         Profit cost)
@@ -197,6 +170,46 @@ BinTypeId InstanceBuilder::add_bin_type(
                 resource.penalty);
     }
     return bin_type_id;
+}
+
+void InstanceBuilder::crop_bin_type(
+        BinTypeId bin_type_id,
+        Length x,
+        Length y,
+        Length z)
+{
+    if (bin_type_id < 0 || bin_type_id >= (BinTypeId)instance_.bin_types_.size()) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "invalid 'bin_type_id'; "
+                "bin_type_id: " + std::to_string(bin_type_id) + "; "
+                "instance_.bin_types_.size(): " + std::to_string(instance_.bin_types_.size()) + ".");
+    }
+
+    BinType& bin_type = instance_.bin_types_[bin_type_id];
+    if (x <= 0 || x > bin_type.box.x) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "requires '0 < x <= bin_type.box.x'; "
+                "x: " + std::to_string(x) + "; "
+                "bin_type.box.x: " + std::to_string(bin_type.box.x) + ".");
+    }
+    if (y <= 0 || y > bin_type.box.y) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "requires '0 < y <= bin_type.box.y'; "
+                "y: " + std::to_string(y) + "; "
+                "bin_type.box.y: " + std::to_string(bin_type.box.y) + ".");
+    }
+    if (z <= 0 || z > bin_type.box.z) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "requires '0 < z <= bin_type.box.z'; "
+                "z: " + std::to_string(z) + "; "
+                "bin_type.box.z: " + std::to_string(bin_type.box.z) + ".");
+    }
+
+    bin_type.box = {x, y, z};
 }
 
 void InstanceBuilder::set_bin_type_copies(

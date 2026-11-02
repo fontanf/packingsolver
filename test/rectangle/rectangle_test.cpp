@@ -194,3 +194,31 @@ TEST(Rectangle, ItemTypeDimensionsMustBePositive)
     EXPECT_THROW(instance_builder.add_item_type(10, 0), std::invalid_argument);
     EXPECT_NO_THROW(instance_builder.add_item_type(10, 10));
 }
+
+TEST(Rectangle, InstanceBuilderCropBinType)
+{
+    // Bin 100x100 with three defects, cropped to 60x70.
+    InstanceBuilder instance_builder;
+    instance_builder.add_item_type(10, 10);
+    packingsolver::BinTypeId bin_type_id = instance_builder.add_bin_type(100, 100);
+    // Inside the part kept.
+    instance_builder.add_defect(bin_type_id, 20, 20, 10, 10);
+    // Across the right and top sides of the part kept.
+    instance_builder.add_defect(bin_type_id, 50, 30, 20, 50);
+    // Outside the part kept.
+    instance_builder.add_defect(bin_type_id, 80, 20, 10, 10);
+    instance_builder.crop_bin_type(bin_type_id, 60, 70);
+    Instance instance = instance_builder.build();
+
+    const BinType& bin_type = instance.bin_type(bin_type_id);
+    EXPECT_EQ(bin_type.rect.x, 60);
+    EXPECT_EQ(bin_type.rect.y, 70);
+    ASSERT_EQ(bin_type.defects.size(), 2);
+    EXPECT_EQ(bin_type.defects[0].pos.x, 20);
+    EXPECT_EQ(bin_type.defects[0].rect.x, 10);
+    EXPECT_EQ(bin_type.defects[0].rect.y, 10);
+    EXPECT_EQ(bin_type.defects[1].pos.x, 50);
+    EXPECT_EQ(bin_type.defects[1].pos.y, 30);
+    EXPECT_EQ(bin_type.defects[1].rect.x, 10);
+    EXPECT_EQ(bin_type.defects[1].rect.y, 40);
+}

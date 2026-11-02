@@ -85,16 +85,6 @@ public:
             BinTypeId bin_type_id,
             Profit cost);
 
-    /**
-     * Set the dimensions of a bin type, overriding whatever 'add_bin_type'
-     * gave it. Used by the sequential feasibility algorithm to shrink a bin.
-     */
-    void set_bin_type_box(
-            BinTypeId bin_type_id,
-            Length x,
-            Length y,
-            Length z);
-
     /** Set the maximum weight of a bin type. */
     void set_bin_type_maximum_weight(
             BinTypeId bin_type_id,
@@ -131,6 +121,22 @@ public:
     BinTypeId add_bin_type(
             const Instance& original_instance,
             BinTypeId original_bin_type_id);
+
+    /**
+     * Crop a bin type to its bottom-left-back part of dimensions 'x' x 'y'
+     * x 'z'.
+     *
+     * The fixed items are kept as they are.
+     *
+     * This method is used to build the sub-instances of the sequential
+     * feasibility algorithm, whose solutions are copied into the original
+     * bins.
+     */
+    void crop_bin_type(
+            BinTypeId bin_type_id,
+            Length x,
+            Length y,
+            Length z);
 
     /** Set the number of copies of a bin type. */
     void set_bin_type_copies(

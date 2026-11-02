@@ -156,11 +156,6 @@ namespace
 {
 
 /**
- * Add to 'sub_instance_builder' a bin type with one copy: the bin type
- * 'bin_type_id' of 'instance', restricted to 'restricting_aabb' (in scaled
- * coordinates), with its cost, its spacings, its defects and its fixed items.
- */
-/**
  * Return true iff the fixed items of a bin type stay inside the bin once
  * restricted to 'restricting_aabb' (taking the item-bin spacing into
  * account).
@@ -189,50 +184,6 @@ bool fixed_items_inside(
         }
     }
     return true;
-}
-
-BinTypeId add_restricted_bin_type(
-        InstanceBuilder& sub_instance_builder,
-        const Instance& instance,
-        BinTypeId bin_type_id,
-        const AxisAlignedBoundingBox& restricting_aabb)
-{
-    const BinType& bin_type = instance.bin_type(bin_type_id);
-    const Shape restricting_rect = shape::build_rectangle(restricting_aabb);
-    // Intersect in scaled coordinates (both operands scaled), then convert the
-    // result back to original (unscaled) units: the sub-instance builder
-    // re-applies scale_value to shape_orig during build(), so passing an
-    // already-scaled shape here would scale it down twice.
-    const shape::MultiShapeWithHoles intersection = shape::compute_intersection(
-            {{bin_type.shape_scaled},
-            {restricting_rect}});
-    Shape sub_bin_shape_orig = (1.0 / instance.parameters().scale_value)
-        * intersection.shapes_with_holes[0].shape;
-    BinTypeId sub_bin_type_id = sub_instance_builder.add_bin_type(sub_bin_shape_orig);
-    sub_instance_builder.set_bin_type_cost(sub_bin_type_id, bin_type.cost);
-    sub_instance_builder.set_bin_type_copies(sub_bin_type_id, 1);
-    sub_instance_builder.set_item_bin_minimum_spacing(
-            sub_bin_type_id,
-            bin_type.item_bin_minimum_spacing);
-    for (const Defect& defect: bin_type.defects) {
-        DefectId defect_id = sub_instance_builder.add_defect(
-                sub_bin_type_id,
-                defect.type,
-                defect.shape_orig);
-        sub_instance_builder.set_item_defect_minimum_spacing(
-                sub_bin_type_id,
-                defect_id,
-                defect.item_defect_minimum_spacing);
-    }
-    for (const FixedItem& fixed_item: bin_type.fixed_items) {
-        sub_instance_builder.add_fixed_item(
-                sub_bin_type_id,
-                fixed_item.item_type_id,
-                fixed_item.bl_corner,
-                fixed_item.angle,
-                fixed_item.mirror);
-    }
-    return sub_bin_type_id;
 }
 
 }
@@ -445,11 +396,13 @@ SequentialFeasibilityOutput packingsolver::irregular::sequential_feasibility(
                     fixed_item_outside = true;
                     break;
                 }
-                add_restricted_bin_type(
-                        sub_instance_builder,
-                        instance,
-                        bin_type_id,
-                        restricting_aabb);
+                BinTypeId sub_bin_type_id = sub_instance_builder.add_bin_type(instance, bin_type_id);
+                sub_instance_builder.set_bin_type_copies_min(sub_bin_type_id, 0);
+                sub_instance_builder.set_bin_type_copies(sub_bin_type_id, 1);
+                sub_instance_builder.crop_bin_type(
+                        sub_bin_type_id,
+                        x / instance.parameters().scale_value,
+                        bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min);
                 sub_to_orig_bin_type_ids.push_back(bin_type_id);
             }
         } else {
@@ -461,11 +414,13 @@ SequentialFeasibilityOutput packingsolver::irregular::sequential_feasibility(
             restricting_aabb.y_max = restricting_aabb.y_min + y;
             if (!fixed_items_inside(instance, bin_type_id, restricting_aabb))
                 fixed_item_outside = true;
-            add_restricted_bin_type(
-                    sub_instance_builder,
-                    instance,
-                    bin_type_id,
-                    restricting_aabb);
+            BinTypeId sub_bin_type_id = sub_instance_builder.add_bin_type(instance, bin_type_id);
+            sub_instance_builder.set_bin_type_copies_min(sub_bin_type_id, 0);
+            sub_instance_builder.set_bin_type_copies(sub_bin_type_id, 1);
+            sub_instance_builder.crop_bin_type(
+                    sub_bin_type_id,
+                    x / instance.parameters().scale_value,
+                    y / instance.parameters().scale_value);
         }
         // A fixed item would be out of the restricted bin: the objective can't
         // be improved anymore.

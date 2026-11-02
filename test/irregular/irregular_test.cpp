@@ -286,3 +286,33 @@ TEST(Irregular, OpenDimensionXYMixedShapes)
     EXPECT_TRUE(solution.feasible());
     EXPECT_EQ(solution.number_of_items(), instance.number_of_items());
 }
+
+TEST(Irregular, InstanceBuilderCropBinType)
+{
+    // Bin 100x100 with three defects, cropped to 60x70.
+    InstanceBuilder instance_builder;
+    ItemShape item_shape;
+    item_shape.shape_orig.shape = shape::build_rectangle(10, 10);
+    instance_builder.add_item_type({item_shape});
+    packingsolver::BinTypeId bin_type_id = instance_builder.add_bin_type(
+            shape::build_rectangle(100, 100));
+    // Inside the part kept.
+    instance_builder.add_defect(bin_type_id, -1, {shape::build_rectangle(20, 30, 20, 30)});
+    // Across the right and top sides of the part kept.
+    instance_builder.add_defect(bin_type_id, -1, {shape::build_rectangle(50, 70, 30, 80)});
+    // Outside the part kept.
+    instance_builder.add_defect(bin_type_id, -1, {shape::build_rectangle(80, 90, 20, 30)});
+    instance_builder.crop_bin_type(bin_type_id, 60, 70);
+    Instance instance = instance_builder.build();
+
+    const BinType& bin_type = instance.bin_type(bin_type_id);
+    EXPECT_NEAR(bin_type.area_orig, 60 * 70, 1e-6);
+    EXPECT_NEAR(bin_type.aabb_orig.x_max, 60, 1e-6);
+    EXPECT_NEAR(bin_type.aabb_orig.y_max, 70, 1e-6);
+    ASSERT_EQ(bin_type.defects.size(), 2);
+    AxisAlignedBoundingBox aabb = bin_type.defects[1].shape_orig.shape.compute_min_max();
+    EXPECT_NEAR(aabb.x_min, 50, 1e-6);
+    EXPECT_NEAR(aabb.x_max, 60, 1e-6);
+    EXPECT_NEAR(aabb.y_min, 30, 1e-6);
+    EXPECT_NEAR(aabb.y_max, 70, 1e-6);
+}

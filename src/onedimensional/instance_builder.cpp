@@ -173,6 +173,30 @@ BinTypeId InstanceBuilder::add_bin_type(
     return bin_type_id;
 }
 
+void InstanceBuilder::crop_bin_type(
+        BinTypeId bin_type_id,
+        Length length)
+{
+    if (bin_type_id < 0 || bin_type_id >= (BinTypeId)instance_.bin_types_.size()) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "invalid 'bin_type_id'; "
+                "bin_type_id: " + std::to_string(bin_type_id) + "; "
+                "instance_.bin_types_.size(): " + std::to_string(instance_.bin_types_.size()) + ".");
+    }
+
+    BinType& bin_type = instance_.bin_types_[bin_type_id];
+    if (length <= 0 || length > bin_type.length) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "requires '0 < length <= bin_type.length'; "
+                "length: " + std::to_string(length) + "; "
+                "bin_type.length: " + std::to_string(bin_type.length) + ".");
+    }
+
+    bin_type.length = length;
+}
+
 void InstanceBuilder::set_bin_type_copies(
         BinTypeId bin_type_id,
         BinPos copies)
