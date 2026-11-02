@@ -74,6 +74,22 @@ struct Output: packingsolver::Output<Instance, Solution>
     /** True if the instance has been proven infeasible. */
     bool is_proven_infeasible = false;
 
+    /**
+     * If the instance has been proven infeasible, smallest subset of the
+     * items found not to fit, as (item type, number of copies) pairs sorted
+     * by item type; all the items if no smaller subset was found.
+     */
+    std::vector<std::pair<ItemTypeId, ItemPos>> infeasible_subset;
+
+    /** Number of items of the infeasible subset. */
+    ItemPos infeasible_subset_number_of_items() const
+    {
+        ItemPos number_of_items = 0;
+        for (const std::pair<ItemTypeId, ItemPos>& p: infeasible_subset)
+            number_of_items += p.second;
+        return number_of_items;
+    }
+
     /** Return 'true' iff the current bound proves the best solution optimal. */
     bool is_proven_optimal() const
     {
@@ -121,8 +137,14 @@ struct Output: packingsolver::Output<Instance, Solution>
      */
     void update_bounds(const Output& output)
     {
-        if (output.is_proven_infeasible)
+        if (output.is_proven_infeasible) {
+            if (!is_proven_infeasible
+                    || output.infeasible_subset_number_of_items()
+                    < infeasible_subset_number_of_items()) {
+                infeasible_subset = output.infeasible_subset;
+            }
             is_proven_infeasible = true;
+        }
         switch (solution_pool.best().instance().objective()) {
         case Objective::Knapsack:
             if (output.knapsack_bound < knapsack_bound)
@@ -158,6 +180,11 @@ struct Output: packingsolver::Output<Instance, Solution>
         json["OpenDimensionXBound"] = open_dimension_x_bound;
         json["OpenDimensionYBound"] = open_dimension_y_bound;
         json["IsProvenInfeasible"] = is_proven_infeasible;
+        if (is_proven_infeasible) {
+            json["InfeasibleSubset"] = nlohmann::json::array();
+            for (const std::pair<ItemTypeId, ItemPos>& p: infeasible_subset)
+                json["InfeasibleSubset"].push_back({{"ItemTypeId", p.first}, {"Copies", p.second}});
+        }
         return json;
     }
 
@@ -166,6 +193,8 @@ struct Output: packingsolver::Output<Instance, Solution>
         packingsolver::Output<Instance, Solution>::format(os);
         int width = format_width();
         os << std::setw(width) << std::left << "Is proven infeasible: " << is_proven_infeasible << std::endl;
+        if (is_proven_infeasible)
+            os << std::setw(width) << std::left << "Infeasible subset: " << infeasible_subset_number_of_items() << " items" << std::endl;
         switch (solution_pool.best().instance().objective()) {
         case Objective::Knapsack:
             write_bound(os, width, solution_pool.best().profit(), knapsack_bound);
@@ -282,8 +311,8 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
 
     /**
      * Use the tree search on relative positions (only for the 'Feasibility'
-     * objective with a single bin; only selected automatically in 'Exact'
-     * mode).
+     * objective with a single bin, and for the open dimension objectives;
+     * only selected automatically in 'Exact' mode).
      */
     bool use_tree_search_relative_positions = false;
 

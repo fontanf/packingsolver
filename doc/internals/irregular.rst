@@ -86,9 +86,9 @@ See :doc:`the detailed description <irregular/benders_decomposition>`.
 Tree search on relative positions
 ------------------------------------
 
-This algorithm solves the :code:`feasibility` objective with a single bin. Its main use is to prove that a set of items doesn't fit in a bin, in the subproblems of the Benders decomposition.
+This algorithm solves the :code:`feasibility` objective with a single bin. Its main use is to prove that a set of items doesn't fit in a bin, in the subproblems of the Benders decomposition. It also computes a bound for the :code:`open-dimension-x` and :code:`open-dimension-y` objectives, by minimizing the open dimension in the same tree search.
 
-For each combination of rotations of the items, the relative position of each pair of items must be in one of the convex pieces of the complement of their no-fit polygon. A tree search chooses a piece for each pair, and propagates the bounds that each choice implies on the positions of the other items. The items don't fit if the search fails for every combination.
+The relative position of each pair of items must be in one of the convex pieces of the complement of their no-fit polygon. A tree search chooses a rotation for each item and a piece for each pair, and propagates the bounds that each choice implies on the positions and the rotations of the other items. The items don't fit if the search fails.
 
 See :doc:`the detailed description <irregular/tree_search_relative_positions>`.
 

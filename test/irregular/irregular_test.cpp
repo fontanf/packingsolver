@@ -207,6 +207,56 @@ TEST(Irregular, UnlimitedItemCopies)
     EXPECT_EQ(instance.item_type(0).copies, 12);
 }
 
+TEST(Irregular, InfeasibleSubsetItemTypeDoesntFit)
+{
+    // The 120 x 10 item doesn't fit in the 100 x 100 bins: a single copy of
+    // it is the infeasible subset.
+    std::stringstream ss(R"({
+            "objective": "bin-packing",
+            "bin_types": [{"type": "rectangle", "width": 100, "height": 100, "copies": 2}],
+            "item_types": [
+                {"type": "rectangle", "width": 10, "height": 10, "copies": 3},
+                {"type": "rectangle", "width": 120, "height": 10, "copies": 2,
+                 "allowed_rotations": [{"start": 0, "end": 0}]}]})");
+    InstanceBuilder instance_builder;
+    instance_builder.read(ss);
+    const Instance instance = instance_builder.build();
+    OptimizeParameters parameters;
+    parameters.verbosity_level = 0;
+    parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytimeSequential;
+    Output output = optimize(instance, parameters);
+    EXPECT_TRUE(output.is_proven_infeasible);
+    EXPECT_EQ(output.infeasible_subset, (std::vector<std::pair<packingsolver::ItemTypeId, packingsolver::ItemPos>>{{1, 1}}));
+}
+
+TEST(Irregular, InfeasibleSubsetArea)
+{
+    // The area of 5 of the 50 x 50 squares exceeds the one of the 100 x 100
+    // bin. The two item types of 50 x 50 squares are merged by the
+    // reduction, so the 5 copies of the infeasible subset are drawn from
+    // both of them; the 10 x 10 square isn't in it.
+    std::stringstream ss(R"({
+            "objective": "feasibility",
+            "bin_types": [{"type": "rectangle", "width": 100, "height": 100, "copies": 1}],
+            "item_types": [
+                {"type": "rectangle", "width": 50, "height": 50, "copies": 3},
+                {"type": "rectangle", "width": 50, "height": 50, "copies": 3},
+                {"type": "rectangle", "width": 10, "height": 10, "copies": 1}]})");
+    InstanceBuilder instance_builder;
+    instance_builder.read(ss);
+    const Instance instance = instance_builder.build();
+    OptimizeParameters parameters;
+    parameters.verbosity_level = 0;
+    parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytimeSequential;
+    Output output = optimize(instance, parameters);
+    EXPECT_TRUE(output.is_proven_infeasible);
+    EXPECT_EQ(output.infeasible_subset_number_of_items(), 5);
+    for (const std::pair<packingsolver::ItemTypeId, packingsolver::ItemPos>& p: output.infeasible_subset) {
+        EXPECT_NE(p.first, 2);
+        EXPECT_LE(p.second, 3);
+    }
+}
+
 TEST(Irregular, OpenDimensionXYWithoutAspectRatio)
 {
     // Not supported yet.

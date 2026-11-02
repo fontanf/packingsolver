@@ -16,10 +16,10 @@
  * The subproblem is solved with the 'Feasibility' objective of 'optimize'.
  * It finds packings, but rarely proves that items don't fit, so the cuts are
  * then mostly not proven, and the bound of the master problem is not
- * reported. With 'subproblem_use_tree_search_relative_positions', the tree
- * search on relative positions (see 'tree_search_relative_positions.hpp') is
- * first used to prove that the items don't fit; the cuts it generates are
- * proven.
+ * reported. With 'subproblem_use_tree_search_relative_positions', the
+ * subproblem is first solved with 'optimize' and the tree search on relative
+ * positions only (see 'tree_search_relative_positions.hpp'), to prove that
+ * the items don't fit; the cuts it generates are proven.
  *
  * Supported objectives: 'Knapsack', 'BinPacking', 'VariableSizedBinPacking'.
  */
