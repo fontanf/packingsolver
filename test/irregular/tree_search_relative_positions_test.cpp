@@ -1,7 +1,6 @@
 #include "packingsolver/irregular/instance_builder.hpp"
 #include "packingsolver/irregular/optimize.hpp"
 #include "irregular/tree_search_relative_positions.hpp"
-#include "irregular/solution_builder.hpp"
 
 #include <gtest/gtest.h>
 #include <boost/filesystem.hpp>
@@ -13,236 +12,252 @@ namespace fs = boost::filesystem;
 namespace
 {
 
-struct TreeSearchRelativePositionsTestItemType
-{
-    Shape shape;
-    std::vector<Angle> angles;
-};
-
-Instance build_instance(
-        LengthDbl bin_width,
-        LengthDbl bin_height,
-        const std::vector<TreeSearchRelativePositionsTestItemType>& item_types)
+Instance read_instance(const std::string& name)
 {
     InstanceBuilder instance_builder;
-    instance_builder.set_objective(Objective::Feasibility);
-    instance_builder.add_bin_type(shape::build_rectangle(0, bin_width, 0, bin_height));
-    for (const TreeSearchRelativePositionsTestItemType& item_type: item_types) {
-        ItemShape item_shape;
-        item_shape.shape_orig.shape = item_type.shape;
-        ItemTypeId item_type_id = instance_builder.add_item_type({item_shape});
-        for (Angle angle: item_type.angles)
-            instance_builder.add_item_type_allowed_rotation(item_type_id, angle, angle, false);
-    }
+    instance_builder.read((fs::path("data") / "irregular" / "tests" / (name + ".json")).string());
     return instance_builder.build();
 }
 
 /**
- * Status of a set of items, with the tree search; the same status is expected
- * with the MILP, with and without the three-item cuts.
+ * Bound of an output, and open dimension of its best solution, for the open
+ * dimension objectives.
  */
-TreeSearchRelativePositionsStatus status(
+std::pair<LengthDbl, LengthDbl> open_dimension_bound_and_value(
         const Instance& instance,
-        const std::vector<ItemTypeId>& item_type_ids)
+        const irregular::Output& output)
 {
-    TreeSearchRelativePositionsParameters parameters;
-    parameters.verbosity_level = 0;
-    TreeSearchRelativePositionsStatus tree_search_status = tree_search_relative_positions(
-            instance, 0, item_type_ids, parameters).status;
-    parameters.use_milp = true;
-    EXPECT_EQ(tree_search_relative_positions(instance, 0, item_type_ids, parameters).status, tree_search_status);
-    parameters.three_item_cuts = true;
-    EXPECT_EQ(tree_search_relative_positions(instance, 0, item_type_ids, parameters).status, tree_search_status);
-    return tree_search_status;
+    const Solution& solution = output.solution_pool.best();
+    if (instance.objective() == Objective::OpenDimensionX)
+        return {output.open_dimension_x_bound, solution.x_max()};
+    return {output.open_dimension_y_bound, solution.y_max()};
 }
 
-/** One entry per copy of each item type of an instance. */
-std::vector<ItemTypeId> all_items(const Instance& instance)
+}
+
+struct IrregularTreeSearchRelativePositionsTestParams
 {
-    std::vector<ItemTypeId> item_type_ids;
-    for (ItemTypeId item_type_id = 0; item_type_id < instance.number_of_item_types(); ++item_type_id)
-        for (ItemPos copy = 0; copy < instance.item_type(item_type_id).copies; ++copy)
-            item_type_ids.push_back(item_type_id);
-    return item_type_ids;
-}
+    /** Name of the instance, in 'data/irregular/tests'. */
+    std::string name;
 
-/**
- * Step of size 20 x 20: two copies, one of them rotated by 180 degrees, tile
- * a 20 x 30 rectangle, at a single relative position.
- */
-Shape build_step()
+    /** 'true' iff the instance is expected to be proven infeasible. */
+    bool expected_proven_infeasible;
+
+    /** For the open dimension objectives, expected bound. */
+    LengthDbl expected_open_dimension_bound = 0;
+};
+
+inline std::ostream& operator<<(std::ostream& os, const IrregularTreeSearchRelativePositionsTestParams& test_params)
 {
-    return shape::build_shape({{0, 0}, {20, 0}, {20, 20}, {10, 20}, {10, 10}, {0, 10}});
+    os << test_params.name;
+    return os;
 }
 
-}
+class IrregularTreeSearchRelativePositionsTest: public testing::TestWithParam<IrregularTreeSearchRelativePositionsTestParams> { };
 
-TEST(IrregularTreeSearchRelativePositions, SquaresTooLarge)
+TEST_P(IrregularTreeSearchRelativePositionsTest, IrregularTreeSearchRelativePositions)
 {
-    // Two 55 x 55 squares don't fit in a 100 x 100 bin.
-    Instance instance = build_instance(100, 100, {{shape::build_square(55), {0}}});
-    EXPECT_EQ(status(instance, {0, 0}), TreeSearchRelativePositionsStatus::Infeasible);
+    IrregularTreeSearchRelativePositionsTestParams test_params = GetParam();
+    std::cout << "Instance: " << test_params.name << std::endl;
+    Instance instance = read_instance(test_params.name);
+    bool open_dimension = (instance.objective() == Objective::OpenDimensionX
+            || instance.objective() == Objective::OpenDimensionY);
+
+    // The same result is expected with a single thread and with several
+    // ones.
+    for (Counter number_of_threads: {1, 4}) {
+        TreeSearchRelativePositionsParameters parameters;
+        parameters.verbosity_level = 0;
+        parameters.number_of_threads = number_of_threads;
+        TreeSearchRelativePositionsOutput output = tree_search_relative_positions(instance, parameters);
+        EXPECT_EQ(output.is_proven_infeasible, test_params.expected_proven_infeasible);
+        if (!open_dimension)
+            continue;
+        std::pair<LengthDbl, LengthDbl> bound_and_value
+            = open_dimension_bound_and_value(instance, output);
+        EXPECT_NEAR(bound_and_value.first, test_params.expected_open_dimension_bound, 1e-4);
+        // If the positions of the solution of the relaxation are a packing,
+        // its open dimension is the bound.
+        if (output.solution_pool.best().feasible())
+            EXPECT_NEAR(bound_and_value.second, bound_and_value.first, 1e-4);
+    }
 }
 
-TEST(IrregularTreeSearchRelativePositions, SquaresExactFit)
-{
-    // Four 50 x 50 squares exactly fit in a 100 x 100 bin, five don't.
-    Instance instance = build_instance(100, 100, {{shape::build_square(50), {0}}});
-    EXPECT_EQ(status(instance, {0, 0}), TreeSearchRelativePositionsStatus::Feasible);
-    EXPECT_EQ(status(instance, {0, 0, 0, 0}), TreeSearchRelativePositionsStatus::Feasible);
-    EXPECT_EQ(status(instance, {0, 0, 0, 0, 0}), TreeSearchRelativePositionsStatus::Infeasible);
-}
+INSTANTIATE_TEST_SUITE_P(
+        Irregular,
+        IrregularTreeSearchRelativePositionsTest,
+        testing::ValuesIn(std::vector<IrregularTreeSearchRelativePositionsTestParams>{
+            {
+                // Two 55 x 55 squares don't fit in a 100 x 100 bin.
+                "feasibility_squares_too_large",
+                true
+            }, {
+                // Four 50 x 50 squares exactly fit in a 100 x 100 bin.
+                "feasibility_squares_exact_fit",
+                false
+            }, {
+                // Five 50 x 50 squares don't fit in a 100 x 100 bin.
+                "feasibility_squares_one_too_many",
+                true
+            }, {
+                // Step of size 20 x 20: with the rotation by 180 degrees, two
+                // steps exactly fit in a 20 x 30 bin, interlocked.
+                "feasibility_steps_interlocked",
+                false
+            }, {
+                // Without the rotation, two steps don't fit in a 20 x 30 bin.
+                "feasibility_steps_without_rotation",
+                true
+            }, {
+                // Every placement of a cross of span 70 in a 100 x 100 bin
+                // covers the center of the bin, so two crosses don't fit.
+                "feasibility_crosses",
+                true
+            }, {
+                // One cross and a 25 x 25 square in a corner fit.
+                "feasibility_cross_and_square",
+                false
+            }, {
+                // Two 60 x 40 rectangles can't be side by side in a 100 x 100
+                // bin, so three of them don't fit.
+                "feasibility_rectangles_core_bound",
+                true
+            }, {
+                // Two 60 x 50 rectangles fit exactly in a 100 x 100 bin.
+                "feasibility_rectangles_exact_fit",
+                false
+            }, {
+                // The rotations by 0 and 180 degrees of a square are the
+                // same, and the ones of the (single) step are symmetric
+                // through the bin: a single rotation of each item is left.
+                // The square fits in the notch of the step.
+                "feasibility_step_and_square_symmetries",
+                false
+            }, {
+                // Two steps, a 30 x 30 square and a 60 x 25 rectangle fit in a
+                // 100 x 100 bin.
+                "feasibility_steps_square_rectangle",
+                false
+            }, {
+                // Five items of poly2a, with four rotations each: the
+                // infeasible set needs many nodes.
+                "feasibility_poly2a_five_items_infeasible",
+                true
+            }, {
+                "feasibility_poly2a_five_items_feasible",
+                false
+            }, {
+                // In a strip of height 30, two steps take a length of 20 with
+                // the rotation by 180 degrees (interlocked).
+                "open_dimension_x_steps_interlocked",
+                false,
+                20
+            }, {
+                // Without the rotation, they take a length of 30 (one in the
+                // notch of the other).
+                "open_dimension_x_steps_without_rotation",
+                false,
+                30
+            }, {
+                // Same as above, in a strip of width 30.
+                "open_dimension_y_steps_interlocked",
+                false,
+                20
+            }, {
+                "open_dimension_y_steps_without_rotation",
+                false,
+                30
+            }, {
+                // The five first items of fu, without rotation, in a strip of
+                // height 38.
+                "open_dimension_x_fu_five_items",
+                false,
+                17.8889
+            }}));
 
-TEST(IrregularTreeSearchRelativePositions, StepsInterlocked)
-{
-    // With the rotation by 180 degrees, two steps exactly fit in a 20 x 30
-    // bin, interlocked.
-    Instance instance = build_instance(20, 30, {{build_step(), {0, 180}}});
-    EXPECT_EQ(status(instance, {0, 0}), TreeSearchRelativePositionsStatus::Feasible);
-}
-
-TEST(IrregularTreeSearchRelativePositions, StepsWithoutRotation)
-{
-    // Without the rotation, two steps don't fit in a 20 x 30 bin.
-    Instance instance = build_instance(20, 30, {{build_step(), {0}}});
-    EXPECT_EQ(status(instance, {0, 0}), TreeSearchRelativePositionsStatus::Infeasible);
-}
-
-TEST(IrregularTreeSearchRelativePositions, Crosses)
-{
-    // Every placement of a cross of span 70 in a 100 x 100 bin covers the
-    // center of the bin, so two crosses don't fit, whereas one cross and a
-    // 25 x 25 square in a corner fit.
-    Shape cross = shape::build_shape({
-            {20, 0}, {50, 0}, {50, 20}, {70, 20}, {70, 50}, {50, 50},
-            {50, 70}, {20, 70}, {20, 50}, {0, 50}, {0, 20}, {20, 20}});
-    Instance instance = build_instance(100, 100, {
-            {cross, {0}},
-            {shape::build_square(25), {0}}});
-    EXPECT_EQ(status(instance, {0, 0}), TreeSearchRelativePositionsStatus::Infeasible);
-    EXPECT_EQ(status(instance, {0, 1}), TreeSearchRelativePositionsStatus::Feasible);
-}
-
-TEST(IrregularTreeSearchRelativePositions, CoreWidening)
+TEST(IrregularTreeSearchRelativePositions, CoreBound)
 {
     // Two 60 x 40 rectangles can't be side by side in a 100 x 100 bin, so
     // each one is widened to 100 x 40; three of them don't fit, which the core
-    // widening proves without a tree search. Two 60 x 50 rectangles fit
-    // exactly.
-    Instance instance = build_instance(100, 100, {
-            {shape::build_rectangle(0, 60, 0, 40), {0}},
-            {shape::build_rectangle(0, 60, 0, 50), {0}}});
+    // bound proves at the root. The subsets of one, two and three items are
+    // each solved at the root.
+    Instance instance = read_instance("feasibility_rectangles_core_bound");
     TreeSearchRelativePositionsParameters parameters;
     parameters.verbosity_level = 0;
-    TreeSearchRelativePositionsOutput output = tree_search_relative_positions(instance, 0, {0, 0, 0}, parameters);
-    EXPECT_EQ(output.status, TreeSearchRelativePositionsStatus::Infeasible);
-    EXPECT_EQ(output.number_of_programs, 0);
-    EXPECT_EQ(status(instance, {0, 0}), TreeSearchRelativePositionsStatus::Feasible);
-    EXPECT_EQ(status(instance, {1, 1}), TreeSearchRelativePositionsStatus::Feasible);
+    TreeSearchRelativePositionsOutput output = tree_search_relative_positions(instance, parameters);
+    EXPECT_TRUE(output.is_proven_infeasible);
+    EXPECT_EQ(output.number_of_nodes, 3);
 }
 
-TEST(IrregularTreeSearchRelativePositions, Symmetries)
+TEST(IrregularTreeSearchRelativePositions, InfeasibleSubset)
 {
-    // The rotations by 0 and 180 degrees of a square are the same, and the
-    // ones of the (single) step are symmetric through the bin: a single
-    // rotation combination is left. The square fits in the notch of the
-    // step.
-    Instance instance = build_instance(20, 30, {
-            {build_step(), {0, 180}},
-            {shape::build_square(10), {0, 180}}});
+    // The two 55 x 55 squares don't fit in the 100 x 100 bin: the search
+    // stops at this subset of the largest items, without the 10 x 10 square.
+    Instance instance = read_instance("feasibility_squares_too_large_and_small_square");
     TreeSearchRelativePositionsParameters parameters;
     parameters.verbosity_level = 0;
-    TreeSearchRelativePositionsOutput output = tree_search_relative_positions(instance, 0, {0, 1}, parameters);
-    EXPECT_EQ(output.status, TreeSearchRelativePositionsStatus::Feasible);
-    EXPECT_EQ(output.number_of_rotation_combinations, 1);
+    TreeSearchRelativePositionsOutput output = tree_search_relative_positions(instance, parameters);
+    EXPECT_TRUE(output.is_proven_infeasible);
+    EXPECT_EQ(output.infeasible_subset, (std::vector<std::pair<ItemTypeId, ItemPos>>{{1, 2}}));
 }
 
 TEST(IrregularTreeSearchRelativePositions, Packing)
 {
     // When the relaxation is feasible, the positions of its solution are
-    // returned; here, without exact fits, they are a packing.
-    Instance instance = build_instance(100, 100, {
-            {build_step(), {0, 180}},
-            {shape::build_square(30), {0}},
-            {shape::build_rectangle(0, 60, 0, 25), {0}}});
+    // used; here, without exact fits, they are a packing.
+    Instance instance = read_instance("feasibility_steps_square_rectangle");
     TreeSearchRelativePositionsParameters parameters;
     parameters.verbosity_level = 0;
-    TreeSearchRelativePositionsOutput output = tree_search_relative_positions(instance, 0, {0, 0, 1, 2}, parameters);
-    ASSERT_EQ(output.status, TreeSearchRelativePositionsStatus::Feasible);
-    ASSERT_EQ(output.items.size(), 4);
-    SolutionBuilder solution_builder(instance);
-    BinPos bin_pos = solution_builder.add_bin(0, 1);
-    for (const SolutionItem& item: output.items) {
-        solution_builder.add_item(
-                bin_pos,
-                item.item_type_id,
-                item.bl_corner,
-                item.angle,
-                item.mirror);
-    }
-    Solution solution = solution_builder.build();
-    Solution::OverlappingItems overlapping_items = solution.compute_overlapping_items(bin_pos);
-    EXPECT_TRUE(overlapping_items.item_item_pairs.empty());
-    EXPECT_TRUE(overlapping_items.item_border_pairs.empty());
-    EXPECT_TRUE(overlapping_items.items_outside_bin.empty());
+    TreeSearchRelativePositionsOutput output = tree_search_relative_positions(instance, parameters);
+    EXPECT_TRUE(output.solution_pool.best().feasible());
 }
 
-TEST(IrregularTreeSearchRelativePositions, ThreeItemCuts)
+TEST(IrregularTreeSearchRelativePositions, OpenDimensionUpperBound)
 {
-    // With the MILP, three-item cuts are generated for the steps, a square
-    // and a rectangle, which fit.
-    Instance instance = build_instance(100, 100, {
-            {build_step(), {0, 180}},
-            {shape::build_square(30), {0}},
-            {shape::build_rectangle(0, 60, 0, 25), {0}}});
+    // With an upper bound of 20, there is no better solution, so the bound
+    // is 20; with an upper bound of 25, the solution of length 20 is found.
+    Instance instance = read_instance("open_dimension_x_steps_interlocked");
     TreeSearchRelativePositionsParameters parameters;
     parameters.verbosity_level = 0;
-    parameters.use_milp = true;
-    parameters.three_item_cuts = true;
-    TreeSearchRelativePositionsOutput output = tree_search_relative_positions(instance, 0, {0, 0, 1, 2}, parameters);
-    EXPECT_EQ(output.status, TreeSearchRelativePositionsStatus::Feasible);
-    EXPECT_GT(output.number_of_three_item_cuts, 0);
+    parameters.open_dimension_upper_bound = 20;
+    TreeSearchRelativePositionsOutput output = tree_search_relative_positions(instance, parameters);
+    EXPECT_FALSE(output.is_proven_infeasible);
+    EXPECT_FALSE(output.solution_pool.best().feasible());
+    EXPECT_NEAR(output.open_dimension_x_bound, 20, 1e-6);
+    parameters.open_dimension_upper_bound = 25;
+    TreeSearchRelativePositionsOutput output_2 = tree_search_relative_positions(instance, parameters);
+    EXPECT_TRUE(output_2.solution_pool.best().feasible());
+    EXPECT_NEAR(output_2.solution_pool.best().x_max(), 20, 1e-6);
+    EXPECT_NEAR(output_2.open_dimension_x_bound, 20, 1e-6);
 }
 
-TEST(IrregularTreeSearchRelativePositions, Poly2aFiveItems)
+TEST(IrregularTreeSearchRelativePositions, OptimizeExactOpenDimension)
 {
-    // Five items of poly2a: the infeasible set needs many nodes over its 512
-    // rotation combinations, the feasible one is found.
-    for (bool feasible: {false, true}) {
-        InstanceBuilder instance_builder;
-        instance_builder.read((fs::path("data") / "irregular" / "tests" / (feasible?
-                        "feasibility_poly2a_five_items_feasible.json":
-                        "feasibility_poly2a_five_items_infeasible.json")).string());
-        Instance instance = instance_builder.build();
-        TreeSearchRelativePositionsParameters parameters;
-        parameters.verbosity_level = 0;
-        parameters.number_of_threads = 1;
-        TreeSearchRelativePositionsOutput output = tree_search_relative_positions(
-                instance, 0, all_items(instance), parameters);
-        EXPECT_EQ(output.status, (feasible)?
-                TreeSearchRelativePositionsStatus::Feasible:
-                TreeSearchRelativePositionsStatus::Infeasible);
-        EXPECT_EQ(output.number_of_rotation_combinations, 512);
-    }
+    // In 'Exact' mode, the automatic selection runs the tree search on
+    // relative positions for the open dimension objectives, which proves
+    // that two steps without rotation take a length of 30, whereas the area
+    // bound is 20.
+    Instance instance = read_instance("open_dimension_x_steps_without_rotation");
+    OptimizeParameters parameters;
+    parameters.verbosity_level = 0;
+    parameters.optimization_mode = OptimizationMode::Exact;
+    irregular::Output output = optimize(instance, parameters);
+    EXPECT_TRUE(output.is_proven_optimal());
+    EXPECT_NEAR(output.solution_pool.best().x_max(), 30, 1e-6);
+    EXPECT_NEAR(output.open_dimension_x_bound, 30, 1e-6);
 }
 
 TEST(IrregularTreeSearchRelativePositions, OptimizeExactInfeasible)
 {
     // In 'Exact' mode, the automatic selection runs the tree search on
-    // relative positions for a single bin feasibility problem, which proves that two 55 x 55 squares
-    // don't fit in a 100 x 100 bin.
-    InstanceBuilder instance_builder;
-    instance_builder.set_objective(Objective::Feasibility);
-    instance_builder.add_bin_type(shape::build_rectangle(0, 100, 0, 100));
-    ItemShape item_shape;
-    item_shape.shape_orig.shape = shape::build_square(55);
-    ItemTypeId item_type_id = instance_builder.add_item_type({item_shape});
-    instance_builder.set_item_type_copies(item_type_id, 2);
-    Instance instance = instance_builder.build();
-
+    // relative positions for a single bin feasibility problem, which proves
+    // that two 55 x 55 squares don't fit in a 100 x 100 bin, with a 10 x 10
+    // square which isn't in the infeasible subset.
+    Instance instance = read_instance("feasibility_squares_too_large_and_small_square");
     OptimizeParameters parameters;
     parameters.verbosity_level = 0;
     parameters.optimization_mode = OptimizationMode::Exact;
     irregular::Output output = optimize(instance, parameters);
     EXPECT_TRUE(output.is_proven_infeasible);
+    EXPECT_EQ(output.infeasible_subset, (std::vector<std::pair<ItemTypeId, ItemPos>>{{1, 2}}));
 }

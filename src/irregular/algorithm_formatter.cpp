@@ -250,9 +250,28 @@ void AlgorithmFormatter::update_solution(
 
 void AlgorithmFormatter::update_is_proven_infeasible()
 {
+    std::vector<std::pair<ItemTypeId, ItemPos>> infeasible_subset;
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance_.number_of_item_types();
+            ++item_type_id) {
+        ItemPos copies = instance_.item_type(item_type_id).copies;
+        if (copies > 0)
+            infeasible_subset.push_back({item_type_id, copies});
+    }
+    update_is_proven_infeasible(infeasible_subset);
+}
+
+void AlgorithmFormatter::update_is_proven_infeasible(
+        const std::vector<std::pair<ItemTypeId, ItemPos>>& infeasible_subset)
+{
+    ItemPos number_of_items = 0;
+    for (const std::pair<ItemTypeId, ItemPos>& p: infeasible_subset)
+        number_of_items += p.second;
     mutex_.lock();
-    if (!output_.is_proven_infeasible) {
+    if (!output_.is_proven_infeasible
+            || number_of_items < output_.infeasible_subset_number_of_items()) {
         output_.is_proven_infeasible = true;
+        output_.infeasible_subset = infeasible_subset;
         if (parameters_.write_json_output)
             output_.json["IntermediaryOutputs"].push_back(output_.to_json());
         parameters_.new_solution_callback(output_);
@@ -350,8 +369,13 @@ void AlgorithmFormatter::update_open_dimension_y_bound(
 void AlgorithmFormatter::update_bounds(
         const Output& output)
 {
-    if (output.is_proven_infeasible)
-        update_is_proven_infeasible();
+    if (output.is_proven_infeasible) {
+        if (output.infeasible_subset.empty()) {
+            update_is_proven_infeasible();
+        } else {
+            update_is_proven_infeasible(output.infeasible_subset);
+        }
+    }
     switch (instance_.objective()) {
     case Objective::Knapsack:
         update_knapsack_bound(output.knapsack_bound);

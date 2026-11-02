@@ -486,6 +486,25 @@ ItemTypeId Reduction::consume_one_origin(
     return original_item_type_id;
 }
 
+std::vector<std::pair<ItemTypeId, ItemPos>> Reduction::unreduce_infeasible_subset(
+        const std::vector<std::pair<ItemTypeId, ItemPos>>& infeasible_subset) const
+{
+    std::vector<ItemPos> copies(original_instance_->number_of_item_types(), 0);
+    for (const std::pair<ItemTypeId, ItemPos>& p: infeasible_subset) {
+        std::vector<OriginRun> runs = reduced_item_origin_runs_[p.first];
+        for (ItemPos copy = 0; copy < p.second; ++copy)
+            copies[consume_one_origin(runs)]++;
+    }
+    std::vector<std::pair<ItemTypeId, ItemPos>> original_infeasible_subset;
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < original_instance_->number_of_item_types();
+            ++item_type_id) {
+        if (copies[item_type_id] > 0)
+            original_infeasible_subset.push_back({item_type_id, copies[item_type_id]});
+    }
+    return original_infeasible_subset;
+}
+
 Solution Reduction::unreduce_solution(
         const Solution& solution) const
 {

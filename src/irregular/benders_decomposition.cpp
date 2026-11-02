@@ -2,7 +2,6 @@
 
 #include "packingsolver/irregular/algorithm_formatter.hpp"
 #include "packingsolver/irregular/instance_builder.hpp"
-#include "irregular/tree_search_relative_positions.hpp"
 
 #include "packingsolver/onedimensional/instance_builder.hpp"
 #include "packingsolver/onedimensional/optimize.hpp"
@@ -11,6 +10,7 @@
 #include <chrono>
 #include <cmath>
 #include <functional>
+#include <memory>
 #include <map>
 #include <set>
 
@@ -61,26 +61,6 @@ ResourceCut no_good_cut(
     return cut;
 }
 
-/** Data of the subproblems kept between iterations. */
-struct SubproblemCache
-{
-    /**
-     * Outputs of the tree search on relative positions, for each bin type
-     * and selection of items, so that the same selection is never checked
-     * twice (the minimal infeasible subsets of different bins, and of
-     * different iterations, often share subsets).
-     */
-    std::map<
-        std::pair<BinTypeId, std::vector<std::pair<ItemTypeId, ItemPos>>>,
-        TreeSearchRelativePositionsOutput> outputs;
-
-    /**
-     * Data of the tree search on relative positions (the pieces of the pairs
-     * of items).
-     */
-    TreeSearchRelativePositionsCache tsrp_cache;
-};
-
 /** Result of checking whether a selection of items fits in a bin. */
 enum class SelectionFeasibility
 {
@@ -90,10 +70,86 @@ enum class SelectionFeasibility
 };
 
 /**
- * Output of the tree search on relative positions for a selection of items,
- * through the cache.
+ * Result of the tree search on relative positions for a selection of items.
  */
-TreeSearchRelativePositionsOutput tree_search_relative_positions_output(
+struct TreeSearchRelativePositionsResult
+{
+    /**
+     * 'ProvenInfeasible' if the selection is proven infeasible, 'Feasible' if
+     * the relaxation is feasible, 'Unknown' if the timer ended.
+     */
+    SelectionFeasibility feasibility = SelectionFeasibility::Unknown;
+
+    /** Packing (a solution of the instance with a single bin), if found. */
+    std::shared_ptr<Solution> packing;
+
+    /**
+     * If the selection is proven infeasible, subset of it which doesn't fit,
+     * sorted by item type.
+     */
+    std::vector<std::pair<ItemTypeId, ItemPos>> infeasible_subset;
+};
+
+/** Data of the subproblems kept between iterations. */
+struct SubproblemCache
+{
+    /**
+     * Results of the tree search on relative positions, for each bin type
+     * and selection of items, so that the same selection is never checked
+     * twice (the minimal infeasible subsets of different bins, and of
+     * different iterations, often share subsets).
+     */
+    std::map<
+        std::pair<BinTypeId, std::vector<std::pair<ItemTypeId, ItemPos>>>,
+        TreeSearchRelativePositionsResult> results;
+
+    /** Result returned when the timer ends. */
+    TreeSearchRelativePositionsResult unknown_result;
+};
+
+/**
+ * Build the instance of the subproblem of a selection of items in a bin of
+ * type 'bin_type_id': the 'Feasibility' objective, with a single bin.
+ * 'sub_to_orig' maps its item types to the ones of 'instance'.
+ */
+Instance build_subproblem_instance(
+        const Instance& instance,
+        BinTypeId bin_type_id,
+        const std::vector<std::pair<ItemTypeId, ItemPos>>& selected_items,
+        std::vector<ItemTypeId>& sub_to_orig)
+{
+    InstanceBuilder sub_instance_builder;
+    sub_instance_builder.set_objective(Objective::Feasibility);
+    sub_instance_builder.set_parameters(instance.parameters());
+    BinTypeId sub_bin_type_id = sub_instance_builder.add_bin_type(instance, bin_type_id);
+    sub_instance_builder.set_bin_type_copies(sub_bin_type_id, 1);
+    sub_instance_builder.set_bin_type_copies_min(sub_bin_type_id, 0);
+    sub_to_orig.clear();
+    for (const std::pair<ItemTypeId, ItemPos>& p: selected_items) {
+        ItemTypeId sub_item_type_id = sub_instance_builder.add_item_type(instance, p.first);
+        sub_instance_builder.set_item_type_copies(sub_item_type_id, p.second);
+        sub_to_orig.push_back(p.first);
+    }
+    return sub_instance_builder.build();
+}
+
+/**
+ * Optimization mode of the subproblems: they must be deterministic, so that
+ * the same selection always gives the same result.
+ */
+OptimizationMode subproblem_optimization_mode(
+        const BendersDecompositionParameters& parameters)
+{
+    return (parameters.optimization_mode == OptimizationMode::NotAnytimeSequential)?
+        OptimizationMode::NotAnytimeSequential:
+        OptimizationMode::NotAnytimeDeterministic;
+}
+
+/**
+ * Result of the tree search on relative positions for a selection of items,
+ * through the cache: it solves the subproblem of the selection.
+ */
+const TreeSearchRelativePositionsResult& tree_search_relative_positions_result(
         const Instance& instance,
         BinTypeId bin_type_id,
         const std::vector<std::pair<ItemTypeId, ItemPos>>& selected_items,
@@ -101,28 +157,42 @@ TreeSearchRelativePositionsOutput tree_search_relative_positions_output(
         SubproblemCache& subproblem_cache)
 {
     auto key = std::make_pair(bin_type_id, selected_items);
-    auto it = subproblem_cache.outputs.find(key);
-    if (it != subproblem_cache.outputs.end())
+    auto it = subproblem_cache.results.find(key);
+    if (it != subproblem_cache.results.end())
         return it->second;
-    std::vector<ItemTypeId> item_type_ids;
-    for (const std::pair<ItemTypeId, ItemPos>& p: selected_items)
-        for (ItemPos copy = 0; copy < p.second; ++copy)
-            item_type_ids.push_back(p.first);
-    TreeSearchRelativePositionsParameters tsrp_parameters;
-    tsrp_parameters.verbosity_level = 0;
-    tsrp_parameters.timer = parameters.timer;
-    if (parameters.optimization_mode == OptimizationMode::NotAnytimeSequential)
-        tsrp_parameters.number_of_threads = 1;
-    tsrp_parameters.cache = &subproblem_cache.tsrp_cache;
-    TreeSearchRelativePositionsOutput output = tree_search_relative_positions(
+
+    std::vector<ItemTypeId> sub_to_orig;
+    Instance sub_instance = build_subproblem_instance(
             instance,
             bin_type_id,
-            item_type_ids,
-            tsrp_parameters);
-    // 'Unknown' may come from the timer, so it isn't stored.
-    if (output.status != TreeSearchRelativePositionsStatus::Unknown)
-        subproblem_cache.outputs[key] = output;
-    return output;
+            selected_items,
+            sub_to_orig);
+    OptimizeParameters sub_parameters;
+    sub_parameters.verbosity_level = 0;
+    sub_parameters.timer = parameters.timer;
+    sub_parameters.optimization_mode = subproblem_optimization_mode(parameters);
+    sub_parameters.use_tree_search_relative_positions = true;
+    irregular::Output sub_output = optimize(sub_instance, sub_parameters);
+
+    TreeSearchRelativePositionsResult result;
+    if (sub_output.is_proven_infeasible) {
+        result.feasibility = SelectionFeasibility::ProvenInfeasible;
+        // The item types of the subproblem are in the order of the selection,
+        // so the subset remains sorted by item type.
+        for (const std::pair<ItemTypeId, ItemPos>& p: sub_output.infeasible_subset)
+            result.infeasible_subset.push_back({sub_to_orig[p.first], p.second});
+    } else if (parameters.timer.needs_to_end()) {
+        // 'Unknown' comes from the timer, so it isn't stored.
+        return subproblem_cache.unknown_result;
+    } else {
+        result.feasibility = SelectionFeasibility::Feasible;
+    }
+    const Solution& sub_solution = sub_output.solution_pool.best();
+    if (sub_solution.feasible()) {
+        result.packing = std::make_shared<Solution>(instance);
+        result.packing->append_bin(sub_solution, 0, 1, {bin_type_id}, sub_to_orig);
+    }
+    return subproblem_cache.results.insert({key, result}).first->second;
 }
 
 /**
@@ -147,53 +217,37 @@ SelectionFeasibility selection_feasibility(
         return SelectionFeasibility::Feasible;
 
     if (parameters.subproblem_use_tree_search_relative_positions) {
-        TreeSearchRelativePositionsOutput tsrp_output
-            = tree_search_relative_positions_output(
+        const TreeSearchRelativePositionsResult& result = tree_search_relative_positions_result(
                 instance,
                 bin_type_id,
                 selected_items,
                 parameters,
                 subproblem_cache);
-        if (tsrp_output.status == TreeSearchRelativePositionsStatus::Infeasible)
+        if (result.feasibility == SelectionFeasibility::ProvenInfeasible)
             return SelectionFeasibility::ProvenInfeasible;
-        if (tsrp_output.status == TreeSearchRelativePositionsStatus::Feasible) {
+        if (result.feasibility == SelectionFeasibility::Feasible) {
             if (!need_packing)
                 return SelectionFeasibility::Feasible;
             // The solution of the relaxation may be a packing.
-            if (packing != nullptr
-                    && tree_search_relative_positions_solution(
-                        instance,
-                        bin_type_id,
-                        tsrp_output,
-                        *packing)) {
+            if (result.packing != nullptr) {
+                if (packing != nullptr)
+                    *packing = *result.packing;
                 return SelectionFeasibility::Feasible;
             }
         }
     }
 
-    // Build the subproblem instance.
-    InstanceBuilder sub_instance_builder;
-    sub_instance_builder.set_objective(Objective::Feasibility);
-    sub_instance_builder.set_parameters(instance.parameters());
-    BinTypeId sub_bin_type_id = sub_instance_builder.add_bin_type(instance, bin_type_id);
-    sub_instance_builder.set_bin_type_copies(sub_bin_type_id, 1);
-    sub_instance_builder.set_bin_type_copies_min(sub_bin_type_id, 0);
+    // Solve the subproblem with the other algorithms.
     std::vector<ItemTypeId> sub_to_orig;
-    for (const std::pair<ItemTypeId, ItemPos>& p: selected_items) {
-        ItemTypeId sub_item_type_id = sub_instance_builder.add_item_type(instance, p.first);
-        sub_instance_builder.set_item_type_copies(sub_item_type_id, p.second);
-        sub_to_orig.push_back(p.first);
-    }
-    Instance sub_instance = sub_instance_builder.build();
-
-    // Solve it.
+    Instance sub_instance = build_subproblem_instance(
+            instance,
+            bin_type_id,
+            selected_items,
+            sub_to_orig);
     OptimizeParameters sub_parameters;
     sub_parameters.verbosity_level = 0;
     sub_parameters.timer = parameters.timer;
-    sub_parameters.optimization_mode
-        = (parameters.optimization_mode == OptimizationMode::NotAnytimeSequential)?
-        OptimizationMode::NotAnytimeSequential:
-        OptimizationMode::NotAnytimeDeterministic;
+    sub_parameters.optimization_mode = subproblem_optimization_mode(parameters);
     sub_parameters.not_anytime_tree_search_queue_size = parameters.subproblem_queue_size;
     sub_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
     irregular::Output sub_output = optimize(sub_instance, sub_parameters);
@@ -295,12 +349,12 @@ ResourceCut lift_no_good_cut(
         for (const auto& cut_items: proven_cut_items)
             if (contains(selection, cut_items))
                 return true;
-        return tree_search_relative_positions_output(
+        return tree_search_relative_positions_result(
                 instance,
                 bin_type_id,
                 selection,
                 parameters,
-                subproblem_cache).status == TreeSearchRelativePositionsStatus::Infeasible;
+                subproblem_cache).feasibility == SelectionFeasibility::ProvenInfeasible;
     };
 
     std::vector<ItemTypeId> candidates;
@@ -367,55 +421,6 @@ ResourceCut lift_no_good_cut(
         output.number_of_lifted_coefficients++;
     }
     return cut;
-}
-
-/**
- * Search for an infeasible subset of a selection of items with the tree search
- * on relative positions, by adding its items one by one, largest first. Return the first
- * subset proven infeasible, or an empty one if none is.
- *
- * Proving that a large selection doesn't fit may be much more expensive than
- * proving it for a few of its items, and a small infeasible subset is what
- * the no-good cut needs anyway. The last subset checked is the whole
- * selection, so it is not checked twice (see 'SubproblemCache').
- */
-std::vector<std::pair<ItemTypeId, ItemPos>> find_infeasible_prefix(
-        const Instance& instance,
-        BinTypeId bin_type_id,
-        const std::vector<std::pair<ItemTypeId, ItemPos>>& selected_items,
-        const BendersDecompositionParameters& parameters,
-        SubproblemCache& subproblem_cache)
-{
-    std::vector<ItemTypeId> units;
-    for (const std::pair<ItemTypeId, ItemPos>& p: selected_items)
-        for (ItemPos copy = 0; copy < p.second; ++copy)
-            units.push_back(p.first);
-    std::stable_sort(
-            units.begin(),
-            units.end(),
-            [&instance](ItemTypeId item_type_id_1, ItemTypeId item_type_id_2)
-            {
-                return instance.item_type(item_type_id_1).area_scaled
-                    > instance.item_type(item_type_id_2).area_scaled;
-            });
-
-    std::vector<bool> removed(units.size(), true);
-    for (std::size_t unit_pos = 0; unit_pos < units.size(); ++unit_pos) {
-        removed[unit_pos] = false;
-        std::vector<std::pair<ItemTypeId, ItemPos>> prefix
-            = aggregate_units(instance, units, removed);
-        TreeSearchRelativePositionsStatus status = tree_search_relative_positions_output(
-                instance,
-                bin_type_id,
-                prefix,
-                parameters,
-                subproblem_cache).status;
-        if (status == TreeSearchRelativePositionsStatus::Infeasible)
-            return prefix;
-        if (status == TreeSearchRelativePositionsStatus::Unknown)
-            break;
-    }
-    return {};
 }
 
 /**
@@ -726,12 +731,12 @@ BendersDecompositionOutput packingsolver::irregular::benders_decomposition(
             // Return 'true' iff the items are proven not to fit.
             auto incompatible = [&](const std::vector<std::pair<ItemTypeId, ItemPos>>& items)
             {
-                return tree_search_relative_positions_output(
+                return tree_search_relative_positions_result(
                         instance,
                         bin_type_id,
                         items,
                         parameters,
-                        subproblem_cache).status == TreeSearchRelativePositionsStatus::Infeasible;
+                        subproblem_cache).feasibility == SelectionFeasibility::ProvenInfeasible;
             };
             // Aggregate a list of item types (one per copy, sorted).
             auto aggregate = [](const std::vector<ItemTypeId>& item_type_ids)
@@ -917,14 +922,21 @@ BendersDecompositionOutput packingsolver::irregular::benders_decomposition(
                 continue;
             }
             if (parameters.subproblem_use_tree_search_relative_positions) {
-                infeasible_items = find_infeasible_prefix(
+                // The tree search on relative positions returns a subset of
+                // the selection which doesn't fit: proving it for a few large
+                // items is often much cheaper than for all the items of the
+                // bin, and a small infeasible subset is what the cuts need
+                // anyway.
+                const TreeSearchRelativePositionsResult& result = tree_search_relative_positions_result(
                         instance,
                         master_bin.bin_type_id,
                         selected_items,
                         parameters,
                         subproblem_cache);
-                if (!infeasible_items.empty())
+                if (result.feasibility == SelectionFeasibility::ProvenInfeasible) {
+                    infeasible_items = result.infeasible_subset;
                     feasibility = SelectionFeasibility::ProvenInfeasible;
+                }
             }
             if (infeasible_items.empty()) {
                 feasibility = selection_feasibility(

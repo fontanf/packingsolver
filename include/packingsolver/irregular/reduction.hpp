@@ -128,6 +128,15 @@ public:
     Solution unreduce_solution(
             const Solution& solution) const;
 
+    /**
+     * Unreduce an infeasible subset of the reduced instance ((item type,
+     * number of copies) pairs): the copies of a merged item type are
+     * interchangeable, so they are drawn from its original item types in
+     * any order. The result is sorted by item type.
+     */
+    std::vector<std::pair<ItemTypeId, ItemPos>> unreduce_infeasible_subset(
+            const std::vector<std::pair<ItemTypeId, ItemPos>>& infeasible_subset) const;
+
 private:
 
     /**

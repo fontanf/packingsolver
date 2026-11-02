@@ -1,0 +1,87 @@
+{
+    "objective": "feasibility",
+    "bin_types": [
+        {
+            "type": "rectangle",
+            "width": 100,
+            "height": 100,
+            "copies": 1
+        }
+    ],
+    "item_types": [
+        {
+            "type": "polygon",
+            "vertices": [
+                {
+                    "x": 20,
+                    "y": 0
+                },
+                {
+                    "x": 50,
+                    "y": 0
+                },
+                {
+                    "x": 50,
+                    "y": 20
+                },
+                {
+                    "x": 70,
+                    "y": 20
+                },
+                {
+                    "x": 70,
+                    "y": 50
+                },
+                {
+                    "x": 50,
+                    "y": 50
+                },
+                {
+                    "x": 50,
+                    "y": 70
+                },
+                {
+                    "x": 20,
+                    "y": 70
+                },
+                {
+                    "x": 20,
+                    "y": 50
+                },
+                {
+                    "x": 0,
+                    "y": 50
+                },
+                {
+                    "x": 0,
+                    "y": 20
+                },
+                {
+                    "x": 20,
+                    "y": 20
+                }
+            ],
+            "copies": 1,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0,
+                    "mirror": false
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "width": 25,
+            "height": 25,
+            "copies": 1,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0,
+                    "mirror": false
+                }
+            ]
+        }
+    ]
+}

@@ -43,8 +43,19 @@ public:
             const Solution& solution,
             const std::string& s);
 
-    /** Mark the instance as proven infeasible. */
+    /**
+     * Mark the instance as proven infeasible; the infeasible subset is all
+     * the items.
+     */
     void update_is_proven_infeasible();
+
+    /**
+     * Mark the instance as proven infeasible because the items of
+     * 'infeasible_subset' ((item type, number of copies) pairs sorted by item
+     * type) don't fit; the infeasible subset is updated if it is smaller.
+     */
+    void update_is_proven_infeasible(
+            const std::vector<std::pair<ItemTypeId, ItemPos>>& infeasible_subset);
 
     /** Update the knapsack bound. */
     void update_knapsack_bound(

@@ -1,6 +1,7 @@
 #include "irregular/tree_search_relative_positions.hpp"
 
 #include "irregular/solution_builder.hpp"
+#include "packingsolver/irregular/algorithm_formatter.hpp"
 
 #include "shape/no_fit_polygon.hpp"
 #include "shape/boolean_operations.hpp"
@@ -12,6 +13,7 @@
 #endif
 
 #include <array>
+#include <deque>
 #include <atomic>
 #include <cmath>
 #include <mutex>
@@ -78,14 +80,8 @@ struct Piece
     LengthDbl y_max = -std::numeric_limits<LengthDbl>::infinity();
 };
 
-/** Bin type, and item type and rotation of each item of a pair. */
-using TreeSearchRelativePositionsPairKey = std::tuple<BinTypeId, ItemTypeId, Counter, ItemTypeId, Counter>;
-
-/**
- * Bin type, and sorted item types and rotations of the items of a rotation
- * combination.
- */
-using TreeSearchRelativePositionsCombinationKey = std::pair<BinTypeId, std::vector<std::pair<ItemTypeId, Counter>>>;
+/** Item type and rotation of each item of a pair. */
+using TreeSearchRelativePositionsPairKey = std::tuple<ItemTypeId, Counter, ItemTypeId, Counter>;
 
 struct PairData
 {
@@ -197,142 +193,63 @@ Piece rectangle_piece(const AxisAlignedBoundingBox& aabb)
     return piece;
 }
 
-/** Convex hull, anticlockwise, of a set of points. */
-std::vector<Point> convex_hull(std::vector<Point> points)
-{
-    std::sort(
-            points.begin(),
-            points.end(),
-            [](const Point& point_1, const Point& point_2)
-            {
-                return (point_1.x != point_2.x)?
-                    point_1.x < point_2.x:
-                    point_1.y < point_2.y;
-            });
-    // Identical points would all be removed below.
-    points.erase(
-            std::unique(
-                points.begin(),
-                points.end(),
-                [](const Point& point_1, const Point& point_2)
-                {
-                    return point_1.x == point_2.x && point_1.y == point_2.y;
-                }),
-            points.end());
-    if (points.size() <= 2)
-        return points;
-    auto cross = [](const Point& o, const Point& a, const Point& b)
-    {
-        return (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
-    };
-    std::vector<Point> hull(2 * points.size());
-    std::size_t k = 0;
-    for (std::size_t pos = 0; pos < points.size(); ++pos) {
-        while (k >= 2 && cross(hull[k - 2], hull[k - 1], points[pos]) <= 0)
-            k--;
-        hull[k++] = points[pos];
-    }
-    for (std::size_t pos = points.size() - 1, t = k + 1; pos > 0; --pos) {
-        while (k >= t && cross(hull[k - 2], hull[k - 1], points[pos - 1]) <= 0)
-            k--;
-        hull[k++] = points[pos - 1];
-    }
-    hull.resize(k - 1);
-    return hull;
-}
-
 /**
- * Intersection of a convex polygon (or segment, or point) with an
- * axis-aligned box.
+ * Bounding box of the intersection of a convex polygon (or segment, or
+ * point), whose vertices are in order, with an axis-aligned box; return
+ * 'false' if it is empty.
+ *
+ * 'buffer_1' and 'buffer_2' are reused between calls to avoid allocations.
  */
-std::vector<Point> clip(
+bool clip_bounding_box(
         const std::vector<Point>& vertices,
         LengthDbl x_min,
         LengthDbl x_max,
         LengthDbl y_min,
-        LengthDbl y_max)
+        LengthDbl y_max,
+        std::vector<Point>& buffer_1,
+        std::vector<Point>& buffer_2,
+        AxisAlignedBoundingBox& bounding_box)
 {
-    std::vector<Point> result = convex_hull(vertices);
+    buffer_1.assign(vertices.begin(), vertices.end());
     // Half-planes 'n . p >= c' of the box.
     const std::array<HalfPlane, 4> half_planes = {{
         {1, 0, x_min}, {-1, 0, -x_max}, {0, 1, y_min}, {0, -1, -y_max}}};
     for (const HalfPlane& half_plane: half_planes) {
-        if (result.empty())
-            break;
+        if (buffer_1.empty())
+            return false;
         auto value = [&half_plane](const Point& point)
         {
             return half_plane.nx * point.x + half_plane.ny * point.y - half_plane.c;
         };
-        std::vector<Point> next;
-        for (std::size_t pos = 0; pos < result.size(); ++pos) {
-            const Point& current = result[pos];
-            const Point& following = result[(pos + 1) % result.size()];
+        buffer_2.clear();
+        for (std::size_t pos = 0; pos < buffer_1.size(); ++pos) {
+            const Point& current = buffer_1[pos];
+            const Point& following = buffer_1[(pos + 1) % buffer_1.size()];
             LengthDbl value_current = value(current);
             LengthDbl value_following = value(following);
             if (value_current >= 0)
-                next.push_back(current);
+                buffer_2.push_back(current);
             if ((value_current >= 0) != (value_following >= 0)) {
                 LengthDbl t = value_current / (value_current - value_following);
-                next.push_back({
+                buffer_2.push_back({
                         current.x + t * (following.x - current.x),
                         current.y + t * (following.y - current.y)});
             }
-            if (result.size() == 1)
+            if (buffer_1.size() == 1)
                 break;
         }
-        result = convex_hull(next);
+        buffer_1.swap(buffer_2);
     }
-    return result;
-}
-
-/**
- * Return 'true' if two convex sets of points are separated by a gap larger
- * than 'tolerance' along an axis: the normal or the direction of one of
- * their edges.
- *
- * Returning 'false' doesn't mean that they intersect.
- */
-bool separated(
-        const std::vector<Point>& points_1,
-        const std::vector<Point>& points_2,
-        LengthDbl tolerance)
-{
-    if (points_1.empty() || points_2.empty())
-        return true;
-    auto separated_along = [&](LengthDbl ax, LengthDbl ay)
-    {
-        LengthDbl norm = std::sqrt(ax * ax + ay * ay);
-        if (norm == 0)
-            return false;
-        ax /= norm;
-        ay /= norm;
-        LengthDbl min_1 = std::numeric_limits<LengthDbl>::infinity();
-        LengthDbl max_1 = -std::numeric_limits<LengthDbl>::infinity();
-        for (const Point& point: points_1) {
-            min_1 = (std::min)(min_1, ax * point.x + ay * point.y);
-            max_1 = (std::max)(max_1, ax * point.x + ay * point.y);
-        }
-        LengthDbl min_2 = std::numeric_limits<LengthDbl>::infinity();
-        LengthDbl max_2 = -std::numeric_limits<LengthDbl>::infinity();
-        for (const Point& point: points_2) {
-            min_2 = (std::min)(min_2, ax * point.x + ay * point.y);
-            max_2 = (std::max)(max_2, ax * point.x + ay * point.y);
-        }
-        return min_2 > max_1 + tolerance || min_1 > max_2 + tolerance;
-    };
-    if (separated_along(1, 0) || separated_along(0, 1))
-        return true;
-    for (const std::vector<Point>* points: {&points_1, &points_2}) {
-        for (std::size_t pos = 0; pos < points->size(); ++pos) {
-            const Point& start = (*points)[pos];
-            const Point& end = (*points)[(pos + 1) % points->size()];
-            LengthDbl ex = end.x - start.x;
-            LengthDbl ey = end.y - start.y;
-            if (separated_along(-ey, ex) || separated_along(ex, ey))
-                return true;
-        }
+    if (buffer_1.empty())
+        return false;
+    bounding_box = AxisAlignedBoundingBox();
+    for (const Point& point: buffer_1) {
+        bounding_box.x_min = (std::min)(bounding_box.x_min, point.x);
+        bounding_box.x_max = (std::max)(bounding_box.x_max, point.x);
+        bounding_box.y_min = (std::min)(bounding_box.y_min, point.y);
+        bounding_box.y_max = (std::max)(bounding_box.y_max, point.y);
     }
-    return false;
+    return true;
 }
 
 PairData compute_pair_data(
@@ -425,57 +342,264 @@ PairData compute_pair_data(
     return pair_data;
 }
 
-/** Bin type, and item type and rotation of each item of a triple. */
-using TreeSearchRelativePositionsTripleKey = std::tuple<BinTypeId, ItemTypeId, Counter, ItemTypeId, Counter, ItemTypeId, Counter>;
+/**
+ * Areas of the parts of an item between two coordinates along an axis.
+ *
+ * The width of a polygon across the axis is linear between the coordinates
+ * of its vertices, so the area below a coordinate is piecewise quadratic.
+ */
+struct AreaProfile
+{
+    /** Coordinates of the vertices, sorted. */
+    std::vector<LengthDbl> coordinates;
+
+    /** Area below each coordinate. */
+    std::vector<AreaDbl> cumulative_areas;
+
+    /** Widths at the start and at the end of each interval. */
+    std::vector<LengthDbl> widths_start;
+    std::vector<LengthDbl> widths_end;
+
+    /**
+     * 'false' if the item has circular arcs; then the area between two
+     * coordinates is overestimated by the area of the item.
+     */
+    bool exact = true;
+
+    /** Area of the item. */
+    AreaDbl total_area = 0;
+
+    /** Area below a coordinate. */
+    AreaDbl area_below(LengthDbl coordinate) const
+    {
+        if (coordinates.empty() || coordinate <= coordinates.front())
+            return 0;
+        if (coordinate >= coordinates.back())
+            return cumulative_areas.back();
+        std::size_t pos = std::upper_bound(
+                coordinates.begin(),
+                coordinates.end(),
+                coordinate) - coordinates.begin() - 1;
+        LengthDbl length = coordinate - coordinates[pos];
+        LengthDbl width = widths_start[pos] + (widths_end[pos] - widths_start[pos])
+            * length / (coordinates[pos + 1] - coordinates[pos]);
+        return cumulative_areas[pos] + length * (widths_start[pos] + width) / 2;
+    }
+
+    /** Area between two coordinates; it may be overestimated. */
+    AreaDbl area(LengthDbl start, LengthDbl end) const
+    {
+        if (!exact)
+            return total_area;
+        return area_below(end) - area_below(start);
+    }
+};
 
 /**
- * Three-item cut of a triple of items (i, j, u): if the pieces a of (i, j)
- * and b of (j, u) are selected, the pieces of (i, u) which don't intersect
- * a + b can't be.
+ * Area profile of the shapes of an item along an axis (0 for x, 1 for y).
+ *
+ * The widths of the shapes are summed, so that the areas are overestimated
+ * if they overlap.
  */
-struct ThreeItemCut
+AreaProfile compute_area_profile(
+        const std::vector<ShapeWithHoles>& shapes,
+        int axis)
 {
-    Counter piece_pos_12;
-    Counter piece_pos_23;
-    std::vector<Counter> pieces_pos_13;
-};
+    AreaProfile area_profile;
+    auto coordinate = [axis](const Point& point) { return (axis == 0)? point.x: point.y; };
+    auto other_coordinate = [axis](const Point& point) { return (axis == 0)? point.y: point.x; };
+    for (const ShapeWithHoles& shape: shapes) {
+        area_profile.total_area += shape.compute_area();
+        if (!shape.is_polygon())
+            area_profile.exact = false;
+        for (const ShapeElement& element: shape.shape.elements)
+            area_profile.coordinates.push_back(coordinate(element.start));
+    }
+    if (!area_profile.exact)
+        return area_profile;
+    std::sort(area_profile.coordinates.begin(), area_profile.coordinates.end());
+    area_profile.coordinates.erase(
+            std::unique(area_profile.coordinates.begin(), area_profile.coordinates.end()),
+            area_profile.coordinates.end());
+    area_profile.cumulative_areas = {0};
+    // Crossings of the elements of a shape with the interval: their other
+    // coordinates in the middle, at the start and at the end.
+    std::vector<std::array<LengthDbl, 3>> crossings;
+    for (std::size_t pos = 0; pos + 1 < area_profile.coordinates.size(); ++pos) {
+        LengthDbl start = area_profile.coordinates[pos];
+        LengthDbl end = area_profile.coordinates[pos + 1];
+        LengthDbl middle = (start + end) / 2;
+        LengthDbl width_start = 0;
+        LengthDbl width_end = 0;
+        for (const ShapeWithHoles& shape: shapes) {
+            crossings.clear();
+            auto add_crossings = [&](const Shape& polygon)
+            {
+                for (const ShapeElement& element: polygon.elements) {
+                    LengthDbl coordinate_1 = coordinate(element.start);
+                    LengthDbl coordinate_2 = coordinate(element.end);
+                    if ((std::min)(coordinate_1, coordinate_2) > start
+                            || (std::max)(coordinate_1, coordinate_2) < end) {
+                        continue;
+                    }
+                    LengthDbl other_1 = other_coordinate(element.start);
+                    LengthDbl other_2 = other_coordinate(element.end);
+                    auto other = [&](LengthDbl c)
+                    {
+                        return other_1 + (other_2 - other_1) * (c - coordinate_1) / (coordinate_2 - coordinate_1);
+                    };
+                    crossings.push_back({other(middle), other(start), other(end)});
+                }
+            };
+            add_crossings(shape.shape);
+            for (const Shape& hole: shape.holes)
+                add_crossings(hole);
+            std::sort(crossings.begin(), crossings.end());
+            for (std::size_t crossing_pos = 0; crossing_pos + 1 < crossings.size(); crossing_pos += 2) {
+                width_start += crossings[crossing_pos + 1][1] - crossings[crossing_pos][1];
+                width_end += crossings[crossing_pos + 1][2] - crossings[crossing_pos][2];
+            }
+        }
+        area_profile.widths_start.push_back(width_start);
+        area_profile.widths_end.push_back(width_end);
+        area_profile.cumulative_areas.push_back(
+                area_profile.cumulative_areas.back()
+                + (end - start) * (width_start + width_end) / 2);
+    }
+    return area_profile;
+}
+
+int add_variable(
+        mathoptsolverscmake::MathOptModel& model,
+        double lower_bound,
+        double upper_bound)
+{
+    model.variables_lower_bounds.push_back(lower_bound);
+    model.variables_upper_bounds.push_back(upper_bound);
+    model.variables_types.push_back(mathoptsolverscmake::VariableType::Continuous);
+    model.objective_coefficients.push_back(0.0);
+    return model.variables_lower_bounds.size() - 1;
+}
+
+void add_constraint(
+        mathoptsolverscmake::MathOptModel& model,
+        double lower_bound,
+        double upper_bound,
+        const std::vector<std::pair<int, double>>& elements)
+{
+    model.constraints_starts.push_back(model.elements_variables.size());
+    model.constraints_lower_bounds.push_back(lower_bound);
+    model.constraints_upper_bounds.push_back(upper_bound);
+    for (const auto& element: elements) {
+        model.elements_variables.push_back(element.first);
+        model.elements_coefficients.push_back(element.second);
+    }
+}
 
 }
 
-struct packingsolver::irregular::TreeSearchRelativePositionsCache::Data
+namespace
 {
-    std::map<TreeSearchRelativePositionsPairKey, PairData> pairs_data;
 
-    /** Three-item cuts of the triples of items. */
-    std::map<TreeSearchRelativePositionsTripleKey, std::vector<ThreeItemCut>> three_item_cuts;
+/**
+ * Status of the tree search for a set of items.
+ *
+ * For the open dimension objectives:
+ * - 'Infeasible' means that the relaxation has no solution with an open
+ *   dimension smaller than the upper bound, which is then a bound;
+ * - 'Feasible' means that its minimum open dimension, the bound, is smaller.
+ */
+enum class Status
+{
+    /** Proven: the items don't fit in the bin. */
+    Infeasible,
 
-    /** Mutex of 'three_item_cuts', which the threads update. */
-    std::mutex three_item_cuts_mutex;
+    /** The relaxation is feasible, so the items may fit in the bin. */
+    Feasible,
 
-    /** Proven statuses of rotation combinations. */
-    std::map<TreeSearchRelativePositionsCombinationKey, TreeSearchRelativePositionsStatus> combinations_statuses;
-
-    /** Mutex of 'combinations_statuses', which the threads update. */
-    std::mutex combinations_statuses_mutex;
+    /** Not proven, because of the time limit or of a continuous rotation. */
+    Unknown,
 };
 
-packingsolver::irregular::TreeSearchRelativePositionsCache::TreeSearchRelativePositionsCache():
-    data_(new Data()) { }
+/** Output of the tree search for a set of items. */
+struct ItemsOutput
+{
+    /** Status. */
+    Status status = Status::Unknown;
 
-packingsolver::irregular::TreeSearchRelativePositionsCache::~TreeSearchRelativePositionsCache() { }
+    /** Number of nodes of the tree search. */
+    Counter number_of_nodes = 0;
 
-TreeSearchRelativePositionsOutput packingsolver::irregular::tree_search_relative_positions(
+    /** Number of linear programs solved at the leaves of the tree search. */
+    Counter number_of_linear_programs = 0;
+
+    /** Maximum number of convex pieces of a pair of items. */
+    Counter maximum_number_of_pieces = 0;
+
+    /**
+     * For the open dimension objectives, if the status is 'Feasible' or
+     * 'Infeasible', bound on the open dimension: the largest coordinate of
+     * the items along the open axis, in the original coordinates.
+     */
+    LengthDbl open_dimension_bound = 0;
+
+    /**
+     * If the status is 'Feasible', the positions of the items in a solution
+     * of the relaxation (in the original coordinates); for the open dimension
+     * objectives, in a solution of minimum open dimension.
+     *
+     * They are only a packing up to the relaxation: the shape of the bin,
+     * its defects, its fixed items and the item-item spacing are ignored.
+     */
+    std::vector<SolutionItem> items;
+};
+
+/**
+ * Tree search for the items of 'item_type_ids' (one entry per copy) in a bin
+ * of type 'bin_type_id'; for the open dimension objectives, the search stops
+ * once a solution with the open dimension 'open_dimension_lower_bound' (in
+ * the original coordinates) is found.
+ *
+ * 'pairs_data' contains the data of the pairs of item types in each of their
+ * rotations, computed when first needed; it is shared by the searches of the
+ * subsets of items of a call to 'tree_search_relative_positions'.
+ */
+ItemsOutput tree_search_relative_positions_items(
         const Instance& instance,
         BinTypeId bin_type_id,
         const std::vector<ItemTypeId>& item_type_ids,
-        const TreeSearchRelativePositionsParameters& parameters)
+        const TreeSearchRelativePositionsParameters& parameters,
+        LengthDbl open_dimension_lower_bound,
+        std::map<TreeSearchRelativePositionsPairKey, PairData>& pairs_data)
 {
-    TreeSearchRelativePositionsOutput output;
+    ItemsOutput output;
     const BinType& bin_type = instance.bin_type(bin_type_id);
     const AxisAlignedBoundingBox& bin_aabb = bin_type.aabb_scaled;
     LengthDbl bin_spacing = instance.bin_spacing_scaled(bin_type_id);
     LengthDbl bin_width = bin_aabb.x_max - bin_aabb.x_min - 2 * bin_spacing;
     LengthDbl bin_height = bin_aabb.y_max - bin_aabb.y_min - 2 * bin_spacing;
+    LengthDbl scale_value = instance.parameters().scale_value;
+    LengthDbl tolerance = 1e-6 * (bin_width + bin_height + 1);
+    const LengthDbl inf = std::numeric_limits<LengthDbl>::infinity();
+
+    // Open axis: 0 for x, 1 for y, -1 if both dimensions are fixed.
+    int open_axis = (instance.objective() == Objective::OpenDimensionX)? 0:
+        (instance.objective() == Objective::OpenDimensionY)? 1: -1;
+    // Start of the strip along the open axis.
+    LengthDbl open_start = (open_axis == 0)?
+        bin_aabb.x_min + bin_spacing:
+        bin_aabb.y_min + bin_spacing;
+    // Only the solutions whose open dimension (scaled) is smaller than the
+    // threshold are searched; it decreases when better ones are found.
+    std::atomic<LengthDbl> threshold(inf);
+    if (open_axis != -1) {
+        LengthDbl bin_end = (open_axis == 0)?
+            bin_aabb.x_max - bin_spacing:
+            bin_aabb.y_max - bin_spacing;
+        threshold = (std::min)(
+                bin_end + 2 * tolerance,
+                parameters.open_dimension_upper_bound * scale_value);
+    }
 
     // Copies of the same item type are consecutive, for the symmetry
     // breaking.
@@ -490,7 +614,7 @@ TreeSearchRelativePositionsOutput packingsolver::irregular::tree_search_relative
             continue;
         const ItemType& item_type = instance.item_type(item_type_id);
         if (!item_type.has_only_discrete_rotations()) {
-            output.status = TreeSearchRelativePositionsStatus::Unknown;
+            output.status = Status::Unknown;
             return output;
         }
         std::vector<ItemTypeRotationData>& item_type_rotations = rotations[item_type_id];
@@ -517,8 +641,8 @@ TreeSearchRelativePositionsOutput packingsolver::irregular::tree_search_relative
             rotation.y_max = bin_aabb.y_max - bin_spacing - aabb.y_max;
             // An item which fits exactly may get a slightly empty inner-fit
             // rectangle because of rounding errors.
-            if (strictly_lesser(rotation.x_max, rotation.x_min)
-                    || strictly_lesser(rotation.y_max, rotation.y_min)) {
+            if (packingsolver::strictly_lesser(rotation.x_max, rotation.x_min)
+                    || packingsolver::strictly_lesser(rotation.y_max, rotation.y_min)) {
                 continue;
             }
             rotation.x_max = (std::max)(rotation.x_max, rotation.x_min);
@@ -539,12 +663,12 @@ TreeSearchRelativePositionsOutput packingsolver::irregular::tree_search_relative
             item_type_rotations.push_back(rotation);
         }
         if (item_type_rotations.empty()) {
-            output.status = TreeSearchRelativePositionsStatus::Infeasible;
+            output.status = Status::Infeasible;
             return output;
         }
     }
-    if (number_of_items <= 1) {
-        output.status = TreeSearchRelativePositionsStatus::Feasible;
+    if (number_of_items <= 1 && open_axis == -1) {
+        output.status = Status::Feasible;
         return output;
     }
 
@@ -624,13 +748,7 @@ TreeSearchRelativePositionsOutput packingsolver::irregular::tree_search_relative
         }
     }
 
-    // Data of the pairs of item types in each of their rotations, computed
-    // when first needed, and kept in the cache if one is given.
-    TreeSearchRelativePositionsCache local_cache;
-    TreeSearchRelativePositionsCache::Data& cache_data = (parameters.cache != nullptr)?
-        *parameters.cache->data_:
-        *local_cache.data_;
-    std::map<TreeSearchRelativePositionsPairKey, PairData>& pairs_data = cache_data.pairs_data;
+    // Data of the pairs of item types in each of their rotations.
     auto pair_data = [&](
             ItemPos item_pos_1,
             ItemPos item_pos_2,
@@ -640,7 +758,6 @@ TreeSearchRelativePositionsOutput packingsolver::irregular::tree_search_relative
         ItemTypeId item_type_id_1 = sorted_item_type_ids[item_pos_1];
         ItemTypeId item_type_id_2 = sorted_item_type_ids[item_pos_2];
         TreeSearchRelativePositionsPairKey key = std::make_tuple(
-                bin_type_id,
                 item_type_id_1,
                 rotation_id_1,
                 item_type_id_2,
@@ -654,378 +771,10 @@ TreeSearchRelativePositionsOutput packingsolver::irregular::tree_search_relative
         return it->second;
     };
 
-    // Rotation combinations; the rotations of identical items are
-    // non-decreasing. A partial combination in which a pair of items doesn't
-    // fit isn't extended. All the pair data needed later are computed here,
-    // so that they are only read by the threads.
-    std::vector<std::vector<Counter>> combinations;
-    {
-        std::vector<Counter> rotation_ids(number_of_items, 0);
-        std::function<void(ItemPos)> enumerate = [&](ItemPos item_pos)
-        {
-            if (item_pos == number_of_items) {
-                combinations.push_back(rotation_ids);
-                return;
-            }
-            if (parameters.timer.needs_to_end())
-                return;
-            ItemTypeId item_type_id = sorted_item_type_ids[item_pos];
-            Counter rotation_id_start = (item_pos > 0 && sorted_item_type_ids[item_pos - 1] == item_type_id)?
-                rotation_ids[item_pos - 1]: 0;
-            for (Counter rotation_id = rotation_id_start;
-                    rotation_id < (Counter)rotations[item_type_id].size();
-                    ++rotation_id) {
-                if (item_pos == symmetry_item_pos
-                        && symmetric_rotation_ids[rotation_id] < rotation_id) {
-                    continue;
-                }
-                bool fits = true;
-                for (ItemPos item_pos_1 = 0; item_pos_1 < item_pos; ++item_pos_1) {
-                    const PairData& pair = pair_data(
-                            item_pos_1,
-                            item_pos,
-                            rotation_ids[item_pos_1],
-                            rotation_id);
-                    if (pair.interact && pair.pieces.empty()) {
-                        fits = false;
-                        break;
-                    }
-                }
-                if (!fits)
-                    continue;
-                rotation_ids[item_pos] = rotation_id;
-                enumerate(item_pos + 1);
-            }
-        };
-        enumerate(0);
-    }
-    if (parameters.timer.needs_to_end()) {
-        output.status = TreeSearchRelativePositionsStatus::Unknown;
-        return output;
-    }
-
-    // Return 'true' if a rotation combination is proven infeasible without
-    // solving its program, by the core widening.
-    auto prune = [&](const std::vector<Counter>& rotation_ids) -> bool
-    {
-        // Core widening.
-        //
-        // The core of an item is the part of its y-range which no other item
-        // can reach, whatever their positions. Since the rotations are fixed,
-        // the horizontal band of the core of an item, across the bin, doesn't
-        // contain any other item. Thus the item can be widened to the width
-        // of the bin on its core. The cores of different items are disjoint,
-        // so the set of items doesn't fit if the sum of the widened areas
-        // exceeds the area of the bin.
-        AreaDbl widened_area = 0;
-        for (ItemPos item_pos = 0; item_pos < number_of_items; ++item_pos) {
-            const ItemTypeRotationData& rotation = rotations[sorted_item_type_ids[item_pos]][rotation_ids[item_pos]];
-            const AxisAlignedBoundingBox& aabb = rotation.aabb;
-
-            // Parts of the y-range of the item, relative to its reference
-            // point, which another item can reach.
-            std::vector<std::pair<LengthDbl, LengthDbl>> intrusions;
-            for (ItemPos item_pos_2 = 0; item_pos_2 < number_of_items; ++item_pos_2) {
-                if (item_pos_2 == item_pos)
-                    continue;
-                const AxisAlignedBoundingBox& aabb_2 = rotations[sorted_item_type_ids[item_pos_2]][rotation_ids[item_pos_2]].aabb;
-                // The pair data are for d = p_{pos_2} - p_{pos_1} with
-                // pos_1 < pos_2; the relative position of the other item is
-                // the opposite if it comes first.
-                bool reversed = (item_pos_2 < item_pos);
-                const PairData& pair = (reversed)?
-                    pair_data(item_pos_2, item_pos, rotation_ids[item_pos_2], rotation_ids[item_pos]):
-                    pair_data(item_pos, item_pos_2, rotation_ids[item_pos], rotation_ids[item_pos_2]);
-                auto add_intrusion = [&](LengthDbl dy_min, LengthDbl dy_max)
-                {
-                    if (reversed) {
-                        LengthDbl tmp = dy_min;
-                        dy_min = -dy_max;
-                        dy_max = -tmp;
-                    }
-                    LengthDbl y_min = (std::max)(dy_min + aabb_2.y_min, aabb.y_min);
-                    LengthDbl y_max = (std::min)(dy_max + aabb_2.y_max, aabb.y_max);
-                    if (y_min < y_max)
-                        intrusions.push_back({y_min, y_max});
-                };
-                if (!pair.interact) {
-                    add_intrusion(pair.y_min, pair.y_max);
-                } else {
-                    // A piece is convex, so it contains a relative position
-                    // for each y-coordinate of its range.
-                    for (const Piece& piece: pair.pieces)
-                        add_intrusion(piece.y_min, piece.y_max);
-                }
-            }
-
-            // Core: complement of the union of the intrusions.
-            std::sort(intrusions.begin(), intrusions.end());
-            std::vector<std::pair<LengthDbl, LengthDbl>> core;
-            LengthDbl y_current = aabb.y_min;
-            for (const auto& intrusion: intrusions) {
-                if (intrusion.first > y_current)
-                    core.push_back({y_current, intrusion.first});
-                y_current = (std::max)(y_current, intrusion.second);
-            }
-            if (aabb.y_max > y_current)
-                core.push_back({y_current, aabb.y_max});
-
-            // Widened area: the core across the bin, plus the area of the
-            // item outside of its core.
-            widened_area += rotation.area;
-            LengthDbl item_width = aabb.x_max - aabb.x_min;
-            for (const auto& strip: core) {
-                ShapeWithHoles strip_shape = {shape::build_rectangle(
-                        aabb.x_min - item_width,
-                        aabb.x_max + item_width,
-                        strip.first,
-                        strip.second)};
-                widened_area += bin_width * (strip.second - strip.first);
-                for (const ShapeWithHoles& shape: rotation.shapes)
-                    for (const ShapeWithHoles& part: shape::compute_intersection({shape, strip_shape}).shapes_with_holes)
-                        widened_area -= part.compute_area();
-            }
-        }
-        return strictly_greater_profit(widened_area, bin_width * bin_height);
-    };
-
-    // Add the constraints 'n . (p_2 - p_1) >= c - M * (1 - z)' of the pieces
-    // of a pair, where M is such that the constraint holds for every relative
-    // position d of 'relative_box' (x_min, x_max, y_min, y_max).
-    auto add_piece_constraints = [](
-            mathoptsolverscmake::MathOptModel& model,
-            ItemPos item_pos_1,
-            ItemPos item_pos_2,
-            const Piece& piece,
-            int piece_variable_id,
-            const std::array<LengthDbl, 4>& relative_box)
-    {
-        for (const HalfPlane& half_plane: piece.half_planes) {
-            LengthDbl c = half_plane.c;
-            LengthDbl minimum = half_plane.nx * ((half_plane.nx > 0)? relative_box[0]: relative_box[1])
-                + half_plane.ny * ((half_plane.ny > 0)? relative_box[2]: relative_box[3]);
-            LengthDbl big_m = c - minimum;
-            if (big_m <= 0)
-                continue;
-            model.constraints_starts.push_back(model.elements_variables.size());
-            model.constraints_lower_bounds.push_back(c - big_m);
-            model.constraints_upper_bounds.push_back(std::numeric_limits<double>::infinity());
-            model.elements_variables.push_back(2 * item_pos_2);
-            model.elements_coefficients.push_back(half_plane.nx);
-            model.elements_variables.push_back(2 * item_pos_2 + 1);
-            model.elements_coefficients.push_back(half_plane.ny);
-            model.elements_variables.push_back(2 * item_pos_1);
-            model.elements_coefficients.push_back(-half_plane.nx);
-            model.elements_variables.push_back(2 * item_pos_1 + 1);
-            model.elements_coefficients.push_back(-half_plane.ny);
-            model.elements_variables.push_back(piece_variable_id);
-            model.elements_coefficients.push_back(-big_m);
-        }
-    };
-    auto add_variable = [](
-            mathoptsolverscmake::MathOptModel& model,
-            double lower_bound,
-            double upper_bound,
-            mathoptsolverscmake::VariableType type) -> int
-    {
-        model.variables_lower_bounds.push_back(lower_bound);
-        model.variables_upper_bounds.push_back(upper_bound);
-        model.variables_types.push_back(type);
-        model.objective_coefficients.push_back(0.0);
-        return model.variables_lower_bounds.size() - 1;
-    };
-    auto add_constraint = [](
-            mathoptsolverscmake::MathOptModel& model,
-            double lower_bound,
-            double upper_bound,
-            const std::vector<std::pair<int, double>>& elements)
-    {
-        model.constraints_starts.push_back(model.elements_variables.size());
-        model.constraints_lower_bounds.push_back(lower_bound);
-        model.constraints_upper_bounds.push_back(upper_bound);
-        for (const auto& element: elements) {
-            model.elements_variables.push_back(element.first);
-            model.elements_coefficients.push_back(element.second);
-        }
-    };
-    // Three-item cuts of the triples of (item type, rotation), computed when
-    // first needed, and kept in the cache.
-    std::map<TreeSearchRelativePositionsTripleKey, std::vector<ThreeItemCut>>& three_item_cuts = cache_data.three_item_cuts;
-    std::mutex& three_item_cuts_mutex = cache_data.three_item_cuts_mutex;
-    auto compute_three_item_cuts = [](
-            const PairData& pair_12,
-            const PairData& pair_23,
-            const PairData& pair_13)
-    {
-        auto clipped_pieces = [](const PairData& pair)
-        {
-            std::vector<std::vector<Point>> pieces;
-            for (const Piece& piece: pair.pieces)
-                pieces.push_back(clip(piece.vertices, pair.x_min, pair.x_max, pair.y_min, pair.y_max));
-            return pieces;
-        };
-        std::vector<std::vector<Point>> pieces_12 = clipped_pieces(pair_12);
-        std::vector<std::vector<Point>> pieces_23 = clipped_pieces(pair_23);
-        std::vector<std::vector<Point>> pieces_13 = clipped_pieces(pair_13);
-        LengthDbl tolerance = 1e-6 * (
-                (pair_13.x_max - pair_13.x_min)
-                + (pair_13.y_max - pair_13.y_min) + 1);
-        std::vector<ThreeItemCut> cuts;
-        for (Counter piece_pos_12 = 0; piece_pos_12 < (Counter)pieces_12.size(); ++piece_pos_12) {
-            for (Counter piece_pos_23 = 0; piece_pos_23 < (Counter)pieces_23.size(); ++piece_pos_23) {
-                // An empty clipped piece can't be selected.
-                std::vector<Point> sum_points;
-                for (const Point& point_12: pieces_12[piece_pos_12])
-                    for (const Point& point_23: pieces_23[piece_pos_23])
-                        sum_points.push_back({point_12.x + point_23.x, point_12.y + point_23.y});
-                std::vector<Point> sum = convex_hull(sum_points);
-                ThreeItemCut cut;
-                cut.piece_pos_12 = piece_pos_12;
-                cut.piece_pos_23 = piece_pos_23;
-                for (Counter piece_pos_13 = 0; piece_pos_13 < (Counter)pieces_13.size(); ++piece_pos_13)
-                    if (separated(sum, pieces_13[piece_pos_13], tolerance))
-                        cut.pieces_pos_13.push_back(piece_pos_13);
-                if (!cut.pieces_pos_13.empty())
-                    cuts.push_back(cut);
-            }
-        }
-        return cuts;
-    };
-
-    // Build the MILP of a rotation combination, restricted to the items
-    // 'active' (all the items if it is empty); the positions of the other
-    // items are free.
-    auto build_model = [&](
-            const std::vector<Counter>& rotation_ids,
-            const std::vector<bool>& active = {})
-    {
-        auto is_active = [&active](ItemPos item_pos)
-        {
-            return active.empty() || active[item_pos];
-        };
-        mathoptsolverscmake::MathOptModel model;
-        model.objective_direction = mathoptsolverscmake::ObjectiveDirection::Minimize;
-
-        // Positions of the reference points.
-        for (ItemPos item_pos = 0; item_pos < number_of_items; ++item_pos) {
-            const ItemTypeRotationData& rotation = rotations[sorted_item_type_ids[item_pos]][rotation_ids[item_pos]];
-            add_variable(model, rotation.x_min, rotation.x_max, mathoptsolverscmake::VariableType::Continuous);
-            add_variable(model, rotation.y_min, rotation.y_max, mathoptsolverscmake::VariableType::Continuous);
-        }
-
-        // Symmetry breaking: identical items are sorted by x.
-        for (ItemPos item_pos = 0; item_pos + 1 < number_of_items; ++item_pos) {
-            if (sorted_item_type_ids[item_pos] != sorted_item_type_ids[item_pos + 1]
-                    || rotation_ids[item_pos] != rotation_ids[item_pos + 1]
-                    || !is_active(item_pos)
-                    || !is_active(item_pos + 1)) {
-                continue;
-            }
-            add_constraint(
-                    model,
-                    -std::numeric_limits<double>::infinity(),
-                    0.0,
-                    {{2 * item_pos, 1.0}, {2 * (item_pos + 1), -1.0}});
-        }
-
-        // Non-overlap constraints. First variable of the pieces of each pair,
-        // -1 if the items don't interact.
-        std::vector<std::vector<int>> first_piece_variable_ids(
-                number_of_items,
-                std::vector<int>(number_of_items, -1));
-        for (ItemPos item_pos_1 = 0; item_pos_1 < number_of_items; ++item_pos_1) {
-            if (!is_active(item_pos_1))
-                continue;
-            for (ItemPos item_pos_2 = item_pos_1 + 1; item_pos_2 < number_of_items; ++item_pos_2) {
-                if (!is_active(item_pos_2))
-                    continue;
-                const PairData& pair = pair_data(
-                        item_pos_1,
-                        item_pos_2,
-                        rotation_ids[item_pos_1],
-                        rotation_ids[item_pos_2]);
-                if (!pair.interact)
-                    continue;
-                // Exactly one piece.
-                first_piece_variable_ids[item_pos_1][item_pos_2] = model.variables_lower_bounds.size();
-                std::vector<std::pair<int, double>> elements;
-                for (const Piece& piece: pair.pieces) {
-                    int piece_variable_id = add_variable(model, 0, 1, mathoptsolverscmake::VariableType::Binary);
-                    elements.push_back({piece_variable_id, 1.0});
-                    add_piece_constraints(
-                            model,
-                            item_pos_1,
-                            item_pos_2,
-                            piece,
-                            piece_variable_id,
-                            {pair.x_min, pair.x_max, pair.y_min, pair.y_max});
-                }
-                add_constraint(model, 1.0, 1.0, elements);
-            }
-        }
-
-        // Three-item cuts: 'z_a + z_b + sum_c z_c <= 2'.
-        ItemPos number_of_active_items = 0;
-        for (ItemPos item_pos = 0; item_pos < number_of_items; ++item_pos)
-            if (is_active(item_pos))
-                number_of_active_items++;
-        // With 3 items, the cuts don't pay off.
-        if (parameters.three_item_cuts && number_of_active_items >= 4) {
-            for (ItemPos item_pos_1 = 0; item_pos_1 < number_of_items; ++item_pos_1) {
-                for (ItemPos item_pos_2 = item_pos_1 + 1; item_pos_2 < number_of_items; ++item_pos_2) {
-                    for (ItemPos item_pos_3 = item_pos_2 + 1; item_pos_3 < number_of_items; ++item_pos_3) {
-                        int first_12 = first_piece_variable_ids[item_pos_1][item_pos_2];
-                        int first_23 = first_piece_variable_ids[item_pos_2][item_pos_3];
-                        int first_13 = first_piece_variable_ids[item_pos_1][item_pos_3];
-                        if (first_12 == -1 || first_23 == -1 || first_13 == -1)
-                            continue;
-                        TreeSearchRelativePositionsTripleKey key = std::make_tuple(
-                                bin_type_id,
-                                sorted_item_type_ids[item_pos_1], rotation_ids[item_pos_1],
-                                sorted_item_type_ids[item_pos_2], rotation_ids[item_pos_2],
-                                sorted_item_type_ids[item_pos_3], rotation_ids[item_pos_3]);
-                        std::vector<ThreeItemCut> cuts;
-                        bool found = false;
-                        {
-                            std::lock_guard<std::mutex> lock(three_item_cuts_mutex);
-                            auto it = three_item_cuts.find(key);
-                            if (it != three_item_cuts.end()) {
-                                cuts = it->second;
-                                found = true;
-                            }
-                        }
-                        if (!found) {
-                            cuts = compute_three_item_cuts(
-                                    pair_data(item_pos_1, item_pos_2, rotation_ids[item_pos_1], rotation_ids[item_pos_2]),
-                                    pair_data(item_pos_2, item_pos_3, rotation_ids[item_pos_2], rotation_ids[item_pos_3]),
-                                    pair_data(item_pos_1, item_pos_3, rotation_ids[item_pos_1], rotation_ids[item_pos_3]));
-                            std::lock_guard<std::mutex> lock(three_item_cuts_mutex);
-                            three_item_cuts.insert({key, cuts});
-                        }
-                        for (const ThreeItemCut& cut: cuts) {
-                            std::vector<std::pair<int, double>> elements = {
-                                {first_12 + cut.piece_pos_12, 1.0},
-                                {first_23 + cut.piece_pos_23, 1.0}};
-                            for (Counter piece_pos_13: cut.pieces_pos_13)
-                                elements.push_back({first_13 + piece_pos_13, 1.0});
-                            add_constraint(
-                                    model,
-                                    -std::numeric_limits<double>::infinity(),
-                                    2.0,
-                                    elements);
-                        }
-                    }
-                }
-            }
-        }
-        return model;
-    };
-
-    // Solve a linear program or a MILP; 'stop' interrupts it.
-    std::atomic<bool> stop(false);
-    auto solve_model = [&](
+    // Solve a linear program.
+    auto solve_linear_program = [&parameters](
             const mathoptsolverscmake::MathOptModel& model,
-            std::vector<double>& values) -> TreeSearchRelativePositionsStatus
+            std::vector<double>& values) -> Status
     {
         if (parameters.solver == mathoptsolverscmake::SolverName::Highs) {
 #ifdef HIGHS_FOUND
@@ -1033,29 +782,15 @@ TreeSearchRelativePositionsOutput packingsolver::irregular::tree_search_relative
             mathoptsolverscmake::reduce_printout(highs);
             mathoptsolverscmake::set_time_limit(highs, parameters.timer.remaining_time());
             mathoptsolverscmake::load(highs, model);
-            highs.setCallback([&stop, &parameters](
-                        const int callback_type,
-                        const std::string&,
-                        const HighsCallbackOutput*,
-                        HighsCallbackInput* highs_input,
-                        void*)
-                    {
-                        if (callback_type != HighsCallbackType::kCallbackMipInterrupt)
-                            return;
-                        if (stop || parameters.timer.needs_to_end())
-                            highs_input->user_interrupt = 1;
-                    },
-                    nullptr);
-            highs.startCallback(HighsCallbackType::kCallbackMipInterrupt);
             mathoptsolverscmake::solve(highs);
             HighsModelStatus status = highs.getModelStatus();
             if (status == HighsModelStatus::kInfeasible)
-                return TreeSearchRelativePositionsStatus::Infeasible;
+                return Status::Infeasible;
             if (status == HighsModelStatus::kOptimal) {
                 values = highs.getSolution().col_value;
-                return TreeSearchRelativePositionsStatus::Feasible;
+                return Status::Feasible;
             }
-            return TreeSearchRelativePositionsStatus::Unknown;
+            return Status::Unknown;
 #else
             throw std::invalid_argument(FUNC_SIGNATURE);
 #endif
@@ -1064,225 +799,659 @@ TreeSearchRelativePositionsOutput packingsolver::irregular::tree_search_relative
         }
     };
 
-    // Tree search on the pieces of the pairs, for the program of a rotation
-    // combination restricted to the items 'active'.
+    // Rotations allowed for each item at the root. The item restricted by the
+    // symmetry of the bin only keeps one rotation of each symmetric pair.
+    std::vector<std::vector<Counter>> root_rotation_domains(number_of_items);
+    for (ItemPos item_pos = 0; item_pos < number_of_items; ++item_pos) {
+        ItemTypeId item_type_id = sorted_item_type_ids[item_pos];
+        for (Counter rotation_id = 0;
+                rotation_id < (Counter)rotations[item_type_id].size();
+                ++rotation_id) {
+            if (item_pos == symmetry_item_pos
+                    && symmetric_rotation_ids[rotation_id] < rotation_id) {
+                continue;
+            }
+            root_rotation_domains[item_pos].push_back(rotation_id);
+        }
+    }
+    auto item_rotation = [&](ItemPos item_pos, Counter rotation_id) -> const ItemTypeRotationData&
+    {
+        return rotations[sorted_item_type_ids[item_pos]][rotation_id];
+    };
+
+    // Pairs of items, with the pieces of all their pairs of rotations. If two
+    // items can't overlap in a pair of rotations, the piece of this pair of
+    // rotations is the rectangle R, whose constraints are implied by the
+    // bounds of the positions of the items. All the pair data are computed
+    // here, so that they are only read by the threads.
+    struct RotationPairPiece
+    {
+        Counter rotation_id_1;
+        Counter rotation_id_2;
+        const PairData* pair;
+        const Piece* piece;
+        /** 'true' iff the items can't overlap in these rotations. */
+        bool free;
+    };
+    struct ItemPair
+    {
+        ItemPos item_pos_1;
+        ItemPos item_pos_2;
+        std::vector<RotationPairPiece> pieces;
+    };
+    std::deque<Piece> free_pieces;
+    std::vector<ItemPair> pairs;
+    // Pairs of each item.
+    std::vector<std::vector<std::size_t>> item_pairs(number_of_items);
+    for (ItemPos item_pos_1 = 0; item_pos_1 < number_of_items; ++item_pos_1) {
+        for (ItemPos item_pos_2 = item_pos_1 + 1; item_pos_2 < number_of_items; ++item_pos_2) {
+            if (parameters.timer.needs_to_end()) {
+                output.status = Status::Unknown;
+                return output;
+            }
+            ItemPair item_pair;
+            item_pair.item_pos_1 = item_pos_1;
+            item_pair.item_pos_2 = item_pos_2;
+            for (Counter rotation_id_1: root_rotation_domains[item_pos_1]) {
+                for (Counter rotation_id_2: root_rotation_domains[item_pos_2]) {
+                    const PairData& pair = pair_data(item_pos_1, item_pos_2, rotation_id_1, rotation_id_2);
+                    if (!pair.interact) {
+                        free_pieces.push_back(rectangle_piece({pair.x_min, pair.x_max, pair.y_min, pair.y_max}));
+                        item_pair.pieces.push_back({rotation_id_1, rotation_id_2, &pair, &free_pieces.back(), true});
+                        continue;
+                    }
+                    output.maximum_number_of_pieces = (std::max)(
+                            output.maximum_number_of_pieces,
+                            (Counter)pair.pieces.size());
+                    for (const Piece& piece: pair.pieces)
+                        item_pair.pieces.push_back({rotation_id_1, rotation_id_2, &pair, &piece, false});
+                }
+            }
+            item_pairs[item_pos_1].push_back(pairs.size());
+            item_pairs[item_pos_2].push_back(pairs.size());
+            pairs.push_back(item_pair);
+        }
+    }
+
+    // Area profiles of the items in their rotations along the fixed axis (the
+    // y-axis if both dimensions are fixed), for the core bound.
+    int fixed_axis = (open_axis == 0 || open_axis == -1)? 1: 0;
+    std::map<std::pair<ItemTypeId, Counter>, AreaProfile> area_profiles;
+    for (ItemPos item_pos = 0; item_pos < number_of_items; ++item_pos) {
+        ItemTypeId item_type_id = sorted_item_type_ids[item_pos];
+        for (Counter rotation_id: root_rotation_domains[item_pos]) {
+            auto key = std::make_pair(item_type_id, rotation_id);
+            if (area_profiles.find(key) == area_profiles.end())
+                area_profiles[key] = compute_area_profile(item_rotation(item_pos, rotation_id).shapes, fixed_axis);
+        }
+    }
+    std::vector<std::vector<const AreaProfile*>> item_area_profiles(number_of_items);
+    for (ItemPos item_pos = 0; item_pos < number_of_items; ++item_pos) {
+        ItemTypeId item_type_id = sorted_item_type_ids[item_pos];
+        item_area_profiles[item_pos].resize(rotations[item_type_id].size(), nullptr);
+        for (Counter rotation_id: root_rotation_domains[item_pos])
+            item_area_profiles[item_pos][rotation_id] = &area_profiles[std::make_pair(item_type_id, rotation_id)];
+    }
+
+    // Depth-first tree search on the rotations of the items and on the
+    // pieces of the pairs.
     //
-    // A node fixes a subset of the pieces of each pair. Its relative
-    // positions are bounded by two difference-bound matrices, one for each
-    // axis, on the reference points of the items and an origin: 'ub[a][b]'
-    // bounds 'v_b - v_a' from above. The propagation alternates the closure
-    // of the matrices with the filtering of the pieces: the pieces which
-    // don't intersect the box of their pair are removed, and the box is
-    // shrunk to the bounding box of the remaining pieces clipped to it. Once
-    // a single piece is left for each pair, the program is a linear program.
+    // A node restricts the rotations of each item and the pieces of each
+    // pair. Its positions are bounded by two difference-bound matrices, one
+    // for each axis, on the reference points of the items and an origin:
+    // 'ub[a][b]' bounds 'v_b - v_a' from above. For the open dimension
+    // objectives, the matrices have another node, the end of the strip along
+    // the open axis, and only the solutions whose open dimension is smaller
+    // than the threshold are searched; the tree search continues after
+    // finding one, to find the minimum open dimension.
+    ItemPos l = (open_axis != -1)? number_of_items + 1: -1;
+    ItemPos m = (open_axis != -1)? number_of_items + 2: number_of_items + 1;
+    bool optimize = (open_axis != -1);
+    std::atomic<bool> stop(false);
     std::atomic<Counter> number_of_nodes(0);
     std::atomic<Counter> number_of_linear_programs(0);
-    auto solve_tree_search = [&](
-            const std::vector<Counter>& rotation_ids,
-            const std::vector<bool>& active,
-            std::vector<double>& values) -> TreeSearchRelativePositionsStatus
+    std::mutex best_mutex;
+    // Set when a solution reaches the lower bound of the parameters.
+    std::atomic<bool> lower_bound_reached(false);
+    // Open dimension of the best solution found.
+    LengthDbl best_value = inf;
+    // Write the positions of a solution in the output.
+    auto set_output_items = [&](
+            const std::vector<std::vector<Counter>>& rotation_domains,
+            const std::vector<double>& values)
     {
-        // Active items, node 0 being the origin.
-        std::vector<ItemPos> item_positions;
-        for (ItemPos item_pos = 0; item_pos < number_of_items; ++item_pos)
-            if (active.empty() || active[item_pos])
-                item_positions.push_back(item_pos);
-        ItemPos k = item_positions.size();
-        ItemPos m = k + 1;
-        LengthDbl tolerance = 1e-6 * (bin_width + bin_height + 1);
-        const LengthDbl inf = std::numeric_limits<LengthDbl>::infinity();
+        output.items.clear();
+        for (ItemPos item_pos = 0; item_pos < number_of_items; ++item_pos) {
+            const ItemTypeRotationData& rotation = item_rotation(item_pos, rotation_domains[item_pos].front());
+            SolutionItem item;
+            item.item_type_id = sorted_item_type_ids[item_pos];
+            item.bl_corner.x = values[2 * item_pos] / scale_value;
+            item.bl_corner.y = values[2 * item_pos + 1] / scale_value;
+            item.angle = rotation.angle;
+            item.mirror = rotation.mirror;
+            output.items.push_back(item);
+        }
+    };
 
-        // Pairs of active items which interact.
-        struct BranchAndBoundPair
-        {
-            ItemPos node_1;
-            ItemPos node_2;
-            const PairData* pair;
-        };
-        std::vector<BranchAndBoundPair> pairs;
-        for (ItemPos node_1 = 1; node_1 <= k; ++node_1) {
-            for (ItemPos node_2 = node_1 + 1; node_2 <= k; ++node_2) {
-                const PairData& pair = pair_data(
-                        item_positions[node_1 - 1],
-                        item_positions[node_2 - 1],
-                        rotation_ids[item_positions[node_1 - 1]],
-                        rotation_ids[item_positions[node_2 - 1]]);
-                if (!pair.interact)
-                    continue;
-                pairs.push_back({node_1, node_2, &pair});
-            }
-        }
+    struct Node
+    {
+        /** Difference-bound matrices, for x and y, of size m * m. */
+        std::vector<LengthDbl> ub_x;
+        std::vector<LengthDbl> ub_y;
 
-        struct Node
-        {
-            /** Difference-bound matrices, for x and y, of size m * m. */
-            std::vector<LengthDbl> ub_x;
-            std::vector<LengthDbl> ub_y;
+        /** Remaining rotations of each item, sorted. */
+        std::vector<std::vector<Counter>> rotation_domains;
 
-            /** Remaining pieces of each pair. */
-            std::vector<std::vector<Counter>> domains;
-        };
-        Node root;
-        root.ub_x.assign(m * m, inf);
-        root.ub_y.assign(m * m, inf);
-        for (ItemPos a = 0; a < m; ++a) {
-            root.ub_x[a * m + a] = 0;
-            root.ub_y[a * m + a] = 0;
-        }
-        for (ItemPos node = 1; node <= k; ++node) {
-            const ItemTypeRotationData& rotation = rotations[sorted_item_type_ids[item_positions[node - 1]]][rotation_ids[item_positions[node - 1]]];
-            root.ub_x[0 * m + node] = rotation.x_max;
-            root.ub_x[node * m + 0] = -rotation.x_min;
-            root.ub_y[0 * m + node] = rotation.y_max;
-            root.ub_y[node * m + 0] = -rotation.y_min;
-        }
-        // Symmetry breaking: identical items are sorted by x.
-        for (ItemPos node = 1; node < k; ++node) {
-            ItemPos item_pos_1 = item_positions[node - 1];
-            ItemPos item_pos_2 = item_positions[node];
-            if (sorted_item_type_ids[item_pos_1] == sorted_item_type_ids[item_pos_2]
-                    && rotation_ids[item_pos_1] == rotation_ids[item_pos_2]) {
-                root.ub_x[(node + 1) * m + node] = 0;
-            }
-        }
-        for (const BranchAndBoundPair& pair: pairs) {
-            std::vector<Counter> domain(pair.pair->pieces.size());
-            std::iota(domain.begin(), domain.end(), 0);
-            root.domains.push_back(domain);
-        }
+        /** Remaining pieces of each pair. */
+        std::vector<std::vector<Counter>> domains;
 
-        // Tighten 'ub[a][b]' to 'value'; return 'true' if it changed.
-        auto tighten = [&](std::vector<LengthDbl>& ub, ItemPos a, ItemPos b, LengthDbl value)
-        {
-            if (value < ub[a * m + b] - tolerance) {
-                ub[a * m + b] = value;
-                return true;
-            }
-            return false;
-        };
-        // Close a matrix; return 'false' if it is inconsistent.
-        auto close = [&](std::vector<LengthDbl>& ub)
-        {
-            for (ItemPos c = 0; c < m; ++c)
-                for (ItemPos a = 0; a < m; ++a)
-                    for (ItemPos b = 0; b < m; ++b)
-                        if (ub[a * m + c] + ub[c * m + b] < ub[a * m + b])
-                            ub[a * m + b] = ub[a * m + c] + ub[c * m + b];
-            for (ItemPos a = 0; a < m; ++a)
-                if (ub[a * m + a] < -tolerance)
-                    return false;
+        /**
+         * Box of the relative positions of each pair when its pieces were
+         * last filtered; infinite if they must be filtered again.
+         */
+        std::vector<std::array<LengthDbl, 4>> filtered_boxes;
+
+        /** 'true' iff the matrices are closed. */
+        bool closed = false;
+
+        /** 'true' iff the node has been propagated. */
+        bool propagated = false;
+    };
+
+    // Data of a thread.
+    struct ThreadData
+    {
+        /** Entries tightened since the last update of the closure. */
+        std::vector<std::tuple<int, ItemPos, ItemPos>> tightened_entries;
+
+        std::vector<Point> clip_buffer_1;
+        std::vector<Point> clip_buffer_2;
+
+        /** Rotations supported by the pieces of a pair. */
+        std::vector<char> supported_1;
+        std::vector<char> supported_2;
+
+        /** Allowed rotations of each item. */
+        std::vector<std::vector<char>> allowed;
+
+        /** Ranges of the other items, for the core bound. */
+        std::vector<std::pair<LengthDbl, LengthDbl>> intrusions;
+
+        /** Positions of the solution of the last linear program. */
+        std::vector<double> values;
+    };
+
+    Node root;
+    root.ub_x.assign(m * m, inf);
+    root.ub_y.assign(m * m, inf);
+    for (ItemPos a = 0; a < m; ++a) {
+        root.ub_x[a * m + a] = 0;
+        root.ub_y[a * m + a] = 0;
+    }
+    root.rotation_domains = root_rotation_domains;
+    for (const ItemPair& pair: pairs) {
+        std::vector<Counter> domain(pair.pieces.size());
+        std::iota(domain.begin(), domain.end(), 0);
+        root.domains.push_back(domain);
+    }
+    root.filtered_boxes.assign(pairs.size(), {inf, inf, inf, inf});
+
+    // Tighten 'ub[a][b]' to 'value'; return 'true' if it changed. The
+    // tightened entries are recorded (the axis and the nodes), for the
+    // update of the closure.
+    auto tighten = [&](
+            ThreadData& thread_data,
+            std::vector<LengthDbl>& ub,
+            int axis,
+            ItemPos a,
+            ItemPos b,
+            LengthDbl value)
+    {
+        if (value < ub[a * m + b] - tolerance) {
+            ub[a * m + b] = value;
+            thread_data.tightened_entries.push_back(std::make_tuple(axis, a, b));
             return true;
-        };
-        // Propagate; return 'false' if the node is infeasible.
-        auto propagate = [&](Node& node) -> bool
-        {
-            for (;;) {
-                if (!close(node.ub_x) || !close(node.ub_y))
+        }
+        return false;
+    };
+    // Update the closure of a closed matrix after the tightening of entry
+    // (a, b); return 'false' if it is inconsistent.
+    auto close_entry = [&](std::vector<LengthDbl>& ub, ItemPos a, ItemPos b)
+    {
+        LengthDbl value = ub[a * m + b];
+        for (ItemPos c = 0; c < m; ++c) {
+            LengthDbl value_ca = ub[c * m + a];
+            if (value_ca == inf)
+                continue;
+            for (ItemPos d = 0; d < m; ++d)
+                if (value_ca + value + ub[b * m + d] < ub[c * m + d])
+                    ub[c * m + d] = value_ca + value + ub[b * m + d];
+        }
+        for (ItemPos c = 0; c < m; ++c)
+            if (ub[c * m + c] < -tolerance)
+                return false;
+        return true;
+    };
+    // Close a matrix; return 'false' if it is inconsistent.
+    auto close = [&](std::vector<LengthDbl>& ub)
+    {
+        for (ItemPos c = 0; c < m; ++c)
+            for (ItemPos a = 0; a < m; ++a)
+                for (ItemPos b = 0; b < m; ++b)
+                    if (ub[a * m + c] + ub[c * m + b] < ub[a * m + b])
+                        ub[a * m + b] = ub[a * m + c] + ub[c * m + b];
+        for (ItemPos a = 0; a < m; ++a)
+            if (ub[a * m + a] < -tolerance)
+                return false;
+        return true;
+    };
+    // Bound on the open dimension of the solutions of a node.
+    auto node_bound = [&](const Node& node)
+    {
+        return (open_axis == 0)? -node.ub_x[l * m + 0]: -node.ub_y[l * m + 0];
+    };
+    auto axis_min = [](const AxisAlignedBoundingBox& aabb, int axis) { return (axis == 0)? aabb.x_min: aabb.y_min; };
+    auto axis_max = [](const AxisAlignedBoundingBox& aabb, int axis) { return (axis == 0)? aabb.x_max: aabb.y_max; };
+    // Restrict the rotations of an item to the ones satisfying 'keep';
+    // return 'true' if some are removed. The pieces of its pairs must then
+    // be filtered again.
+    auto restrict_rotations = [&](Node& node, ItemPos item_pos, const std::function<bool(Counter)>& keep)
+    {
+        std::vector<Counter>& rotation_domain = node.rotation_domains[item_pos];
+        std::size_t size = 0;
+        for (Counter rotation_id: rotation_domain)
+            if (keep(rotation_id))
+                rotation_domain[size++] = rotation_id;
+        if (size == rotation_domain.size())
+            return false;
+        rotation_domain.resize(size);
+        for (std::size_t pair_pos: item_pairs[item_pos])
+            node.filtered_boxes[pair_pos] = {inf, inf, inf, inf};
+        return true;
+    };
+
+    // Core bound: the core of an item along the fixed axis is the part of
+    // its range which the other items can't reach, given the pieces and the
+    // relative positions of the node. The band of the core of an item, along
+    // the bin, contains no other item, so the item can be widened to the
+    // length of the bin on its core. The cores of different items are
+    // disjoint, so the node is infeasible if the sum of the widened areas
+    // exceeds the area of the bin. For the open dimension objectives, the
+    // length of the bin is the threshold. Since the rotations of the items
+    // may not be fixed, the smallest widened area of their rotations is
+    // taken. Return 'false' if the node is infeasible.
+    LengthDbl fixed_size = (fixed_axis == 1)? bin_height: bin_width;
+    auto core_bound = [&](ThreadData& thread_data, const Node& node) -> bool
+    {
+        LengthDbl length = (open_axis == -1)?
+            bin_width:
+            (LengthDbl)threshold - open_start;
+        if (length == inf)
+            return true;
+        const std::vector<LengthDbl>& ub = (fixed_axis == 0)? node.ub_x: node.ub_y;
+        AreaDbl widened_area = 0;
+        for (ItemPos item_pos = 0; item_pos < number_of_items; ++item_pos) {
+            ItemPos a = item_pos + 1;
+            AreaDbl item_widened_area = inf;
+            for (Counter rotation_id: node.rotation_domains[item_pos]) {
+                const ItemTypeRotationData& rotation = item_rotation(item_pos, rotation_id);
+                LengthDbl range_min = axis_min(rotation.aabb, fixed_axis);
+                LengthDbl range_max = axis_max(rotation.aabb, fixed_axis);
+                std::vector<std::pair<LengthDbl, LengthDbl>>& intrusions = thread_data.intrusions;
+                intrusions.clear();
+                for (std::size_t pair_pos: item_pairs[item_pos]) {
+                    const ItemPair& pair = pairs[pair_pos];
+                    // The relative positions are d = p_2 - p_1; the one of
+                    // the other item is the opposite if it comes first.
+                    bool reversed = (pair.item_pos_2 == item_pos);
+                    ItemPos b = (reversed)? pair.item_pos_1 + 1: pair.item_pos_2 + 1;
+                    // Range of the relative position of the other item.
+                    LengthDbl d_min_box = -ub[b * m + a];
+                    LengthDbl d_max_box = ub[a * m + b];
+                    for (Counter piece_pos: node.domains[pair_pos]) {
+                        const RotationPairPiece& rotation_pair_piece = pair.pieces[piece_pos];
+                        Counter item_rotation_id = (reversed)?
+                            rotation_pair_piece.rotation_id_2:
+                            rotation_pair_piece.rotation_id_1;
+                        if (item_rotation_id != rotation_id)
+                            continue;
+                        Counter other_rotation_id = (reversed)?
+                            rotation_pair_piece.rotation_id_1:
+                            rotation_pair_piece.rotation_id_2;
+                        const AxisAlignedBoundingBox& other_aabb = item_rotation(
+                                (reversed)? pair.item_pos_1: pair.item_pos_2,
+                                other_rotation_id).aabb;
+                        const Piece& piece = *rotation_pair_piece.piece;
+                        LengthDbl d_min = (fixed_axis == 0)? piece.x_min: piece.y_min;
+                        LengthDbl d_max = (fixed_axis == 0)? piece.x_max: piece.y_max;
+                        if (reversed) {
+                            LengthDbl tmp = d_min;
+                            d_min = -d_max;
+                            d_max = -tmp;
+                        }
+                        d_min = (std::max)(d_min, d_min_box - tolerance);
+                        d_max = (std::min)(d_max, d_max_box + tolerance);
+                        LengthDbl intrusion_min = (std::max)(d_min + axis_min(other_aabb, fixed_axis), range_min);
+                        LengthDbl intrusion_max = (std::min)(d_max + axis_max(other_aabb, fixed_axis), range_max);
+                        if (intrusion_min < intrusion_max)
+                            intrusions.push_back({intrusion_min, intrusion_max});
+                    }
+                }
+                // Core: complement of the union of the intrusions.
+                std::sort(intrusions.begin(), intrusions.end());
+                const AreaProfile& area_profile = *item_area_profiles[item_pos][rotation_id];
+                LengthDbl core_length = 0;
+                AreaDbl core_area = 0;
+                LengthDbl current = range_min;
+                auto add_core = [&](LengthDbl start, LengthDbl end)
+                {
+                    core_length += end - start;
+                    core_area += area_profile.area(start, end);
+                };
+                for (const auto& intrusion: intrusions) {
+                    if (intrusion.first > current)
+                        add_core(current, intrusion.first);
+                    current = (std::max)(current, intrusion.second);
+                }
+                if (range_max > current)
+                    add_core(current, range_max);
+                AreaDbl outside_area = (std::max)((AreaDbl)0, rotation.area - core_area);
+                item_widened_area = (std::min)(
+                        item_widened_area,
+                        outside_area + length * core_length);
+            }
+            widened_area += item_widened_area;
+        }
+        // The tolerance keeps the bound valid despite the rounding errors.
+        return !strictly_greater_profit(widened_area, length * (fixed_size + tolerance));
+    };
+
+    // Propagate; return 'false' if the node is infeasible or can't contain a
+    // solution whose open dimension is smaller than the threshold.
+    //
+    // The propagation alternates the closure of the matrices with the
+    // filtering of the rotations and of the pieces:
+    // - the rotations of an item whose inner-fit rectangle doesn't intersect
+    //   the bounds of its position are removed, and the bounds are shrunk to
+    //   the union of the inner-fit rectangles of the remaining ones;
+    // - the pieces which don't intersect the box of the relative positions
+    //   of their pair (and the rectangle R of their rotations) are removed,
+    //   and the box is shrunk to the bounding box of the remaining pieces
+    //   clipped to it;
+    // - the rotations of an item which no remaining piece of one of its pairs
+    //   supports are removed.
+    auto propagate = [&](ThreadData& thread_data, Node& node) -> bool
+    {
+        thread_data.tightened_entries.clear();
+        if (open_axis != -1) {
+            LengthDbl current_threshold = threshold;
+            std::vector<LengthDbl>& ub = (open_axis == 0)? node.ub_x: node.ub_y;
+            if (tighten(thread_data, ub, open_axis, 0, l, current_threshold))
+                node.propagated = false;
+        }
+        if (node.propagated)
+            return true;
+        node.propagated = true;
+        if (!node.closed) {
+            if (!close(node.ub_x) || !close(node.ub_y))
+                return false;
+            node.closed = true;
+            thread_data.tightened_entries.clear();
+        }
+        for (;;) {
+            for (const auto& entry: thread_data.tightened_entries) {
+                std::vector<LengthDbl>& ub = (std::get<0>(entry) == 0)? node.ub_x: node.ub_y;
+                if (!close_entry(ub, std::get<1>(entry), std::get<2>(entry)))
                     return false;
-                bool changed = false;
-                for (std::size_t pair_pos = 0; pair_pos < pairs.size(); ++pair_pos) {
-                    const BranchAndBoundPair& pair = pairs[pair_pos];
-                    ItemPos a = pair.node_1;
-                    ItemPos b = pair.node_2;
-                    LengthDbl x_min = -node.ub_x[b * m + a] - tolerance;
-                    LengthDbl x_max = node.ub_x[a * m + b] + tolerance;
-                    LengthDbl y_min = -node.ub_y[b * m + a] - tolerance;
-                    LengthDbl y_max = node.ub_y[a * m + b] + tolerance;
-                    std::vector<Counter>& domain = node.domains[pair_pos];
-                    std::vector<Counter> new_domain;
-                    LengthDbl hull_x_min = inf;
-                    LengthDbl hull_x_max = -inf;
-                    LengthDbl hull_y_min = inf;
-                    LengthDbl hull_y_max = -inf;
-                    for (Counter piece_pos: domain) {
-                        const Piece& piece = pair.pair->pieces[piece_pos];
-                        if (piece.x_min > x_max || piece.x_max < x_min
-                                || piece.y_min > y_max || piece.y_max < y_min) {
-                            continue;
-                        }
-                        std::vector<Point> clipped = clip(piece.vertices, x_min, x_max, y_min, y_max);
-                        if (clipped.empty())
-                            continue;
-                        new_domain.push_back(piece_pos);
-                        for (const Point& point: clipped) {
-                            hull_x_min = (std::min)(hull_x_min, point.x);
-                            hull_x_max = (std::max)(hull_x_max, point.x);
-                            hull_y_min = (std::min)(hull_y_min, point.y);
-                            hull_y_max = (std::max)(hull_y_max, point.y);
-                        }
-                    }
-                    if (new_domain.empty())
-                        return false;
-                    if (new_domain.size() != domain.size()) {
-                        domain.swap(new_domain);
-                        changed = true;
-                    }
-                    if (tighten(node.ub_x, a, b, hull_x_max))
-                        changed = true;
-                    if (tighten(node.ub_x, b, a, -hull_x_min))
-                        changed = true;
-                    if (tighten(node.ub_y, a, b, hull_y_max))
-                        changed = true;
-                    if (tighten(node.ub_y, b, a, -hull_y_min))
-                        changed = true;
-                }
-                if (!changed)
-                    return true;
             }
-        };
-        // Linear program of a node in which each pair has a single piece.
-        auto solve_leaf = [&](const Node& node) -> TreeSearchRelativePositionsStatus
-        {
-            number_of_linear_programs++;
-            mathoptsolverscmake::MathOptModel model;
-            model.objective_direction = mathoptsolverscmake::ObjectiveDirection::Minimize;
+            thread_data.tightened_entries.clear();
+            if (open_axis != -1 && node_bound(node) >= threshold - tolerance)
+                return false;
+            bool changed = false;
+
+            // Rotations of the items.
             for (ItemPos item_pos = 0; item_pos < number_of_items; ++item_pos) {
-                const ItemTypeRotationData& rotation = rotations[sorted_item_type_ids[item_pos]][rotation_ids[item_pos]];
-                add_variable(model, rotation.x_min, rotation.x_max, mathoptsolverscmake::VariableType::Continuous);
-                add_variable(model, rotation.y_min, rotation.y_max, mathoptsolverscmake::VariableType::Continuous);
-            }
-            for (ItemPos a = 1; a < m; ++a) {
-                for (ItemPos b = 1; b < m; ++b) {
-                    if (a == b)
-                        continue;
-                    ItemPos item_pos_a = item_positions[a - 1];
-                    ItemPos item_pos_b = item_positions[b - 1];
-                    if (node.ub_x[a * m + b] < inf) {
-                        add_constraint(model, -inf, node.ub_x[a * m + b] + tolerance,
-                                {{2 * item_pos_b, 1.0}, {2 * item_pos_a, -1.0}});
-                    }
-                    if (node.ub_y[a * m + b] < inf) {
-                        add_constraint(model, -inf, node.ub_y[a * m + b] + tolerance,
-                                {{2 * item_pos_b + 1, 1.0}, {2 * item_pos_a + 1, -1.0}});
+                ItemPos a = item_pos + 1;
+                // Identical items: their rotations are non-decreasing, and
+                // the ones with the same rotation are sorted by x.
+                if (item_pos + 1 < number_of_items
+                        && sorted_item_type_ids[item_pos] == sorted_item_type_ids[item_pos + 1]) {
+                    Counter rotation_id_min = node.rotation_domains[item_pos].front();
+                    Counter rotation_id_max = node.rotation_domains[item_pos + 1].back();
+                    if (restrict_rotations(node, item_pos + 1, [rotation_id_min](Counter rotation_id) { return rotation_id >= rotation_id_min; }))
+                        changed = true;
+                    if (restrict_rotations(node, item_pos, [rotation_id_max](Counter rotation_id) { return rotation_id <= rotation_id_max; }))
+                        changed = true;
+                    if (node.rotation_domains[item_pos].empty() || node.rotation_domains[item_pos + 1].empty())
+                        return false;
+                    if (node.rotation_domains[item_pos].size() == 1
+                            && node.rotation_domains[item_pos + 1] == node.rotation_domains[item_pos]) {
+                        tighten(thread_data, node.ub_x, 0, a + 1, a, 0);
                     }
                 }
+                LengthDbl x_min = -node.ub_x[a * m + 0] - tolerance;
+                LengthDbl x_max = node.ub_x[0 * m + a] + tolerance;
+                LengthDbl y_min = -node.ub_y[a * m + 0] - tolerance;
+                LengthDbl y_max = node.ub_y[0 * m + a] + tolerance;
+                LengthDbl open_max = (open_axis == 0)? node.ub_x[a * m + l]: (open_axis == 1)? node.ub_y[a * m + l]: inf;
+                if (restrict_rotations(node, item_pos, [&](Counter rotation_id)
+                            {
+                                const ItemTypeRotationData& rotation = item_rotation(item_pos, rotation_id);
+                                return rotation.x_min <= x_max && rotation.x_max >= x_min
+                                    && rotation.y_min <= y_max && rotation.y_max >= y_min
+                                    && (open_axis == -1 || axis_max(rotation.aabb, open_axis) <= open_max + tolerance);
+                            })) {
+                    changed = true;
+                }
+                if (node.rotation_domains[item_pos].empty())
+                    return false;
+                LengthDbl union_x_min = inf;
+                LengthDbl union_x_max = -inf;
+                LengthDbl union_y_min = inf;
+                LengthDbl union_y_max = -inf;
+                LengthDbl open_extent = inf;
+                for (Counter rotation_id: node.rotation_domains[item_pos]) {
+                    const ItemTypeRotationData& rotation = item_rotation(item_pos, rotation_id);
+                    union_x_min = (std::min)(union_x_min, rotation.x_min);
+                    union_x_max = (std::max)(union_x_max, rotation.x_max);
+                    union_y_min = (std::min)(union_y_min, rotation.y_min);
+                    union_y_max = (std::max)(union_y_max, rotation.y_max);
+                    if (open_axis != -1)
+                        open_extent = (std::min)(open_extent, axis_max(rotation.aabb, open_axis));
+                }
+                tighten(thread_data, node.ub_x, 0, 0, a, union_x_max);
+                tighten(thread_data, node.ub_x, 0, a, 0, -union_x_min);
+                tighten(thread_data, node.ub_y, 1, 0, a, union_y_max);
+                tighten(thread_data, node.ub_y, 1, a, 0, -union_y_min);
+                // The items precede the end of the strip.
+                if (open_axis == 0)
+                    tighten(thread_data, node.ub_x, 0, l, a, -open_extent);
+                if (open_axis == 1)
+                    tighten(thread_data, node.ub_y, 1, l, a, -open_extent);
+            }
+            if (!thread_data.tightened_entries.empty())
+                continue;
+
+            // Pieces of the pairs.
+            for (ItemPos item_pos = 0; item_pos < number_of_items; ++item_pos) {
+                std::vector<char>& allowed = thread_data.allowed[item_pos];
+                std::fill(allowed.begin(), allowed.end(), 0);
+                for (Counter rotation_id: node.rotation_domains[item_pos])
+                    allowed[rotation_id] = 1;
             }
             for (std::size_t pair_pos = 0; pair_pos < pairs.size(); ++pair_pos) {
-                const BranchAndBoundPair& pair = pairs[pair_pos];
-                ItemPos item_pos_1 = item_positions[pair.node_1 - 1];
-                ItemPos item_pos_2 = item_positions[pair.node_2 - 1];
-                const Piece& piece = pair.pair->pieces[node.domains[pair_pos].front()];
-                for (const HalfPlane& half_plane: piece.half_planes) {
-                    add_constraint(model, half_plane.c, inf, {
-                            {2 * item_pos_2, half_plane.nx},
-                            {2 * item_pos_2 + 1, half_plane.ny},
-                            {2 * item_pos_1, -half_plane.nx},
-                            {2 * item_pos_1 + 1, -half_plane.ny}});
+                const ItemPair& pair = pairs[pair_pos];
+                ItemPos a = pair.item_pos_1 + 1;
+                ItemPos b = pair.item_pos_2 + 1;
+                std::array<LengthDbl, 4> box = {{
+                    -node.ub_x[b * m + a],
+                    node.ub_x[a * m + b],
+                    -node.ub_y[b * m + a],
+                    node.ub_y[a * m + b]}};
+                // The pieces have already been filtered with this box.
+                if (box == node.filtered_boxes[pair_pos])
+                    continue;
+                node.filtered_boxes[pair_pos] = box;
+                const std::vector<char>& allowed_1 = thread_data.allowed[pair.item_pos_1];
+                const std::vector<char>& allowed_2 = thread_data.allowed[pair.item_pos_2];
+                std::vector<char>& supported_1 = thread_data.supported_1;
+                std::vector<char>& supported_2 = thread_data.supported_2;
+                supported_1.assign(allowed_1.size(), 0);
+                supported_2.assign(allowed_2.size(), 0);
+                std::vector<Counter>& domain = node.domains[pair_pos];
+                std::size_t domain_size = 0;
+                LengthDbl hull_x_min = inf;
+                LengthDbl hull_x_max = -inf;
+                LengthDbl hull_y_min = inf;
+                LengthDbl hull_y_max = -inf;
+                for (Counter piece_pos: domain) {
+                    const RotationPairPiece& rotation_pair_piece = pair.pieces[piece_pos];
+                    if (!allowed_1[rotation_pair_piece.rotation_id_1]
+                            || !allowed_2[rotation_pair_piece.rotation_id_2]) {
+                        continue;
+                    }
+                    const PairData& pair_data = *rotation_pair_piece.pair;
+                    LengthDbl x_min = (std::max)(box[0], pair_data.x_min) - tolerance;
+                    LengthDbl x_max = (std::min)(box[1], pair_data.x_max) + tolerance;
+                    LengthDbl y_min = (std::max)(box[2], pair_data.y_min) - tolerance;
+                    LengthDbl y_max = (std::min)(box[3], pair_data.y_max) + tolerance;
+                    const Piece& piece = *rotation_pair_piece.piece;
+                    if (piece.x_min > x_max || piece.x_max < x_min
+                            || piece.y_min > y_max || piece.y_max < y_min) {
+                        continue;
+                    }
+                    AxisAlignedBoundingBox clipped;
+                    if (piece.x_min >= x_min && piece.x_max <= x_max
+                            && piece.y_min >= y_min && piece.y_max <= y_max) {
+                        // The piece is inside the box.
+                        clipped.x_min = piece.x_min;
+                        clipped.x_max = piece.x_max;
+                        clipped.y_min = piece.y_min;
+                        clipped.y_max = piece.y_max;
+                    } else if (!clip_bounding_box(
+                                piece.vertices,
+                                x_min,
+                                x_max,
+                                y_min,
+                                y_max,
+                                thread_data.clip_buffer_1,
+                                thread_data.clip_buffer_2,
+                                clipped)) {
+                        continue;
+                    }
+                    domain[domain_size] = piece_pos;
+                    domain_size++;
+                    supported_1[rotation_pair_piece.rotation_id_1] = 1;
+                    supported_2[rotation_pair_piece.rotation_id_2] = 1;
+                    hull_x_min = (std::min)(hull_x_min, clipped.x_min);
+                    hull_x_max = (std::max)(hull_x_max, clipped.x_max);
+                    hull_y_min = (std::min)(hull_y_min, clipped.y_min);
+                    hull_y_max = (std::max)(hull_y_max, clipped.y_max);
+                }
+                if (domain_size == 0)
+                    return false;
+                domain.resize(domain_size);
+                tighten(thread_data, node.ub_x, 0, a, b, hull_x_max);
+                tighten(thread_data, node.ub_x, 0, b, a, -hull_x_min);
+                tighten(thread_data, node.ub_y, 1, a, b, hull_y_max);
+                tighten(thread_data, node.ub_y, 1, b, a, -hull_y_min);
+                if (restrict_rotations(node, pair.item_pos_1, [&supported_1](Counter rotation_id) { return supported_1[rotation_id]; })) {
+                    changed = true;
+                    for (Counter rotation_id = 0; rotation_id < (Counter)allowed_1.size(); ++rotation_id)
+                        thread_data.allowed[pair.item_pos_1][rotation_id] = supported_1[rotation_id];
+                }
+                if (restrict_rotations(node, pair.item_pos_2, [&supported_2](Counter rotation_id) { return supported_2[rotation_id]; })) {
+                    changed = true;
+                    for (Counter rotation_id = 0; rotation_id < (Counter)allowed_2.size(); ++rotation_id)
+                        thread_data.allowed[pair.item_pos_2][rotation_id] = supported_2[rotation_id];
                 }
             }
-            return solve_model(model, values);
-        };
+            if (thread_data.tightened_entries.empty() && !changed)
+                break;
+        }
+        return core_bound(thread_data, node);
+    };
 
-        // Depth-first search.
-        std::function<TreeSearchRelativePositionsStatus(Node&)> search = [&](Node& node) -> TreeSearchRelativePositionsStatus
+    // Linear program of a leaf, in which each item has a single rotation and
+    // each pair a single piece; for the open dimension objectives, it
+    // minimizes the open dimension, which is the last variable.
+    auto solve_leaf = [&](ThreadData& thread_data, const Node& node) -> Status
+    {
+        number_of_linear_programs++;
+        mathoptsolverscmake::MathOptModel model;
+        model.objective_direction = mathoptsolverscmake::ObjectiveDirection::Minimize;
+        for (ItemPos item_pos = 0; item_pos < number_of_items; ++item_pos) {
+            const ItemTypeRotationData& rotation = item_rotation(item_pos, node.rotation_domains[item_pos].front());
+            add_variable(model, rotation.x_min, rotation.x_max);
+            add_variable(model, rotation.y_min, rotation.y_max);
+        }
+        if (open_axis != -1) {
+            const std::vector<LengthDbl>& ub = (open_axis == 0)? node.ub_x: node.ub_y;
+            int variable_id = add_variable(
+                    model,
+                    -ub[l * m + 0] - tolerance,
+                    ub[0 * m + l] + tolerance);
+            model.objective_coefficients[variable_id] = 1.0;
+        }
+        // Variable of a node along an axis, -1 for the end of the strip
+        // along the fixed axis.
+        auto node_variable_id = [&](ItemPos node_id, int axis) -> int
         {
-            number_of_nodes++;
-            if (stop || parameters.timer.needs_to_end())
-                return TreeSearchRelativePositionsStatus::Unknown;
-            if (!propagate(node))
-                return TreeSearchRelativePositionsStatus::Infeasible;
-            // Branch on the pair with the fewest remaining pieces.
-            std::size_t branching_pair_pos = pairs.size();
+            if (node_id == l)
+                return (axis == open_axis)? 2 * number_of_items: -1;
+            return 2 * (node_id - 1) + axis;
+        };
+        for (ItemPos a = 1; a < m; ++a) {
+            for (ItemPos b = 1; b < m; ++b) {
+                if (a == b)
+                    continue;
+                for (int axis = 0; axis < 2; ++axis) {
+                    const std::vector<LengthDbl>& ub = (axis == 0)? node.ub_x: node.ub_y;
+                    int variable_id_a = node_variable_id(a, axis);
+                    int variable_id_b = node_variable_id(b, axis);
+                    if (ub[a * m + b] == inf
+                            || variable_id_a == -1
+                            || variable_id_b == -1) {
+                        continue;
+                    }
+                    add_constraint(model, -inf, ub[a * m + b] + tolerance,
+                            {{variable_id_b, 1.0}, {variable_id_a, -1.0}});
+                }
+            }
+        }
+        for (std::size_t pair_pos = 0; pair_pos < pairs.size(); ++pair_pos) {
+            const ItemPair& pair = pairs[pair_pos];
+            const RotationPairPiece& rotation_pair_piece = pair.pieces[node.domains[pair_pos].front()];
+            if (rotation_pair_piece.free)
+                continue;
+            for (const HalfPlane& half_plane: rotation_pair_piece.piece->half_planes) {
+                add_constraint(model, half_plane.c, inf, {
+                        {2 * pair.item_pos_2, half_plane.nx},
+                        {2 * pair.item_pos_2 + 1, half_plane.ny},
+                        {2 * pair.item_pos_1, -half_plane.nx},
+                        {2 * pair.item_pos_1 + 1, -half_plane.ny}});
+            }
+        }
+        return solve_linear_program(model, thread_data.values);
+    };
+
+    // Children of a propagated node; none if it is a leaf.
+    //
+    // The search first fixes the rotations of the items, the largest ones
+    // first; then, it branches on the pair with the fewest pieces left.
+    auto branch = [&](const Node& node) -> std::vector<Node>
+    {
+        ItemPos branching_item_pos = -1;
+        for (ItemPos item_pos = 0; item_pos < number_of_items; ++item_pos) {
+            if (node.rotation_domains[item_pos].size() <= 1)
+                continue;
+            if (branching_item_pos == -1
+                    || item_rotation(item_pos, 0).area > item_rotation(branching_item_pos, 0).area) {
+                branching_item_pos = item_pos;
+            }
+        }
+        std::size_t branching_pair_pos = pairs.size();
+        if (branching_item_pos == -1) {
             for (std::size_t pair_pos = 0; pair_pos < pairs.size(); ++pair_pos) {
                 if (node.domains[pair_pos].size() <= 1)
                     continue;
@@ -1291,229 +1460,243 @@ TreeSearchRelativePositionsOutput packingsolver::irregular::tree_search_relative
                     branching_pair_pos = pair_pos;
                 }
             }
-            if (branching_pair_pos == pairs.size())
-                return solve_leaf(node);
-            TreeSearchRelativePositionsStatus node_status = TreeSearchRelativePositionsStatus::Infeasible;
+        }
+        std::vector<Node> children;
+        if (branching_item_pos != -1) {
+            for (Counter rotation_id: node.rotation_domains[branching_item_pos]) {
+                Node child = node;
+                child.rotation_domains[branching_item_pos] = {rotation_id};
+                for (std::size_t pair_pos: item_pairs[branching_item_pos])
+                    child.filtered_boxes[pair_pos] = {inf, inf, inf, inf};
+                child.propagated = false;
+                children.push_back(child);
+            }
+        } else if (branching_pair_pos != pairs.size()) {
             for (Counter piece_pos: node.domains[branching_pair_pos]) {
                 Node child = node;
                 child.domains[branching_pair_pos] = {piece_pos};
-                TreeSearchRelativePositionsStatus child_status = search(child);
-                if (child_status == TreeSearchRelativePositionsStatus::Feasible)
-                    return child_status;
-                if (child_status == TreeSearchRelativePositionsStatus::Unknown)
-                    node_status = TreeSearchRelativePositionsStatus::Unknown;
-            }
-            return node_status;
-        };
-        return search(root);
-    };
-    // Solve the program of a rotation combination restricted to the items
-    // 'active' (all the items if it is empty).
-    auto solve_combination = [&](
-            const std::vector<Counter>& rotation_ids,
-            const std::vector<bool>& active,
-            std::vector<double>& values) -> TreeSearchRelativePositionsStatus
-    {
-        if (parameters.use_milp)
-            return solve_model(build_model(rotation_ids, active), values);
-        return solve_tree_search(rotation_ids, active, values);
-    };
-
-    // Prune the rotation combinations.
-    std::vector<std::vector<Counter>> kept_combinations;
-    for (const std::vector<Counter>& combination: combinations) {
-        if (parameters.timer.needs_to_end()) {
-            output.status = TreeSearchRelativePositionsStatus::Unknown;
-            return output;
-        }
-        output.number_of_rotation_combinations++;
-        if (prune(combination)) {
-            output.number_of_rotation_combinations_pruned++;
-        } else {
-            kept_combinations.push_back(combination);
-        }
-    }
-    for (const std::vector<Counter>& combination: kept_combinations) {
-        for (ItemPos item_pos_1 = 0; item_pos_1 < number_of_items; ++item_pos_1) {
-            for (ItemPos item_pos_2 = item_pos_1 + 1; item_pos_2 < number_of_items; ++item_pos_2) {
-                output.maximum_number_of_pieces = (std::max)(
-                        output.maximum_number_of_pieces,
-                        (Counter)pair_data(
-                            item_pos_1,
-                            item_pos_2,
-                            combination[item_pos_1],
-                            combination[item_pos_2]).pieces.size());
+                child.filtered_boxes[branching_pair_pos] = {inf, inf, inf, inf};
+                child.propagated = false;
+                children.push_back(child);
             }
         }
-    }
-    if (kept_combinations.empty()) {
-        output.status = TreeSearchRelativePositionsStatus::Infeasible;
-        return output;
-    }
+        return children;
+    };
 
-    // Solve the programs of the kept combinations, in parallel. Stop as soon as
-    // one isn't proven infeasible.
-    //
-    // A combination is infeasible if one of its sub-combinations without one
-    // of the items is. These are checked first: they are cheaper, and shared
-    // by several combinations. Their statuses, and the ones of the
-    // combinations, are kept in the cache, so that they are also reused by
-    // the next calls.
-    std::atomic<Counter> next_combination_pos(0);
-    std::atomic<Counter> number_of_programs(0);
-    std::atomic<Counter> number_of_sub_combination_programs(0);
-    std::atomic<Counter> number_of_rotation_combinations_pruned_by_sub_combinations(0);
-    std::mutex status_mutex;
-    TreeSearchRelativePositionsStatus status = TreeSearchRelativePositionsStatus::Infeasible;
-    auto combination_key = [&](
-            const std::vector<Counter>& rotation_ids,
-            const std::vector<bool>& active)
+    // Evaluate a leaf.
+    auto evaluate_leaf = [&](ThreadData& thread_data, const Node& node) -> Status
     {
-        TreeSearchRelativePositionsCombinationKey key;
-        key.first = bin_type_id;
-        for (ItemPos item_pos = 0; item_pos < number_of_items; ++item_pos)
-            if (active.empty() || active[item_pos])
-                key.second.push_back({sorted_item_type_ids[item_pos], rotation_ids[item_pos]});
-        std::sort(key.second.begin(), key.second.end());
-        return key;
+        Status leaf_status = solve_leaf(thread_data, node);
+        if (leaf_status != Status::Feasible)
+            return leaf_status;
+        const std::vector<double>& values = thread_data.values;
+        if (open_axis == -1) {
+            std::lock_guard<std::mutex> lock(best_mutex);
+            if (!stop) {
+                set_output_items(node.rotation_domains, values);
+                stop = true;
+            }
+            return leaf_status;
+        }
+        // Open dimension of the solution, which may exceed the value of the
+        // linear program by the tolerance; so that it is equal to the one of
+        // the packing if the solution is one.
+        LengthDbl leaf_value = values[2 * number_of_items];
+        for (ItemPos item_pos = 0; item_pos < number_of_items; ++item_pos) {
+            const AxisAlignedBoundingBox& aabb = item_rotation(item_pos, node.rotation_domains[item_pos].front()).aabb;
+            leaf_value = (std::max)(leaf_value, values[2 * item_pos + open_axis] + axis_max(aabb, open_axis));
+        }
+        std::lock_guard<std::mutex> lock(best_mutex);
+        if (leaf_value >= threshold - tolerance)
+            return Status::Infeasible;
+        threshold = leaf_value;
+        best_value = leaf_value;
+        set_output_items(node.rotation_domains, values);
+        if (leaf_value <= open_dimension_lower_bound * scale_value + tolerance) {
+            lower_bound_reached = true;
+            stop = true;
+        }
+        return leaf_status;
     };
-    auto cached_status = [&cache_data](const TreeSearchRelativePositionsCombinationKey& key)
+
+    // Propagate the children of a node for the open dimension objectives,
+    // and sort them by bound.
+    auto propagate_children = [&](ThreadData& thread_data, std::vector<Node>& children)
     {
-        std::lock_guard<std::mutex> lock(cache_data.combinations_statuses_mutex);
-        auto it = cache_data.combinations_statuses.find(key);
-        return (it == cache_data.combinations_statuses.end())?
-            TreeSearchRelativePositionsStatus::Unknown:
-            it->second;
-    };
-    auto cache_status = [&cache_data](
-            const TreeSearchRelativePositionsCombinationKey& key,
-            TreeSearchRelativePositionsStatus combination_status)
-    {
-        if (combination_status == TreeSearchRelativePositionsStatus::Unknown)
+        if (!optimize)
             return;
-        std::lock_guard<std::mutex> lock(cache_data.combinations_statuses_mutex);
-        cache_data.combinations_statuses[key] = combination_status;
+        std::vector<Node> kept_children;
+        for (Node& child: children)
+            if (propagate(thread_data, child))
+                kept_children.push_back(child);
+        std::stable_sort(
+                kept_children.begin(),
+                kept_children.end(),
+                [&node_bound](const Node& node_1, const Node& node_2)
+                {
+                    return node_bound(node_1) < node_bound(node_2);
+                });
+        children.swap(kept_children);
     };
+
+    // Depth-first search. For the feasibility, return 'Feasible' as soon as
+    // a solution is found; for the open dimension objectives, 'Feasible' if a
+    // solution has been found in the subtree.
+    std::function<Status(ThreadData&, Node&)> search = [&](
+            ThreadData& thread_data,
+            Node& node) -> Status
+    {
+        number_of_nodes++;
+        if (stop || parameters.timer.needs_to_end())
+            return Status::Unknown;
+        if (!propagate(thread_data, node))
+            return Status::Infeasible;
+        std::vector<Node> children = branch(node);
+        if (children.empty())
+            return evaluate_leaf(thread_data, node);
+        propagate_children(thread_data, children);
+        Status node_status = Status::Infeasible;
+        for (Node& child: children) {
+            Status child_status = search(thread_data, child);
+            if (child_status == Status::Feasible) {
+                if (!optimize)
+                    return child_status;
+                if (node_status == Status::Infeasible)
+                    node_status = child_status;
+            }
+            if (child_status == Status::Unknown)
+                node_status = Status::Unknown;
+        }
+        return node_status;
+    };
+
+    // The first levels of the tree are expanded breadth-first, until there
+    // are enough subtrees for the threads, which then explore them
+    // depth-first.
+    auto new_thread_data = [&]()
+    {
+        ThreadData thread_data;
+        thread_data.allowed.resize(number_of_items);
+        for (ItemPos item_pos = 0; item_pos < number_of_items; ++item_pos)
+            thread_data.allowed[item_pos].assign(rotations[sorted_item_type_ids[item_pos]].size(), 0);
+        return thread_data;
+    };
+    std::mutex status_mutex;
+    bool feasible = false;
+    bool unknown = false;
+    auto record_status = [&](Status node_status)
+    {
+        std::lock_guard<std::mutex> lock(status_mutex);
+        if (node_status == Status::Feasible)
+            feasible = true;
+        if (node_status == Status::Unknown)
+            unknown = true;
+    };
+    Counter number_of_threads = (std::max)((Counter)1, parameters.number_of_threads);
+    std::vector<Node> subtrees;
+    {
+        ThreadData thread_data = new_thread_data();
+        std::deque<Node> queue = {root};
+        while (!queue.empty()
+                && (Counter)queue.size() < 4 * number_of_threads
+                && number_of_threads > 1) {
+            if (stop || parameters.timer.needs_to_end()) {
+                record_status(Status::Unknown);
+                queue.clear();
+                break;
+            }
+            Node node = queue.front();
+            queue.pop_front();
+            number_of_nodes++;
+            if (!propagate(thread_data, node))
+                continue;
+            std::vector<Node> children = branch(node);
+            if (children.empty()) {
+                record_status(evaluate_leaf(thread_data, node));
+                continue;
+            }
+            propagate_children(thread_data, children);
+            for (Node& child: children)
+                queue.push_back(child);
+        }
+        subtrees.assign(queue.begin(), queue.end());
+        if (optimize) {
+            std::stable_sort(
+                    subtrees.begin(),
+                    subtrees.end(),
+                    [&node_bound](const Node& node_1, const Node& node_2)
+                    {
+                        return node_bound(node_1) < node_bound(node_2);
+                    });
+        }
+    }
+    std::atomic<Counter> next_subtree_pos(0);
     auto worker = [&]()
     {
+        ThreadData thread_data = new_thread_data();
         for (;;) {
-            if (stop)
+            Counter subtree_pos = next_subtree_pos++;
+            if (subtree_pos >= (Counter)subtrees.size())
                 return;
-            Counter combination_pos = next_combination_pos++;
-            if (combination_pos >= (Counter)kept_combinations.size())
-                return;
-            const std::vector<Counter>& combination = kept_combinations[combination_pos];
-            TreeSearchRelativePositionsCombinationKey key = combination_key(combination, {});
-            if (cached_status(key) == TreeSearchRelativePositionsStatus::Infeasible)
-                continue;
-
-            // Sub-combinations without one of the items.
-            bool infeasible_sub_combination = false;
-            if (parameters.check_sub_combinations && number_of_items >= 3) {
-                for (ItemPos removed_item_pos = 0;
-                        removed_item_pos < number_of_items;
-                        ++removed_item_pos) {
-                    // Removing an item identical to the previous one gives
-                    // the same sub-combination.
-                    if (removed_item_pos > 0
-                            && sorted_item_type_ids[removed_item_pos] == sorted_item_type_ids[removed_item_pos - 1]
-                            && combination[removed_item_pos] == combination[removed_item_pos - 1]) {
-                        continue;
-                    }
-                    std::vector<bool> active(number_of_items, true);
-                    active[removed_item_pos] = false;
-                    TreeSearchRelativePositionsCombinationKey sub_key = combination_key(combination, active);
-                    TreeSearchRelativePositionsStatus sub_status = cached_status(sub_key);
-                    if (sub_status == TreeSearchRelativePositionsStatus::Unknown) {
-                        number_of_sub_combination_programs++;
-                        std::vector<double> sub_values;
-                        sub_status = solve_combination(combination, active, sub_values);
-                        if (stop)
-                            return;
-                        cache_status(sub_key, sub_status);
-                    }
-                    if (sub_status == TreeSearchRelativePositionsStatus::Infeasible) {
-                        infeasible_sub_combination = true;
-                        break;
-                    }
-                }
-            }
-            if (infeasible_sub_combination) {
-                number_of_rotation_combinations_pruned_by_sub_combinations++;
-                cache_status(key, TreeSearchRelativePositionsStatus::Infeasible);
-                continue;
-            }
-
-            number_of_programs++;
-            std::vector<double> values;
-            TreeSearchRelativePositionsStatus combination_status = solve_combination(combination, {}, values);
-            cache_status(key, combination_status);
-            if (combination_status != TreeSearchRelativePositionsStatus::Infeasible) {
-                std::lock_guard<std::mutex> lock(status_mutex);
-                // 'Feasible' is a definitive answer; 'Unknown' may come from
-                // the interruption of another thread.
-                if (status != TreeSearchRelativePositionsStatus::Feasible) {
-                    status = combination_status;
-                    if (status == TreeSearchRelativePositionsStatus::Feasible) {
-                        // Positions of the items.
-                        LengthDbl scale_value = instance.parameters().scale_value;
-                        output.items.clear();
-                        for (ItemPos item_pos = 0; item_pos < number_of_items; ++item_pos) {
-                            const ItemTypeRotationData& rotation = rotations[sorted_item_type_ids[item_pos]][combination[item_pos]];
-                            SolutionItem item;
-                            item.item_type_id = sorted_item_type_ids[item_pos];
-                            item.bl_corner.x = values[2 * item_pos] / scale_value;
-                            item.bl_corner.y = values[2 * item_pos + 1] / scale_value;
-                            item.angle = rotation.angle;
-                            item.mirror = rotation.mirror;
-                            output.items.push_back(item);
-                        }
-                    }
-                }
-                stop = true;
-                return;
-            }
+            record_status(search(thread_data, subtrees[subtree_pos]));
         }
     };
-    Counter number_of_threads = (std::max)((Counter)1, (std::min)(
-                parameters.number_of_threads,
-                (Counter)kept_combinations.size()));
     std::vector<std::thread> threads;
-    for (Counter thread_id = 1; thread_id < number_of_threads; ++thread_id)
+    for (Counter thread_id = 1;
+            thread_id < (std::min)(number_of_threads, (Counter)subtrees.size());
+            ++thread_id) {
         threads.push_back(std::thread(worker));
+    }
     worker();
     for (std::thread& thread: threads)
         thread.join();
-    output.number_of_programs = number_of_programs;
-    output.number_of_sub_combination_programs = number_of_sub_combination_programs;
     output.number_of_nodes = number_of_nodes;
     output.number_of_linear_programs = number_of_linear_programs;
-    output.number_of_rotation_combinations_pruned_by_sub_combinations
-        = number_of_rotation_combinations_pruned_by_sub_combinations;
-    {
-        std::lock_guard<std::mutex> lock(three_item_cuts_mutex);
-        for (const auto& p: three_item_cuts)
-            output.number_of_three_item_cuts += p.second.size();
+
+    if (open_axis == -1) {
+        output.status = (feasible)? Status::Feasible:
+            (unknown)? Status::Unknown:
+            Status::Infeasible;
+        return output;
     }
-    output.status = status;
+    if (!lower_bound_reached
+            && (unknown || parameters.timer.needs_to_end())) {
+        output.status = Status::Unknown;
+        return output;
+    }
+    // The threshold may come from the upper bound of the parameters.
+    output.status = (best_value <= threshold)?
+        Status::Feasible:
+        Status::Infeasible;
+    output.open_dimension_bound = threshold / scale_value;
     return output;
 }
 
-bool packingsolver::irregular::tree_search_relative_positions_solution(
+
+/**
+ * Build the solution, with a single bin of type 'bin_type_id', of the
+ * positions of the items of a 'Feasible' output, and return 'true' if it is
+ * feasible.
+ *
+ * The solution is only checked for overlaps, so it isn't built if the items
+ * must be spaced or if the bin has fixed items, which the tree search
+ * ignores.
+ */
+bool build_solution(
         const Instance& instance,
         BinTypeId bin_type_id,
-        const TreeSearchRelativePositionsOutput& output,
+        const ItemsOutput& items_output,
         Solution& solution)
 {
-    if (output.status != TreeSearchRelativePositionsStatus::Feasible
-            || output.items.empty()
+    if (items_output.status != Status::Feasible
+            || items_output.items.empty()
             || instance.parameters().item_item_minimum_spacing > 0
             || !instance.bin_type(bin_type_id).fixed_items.empty()) {
         return false;
     }
     SolutionBuilder solution_builder(instance);
     BinPos bin_pos = solution_builder.add_bin(bin_type_id, 1);
-    for (const SolutionItem& item: output.items) {
+    for (const SolutionItem& item: items_output.items) {
         solution_builder.add_item(
                 bin_pos,
                 item.item_type_id,
@@ -1531,4 +1714,168 @@ bool packingsolver::irregular::tree_search_relative_positions_solution(
     }
     solution = new_solution;
     return true;
+}
+
+}
+
+TreeSearchRelativePositionsOutput packingsolver::irregular::tree_search_relative_positions(
+        const Instance& instance,
+        const TreeSearchRelativePositionsParameters& parameters)
+{
+    TreeSearchRelativePositionsOutput output(instance);
+    AlgorithmFormatter algorithm_formatter(instance, parameters, output);
+    algorithm_formatter.start();
+    algorithm_formatter.print_header();
+
+    bool open_dimension = (instance.objective() == Objective::OpenDimensionX
+            || instance.objective() == Objective::OpenDimensionY);
+    if (!open_dimension
+            && (instance.objective() != Objective::Feasibility
+                || instance.number_of_bins() != 1)) {
+        throw std::invalid_argument(FUNC_SIGNATURE + ": unsupported objective.");
+    }
+
+    BinTypeId bin_type_id = 0;
+    while (instance.bin_type(bin_type_id).copies == 0)
+        bin_type_id++;
+    // The fixed items are ignored.
+    std::vector<ItemTypeId> item_type_ids;
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance.number_of_item_types();
+            ++item_type_id) {
+        const ItemType& item_type = instance.item_type(item_type_id);
+        for (ItemPos copy = item_type.copies_fixed; copy < item_type.copies; ++copy)
+            item_type_ids.push_back(item_type_id);
+    }
+    std::map<TreeSearchRelativePositionsPairKey, PairData> pairs_data;
+    auto update_statistics = [&output](const ItemsOutput& items_output)
+    {
+        output.number_of_nodes += items_output.number_of_nodes;
+        output.number_of_linear_programs += items_output.number_of_linear_programs;
+        output.maximum_number_of_pieces = (std::max)(
+                output.maximum_number_of_pieces,
+                items_output.maximum_number_of_pieces);
+    };
+
+    // The bound of a subset of the items is a bound for all of them, so the
+    // increasing subsets of the largest items are solved one after the other.
+    // For the feasibility objective, the search stops at the first subset
+    // that doesn't fit in the bin; this avoids branching on the rotations
+    // of the small items when the large ones are enough to prove the
+    // infeasibility. For the open dimension objectives, the bounds of the
+    // subsets are computed until the time limit.
+    std::stable_sort(
+            item_type_ids.begin(),
+            item_type_ids.end(),
+            [&instance](ItemTypeId item_type_id_1, ItemTypeId item_type_id_2)
+            {
+                return instance.item_type(item_type_id_1).space()
+                    > instance.item_type(item_type_id_2).space();
+            });
+
+    // Infeasible subset of the 'number_of_items' largest items.
+    auto infeasible_subset = [&instance, &item_type_ids](ItemPos number_of_items)
+    {
+        std::vector<ItemPos> copies(instance.number_of_item_types(), 0);
+        for (ItemPos item_pos = 0; item_pos < number_of_items; ++item_pos)
+            copies[item_type_ids[item_pos]]++;
+        std::vector<std::pair<ItemTypeId, ItemPos>> subset;
+        for (ItemTypeId item_type_id = 0;
+                item_type_id < instance.number_of_item_types();
+                ++item_type_id) {
+            if (copies[item_type_id] > 0)
+                subset.push_back({item_type_id, copies[item_type_id]});
+        }
+        return subset;
+    };
+
+    if (!open_dimension) {
+        for (ItemPos number_of_items = 1;
+                number_of_items <= (ItemPos)item_type_ids.size();
+                ++number_of_items) {
+            if (parameters.timer.needs_to_end())
+                break;
+            std::vector<ItemTypeId> subset(
+                    item_type_ids.begin(),
+                    item_type_ids.begin() + number_of_items);
+            ItemsOutput items_output = tree_search_relative_positions_items(
+                    instance,
+                    bin_type_id,
+                    subset,
+                    parameters,
+                    0,
+                    pairs_data);
+            update_statistics(items_output);
+            if (items_output.status == Status::Unknown)
+                break;
+            if (items_output.status == Status::Infeasible) {
+                algorithm_formatter.update_is_proven_infeasible(
+                        infeasible_subset(number_of_items));
+                break;
+            }
+            if (number_of_items == (ItemPos)item_type_ids.size()) {
+                Solution solution(instance);
+                if (build_solution(instance, bin_type_id, items_output, solution))
+                    algorithm_formatter.update_solution(solution, "");
+            }
+        }
+        algorithm_formatter.end();
+        return output;
+    }
+
+    bool open_dimension_x = (instance.objective() == Objective::OpenDimensionX);
+    const AxisAlignedBoundingBox& bin_aabb = instance.bin_type(bin_type_id).aabb_orig;
+    LengthDbl open_start = (open_dimension_x)? bin_aabb.x_min: bin_aabb.y_min;
+    LengthDbl fixed_dimension = (open_dimension_x)?
+        bin_aabb.y_max - bin_aabb.y_min:
+        bin_aabb.x_max - bin_aabb.x_min;
+    LengthDbl bound = 0;
+    AreaDbl subset_area = 0;
+    for (ItemPos number_of_items = 1;
+            number_of_items <= (ItemPos)item_type_ids.size();
+            ++number_of_items) {
+        if (parameters.timer.needs_to_end())
+            break;
+        std::vector<ItemTypeId> subset(
+                item_type_ids.begin(),
+                item_type_ids.begin() + number_of_items);
+        subset_area += instance.item_type(subset.back()).space();
+        // The search stops if it finds a solution of the subset reaching its
+        // bound.
+        ItemsOutput items_output = tree_search_relative_positions_items(
+                instance,
+                bin_type_id,
+                subset,
+                parameters,
+                (std::max)(bound, open_start + subset_area / fixed_dimension),
+                pairs_data);
+        update_statistics(items_output);
+        if (items_output.status == Status::Unknown)
+            break;
+        if (items_output.status == Status::Infeasible
+                && parameters.open_dimension_upper_bound
+                == std::numeric_limits<LengthDbl>::infinity()) {
+            // The subset doesn't fit in the bin.
+            algorithm_formatter.update_is_proven_infeasible(
+                    infeasible_subset(number_of_items));
+            break;
+        }
+        bound = (std::max)(bound, items_output.open_dimension_bound);
+        if (open_dimension_x) {
+            algorithm_formatter.update_open_dimension_x_bound(bound);
+        } else {
+            algorithm_formatter.update_open_dimension_y_bound(bound);
+        }
+        if (number_of_items == (ItemPos)item_type_ids.size()) {
+            Solution solution(instance);
+            if (build_solution(instance, bin_type_id, items_output, solution))
+                algorithm_formatter.update_solution(solution, "");
+        }
+        // No solution is better than the upper bound.
+        if (items_output.status == Status::Infeasible)
+            break;
+    }
+
+    algorithm_formatter.end();
+    return output;
 }

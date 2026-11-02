@@ -1,5 +1,6 @@
 #include "common.hpp"
 
+#include <nanobind/stl/pair.h>
 #include <nanobind/stl/tuple.h>
 #include <nanobind/stl/variant.h>
 
@@ -709,6 +710,7 @@ void bind_irregular(nb::module_& m)
     def_output_field(output, "open_dimension_x_bound", &irregular::Output::open_dimension_x_bound);
     def_output_field(output, "open_dimension_y_bound", &irregular::Output::open_dimension_y_bound);
     def_output_field(output, "is_proven_infeasible", &irregular::Output::is_proven_infeasible);
+    def_output_field(output, "infeasible_subset", &irregular::Output::infeasible_subset);
 
     m.def("optimize",
             [](std::shared_ptr<Instance> instance, const OptimizeParameters& parameters) {

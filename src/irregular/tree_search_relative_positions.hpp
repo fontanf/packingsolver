@@ -4,7 +4,7 @@
  * Prove that a set of items doesn't fit in a bin, with a tree search on the
  * relative positions of the pairs of items, based on their no-fit polygons.
  *
- * The rotations of the items are enumerated. For a rotation of each item:
+ * For a rotation of each item:
  * - The reference point of item i must be in its inner-fit rectangle IFP_i:
  *   the positions where its bounding box is in the bounding box of the bin
  *   (minus the item-bin spacing).
@@ -12,40 +12,47 @@
  *   in R_ij = IFP_j - IFP_i, and outside the interior of the no-fit polygon
  *   NFP_ij. The region F_ij = R_ij \ int(NFP_ij) is partitioned into convex
  *   pieces, and d must be in one of them.
- * The set of items doesn't fit if the program of every rotation combination
- * is infeasible. These programs are solved in parallel.
  *
- * The program of a rotation combination is solved by a depth-first tree
- * search, which fixes the piece of a pair at each node. The positions of a
- * node are bounded by two difference-bound matrices, one for each axis, on
+ * The problem is solved by a depth-first tree search, which fixes the
+ * rotation of an item or the piece of a pair at each node. The positions of
+ * a node are bounded by two difference-bound matrices, one for each axis, on
  * the reference points of the items. The propagation alternates the closure
  * of the matrices (a shortest path computation) with the filtering of the
- * pieces: the pieces which don't intersect the box of the relative positions
- * of their pair are removed, and the box is shrunk to the bounding box of the
- * remaining pieces clipped to it. A node is infeasible if a pair has no piece
- * left, or if a matrix has a negative cycle. Once a single piece is left for
- * each pair, the program is a linear program. The search branches on the
- * pair with the fewest pieces left.
+ * rotations and of the pieces:
+ * - the rotations of an item whose inner-fit rectangle doesn't intersect the
+ *   bounds of its position are removed, and the bounds are shrunk to the
+ *   union of the inner-fit rectangles of the remaining ones;
+ * - the pieces which don't intersect the box of the relative positions of
+ *   their pair are removed, and the box is shrunk to the bounding box of the
+ *   remaining pieces clipped to it;
+ * - the rotations of an item which no remaining piece of one of its pairs
+ *   supports are removed.
+ * A node is infeasible if an item has no rotation left, if a pair has no
+ * piece left, or if a matrix has a negative cycle. Once each item has a
+ * single rotation and each pair a single piece, the problem is a linear
+ * program. The search first fixes the rotations of the items, the largest
+ * ones first, and then branches on the pair with the fewest pieces left. The
+ * first levels of the tree are expanded breadth-first, and
+ * their subtrees are explored in parallel.
  *
- * Alternatively, the program can be solved as a mixed-integer linear program,
- * in which a binary variable selects the piece containing d, and the
- * constraints of the edges of a piece are relaxed with big-M coefficients
- * when the piece isn't selected.
+ * The core bound may prove a node infeasible. The core of an item is the part
+ * of its y-range which no other item can reach, given the pieces and the
+ * positions of the node. The horizontal band of the core of an item, across
+ * the bin, contains no other item, so the item can be widened to the width of
+ * the bin on its core. The cores of different items are disjoint, so the
+ * node is infeasible if the sum of the widened areas exceeds the area of the
+ * bin. If the rotation of an item isn't fixed, the smallest widened area of
+ * its remaining rotations is taken.
  *
- * Before solving the program of a rotation combination, the core widening
- * may prove it infeasible. The core of an item is the part of its y-range
- * which no other item can reach, given the regions F_ij. Since the rotations
- * are fixed, the horizontal band of the core of an item, across the bin,
- * contains no other item, so the item can be widened to the width of the bin
- * on its core. The cores of different items are disjoint, so the rotation
- * combination is infeasible if the sum of the widened areas exceeds the area
- * of the bin.
- *
- * A rotation combination is also infeasible if one of its sub-combinations
- * without one of the items is. These are checked first: their programs are
- * cheaper, and each of them is shared by several combinations. The statuses
- * of the combinations and sub-combinations are kept in the cache, so that
- * the next calls reuse them.
+ * For the open dimension objectives, the tree search minimizes the open
+ * dimension instead, and gives a bound. The end of the strip along the open
+ * axis is another node of the difference-bound matrix of this axis, which
+ * the items must precede, so that the closure gives a bound on it at each
+ * node: the tree search is a branch-and-bound, in which a node is pruned if
+ * its bound isn't smaller than the best value found so far, and the linear
+ * program of a leaf minimizes the open dimension. The core bound uses the
+ * cores of the items along the fixed axis, with the best value found so far
+ * as the length of the strip.
  *
  * The exact fits (for example, an item exactly in a notch of another one)
  * are feasible positions of null area strictly inside the no-fit polygon:
@@ -62,61 +69,20 @@
 
 #pragma once
 
-#include "packingsolver/irregular/solution.hpp"
+#include "packingsolver/irregular/optimize.hpp"
 
 #include "mathoptsolverscmake/mathopt.hpp"
-
-#include <memory>
 
 namespace packingsolver
 {
 namespace irregular
 {
 
-enum class TreeSearchRelativePositionsStatus
+struct TreeSearchRelativePositionsOutput: Output
 {
-    /** Proven: the items don't fit in the bin. */
-    Infeasible,
-
-    /**
-     * The relaxation is feasible for some rotation combination, so the items
-     * may fit in the bin.
-     */
-    Feasible,
-
-    /** Not proven, because of the time limit or of a continuous rotation. */
-    Unknown,
-};
-
-struct TreeSearchRelativePositionsOutput
-{
-    /** Status. */
-    TreeSearchRelativePositionsStatus status = TreeSearchRelativePositionsStatus::Unknown;
-
-    /** Number of rotation combinations considered. */
-    Counter number_of_rotation_combinations = 0;
-
-    /**
-     * Number of rotation combinations proven infeasible without solving
-     * their program,
-     * because a pair of items doesn't fit or by the core widening.
-     */
-    Counter number_of_rotation_combinations_pruned = 0;
-
-    /** Number of programs of rotation combinations solved. */
-    Counter number_of_programs = 0;
-
-    /** Number of programs of sub-combinations solved. */
-    Counter number_of_sub_combination_programs = 0;
-
-    /**
-     * Number of rotation combinations proven infeasible by one of their
-     * sub-combinations.
-     */
-    Counter number_of_rotation_combinations_pruned_by_sub_combinations = 0;
-
-    /** Number of three-item cuts in the cache, over the triples of rotations. */
-    Counter number_of_three_item_cuts = 0;
+    /** Constructor. */
+    TreeSearchRelativePositionsOutput(const Instance& instance):
+        Output(instance) { }
 
     /** Number of nodes of the tree searches. */
     Counter number_of_nodes = 0;
@@ -126,100 +92,46 @@ struct TreeSearchRelativePositionsOutput
 
     /** Maximum number of convex pieces of a pair of items. */
     Counter maximum_number_of_pieces = 0;
-
-    /**
-     * If the status is 'Feasible', the positions of the items in a solution
-     * of the relaxation (in the original coordinates).
-     *
-     * They are only a packing up to the relaxation: the shape of the bin,
-     * its defects, its fixed items and the item-item spacing are ignored.
-     */
-    std::vector<SolutionItem> items;
 };
 
-/**
- * Data reused between calls of 'tree_search_relative_positions' on the same
- * instance: the convex pieces of the pairs of item types in each of their
- * rotations, which are expensive to compute, and the statuses of the
- * rotation combinations.
- */
-class TreeSearchRelativePositionsCache
+struct TreeSearchRelativePositionsParameters: packingsolver::Parameters<Instance, Solution, Output>
 {
-
-public:
-
-    TreeSearchRelativePositionsCache();
-
-    ~TreeSearchRelativePositionsCache();
-
-    struct Data;
-
-    std::unique_ptr<Data> data_;
-};
-
-struct TreeSearchRelativePositionsParameters: optimizationtools::Parameters
-{
-    /** Solver of the linear programs and of the mixed-integer programs. */
+    /** Solver of the linear programs. */
     mathoptsolverscmake::SolverName solver
         = mathoptsolverscmake::SolverName::Highs;
 
-    /**
-     * Number of threads: the programs of the rotation combinations are
-     * solved in parallel.
-     */
+    /** Number of threads, which explore subtrees in parallel. */
     Counter number_of_threads = 4;
 
     /**
-     * Before solving the program of a rotation combination, check its
-     * sub-combinations without one of the items.
+     * For the open dimension objectives, upper bound on the open dimension
+     * (in the original coordinates): only the solutions with a smaller one
+     * are searched. By default, the size of the bin.
      */
-    bool check_sub_combinations = true;
-
-    /**
-     * Solve the programs of the rotation combinations as mixed-integer
-     * linear programs, instead of with the tree search.
-     */
-    bool use_milp = false;
-
-    /**
-     * With 'use_milp', add the three-item cuts: for items i < j < u,
-     * d_iu = d_ij + d_ju, so if the pieces a of (i, j) and b of (j, u) are
-     * selected, the pieces of (i, u) which don't intersect a + b (Minkowski
-     * sum) can't be.
-     *
-     * They speed up the proofs of infeasibility of sets of items, but slow
-     * down the other calls.
-     */
-    bool three_item_cuts = false;
-
-    /** Cache, kept between calls on the same instance (optional). */
-    TreeSearchRelativePositionsCache* cache = nullptr;
+    LengthDbl open_dimension_upper_bound = std::numeric_limits<LengthDbl>::infinity();
 };
 
 /**
- * Try to prove that the items of 'item_type_ids' (one entry per copy) don't
- * fit in a bin of type 'bin_type_id'.
+ * Solve an instance with the 'Feasibility' objective and a single bin, or
+ * with an open dimension objective.
+ *
+ * The bound of a subset of the items is a bound for all of them, so the
+ * increasing subsets of the largest items are solved one after the other.
+ *
+ * For the 'Feasibility' objective, the instance is proven infeasible as soon
+ * as a subset is, and this subset is the infeasible subset of the output;
+ * otherwise, the positions of the solution of the relaxation
+ * with all the items are a solution if the items don't overlap.
+ *
+ * For the open dimension objectives, the bounds of the subsets are computed
+ * until the time limit. The positions of the solution of the relaxation with
+ * all the items are a solution if they don't overlap.
+ *
+ * The fixed items are ignored.
  */
 TreeSearchRelativePositionsOutput tree_search_relative_positions(
         const Instance& instance,
-        BinTypeId bin_type_id,
-        const std::vector<ItemTypeId>& item_type_ids,
         const TreeSearchRelativePositionsParameters& parameters = {});
-
-/**
- * Build the solution, with a single bin of type 'bin_type_id', of the
- * positions of the items of a 'Feasible' output (see
- * 'TreeSearchRelativePositionsOutput::items'), and return 'true' if it is
- * feasible.
- *
- * The solution is only checked for overlaps, so it isn't built if the items
- * must be spaced or if the bin has fixed items, which the algorithm ignores.
- */
-bool tree_search_relative_positions_solution(
-        const Instance& instance,
-        BinTypeId bin_type_id,
-        const TreeSearchRelativePositionsOutput& output,
-        Solution& solution);
 
 }
 }

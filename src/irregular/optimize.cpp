@@ -230,9 +230,50 @@ void optimize_onedimensional_bound(
         onedimensional::trivial_bound(onedim_instance, onedim_trivial_bound_parameters);
 
     // The one-dimensional instance is a relaxation: if it is infeasible, so
-    // is the instance.
-    if (onedim_output.is_proven_infeasible)
+    // is the instance. With a single bin, the largest items whose areas
+    // exceed the one of the bin are an infeasible subset.
+    if (onedim_output.is_proven_infeasible) {
         algorithm_formatter.update_is_proven_infeasible();
+        if (instance.number_of_bins() == 1) {
+            BinTypeId bin_type_id = 0;
+            while (instance.bin_type(bin_type_id).copies == 0)
+                bin_type_id++;
+            Length bin_length = std::ceil(instance.bin_type(bin_type_id).area_scaled);
+            std::vector<ItemTypeId> item_type_ids;
+            for (ItemTypeId item_type_id = 0;
+                    item_type_id < instance.number_of_item_types();
+                    ++item_type_id) {
+                item_type_ids.push_back(item_type_id);
+            }
+            std::sort(
+                    item_type_ids.begin(),
+                    item_type_ids.end(),
+                    [&instance](ItemTypeId item_type_id_1, ItemTypeId item_type_id_2)
+                    {
+                        return instance.item_type(item_type_id_1).area_scaled
+                            > instance.item_type(item_type_id_2).area_scaled;
+                    });
+            std::vector<std::pair<ItemTypeId, ItemPos>> infeasible_subset;
+            Length length = 0;
+            for (ItemTypeId item_type_id: item_type_ids) {
+                const ItemType& item_type = instance.item_type(item_type_id);
+                Length item_length = std::floor(item_type.area_scaled);
+                if (item_length == 0 || item_type.copies == 0)
+                    continue;
+                // Number of copies needed to exceed the area of the bin.
+                ItemPos copies = (std::min)(
+                        item_type.copies,
+                        (ItemPos)((bin_length - length) / item_length + 1));
+                infeasible_subset.push_back({item_type_id, copies});
+                length += copies * item_length;
+                if (length > bin_length) {
+                    std::sort(infeasible_subset.begin(), infeasible_subset.end());
+                    algorithm_formatter.update_is_proven_infeasible(infeasible_subset);
+                    break;
+                }
+            }
+        }
+    }
 
     std::stringstream ss("1D");
     switch (instance.objective()) {
@@ -891,35 +932,20 @@ void optimize_tree_search_relative_positions(
         const OptimizeParameters& parameters,
         AlgorithmFormatter& algorithm_formatter)
 {
-    BinTypeId bin_type_id = 0;
-    while (instance.bin_type(bin_type_id).copies == 0)
-        bin_type_id++;
-    std::vector<ItemTypeId> item_type_ids;
-    for (ItemTypeId item_type_id = 0;
-            item_type_id < instance.number_of_item_types();
-            ++item_type_id) {
-        const ItemType& item_type = instance.item_type(item_type_id);
-        for (ItemPos copy = item_type.copies_fixed; copy < item_type.copies; ++copy)
-            item_type_ids.push_back(item_type_id);
-    }
     TreeSearchRelativePositionsParameters tsrp_parameters;
     tsrp_parameters.verbosity_level = 0;
     tsrp_parameters.timer = parameters.timer;
     tsrp_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
     if (parameters.optimization_mode == OptimizationMode::NotAnytimeSequential)
         tsrp_parameters.number_of_threads = 1;
-    TreeSearchRelativePositionsOutput tsrp_output = tree_search_relative_positions(
-            instance,
-            bin_type_id,
-            item_type_ids,
-            tsrp_parameters);
-    if (tsrp_output.status == TreeSearchRelativePositionsStatus::Infeasible) {
-        algorithm_formatter.update_is_proven_infeasible();
-    } else {
-        Solution solution(instance);
-        if (tree_search_relative_positions_solution(instance, bin_type_id, tsrp_output, solution))
-            algorithm_formatter.update_solution(solution, "TSRP");
-    }
+    tsrp_parameters.new_solution_callback = [&algorithm_formatter](
+            const irregular::Output& output) {
+        algorithm_formatter.update_solution(
+                output.solution_pool.best(),
+                "TSRP");
+        algorithm_formatter.update_bounds(output);
+    };
+    tree_search_relative_positions(instance, tsrp_parameters);
 }
 
 /**
@@ -984,7 +1010,8 @@ ItemPos max_number_of_items_in_bin(const Instance& instance)
 
 /**
  * Prove the instance infeasible if an item type doesn't fit in any bin type:
- * with every objective but 'Knapsack', every item must be packed.
+ * with every objective but 'Knapsack', every item must be packed. The
+ * infeasible subset is a single copy of this item type.
  *
  * Only uses 'Instance::fits_some_bin', which is a cheap necessary condition.
  */
@@ -1000,7 +1027,7 @@ void optimize_item_types_fit(
         if (instance.item_type(item_type_id).copies == 0)
             continue;
         if (!instance.fits_some_bin(item_type_id)) {
-            algorithm_formatter.update_is_proven_infeasible();
+            algorithm_formatter.update_is_proven_infeasible({{item_type_id, 1}});
             return;
         }
     }
@@ -1044,6 +1071,14 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
                 algorithm_formatter.update_solution(
                         reduction.unreduce_solution(reduced_output.solution_pool.best()),
                         reduced_output.solution_pool.best_label());
+                // The infeasible subset is unreduced first; then,
+                // 'update_bounds' keeps it, since the one of the reduced
+                // output has the same number of items.
+                if (reduced_output.is_proven_infeasible) {
+                    algorithm_formatter.update_is_proven_infeasible(
+                            reduction.unreduce_infeasible_subset(
+                                reduced_output.infeasible_subset));
+                }
                 algorithm_formatter.update_bounds(reduced_output);
             };
 
@@ -1120,12 +1155,6 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
     bool use_milp_raster = parameters.use_milp_raster;
     bool use_benders_decomposition = parameters.use_benders_decomposition;
     bool use_tree_search_relative_positions = parameters.use_tree_search_relative_positions;
-    // The tree search on relative positions only supports the 'Feasibility'
-    // objective with a single bin.
-    if (instance.objective() != Objective::Feasibility
-            || instance.number_of_bins() != 1) {
-        use_tree_search_relative_positions = false;
-    }
     // Benders decomposition only supports these objectives.
     if (instance.objective() != Objective::Knapsack
             && instance.objective() != Objective::BinPacking
@@ -1145,6 +1174,11 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         if (instance.objective() == Objective::Knapsack) {
             use_local_search_linear_programming = false;
             use_local_search_nonlinear_programming = false;
+        }
+        if (instance.objective() != Objective::Feasibility
+                && instance.objective() != Objective::OpenDimensionX
+                && instance.objective() != Objective::OpenDimensionY) {
+            use_tree_search_relative_positions = false;
         }
         // Automatic selection.
         if (!use_tree_search
@@ -1193,8 +1227,10 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
             if (parameters.optimization_mode == OptimizationMode::Exact) {
                 if (instance.objective() == Objective::Knapsack)
                     use_benders_decomposition = true;
-                if (instance.objective() == Objective::Feasibility
-                        && instance.number_of_bins() == 1) {
+                if ((instance.objective() == Objective::Feasibility
+                            && instance.number_of_bins() == 1)
+                        || instance.objective() == Objective::OpenDimensionX
+                        || instance.objective() == Objective::OpenDimensionY) {
                     use_tree_search_relative_positions = true;
                 }
             }
@@ -1205,6 +1241,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         use_local_search_nonlinear_programming = false;
         use_dichotomic_search = false;
         use_tree_search_periodic_packing = false;
+        use_tree_search_relative_positions = false;
         // Automatic selection.
         if (!use_tree_search
                 && !use_local_search_direct_trigonometry
@@ -1235,6 +1272,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         use_local_search_nonlinear_programming = false;
         use_dichotomic_search = false;
         use_tree_search_periodic_packing = false;
+        use_tree_search_relative_positions = false;
         // Automatic selection.
         if (!use_tree_search
                 && !use_benders_decomposition
@@ -1278,6 +1316,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         }
         use_dichotomic_search = false;
         use_milp_raster = false;
+        use_tree_search_relative_positions = false;
         // Automatic selection.
         if (!use_tree_search
                 && !use_benders_decomposition
@@ -1322,6 +1361,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         use_local_search_direct_trigonometry = false;
         use_local_search_black_box_optimization = false;
         use_tree_search_periodic_packing = false;
+        use_tree_search_relative_positions = false;
         if (instance.number_of_bin_types() == 1) {
             if (use_dichotomic_search) {
                 use_dichotomic_search = false;
