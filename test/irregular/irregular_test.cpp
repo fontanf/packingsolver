@@ -2,6 +2,7 @@
 #include "packingsolver/irregular/optimize.hpp"
 #include "packingsolver/irregular/solution.hpp"
 #include "irregular/solution_builder.hpp"
+#include "irregular/shape_simplification.hpp"
 
 #include <gtest/gtest.h>
 #include <boost/filesystem.hpp>
@@ -315,4 +316,80 @@ TEST(Irregular, InstanceBuilderCropBinType)
     EXPECT_NEAR(aabb.x_max, 60, 1e-6);
     EXPECT_NEAR(aabb.y_min, 30, 1e-6);
     EXPECT_NEAR(aabb.y_max, 70, 1e-6);
+}
+
+TEST(Irregular, InstanceCacheSubInstance)
+{
+    // Original instance and its simplified shapes.
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(packingsolver::Objective::BinPacking);
+    instance_builder.add_bin_type(build_rectangle(100, 100));
+    packingsolver::ItemTypeId item_type_id_0 = instance_builder.add_item_type(
+            {{build_rectangle(10, 20)}});
+    packingsolver::ItemTypeId item_type_id_1 = instance_builder.add_item_type(
+            {{build_shape({{0, 0}, {30, 0}, {30, 10}, {15, 12}, {0, 10}})}});
+    Instance instance = instance_builder.build();
+    EXPECT_FALSE(instance.cache().simplified_instance_computed);
+    compute_simplified_instance_cache(instance, 0.2);
+    ASSERT_TRUE(instance.cache().simplified_instance_computed);
+    const SimplifiedInstance& simplified_instance = instance.cache().simplified_instance;
+
+    // Sub-instance with the item types in the reverse order: the simplified
+    // shapes are carried over with the ids of the sub-instance.
+    InstanceBuilder sub_instance_builder;
+    sub_instance_builder.set_objective(packingsolver::Objective::Knapsack);
+    sub_instance_builder.set_parameters(instance.parameters());
+    sub_instance_builder.set_original_instance(instance);
+    sub_instance_builder.add_bin_type_from_original_instance(0);
+    sub_instance_builder.add_item_type_from_original_instance(item_type_id_1);
+    sub_instance_builder.add_item_type_from_original_instance(item_type_id_0);
+    Instance sub_instance = sub_instance_builder.build();
+    ASSERT_TRUE(sub_instance.cache().simplified_instance_computed);
+    EXPECT_EQ(sub_instance.cache().simplified_instance_maximum_approximation_ratio, 0.2);
+    const SimplifiedInstance& sub_simplified_instance = sub_instance.cache().simplified_instance;
+    ASSERT_EQ(sub_simplified_instance.item_types.size(), 2);
+    ASSERT_EQ(sub_simplified_instance.bin_types.size(), 1);
+    EXPECT_EQ(
+            sub_simplified_instance.item_types[0].shapes[0].shape.shape.to_string(0),
+            simplified_instance.item_types[item_type_id_1].shapes[0].shape.shape.to_string(0));
+    EXPECT_EQ(
+            sub_simplified_instance.item_types[1].shapes[0].shape.shape.to_string(0),
+            simplified_instance.item_types[item_type_id_0].shapes[0].shape.shape.to_string(0));
+
+    // Sub-instance with another item-item spacing: the inflated shapes would
+    // be different, so the simplified shapes are not carried over.
+    InstanceBuilder sub_instance_builder_2;
+    sub_instance_builder_2.set_objective(packingsolver::Objective::Knapsack);
+    sub_instance_builder_2.set_parameters(instance.parameters());
+    sub_instance_builder_2.set_item_item_minimum_spacing(1.0);
+    sub_instance_builder_2.set_original_instance(instance);
+    sub_instance_builder_2.add_bin_type_from_original_instance(0);
+    sub_instance_builder_2.add_item_type_from_original_instance(item_type_id_0);
+    Instance sub_instance_2 = sub_instance_builder_2.build();
+    EXPECT_FALSE(sub_instance_2.cache().simplified_instance_computed);
+
+    // Sub-instance with an item type which doesn't come from the original
+    // instance: the simplified shapes are not carried over.
+    InstanceBuilder sub_instance_builder_3;
+    sub_instance_builder_3.set_objective(packingsolver::Objective::Knapsack);
+    sub_instance_builder_3.set_parameters(instance.parameters());
+    sub_instance_builder_3.set_original_instance(instance);
+    sub_instance_builder_3.add_bin_type_from_original_instance(0);
+    sub_instance_builder_3.add_item_type_from_original_instance(item_type_id_0);
+    sub_instance_builder_3.add_item_type({{build_rectangle(5, 5)}});
+    Instance sub_instance_3 = sub_instance_builder_3.build();
+    EXPECT_FALSE(sub_instance_3.cache().simplified_instance_computed);
+
+    // Sub-instance with a cropped bin type: the simplified shapes are not
+    // carried over.
+    InstanceBuilder sub_instance_builder_4;
+    sub_instance_builder_4.set_objective(packingsolver::Objective::Knapsack);
+    sub_instance_builder_4.set_parameters(instance.parameters());
+    sub_instance_builder_4.set_original_instance(instance);
+    packingsolver::BinTypeId sub_bin_type_id_4
+        = sub_instance_builder_4.add_bin_type_from_original_instance(0);
+    sub_instance_builder_4.crop_bin_type(sub_bin_type_id_4, 50, 50);
+    sub_instance_builder_4.add_item_type_from_original_instance(item_type_id_0);
+    Instance sub_instance_4 = sub_instance_builder_4.build();
+    EXPECT_FALSE(sub_instance_4.cache().simplified_instance_computed);
 }

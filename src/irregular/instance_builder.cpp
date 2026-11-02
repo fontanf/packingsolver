@@ -1468,5 +1468,94 @@ Instance InstanceBuilder::build()
         }
     }
 
+    if (original_instance_ != nullptr)
+        copy_cache_from_original_instance();
+
     return std::move(instance_);
+}
+
+void InstanceBuilder::copy_cache_from_original_instance()
+{
+    const Instance& original_instance = *original_instance_;
+    const InstanceCache& original_cache = original_instance.cache();
+
+    if (original_cache.simplified_instance_computed) {
+        // The simplified shapes are only valid if all the item types and bin
+        // types come from the original instance, with the same scale and the
+        // same spacings, since the inflated shapes depend on them, and if the
+        // bin types have not been cropped.
+        bool valid = (instance_.parameters().scale_value
+                == original_instance.parameters().scale_value)
+            && (instance_.parameters().item_item_minimum_spacing
+                == original_instance.parameters().item_item_minimum_spacing);
+
+        std::vector<ItemTypeId> sub_to_orig_item_type_ids(instance_.number_of_item_types(), -1);
+        for (ItemTypeId original_item_type_id = 0;
+                original_item_type_id < (ItemTypeId)orig_to_sub_item_type_ids_.size();
+                ++original_item_type_id) {
+            ItemTypeId item_type_id = orig_to_sub_item_type_ids_[original_item_type_id];
+            if (item_type_id != -1)
+                sub_to_orig_item_type_ids[item_type_id] = original_item_type_id;
+        }
+        std::vector<BinTypeId> sub_to_orig_bin_type_ids(instance_.number_of_bin_types(), -1);
+        for (BinTypeId original_bin_type_id = 0;
+                original_bin_type_id < (BinTypeId)orig_to_sub_bin_type_ids_.size();
+                ++original_bin_type_id) {
+            BinTypeId bin_type_id = orig_to_sub_bin_type_ids_[original_bin_type_id];
+            if (bin_type_id != -1)
+                sub_to_orig_bin_type_ids[bin_type_id] = original_bin_type_id;
+        }
+
+        SimplifiedInstance simplified_instance;
+        for (ItemTypeId item_type_id = 0;
+                valid && item_type_id < instance_.number_of_item_types();
+                ++item_type_id) {
+            ItemTypeId original_item_type_id = sub_to_orig_item_type_ids[item_type_id];
+            if (original_item_type_id == -1) {
+                valid = false;
+                break;
+            }
+            simplified_instance.item_types.push_back(
+                    original_cache.simplified_instance.item_types[original_item_type_id]);
+        }
+        for (BinTypeId bin_type_id = 0;
+                valid && bin_type_id < instance_.number_of_bin_types();
+                ++bin_type_id) {
+            BinTypeId original_bin_type_id = sub_to_orig_bin_type_ids[bin_type_id];
+            if (original_bin_type_id == -1) {
+                valid = false;
+                break;
+            }
+            const BinType& bin_type = instance_.bin_type(bin_type_id);
+            const BinType& original_bin_type = original_instance.bin_type(original_bin_type_id);
+            // A bin type cropped with 'crop_bin_type' has a smaller bounding
+            // box than the original one.
+            if (bin_type.item_bin_minimum_spacing != original_bin_type.item_bin_minimum_spacing
+                    || bin_type.aabb_orig.x_min != original_bin_type.aabb_orig.x_min
+                    || bin_type.aabb_orig.x_max != original_bin_type.aabb_orig.x_max
+                    || bin_type.aabb_orig.y_min != original_bin_type.aabb_orig.y_min
+                    || bin_type.aabb_orig.y_max != original_bin_type.aabb_orig.y_max
+                    || bin_type.defects.size() != original_bin_type.defects.size()) {
+                valid = false;
+                break;
+            }
+            for (DefectId defect_id = 0;
+                    defect_id < (DefectId)bin_type.defects.size();
+                    ++defect_id) {
+                if (bin_type.defects[defect_id].item_defect_minimum_spacing
+                        != original_bin_type.defects[defect_id].item_defect_minimum_spacing) {
+                    valid = false;
+                }
+            }
+            simplified_instance.bin_types.push_back(
+                    original_cache.simplified_instance.bin_types[original_bin_type_id]);
+        }
+
+        if (valid) {
+            instance_.cache_.simplified_instance = std::move(simplified_instance);
+            instance_.cache_.simplified_instance_maximum_approximation_ratio
+                = original_cache.simplified_instance_maximum_approximation_ratio;
+            instance_.cache_.simplified_instance_computed = true;
+        }
+    }
 }

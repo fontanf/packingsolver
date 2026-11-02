@@ -283,6 +283,12 @@ private:
     /** Compute item types max length sum. */
     LengthDbl compute_item_types_max_length_sum() const;
 
+    /**
+     * Copy the cache of the original instance into the instance, with the
+     * item type and bin type ids of the instance; see 'InstanceCache'.
+     */
+    void copy_cache_from_original_instance();
+
     /** Compute bin types area max. */
     AreaDbl compute_bin_types_area_max() const;
 
