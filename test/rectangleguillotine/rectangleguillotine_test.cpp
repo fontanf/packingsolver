@@ -282,6 +282,22 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path(""),
                 fs::path(""),
                 fs::path("data") / "rectangleguillotine" / "tests" / "bin_packing_cutting_cost_unlimited_stages_single_bin" / "solution.csv",
+            }, {
+                // With unlimited stages, the sub-instances of the sequential
+                // feasibility of 'tree_search_maximal_spaces' had no trims,
+                // so its solutions crossed the hard trims of the original
+                // bin, and rebuilding them failed.
+                fs::path("data") / "rectangleguillotine" / "tests" / "bin_packing_unlimited_stages_hard_top_trim" / "instance.json",
+                fs::path(""),
+                fs::path(""),
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "bin_packing_unlimited_stages_hard_top_trim" / "solution.csv",
+            }, {
+                fs::path("data") / "rectangleguillotine" / "tests" / "bin_packing_unlimited_stages_hard_trims" / "instance.json",
+                fs::path(""),
+                fs::path(""),
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "bin_packing_unlimited_stages_hard_trims" / "solution.csv",
             }}));
 
 TEST(RectangleGuillotine, SolutionItemInSoftTrim)

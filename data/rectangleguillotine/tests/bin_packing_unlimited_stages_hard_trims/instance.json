@@ -1,0 +1,27 @@
+{
+    "objective": "bin-packing",
+    "number_of_stages": "unlimited",
+    "cut_thickness": 2,
+    "bin_types": [
+        {
+            "width": 100,
+            "height": 100,
+            "copies": 2,
+            "left_trim": 5,
+            "left_trim_type": "hard",
+            "right_trim": 5,
+            "right_trim_type": "hard",
+            "bottom_trim": 5,
+            "bottom_trim_type": "hard",
+            "top_trim": 5,
+            "top_trim_type": "hard"
+        }
+    ],
+    "item_types": [
+        {
+            "width": 40,
+            "height": 30,
+            "copies": 4
+        }
+    ]
+}

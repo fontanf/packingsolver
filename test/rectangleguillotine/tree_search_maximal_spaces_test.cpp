@@ -69,4 +69,12 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "rectangleguillotine" / "tests" / "bin_packing_ur_cut_thickness_small_gap" / "bins.csv",
                 fs::path("data") / "rectangleguillotine" / "tests" / "bin_packing_ur_cut_thickness_small_gap" / "parameters.csv",
                 fs::path("data") / "rectangleguillotine" / "tests" / "bin_packing_ur_cut_thickness_small_gap" / "solution.csv",
+            }, {
+                // Soft trims of 5 and cut thickness 2: the four items only fit
+                // inside the trims, starting after the waste of the left and
+                // bottom trims and the cut separating it.
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_unlimited_stages_soft_trims" / "items.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_unlimited_stages_soft_trims" / "bins.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_unlimited_stages_soft_trims" / "parameters.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_unlimited_stages_soft_trims" / "solution.csv",
             }}));

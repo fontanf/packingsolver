@@ -61,11 +61,13 @@ SequentialFeasibilityOutput packingsolver::rectangleguillotine::sequential_feasi
         current_x = last_bin_type.rect.w;
     } else if (instance.objective() == Objective::OpenDimensionX) {
         current_x = std::min(
-                (2 * total_item_area + bin_type.rect.h - 1) / bin_type.rect.h,
+                (2 * total_item_area + bin_type.rect.h - 1) / bin_type.rect.h
+                + bin_type.left_trim + bin_type.right_trim,
                 bin_type.rect.w);
     } else {  // OpenDimensionY
         current_y = std::min(
-                (2 * total_item_area + bin_type.rect.w - 1) / bin_type.rect.w,
+                (2 * total_item_area + bin_type.rect.w - 1) / bin_type.rect.w
+                + bin_type.bottom_trim + bin_type.top_trim,
                 bin_type.rect.h);
     }
 
@@ -79,6 +81,31 @@ SequentialFeasibilityOutput packingsolver::rectangleguillotine::sequential_feasi
         InstanceBuilder sub_instance_builder;
         sub_instance_builder.set_objective(Objective::Feasibility);
         sub_instance_builder.set_parameters(instance.parameters());
+
+        // A sub-bin is the bottom-left part of 'bin_type_orig'. It keeps the
+        // part of each trim which lies inside it, since its solution is
+        // copied as is into the original bin (see 'Solution::append_bin').
+        auto add_sub_bin_type = [&sub_instance_builder](
+                const BinType& bin_type_orig,
+                Length width,
+                Length height)
+        {
+            BinTypeId sub_bin_type_id = sub_instance_builder.add_bin_type(
+                    width,
+                    height);
+            sub_instance_builder.set_bin_type_cost(sub_bin_type_id, bin_type_orig.cost);
+            sub_instance_builder.add_trims(
+                    sub_bin_type_id,
+                    bin_type_orig.left_trim,
+                    bin_type_orig.left_trim_type,
+                    (std::max)(Length(0), bin_type_orig.right_trim - (bin_type_orig.rect.w - width)),
+                    bin_type_orig.right_trim_type,
+                    bin_type_orig.bottom_trim,
+                    bin_type_orig.bottom_trim_type,
+                    (std::max)(Length(0), bin_type_orig.top_trim - (bin_type_orig.rect.h - height)),
+                    bin_type_orig.top_trim_type);
+            return sub_bin_type_id;
+        };
         std::vector<BinTypeId> sub_to_orig_bin_type_ids;
         if (instance.objective() == Objective::BinPacking) {
             BinPos remaining_bins = current_number_of_bins;
@@ -87,10 +114,10 @@ SequentialFeasibilityOutput packingsolver::rectangleguillotine::sequential_feasi
                     ++bin_type_id_iter) {
                 const BinType& bin_type_iter = instance.bin_type(bin_type_id_iter);
                 BinPos copies = std::min(bin_type_iter.copies, remaining_bins);
-                BinTypeId sub_bin_type_id = sub_instance_builder.add_bin_type(
+                BinTypeId sub_bin_type_id = add_sub_bin_type(
+                        bin_type_iter,
                         bin_type_iter.rect.w,
                         bin_type_iter.rect.h);
-                sub_instance_builder.set_bin_type_cost(sub_bin_type_id, bin_type_iter.cost);
                 sub_instance_builder.set_bin_type_copies(sub_bin_type_id, copies);
                 sub_to_orig_bin_type_ids.push_back(bin_type_id_iter);
                 remaining_bins -= copies;
@@ -102,24 +129,18 @@ SequentialFeasibilityOutput packingsolver::rectangleguillotine::sequential_feasi
                     ++bin_type_id_iter) {
                 const BinType& bin_type_iter = instance.bin_type(bin_type_id_iter);
                 BinPos copies = std::min(bin_type_iter.copies, remaining_bins);
-                BinTypeId sub_bin_type_id = sub_instance_builder.add_bin_type(
+                BinTypeId sub_bin_type_id = add_sub_bin_type(
+                        bin_type_iter,
                         current_x,
                         bin_type_iter.rect.h);
-                sub_instance_builder.set_bin_type_cost(sub_bin_type_id, bin_type_iter.cost);
                 sub_instance_builder.set_bin_type_copies(sub_bin_type_id, copies);
                 sub_to_orig_bin_type_ids.push_back(bin_type_id_iter);
                 remaining_bins -= copies;
             }
         } else if (instance.objective() == Objective::OpenDimensionX) {
-            BinTypeId sub_bin_type_id = sub_instance_builder.add_bin_type(
-                    current_x,
-                    bin_type.rect.h);
-            sub_instance_builder.set_bin_type_cost(sub_bin_type_id, bin_type.cost);
+            add_sub_bin_type(bin_type, current_x, bin_type.rect.h);
         } else {  // OpenDimensionY
-            BinTypeId sub_bin_type_id = sub_instance_builder.add_bin_type(
-                    bin_type.rect.w,
-                    current_y);
-            sub_instance_builder.set_bin_type_cost(sub_bin_type_id, bin_type.cost);
+            add_sub_bin_type(bin_type, bin_type.rect.w, current_y);
         }
         for (ItemTypeId item_type_id = 0;
                 item_type_id < instance.number_of_item_types();
@@ -174,7 +195,8 @@ SequentialFeasibilityOutput packingsolver::rectangleguillotine::sequential_feasi
                 BinTypeId bin_type_id_new = instance.bin_type_id(current_number_of_bins - 1);
                 const BinType& bin_type_new = instance.bin_type(bin_type_id_new);
                 current_x = bin_type_new.rect.w;
-            } else if (current_x <= 0) {
+            } else if (current_x <= instance.bin_type(
+                        instance.bin_type_id(current_number_of_bins - 1)).left_trim) {
                 current_number_of_bins--;
                 if (current_number_of_bins == 0)
                     break;
@@ -186,13 +208,13 @@ SequentialFeasibilityOutput packingsolver::rectangleguillotine::sequential_feasi
             current_x = std::min(
                     (Length)(0.99 * sub_solution_pool.best().width()),
                     sub_solution_pool.best().width() - 1);
-            if (current_x <= 0)
+            if (current_x <= bin_type.left_trim)
                 break;
         } else {  // OpenDimensionY
             current_y = std::min(
                     (Length)(0.99 * sub_solution_pool.best().height()),
                     sub_solution_pool.best().height() - 1);
-            if (current_y <= 0)
+            if (current_y <= bin_type.bottom_trim)
                 break;
         }
     }
