@@ -7,32 +7,6 @@ namespace packingsolver
 namespace irregular
 {
 
-struct SimplifiedShape
-{
-    ShapeWithHoles shape;
-
-    ShapeWithHoles shape_inflated;
-};
-
-struct SimplifiedBinType
-{
-    std::vector<SimplifiedShape> borders;
-
-    std::vector<SimplifiedShape> defects;
-};
-
-struct SimplifiedItemType
-{
-    std::vector<SimplifiedShape> shapes;
-};
-
-struct SimplifiedInstance
-{
-    std::vector<SimplifiedItemType> item_types;
-
-    std::vector<SimplifiedBinType> bin_types;
-};
-
 /**
  * 'minimum_number_of_vertices' is forwarded as-is to shape::simplify (see
  * its own doc): every border, defect, and item shape (and their inflated
@@ -44,6 +18,14 @@ SimplifiedInstance shape_simplification(
         const Instance& instance,
         double maximum_approximation_ratio,
         shape::ElementPos minimum_number_of_vertices = 4);
+
+/**
+ * Compute the simplified shapes of the cache of an instance; see
+ * 'InstanceCache'.
+ */
+void compute_simplified_instance_cache(
+        Instance& instance,
+        double maximum_approximation_ratio);
 
 }
 }

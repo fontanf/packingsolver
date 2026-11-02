@@ -11,6 +11,7 @@
 #include "irregular/benders_decomposition.hpp"
 #include "irregular/tree_search_relative_positions.hpp"
 #include "irregular/local_search.hpp"
+#include "irregular/shape_simplification.hpp"
 #include "algorithms/dichotomic_search.hpp"
 #include "algorithms/sequential_value_correction.hpp"
 #include "algorithms/column_generation.hpp"
@@ -534,6 +535,43 @@ void optimize_local_search_direct_trigonometry(
             LocalSearchEngine::DirectTrigonometry);
 }
 
+/**
+ * Return a copy of 'instance' whose cache contains the simplified shapes for
+ * 'maximum_approximation_ratio'.
+ *
+ * It is used by the sequential algorithms, so that the shapes are simplified
+ * once for all their subproblems, with the approximation budget of the whole
+ * instance, instead of once per subproblem, with the much smaller budget of
+ * a single bin.
+ */
+Instance instance_with_simplified_shapes(
+        const Instance& instance,
+        double maximum_approximation_ratio)
+{
+    Instance instance_with_cache = instance;
+    if (!instance.cache().simplified_instance_computed
+            || instance.cache().simplified_instance_maximum_approximation_ratio
+            != maximum_approximation_ratio) {
+        compute_simplified_instance_cache(
+                instance_with_cache,
+                maximum_approximation_ratio);
+    }
+    return instance_with_cache;
+}
+
+/**
+ * Convert a solution of a copy of 'instance' (see
+ * 'instance_with_simplified_shapes') into a solution of 'instance'.
+ */
+Solution convert_solution(
+        const Instance& instance,
+        const Solution& solution)
+{
+    Solution new_solution(instance);
+    new_solution.append_bins(solution, {}, {});
+    return new_solution;
+}
+
 void optimize_sequential_single_knapsack(
         const Instance& instance,
         const OptimizeParameters& parameters,
@@ -598,6 +636,9 @@ void optimize_sequential_single_knapsack(
                 auto kp_output = optimize(kp_instance, kp_parameters);
                 return kp_output.solution_pool;
             };
+        Instance ssk_instance = instance_with_simplified_shapes(
+                instance,
+                maximum_approximation_ratio);
         SequentialValueCorrectionParameters<Instance, Solution, irregular::Output> svc_parameters;
         svc_parameters.verbosity_level = 0;
         svc_parameters.timer = parameters.timer;
@@ -612,16 +653,18 @@ void optimize_sequential_single_knapsack(
         svc_parameters.scarce_item_types_profit_factor_exponent
             = parameters.sequential_value_correction_scarce_item_types_profit_factor_exponent;
         svc_parameters.new_solution_callback = [
-            &algorithm_formatter, iteration](
+            &instance, &algorithm_formatter, iteration](
                     const irregular::Output& ps_output)
             {
                 const SequentialValueCorrectionOutput<Instance, Solution, irregular::Output>& pssvc_output
                     = static_cast<const SequentialValueCorrectionOutput<Instance, Solution, irregular::Output>&>(ps_output);
                 std::stringstream ss;
                 ss << "SSK it " << iteration;
-                algorithm_formatter.update_solution(pssvc_output.solution_pool.best(), ss.str());
+                algorithm_formatter.update_solution(
+                        convert_solution(instance, pssvc_output.solution_pool.best()),
+                        ss.str());
             };
-        sequential_value_correction<Instance, InstanceBuilder, Solution, AlgorithmFormatter, irregular::Output>(instance, kp_solve, svc_parameters);
+        sequential_value_correction<Instance, InstanceBuilder, Solution, AlgorithmFormatter, irregular::Output>(ssk_instance, kp_solve, svc_parameters);
 
         // Check end.
         if (algorithm_formatter.end_boolean())
@@ -679,6 +722,9 @@ void optimize_sequential_value_correction(
             auto kp_output = optimize(kp_instance, kp_parameters);
             return kp_output.solution_pool;
         };
+    Instance svc_instance = instance_with_simplified_shapes(
+            instance,
+            parameters.not_anytime_maximum_approximation_ratio);
     SequentialValueCorrectionParameters<Instance, Solution, irregular::Output> svc_parameters;
     svc_parameters.verbosity_level = 0;
     svc_parameters.timer = parameters.timer;
@@ -691,16 +737,18 @@ void optimize_sequential_value_correction(
     if (parameters.optimization_mode != OptimizationMode::Anytime
             && parameters.optimization_mode != OptimizationMode::Exact)
         svc_parameters.maximum_number_of_iterations = parameters.not_anytime_sequential_value_correction_number_of_iterations;
-    svc_parameters.new_solution_callback = [&algorithm_formatter](
+    svc_parameters.new_solution_callback = [&instance, &algorithm_formatter](
             const irregular::Output& ps_output)
     {
         const SequentialValueCorrectionOutput<Instance, Solution, irregular::Output>& pssvc_output
             = static_cast<const SequentialValueCorrectionOutput<Instance, Solution, irregular::Output>&>(ps_output);
         std::stringstream ss;
         ss << "SVC it " << pssvc_output.number_of_iterations;
-        algorithm_formatter.update_solution(pssvc_output.solution_pool.best(), ss.str());
+        algorithm_formatter.update_solution(
+                convert_solution(instance, pssvc_output.solution_pool.best()),
+                ss.str());
     };
-    sequential_value_correction<Instance, InstanceBuilder, Solution, AlgorithmFormatter, irregular::Output>(instance, kp_solve, svc_parameters);
+    sequential_value_correction<Instance, InstanceBuilder, Solution, AlgorithmFormatter, irregular::Output>(svc_instance, kp_solve, svc_parameters);
 }
 
 void optimize_dichotomic_search(

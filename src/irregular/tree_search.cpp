@@ -90,9 +90,16 @@ BranchingScheme::BranchingScheme(
         const Instance& instance,
         const Parameters& parameters):
     instance_(instance),
-    simplified_instance_(shape_simplification(
-            instance,
-            parameters.maximum_approximation_ratio)),
+    // Use the simplified shapes of the cache of the instance if they have
+    // been computed for the same maximum approximation ratio.
+    simplified_instance_(
+            (instance.cache().simplified_instance_computed
+             && instance.cache().simplified_instance_maximum_approximation_ratio
+             == parameters.maximum_approximation_ratio)?
+            instance.cache().simplified_instance:
+            shape_simplification(
+                instance,
+                parameters.maximum_approximation_ratio)),
     parameters_(parameters)
 {
     // Compute bin_type_ids_ and previous_bins_area_.
