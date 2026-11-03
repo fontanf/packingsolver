@@ -2041,9 +2041,14 @@ bool Reduction::compute_shrunk_bin_sizes(
         shrunk_bin_sizes.bin_height = 0;
         return false;
     }
-    const BinType& bin_type = original_instance_->bin_type(0);
-    shrunk_bin_sizes.bin_width = bin_type.rect.x;
-    shrunk_bin_sizes.bin_height = bin_type.rect.y;
+    // Once items have been pinned by 'reduce_full_span_items', the remaining
+    // items must fit in what is left of the bin, 'true_bin_rect_', not in
+    // the original bin.
+    Rectangle bin_rect = (full_span_items_.empty())?
+        original_instance_->bin_type(0).rect:
+        true_bin_rect_;
+    shrunk_bin_sizes.bin_width = bin_rect.x;
+    shrunk_bin_sizes.bin_height = bin_rect.y;
 
     for (ItemTypeId item_type_id = 0;
             item_type_id < (ItemTypeId)reduction_item_types.size();
@@ -2056,9 +2061,9 @@ bool Reduction::compute_shrunk_bin_sizes(
     // Equation (7): shrink the bin width/height to the largest achievable
     // combination of item widths/heights.
     shrunk_bin_sizes.bin_width = max_achievable_dimension_sum(
-            reduction_item_types, bin_type.rect.x, /* width_axis */ true);
+            reduction_item_types, bin_rect.x, /* width_axis */ true);
     shrunk_bin_sizes.bin_height = max_achievable_dimension_sum(
-            reduction_item_types, bin_type.rect.y, /* width_axis */ false);
+            reduction_item_types, bin_rect.y, /* width_axis */ false);
 
     return true;
 }

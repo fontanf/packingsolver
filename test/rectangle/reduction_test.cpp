@@ -1158,6 +1158,22 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "rectangle" / "tests" / "remove_redundant_rotations_after_pinning_full_span_item",
                 []() { ReductionParameters p; p.lift_item_dimensions = false; return p; }(),
             },
+            {
+                // Bin 10x10, 1 copy (Feasibility). Item 0 (10x2) spans the
+                // bin's width and is pinned by 'reduce_full_span_items' at
+                // the end of the first round, which shrinks the bin to
+                // 10x8. In the next rounds, the shrunk bin sizes must be
+                // computed from this 10x8 bin, not from the original one:
+                // otherwise, the bin height is shrunk to 7 + 3 = 10 and
+                // item 1 (3x7) is enlarged to 3x10 with item 2 (1x3) as
+                // companion, which doesn't fit in the 10x8 bin anymore.
+                // With the 10x8 bin, the bin is shrunk to 4x7 and item 1
+                // is enlarged to 4x7 with item 2 as companion on its
+                // right. Lifting is disabled so that the reduced instance
+                // keeps the item dimensions.
+                fs::path("data") / "rectangle" / "tests" / "feasibility_full_span_shrinks_bin_for_next_rounds",
+                []() { ReductionParameters p; p.lift_item_dimensions = false; return p; }(),
+            },
         }));
 
 TEST(RectangleReduction, DISABLED_ReportBenchmarkRmv)
