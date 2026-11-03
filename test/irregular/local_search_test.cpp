@@ -162,7 +162,6 @@ TEST(IrregularLocalSearch, DirectTrigonometryFeasibility)
     for (Counter number_of_workers: {1, 3}) {
         LocalSearchParameters parameters;
         parameters.verbosity_level = 0;
-        parameters.timer.set_time_limit(30);
         parameters.separator_parameters.number_of_workers = number_of_workers;
         std::mt19937_64 generator(0);
         LocalSearchOutput output = local_search(instance, generator, &initial_solution, parameters);
@@ -231,7 +230,6 @@ TEST(IrregularLocalSearch, NonlinearProgrammingFeasibility)
     LocalSearchParameters parameters;
     parameters.verbosity_level = 0;
     parameters.engine = LocalSearchEngine::NonlinearProgramming;
-    parameters.timer.set_time_limit(60);
     std::mt19937_64 generator(0);
     LocalSearchOutput output = local_search(instance, generator, &initial_solution, parameters);
     const Solution& solution = output.solution_pool.best();
@@ -271,7 +269,6 @@ TEST(IrregularLocalSearch, BlackBoxOptimizationFeasibility)
     LocalSearchParameters parameters;
     parameters.verbosity_level = 0;
     parameters.engine = LocalSearchEngine::BlackBoxOptimization;
-    parameters.timer.set_time_limit(60);
     std::mt19937_64 generator(0);
     LocalSearchOutput output = local_search(instance, generator, &initial_solution, parameters);
     const Solution& solution = output.solution_pool.best();
@@ -341,9 +338,9 @@ class IrregularLocalSearchTest: public testing::TestWithParam<IrregularLocalSear
 
 TEST_P(IrregularLocalSearchTest, IrregularLocalSearch)
 {
-    // The local search is stopped by its time limit, so its solution is only
-    // required to be not worse than the reference solution, up to a relative
-    // tolerance on the continuous part of the objective.
+    // The local search is stopped by a limit on its number of moves, so its
+    // solution is only required to be not worse than the reference solution,
+    // up to a relative tolerance on the continuous part of the objective.
     IrregularLocalSearchTestParams test_params = GetParam();
     std::cout << "Instance path: " << test_params.instance_path << std::endl;
     std::cout << "Certificate path: " << test_params.certificate_path << std::endl;
@@ -354,7 +351,7 @@ TEST_P(IrregularLocalSearchTest, IrregularLocalSearch)
 
     LocalSearchParameters parameters;
     parameters.verbosity_level = 0;
-    parameters.timer.set_time_limit(5);
+    parameters.maximum_number_of_moves = 10000;
     std::mt19937_64 generator(0);
     LocalSearchOutput output = local_search(instance, generator, nullptr, parameters);
     const Solution& solution = output.solution_pool.best();
