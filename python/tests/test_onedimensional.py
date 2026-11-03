@@ -228,6 +228,8 @@ NOT_BOUND = {
     "set_item_type_length": "redundant with the positional 'length' argument of 'add_item_type'",
     "add_bin_type_resource": "creates a resource with its own id; kept as a builder method",
     "add_item_type_precedence": "relates two item types; kept as a builder method",
+    "add_bin_type_from_original_instance": "C++ only: builds the sub-instances of the algorithms",
+    "add_item_type_from_original_instance": "C++ only: builds the sub-instances of the algorithms",
 }
 
 
