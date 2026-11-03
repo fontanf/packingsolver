@@ -322,6 +322,7 @@ NOT_BOUND = {
     "add_defect": "creates a defect; kept as a separate method",
     "add_bin_type_resource": "creates a resource and returns its id; kept as a separate method",
     "add_resource_consumption": "needs a resource id and an item type id; kept as a separate method",
+    "crop_bin_type": "crops an existing bin type; kept as a separate method",
 }
 
 
