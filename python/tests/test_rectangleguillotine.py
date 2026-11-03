@@ -325,6 +325,12 @@ NOT_BOUND = {
     "crop_bin_type": "crops an existing bin type; kept as a separate method",
 }
 
+# Per-type C++ methods which are not bound at all: C++ name -> reason.
+CPP_ONLY = {
+    "add_bin_type_from_original_instance": "builds the sub-instances of the algorithms",
+    "add_item_type_from_original_instance": "builds the sub-instances of the algorithms",
+}
+
 
 def keyword_arguments(function):
     """Keyword-only argument names of a nanobind function."""
@@ -367,6 +373,9 @@ def test_per_type_methods_sync():
     assert "set_item_type_copies" in methods
     assert "add_trims" in methods
     for name in sorted(methods):
+        if name in CPP_ONLY:
+            assert not hasattr(psg.InstanceBuilder, name), name
+            continue
         if name in NOT_BOUND:
             assert hasattr(psg.InstanceBuilder, name), name
             continue
@@ -381,7 +390,7 @@ def test_per_type_methods_sync():
         assert keyword in keywords[method], (
                 name + ": no keyword '" + keyword + "' in '" + method + "'")
         assert not hasattr(psg.InstanceBuilder, name), name
-    for name in list(RENAMED) + list(NOT_BOUND):
+    for name in list(RENAMED) + list(NOT_BOUND) + list(CPP_ONLY):
         assert name in methods, name + ": not in the C++ header anymore"
 
 
