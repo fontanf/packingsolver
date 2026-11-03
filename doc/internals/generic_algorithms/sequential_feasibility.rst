@@ -18,7 +18,7 @@ It solves a sequence of :code:`feasibility` sub-problems, asking whether all the
 * :code:`open-dimension-x`, :code:`open-dimension-y` and :code:`open-dimension-z`: the bin cut to a length :math:`L` along the open dimension;
 * :code:`open-dimension-xy`: a bin of width :math:`L` and of height :math:`L` times the aspect ratio.
 
-The first space is large: twice the space of the items. As long as a sub-problem is solved, the solution found is reported, and the next space is smaller than the space this solution actually uses. The algorithm stops as soon as a sub-problem isn't solved: the inner algorithm proves it infeasible, or doesn't find a solution within its effort. The last solution found is the result.
+The first space is large: for rectangle, rectangleguillotine and box, twice the space of the items; for irregular, the space of a first solution found by a simple packing. As long as a sub-problem is solved, the solution found is reported, and the next space is smaller than the space this solution actually uses. The algorithm stops as soon as a sub-problem isn't solved: the inner algorithm proves it infeasible, or doesn't find a solution within its effort. The last solution found is the result.
 
 In the example below, the open dimension is x, the strip has a height of 2, and the items have a height of 1: the first length is twice the area of the items (18) divided by the height of the strip, 18. The first solution uses a length of 10, so the next length is 9; the second solution uses a length of 9, so the next length is 8, for which the inner algorithm finds no solution:
 
@@ -28,11 +28,12 @@ In the example below, the open dimension is x, the strip has a height of 2, and 
 First space
 -----------
 
-* :code:`bin-packing` and :code:`bin-packing-with-leftovers`: the smallest number of first bins of the instance whose space is at least twice the space of the items (at least 1); for :code:`bin-packing-with-leftovers`, the last of these bins is not cut at first;
-* open dimensions: twice the space of the items divided by the section of the bin (e.g. its height for :code:`open-dimension-x`), at most the length of the bin;
-* :code:`open-dimension-xy` (irregular): the items are first packed in columns by a simple procedure, which gives a first solution; the first width is the width of this solution, shrunk by the shrink ratio below.
+For rectangle, rectangleguillotine and box:
 
-For irregular, the space of an item is the area of its bounding box.
+* :code:`bin-packing` and :code:`bin-packing-with-leftovers`: the smallest number of first bins of the instance whose space is at least twice the space of the items (at least 1); for :code:`bin-packing-with-leftovers`, the last of these bins is not cut at first;
+* open dimensions: twice the space of the items divided by the section of the bin (e.g. its height for :code:`open-dimension-x`), at most the length of the bin.
+
+For irregular, the bounding boxes of the items are first packed in columns (in rows for :code:`open-dimension-y`), in the bins one after the other. Each item is packed with the orientation which minimizes the area of its bounding box, the items are sorted by decreasing width, and each one is packed in the first column where it fits, else in a new column, else in the next bin. In a column, an item is moved up while its bounding box intersects a border of the bin, a defect or a fixed item; a new column is moved right the same way. For :code:`open-dimension-xy`, the height of the bin is the aspect ratio times the width used. If all the items are packed, this is the first solution, and the first space is shrunk from it as after any solution (see below). Otherwise, the first space is all the bins of the instance, not cut.
 
 Shrinking
 ---------
@@ -46,7 +47,7 @@ After a solution is found:
 
 The algorithm also stops when nothing is left to try: no bin, or a length of 0. For irregular, the bins up to the last one with fixed items are always kept, since a sub-problem without them would turn their fixed items into free items.
 
-**Warm start.** For irregular, each sub-problem, except the first one, receives the previous solution found as a warm start. It is generally not a feasible solution of the sub-problem: the space has been shrunk, so some items may stick out of their bin, and the bins which aren't available anymore are dropped together with their items. It is up to the inner algorithm to repair it, and the :ref:`irregular local search <internals_irregular_local_search>` does.
+**Warm start.** For irregular, each sub-problem, except the first one, receives the previous solution found as a warm start. The first one receives the column packing only for :code:`open-dimension-xy`: otherwise the local search, which would start from it, is slower to compact the items than when it starts from scratch. It is generally not a feasible solution of the sub-problem: the space has been shrunk, so some items may stick out of their bin, and the bins which aren't available anymore are dropped together with their items. It is up to the inner algorithm to repair it, and the :ref:`irregular local search <internals_irregular_local_search>` does.
 
 Uses
 ----
