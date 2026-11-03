@@ -887,7 +887,13 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
                     && instance.parameters().maximum_number_2_cuts == -1
                     ) {
                 use_tree_search_hypergraph_infinite_copies = true;
-            } else if (instance.number_of_stages_unlimited()
+            } else if ((instance.objective() == Objective::Knapsack
+                        || instance.objective() == Objective::Feasibility
+                        || instance.objective() == Objective::BinPacking
+                        || instance.objective() == Objective::BinPackingWithLeftovers
+                        || instance.objective() == Objective::OpenDimensionX
+                        || instance.objective() == Objective::OpenDimensionY)
+                    && instance.number_of_stages_unlimited()
                     //&& mean_number_of_items_in_bins > parameters.many_items_in_bins_threshold_2
                     && instance.number_of_defects() == 0
                     && instance.number_of_stacks() == instance.number_of_item_types()

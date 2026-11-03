@@ -267,6 +267,21 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path(""),
                 fs::path(""),
                 fs::path("data") / "rectangleguillotine" / "tests" / "open_dimension_x_column_generation_strips_width" / "solution.csv",
+            }, {
+                // With unlimited stages and a single bin, the automatic
+                // selection ran 'tree_search_maximal_spaces', which doesn't
+                // support these objectives.
+                fs::path("data") / "rectangleguillotine" / "tests" / "variable_sized_bin_packing_unlimited_stages_single_bin" / "instance.json",
+                fs::path(""),
+                fs::path(""),
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "variable_sized_bin_packing_unlimited_stages_single_bin" / "solution.csv",
+            }, {
+                fs::path("data") / "rectangleguillotine" / "tests" / "bin_packing_cutting_cost_unlimited_stages_single_bin" / "instance.json",
+                fs::path(""),
+                fs::path(""),
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "bin_packing_cutting_cost_unlimited_stages_single_bin" / "solution.csv",
             }}));
 
 TEST(RectangleGuillotine, SolutionItemInSoftTrim)
