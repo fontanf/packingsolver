@@ -246,6 +246,57 @@ TEST(IrregularSequentialFeasibility, BinPackingWithLeftoversRestrictsLastBin)
     EXPECT_EQ(call.initial_solution_bin_type_ids, std::vector<BinTypeId>({0, 1}));
 }
 
+namespace
+{
+
+/**
+ * Width of the bin of the first sub-problem of a BinPackingWithLeftovers
+ * instance with a single 300x10 bin.
+ */
+LengthDbl single_bin_first_x_max(
+        LengthDbl item_width,
+        LengthDbl item_height,
+        ItemPos copies)
+{
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(Objective::BinPackingWithLeftovers);
+    instance_builder.add_bin_type(rectangle_shape(300, 10));
+    ItemTypeId item_type_id = instance_builder.add_item_type(
+            rectangle_item_shape(item_width, item_height));
+    instance_builder.set_item_type_copies(item_type_id, copies);
+    Instance instance = instance_builder.build();
+
+    std::vector<SolverCall> solver_calls;
+    SequentialFeasibilitySolver solver = [&instance, &solver_calls](
+            const Instance& sub_instance,
+            const Solution* initial_solution)
+    {
+        solver_calls.push_back(record_call(instance, sub_instance, initial_solution));
+        return SolutionPool<Instance, Solution>(sub_instance, 1);
+    };
+
+    SequentialFeasibilityParameters parameters;
+    parameters.verbosity_level = 0;
+    sequential_feasibility(instance, solver, parameters);
+    return solver_calls.front().bin_x_max;
+}
+
+}
+
+TEST(IrregularSequentialFeasibility, BinPackingWithLeftoversSingleBinStartsFromTheEstimate)
+{
+    // Three 10x10 items: the first sub-problem is restricted to the
+    // OpenDimensionX estimate 2 * 300 / 10 = 60, not to the full width 300.
+    EXPECT_NEAR(single_bin_first_x_max(10, 10, 3), 60, 1e-6);
+}
+
+TEST(IrregularSequentialFeasibility, BinPackingWithLeftoversSingleBinStartsFromTheLongestItemSide)
+{
+    // One 50x1 item: the estimate 2 * 50 / 10 = 10 is shorter than the item,
+    // the first sub-problem starts from its length.
+    EXPECT_NEAR(single_bin_first_x_max(50, 1, 1), 50, 1e-6);
+}
+
 TEST(IrregularSequentialFeasibility, StopsWhenAFixedItemWouldBeOutOfTheBin)
 {
     // Strip 100x10 with three 10x10 items and a 10x10 fixed item at x = 40.

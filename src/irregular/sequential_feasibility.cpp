@@ -201,6 +201,7 @@ SequentialFeasibilityOutput packingsolver::irregular::sequential_feasibility(
     // Compute total item AABB area to derive the initial bin size, in scaled
     // coordinates, as the bins.
     AreaDbl total_item_aabb_area = 0;
+    LengthDbl largest_item_side = 0;
     for (ItemTypeId item_type_id = 0;
             item_type_id < instance.number_of_item_types();
             ++item_type_id) {
@@ -209,6 +210,7 @@ SequentialFeasibilityOutput packingsolver::irregular::sequential_feasibility(
         LengthDbl dx = aabb.x_max - aabb.x_min;
         LengthDbl dy = aabb.y_max - aabb.y_min;
         total_item_aabb_area += dx * dy * item_type.copies;
+        largest_item_side = (std::max)({largest_item_side, dx, dy});
     }
 
     // Last solution found, the warm start of the next sub-problem.
@@ -263,6 +265,16 @@ SequentialFeasibilityOutput packingsolver::irregular::sequential_feasibility(
         BinTypeId last_bin_type_id = instance.bin_type_id(current_number_of_bins - 1);
         const BinType& last_bin_type = instance.bin_type(last_bin_type_id);
         x = last_bin_type.aabb_scaled.x_max - last_bin_type.aabb_scaled.x_min;
+        // A single bin starts from the OpenDimensionX estimate, not from its
+        // full width: x only shrinks by 'shrink_ratio' per sub-problem, so a
+        // sparse bin needed ~100 of them to reach the extent of its items.
+        // Never below the longest item side, so that the first sub-problem
+        // stays feasible for a few long items, and never with fixed items,
+        // which a narrower bin could cut.
+        if (current_number_of_bins == 1 && last_bin_type.fixed_items.empty()) {
+            LengthDbl by = last_bin_type.aabb_scaled.y_max - last_bin_type.aabb_scaled.y_min;
+            x = (std::min)(x, (std::max)(2 * total_item_aabb_area / by, largest_item_side));
+        }
     } else if (instance.objective() == Objective::OpenDimensionX) {
         const BinType& bin_type = instance.bin_type(instance.bin_type_id(0));
         y = bin_type.aabb_scaled.y_max - bin_type.aabb_scaled.y_min;
