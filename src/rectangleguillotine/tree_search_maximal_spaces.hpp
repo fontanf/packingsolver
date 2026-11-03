@@ -282,7 +282,11 @@ private:
     Parameters parameters_;
     Length cut_thickness_;
 
-    /** Effective bin dimensions (from bin type 0). */
+    /** Bottom-left corner of the area available for the items (after the trims). */
+    Length x_start_;
+    Length y_start_;
+
+    /** Dimensions of the area available for the items (from bin type 0). */
     Rectangle bin_rect_;
 
     mutable NodeId node_id_ = 0;

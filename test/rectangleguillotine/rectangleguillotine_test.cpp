@@ -282,6 +282,16 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path(""),
                 fs::path(""),
                 fs::path("data") / "rectangleguillotine" / "tests" / "bin_packing_cutting_cost_unlimited_stages_single_bin" / "solution.csv",
+            }, {
+                // With unlimited stages, the sub-instances of the sequential
+                // feasibility of 'tree_search_maximal_spaces' had no trims,
+                // so rebuilding its solutions in the original bin, when
+                // unreducing them, failed on the hard trims.
+                fs::path("data") / "rectangleguillotine" / "tests" / "bin_packing_unlimited_stages_hard_top_trim" / "instance.json",
+                fs::path(""),
+                fs::path(""),
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "bin_packing_unlimited_stages_hard_top_trim" / "solution.csv",
             }}));
 
 TEST(RectangleGuillotine, SolutionItemInSoftTrim)
@@ -465,4 +475,43 @@ TEST(RectangleGuillotine, ReadCuttingCosts)
     instance = read_json("{\"objective\": \"bin-packing\", " + BIN_AND_ITEM_TYPES + "}");
     ASSERT_EQ(instance.parameters().cutting_costs.size(), 5);
     EXPECT_EQ(instance.parameters().cutting_costs[0].fixed, 0);
+}
+
+TEST(RectangleGuillotine, InstanceBuilderCropBinType)
+{
+    // Bin 100x100 with trims of 10 and three defects, cropped to 60x70.
+    InstanceBuilder instance_builder;
+    instance_builder.add_item_type(10, 10);
+    packingsolver::BinTypeId bin_type_id = instance_builder.add_bin_type(100, 100);
+    instance_builder.add_trims(
+            bin_type_id,
+            10, TrimType::Hard,
+            10, TrimType::Soft,
+            10, TrimType::Hard,
+            40, TrimType::Hard);
+    // Inside the part kept.
+    instance_builder.add_defect(bin_type_id, 20, 20, 10, 10);
+    // Across the right side of the part kept.
+    instance_builder.add_defect(bin_type_id, 50, 30, 20, 50);
+    // Outside the part kept.
+    instance_builder.add_defect(bin_type_id, 80, 20, 10, 10);
+    instance_builder.crop_bin_type(bin_type_id, 60, 70);
+    Instance instance = instance_builder.build();
+
+    const BinType& bin_type = instance.bin_type(bin_type_id);
+    EXPECT_EQ(bin_type.rect.w, 60);
+    EXPECT_EQ(bin_type.rect.h, 70);
+    EXPECT_EQ(bin_type.left_trim, 10);
+    EXPECT_EQ(bin_type.right_trim, 0);
+    EXPECT_EQ(bin_type.bottom_trim, 10);
+    // The top trim was from 60 to 100.
+    EXPECT_EQ(bin_type.top_trim, 10);
+    EXPECT_EQ(bin_type.top_trim_type, TrimType::Hard);
+    ASSERT_EQ(bin_type.defects.size(), 2);
+    EXPECT_EQ(bin_type.defects[0].pos.x, 20);
+    EXPECT_EQ(bin_type.defects[0].rect.w, 10);
+    EXPECT_EQ(bin_type.defects[1].pos.x, 50);
+    EXPECT_EQ(bin_type.defects[1].pos.y, 30);
+    EXPECT_EQ(bin_type.defects[1].rect.w, 10);
+    EXPECT_EQ(bin_type.defects[1].rect.h, 40);
 }

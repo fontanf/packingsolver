@@ -26,7 +26,11 @@ BranchingSchemeMaximalSpaces::BranchingSchemeMaximalSpaces(
     cut_thickness_ = instance_.parameters().cut_thickness;
     BinTypeId bin_type_id = instance_.bin_type_id(0);
     const BinType& bin_type = instance_.bin_type(bin_type_id);
-    bin_rect_ = {bin_type.rect.w, bin_type.rect.h};
+    x_start_ = instance_.x_start(bin_type);
+    y_start_ = instance_.y_start(bin_type);
+    bin_rect_ = {
+        bin_type.rect.w - bin_type.right_trim - x_start_,
+        bin_type.rect.h - bin_type.top_trim - y_start_};
 }
 
 bool BranchingSchemeMaximalSpaces::cut_is_vertical(
@@ -68,7 +72,7 @@ BranchingSchemeMaximalSpaces::root() const
     node->item_number_of_copies.assign(instance_.number_of_item_types(), 0);
 
     EmptySpace root_space;
-    root_space.bl_corner = {0, 0};
+    root_space.bl_corner = {x_start_, y_start_};
     root_space.width = bin_rect_.w;
     root_space.height = bin_rect_.h;
     root_space.depth = 0;
@@ -413,12 +417,15 @@ Solution BranchingSchemeMaximalSpaces::to_solution(
     };
     std::vector<CutNode> cut_nodes;
 
-    // Root covers the full bin.
+    // Root covers the bin without its hard trims, like the depth-0 node of
+    // SolutionBuilder::add_bin.
     {
         CutNode root;
         root.depth = 0;
-        root.l = 0; root.r = bin_type.rect.w;
-        root.b = 0; root.t = bin_type.rect.h;
+        root.l = (bin_type.left_trim_type == TrimType::Hard)? bin_type.left_trim: 0;
+        root.r = bin_type.rect.w - ((bin_type.right_trim_type == TrimType::Hard)? bin_type.right_trim: 0);
+        root.b = (bin_type.bottom_trim_type == TrimType::Hard)? bin_type.bottom_trim: 0;
+        root.t = bin_type.rect.h - ((bin_type.top_trim_type == TrimType::Hard)? bin_type.top_trim: 0);
         cut_nodes.push_back(root);
     }
 
@@ -622,7 +629,7 @@ Solution BranchingSchemeMaximalSpaces::to_solution(
     std::vector<UrsEntry> urs_list;
     {
         EmptySpace root_space;
-        root_space.bl_corner = {0, 0};
+        root_space.bl_corner = {x_start_, y_start_};
         root_space.width  = bin_rect_.w;
         root_space.height = bin_rect_.h;
         root_space.depth  = 0;
@@ -780,23 +787,49 @@ Solution BranchingSchemeMaximalSpaces::to_solution(
     SolutionBuilder solution_builder(instance_);
     solution_builder.add_bin(bin_type_id, 1, fco);
 
-    std::function<void(ItemPos)> dfs = [&](ItemPos node_idx) {
+    // 'l' and 'b' are the coordinates of the bottom-left corner of the node
+    // as built by SolutionBuilder. They differ from those of the cut node
+    // inside soft left and bottom trims: the first child of such a node is
+    // then preceded by a waste node, separated from it by a cut.
+    std::function<void(ItemPos, Length, Length)> dfs = [&](
+            ItemPos node_idx,
+            Length l,
+            Length b)
+    {
         const CutNode& node = cut_nodes[node_idx];
-        if (node.depth > 0) {
-            bool node_is_vertical = (
-                (fco == CutOrientation::Vertical  && node.depth % 2 == 1)
-                || (fco == CutOrientation::Horizontal && node.depth % 2 == 0));
-            Length cut_pos = node_is_vertical ? node.r : node.t;
-            solution_builder.add_node(node.depth, cut_pos);
-            if (node.item_type_id >= 0) {
-                solution_builder.set_last_node_item(node.item_type_id);
-                return;
-            }
+        if (node.item_type_id >= 0) {
+            solution_builder.set_last_node_item(node.item_type_id);
+            return;
         }
-        for (ItemPos child_idx: node.children)
-            dfs(child_idx);
+        Depth child_depth = node.depth + 1;
+        bool child_is_vertical = (
+            (fco == CutOrientation::Vertical  && child_depth % 2 == 1)
+            || (fco == CutOrientation::Horizontal && child_depth % 2 == 0));
+        Length position = child_is_vertical? l: b;
+        for (ItemPos child_idx: node.children) {
+            const CutNode& child = cut_nodes[child_idx];
+            Length child_start = child_is_vertical? child.l: child.b;
+            if (child_start > position) {
+                if (child_start - cut_thickness_ <= position) {
+                    throw std::logic_error(
+                            FUNC_SIGNATURE + ": "
+                            "gap too small for a waste node; "
+                            "position: " + std::to_string(position) + "; "
+                            "child_start: " + std::to_string(child_start) + ".");
+                }
+                solution_builder.add_node(child_depth, child_start - cut_thickness_);
+            }
+            Length cut_pos = child_is_vertical? child.r: child.t;
+            solution_builder.add_node(child_depth, cut_pos);
+            if (child_is_vertical) {
+                dfs(child_idx, child_start, b);
+            } else {
+                dfs(child_idx, l, child_start);
+            }
+            position = cut_pos + cut_thickness_;
+        }
     };
-    dfs(0);
+    dfs(0, cut_nodes[0].l, cut_nodes[0].b);
 
     Solution solution = solution_builder.build();
 
