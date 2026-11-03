@@ -8,7 +8,7 @@ import packingsolver.onedimensional as pso
 
 def solve(module, instance):
     parameters = module.OptimizeParameters()
-    parameters.time_limit = 2
+    parameters.optimization_mode = module.OptimizationMode.NotAnytimeSequential
     return module.optimize(instance, parameters).solution
 
 
