@@ -9,6 +9,7 @@ target_sources(PackingSolver_rectangle_test PRIVATE
     bar_relaxation_test.cpp
     column_generation_test.cpp
     reduction_test.cpp
+    sequential_feasibility_test.cpp
     sequential_value_correction_test.cpp
     tree_search/test.cpp
     tree_search/defects_test.cpp
