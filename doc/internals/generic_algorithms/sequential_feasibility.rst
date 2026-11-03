@@ -18,9 +18,9 @@ It solves a sequence of :code:`feasibility` sub-problems, asking whether all the
 * :code:`open-dimension-x`, :code:`open-dimension-y` and :code:`open-dimension-z`: the bin cut to a length :math:`L` along the open dimension;
 * :code:`open-dimension-xy`: a bin of width :math:`L` and of height :math:`L` times the aspect ratio.
 
-The first space is large: for rectangleguillotine, twice the space of the items; for rectangle, box and irregular, the space of a first solution found by a simple packing. As long as a sub-problem is solved, the solution found is reported, and the next space is smaller than the space this solution actually uses. The algorithm stops as soon as a sub-problem isn't solved: the inner algorithm proves it infeasible, or doesn't find a solution within its effort. The last solution found is the result.
+The first space comes from a first solution, found by a simple packing (see below). As long as a sub-problem is solved, the solution found is reported, and the next space is smaller than the space this solution actually uses. The algorithm stops as soon as a sub-problem isn't solved: the inner algorithm proves it infeasible, or doesn't find a solution within its effort. The last solution found is the result.
 
-In the example below, the open dimension is x, the strip has a height of 2, and the items have a height of 1: the first length is twice the area of the items (18) divided by the height of the strip, 18. The first solution uses a length of 10, so the next length is 9; the second solution uses a length of 9, so the next length is 8, for which the inner algorithm finds no solution:
+In the example below, the open dimension is x, the strip has a height of 2, and the items have a height of 1: the column packing uses a length of 11, so the first length is 10. The first solution uses a length of 10, so the next length is 9; the second solution uses a length of 9, so the next length is 8, for which the inner algorithm finds no solution:
 
 .. image:: ../../img/generic_algorithms_sequential_feasibility.svg
    :align: center
@@ -28,10 +28,9 @@ In the example below, the open dimension is x, the strip has a height of 2, and 
 First space
 -----------
 
-For rectangleguillotine:
+If the simple packing packs all the items, and its solution is feasible, it is the first solution, and the first space is shrunk from it as after any solution (see below). If the first sub-problem then fails, this solution is the result. Otherwise, the first space is all the bins of the instance, not cut. The simple packing depends on the problem type.
 
-* :code:`bin-packing` and :code:`bin-packing-with-leftovers`: the smallest number of first bins of the instance whose space is at least twice the space of the items (at least 1); for :code:`bin-packing-with-leftovers`, the last of these bins is not cut at first;
-* open dimensions: twice the space of the items divided by the section of the bin (e.g. its height for :code:`open-dimension-x`), at most the length of the bin.
+For rectangleguillotine, the items are packed in strips, in the bins one after the other: the first-stage cuts are vertical (horizontal for :code:`open-dimension-y`) and cut the bins into strips, the second-stage cuts cut the strips into the items, with a third-stage cut when an item is narrower than its strip. Each item which can be rotated is packed with its smaller side across the strips, unless it is then longer than the bins; the items are sorted by decreasing width, and each one is packed in the first strip where it fits, else in a new strip, else in the next bin. The cut thickness and the trims are taken into account. The packing isn't used for the instances with fewer than 3 stages, the homogenous cut type, a first stage orientation different from the one of the strips, defects, fixed items, resources, stacks of several item types, a minimum waste length, distances between cuts, or a maximum number of cuts.
 
 For rectangle, the items are first packed in columns (in rows for :code:`open-dimension-y`, and for :code:`bin-packing-with-leftovers` with the leftover mode :code:`Y`), in the bins one after the other. Each item which can be rotated is packed with its smaller side across the columns, unless it is then longer than the bins; the items are sorted by decreasing width, and each one is packed in the first column where it fits, else in a new column, else in the next bin. In a column, an item is moved up while it intersects a defect; a new column is moved right the same way; a bin is also full when an item would exceed its maximum weight. If all the items are packed and the solution is feasible, this is the first solution, and the first space is shrunk from it as after any solution (see below). Otherwise, or if the instance has eligibilities, resources or fixed items, which this packing doesn't handle, the first space is all the bins of the instance, not cut.
 
