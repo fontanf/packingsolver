@@ -7,6 +7,36 @@ namespace packingsolver
 namespace irregular
 {
 
+/** Simplified shape and simplified inflated shape. */
+struct SimplifiedShape
+{
+    ShapeWithHoles shape;
+
+    ShapeWithHoles shape_inflated;
+};
+
+/** Simplified shapes of a bin type. */
+struct SimplifiedBinType
+{
+    std::vector<SimplifiedShape> borders;
+
+    std::vector<SimplifiedShape> defects;
+};
+
+/** Simplified shapes of an item type. */
+struct SimplifiedItemType
+{
+    std::vector<SimplifiedShape> shapes;
+};
+
+/** Simplified shapes of an instance; see 'shape_simplification'. */
+struct SimplifiedInstance
+{
+    std::vector<SimplifiedItemType> item_types;
+
+    std::vector<SimplifiedBinType> bin_types;
+};
+
 /**
  * 'minimum_number_of_vertices' is forwarded as-is to shape::simplify (see
  * its own doc): every border, defect, and item shape (and their inflated

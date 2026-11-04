@@ -448,11 +448,26 @@ bool tree_search_maximal_spaces_supported(
         && instance.parameters().maximum_number_2_cuts == -1;
 }
 
+/**
+ * Compute the blocks of the tree search maximal spaces of 'instance' if this
+ * algorithm may solve its sub-instances, so that they are computed once for
+ * all the subproblems of the algorithms which solve sub-instances, instead
+ * of once per subproblem (see 'Instance::get_blocks').
+ */
+void request_blocks(
+        const Instance& instance,
+        AlgorithmFormatter& algorithm_formatter)
+{
+    if (tree_search_maximal_spaces_supported(instance))
+        instance.get_blocks(algorithm_formatter.end_boolean());
+}
+
 void optimize_sequential_single_knapsack(
         const Instance& instance,
         const OptimizeParameters& parameters,
         AlgorithmFormatter& algorithm_formatter)
 {
+    request_blocks(instance, algorithm_formatter);
     for (Counter iteration = 0, queue_size = 1;; ++iteration) {
         NodeId queue_size_ms = queue_size;
         if (parameters.optimization_mode != OptimizationMode::Anytime
@@ -524,6 +539,7 @@ void optimize_sequential_value_correction(
         const OptimizeParameters& parameters,
         AlgorithmFormatter& algorithm_formatter)
 {
+    request_blocks(instance, algorithm_formatter);
     SequentialValueCorrectionFunction<Instance, Solution> kp_solve
         = [&algorithm_formatter, &parameters](const Instance& kp_instance)
         {
@@ -637,6 +653,7 @@ void optimize_column_generation(
         AlgorithmFormatter& algorithm_formatter,
         BinPos lower_bound)
 {
+    request_blocks(instance, algorithm_formatter);
     ColumnGenerationPricingFunction<Instance, InstanceBuilder, Solution, rectangleguillotine::Output> pricing_function
         = [&algorithm_formatter, &parameters](const Instance& kp_instance, PricingType)
         {
@@ -1106,17 +1123,6 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
         use_sequential_value_correction = false;
         use_dichotomic_search = false;
         use_column_generation = false;
-    }
-
-    // Compute the blocks of the tree search maximal spaces once for all the
-    // subproblems of the algorithms which solve sub-instances, before the
-    // instance is shared between the threads of the algorithms.
-    if ((use_sequential_single_knapsack
-                || use_sequential_value_correction
-                || use_column_generation)
-            && !instance.cache().blocks_computed
-            && tree_search_maximal_spaces_supported(instance)) {
-        instance.compute_blocks_cache();
     }
 
     // Run selected algorithms.
