@@ -1,5 +1,7 @@
 #include "box/block.hpp"
 
+#include "box/instance_cache.hpp"
+
 #include "optimizationtools/utils/utils.hpp"
 
 #include <algorithm>
@@ -153,7 +155,8 @@ struct BlockFillRateLess {
 std::vector<Block> compute_blocks_for_bin(
         const Instance& instance,
         BinTypeId bin_type_id,
-        const BlockParameters& parameters)
+        const BlockParameters& parameters,
+        const bool* end)
 {
     const BinType& bin_type = instance.bin_type(bin_type_id);
     Box bin_box = bin_type.box;
@@ -181,55 +184,11 @@ std::vector<Block> compute_blocks_for_bin(
     for (ItemTypeId item_type_id = 0;
             item_type_id < instance.number_of_item_types();
             ++item_type_id) {
-        const ItemType& item_type = instance.item_type(item_type_id);
-        if (item_type.copies < 1)
-            continue;
-        for (Rotation rotation: item_type.rotations) {
-            Box rotated_box = item_type.box.rotate(rotation);
-            ItemPos copies_max_x = (std::min)(
-                    item_type.copies,
-                    (ItemPos)(bin_box.x / rotated_box.x));
-            for (ItemPos cx = 1; cx <= copies_max_x; ++cx) {
-                ItemPos copies_max_y = (std::min)(
-                        item_type.copies / cx,
-                        (ItemPos)(bin_box.y / rotated_box.y));
-                for (ItemPos cy = 1; cy <= copies_max_y; ++cy) {
-                    ItemPos copies_max_z = (std::min)(
-                            item_type.copies / (cx * cy),
-                            (ItemPos)(bin_box.z / rotated_box.z));
-                    for (ItemPos cz = 1; cz <= copies_max_z; ++cz) {
-                        Block block;
-                        block.is_simple = true;
-                        block.item_type_id = item_type_id;
-                        block.rotation = rotation;
-                        block.box = {cx * rotated_box.x, cy * rotated_box.y, cz * rotated_box.z};
-                        block.item_volume = cx * cy * cz * item_type.volume();
-                        block.item_profit = (double)(cx * cy * cz) * item_type.profit;
-                        block.weight = cx * cy * cz * item_type.weight;
-                        block.item_copies = {{item_type_id, cx * cy * cz}};
-                        block.number_of_items = cx * cy * cz;
-                        block.items.reserve(cx * cy * cz);
-                        for (ItemPos ccx = 0; ccx < cx; ++ccx) {
-                            for (ItemPos ccy = 0; ccy < cy; ++ccy) {
-                                for (ItemPos ccz = 0; ccz < cz; ++ccz) {
-                                    SolutionItem solution_item;
-                                    solution_item.item_type_id = item_type_id;
-                                    solution_item.rotation = rotation;
-                                    solution_item.bl_corner = {
-                                        ccx * rotated_box.x,
-                                        ccy * rotated_box.y,
-                                        ccz * rotated_box.z};
-                                    block.items.push_back(solution_item);
-                                }
-                            }
-                        }
-                        BlockKey key = make_key(block);
-                        if (!seen.count(key)) {
-                            seen.insert(key);
-                            enqueue(std::move(block));
-                        }
-                    }
-                }
+        for (Block& block: compute_simple_blocks(instance, bin_type_id, item_type_id)) {
+            BlockKey key = make_key(block);
+            if (!seen.count(key)) {
+                seen.insert(key);
+                enqueue(std::move(block));
             }
         }
     }
@@ -240,6 +199,8 @@ std::vector<Block> compute_blocks_for_bin(
     while (!blocks_to_process.empty()) {
         if (parameters.maximum_number_of_blocks != -1
                 && (ItemPos)returned_blocks.size() >= parameters.maximum_number_of_blocks)
+            break;
+        if (end != nullptr && *end)
             break;
 
         auto it = std::prev(blocks_to_process.end());
@@ -402,9 +363,146 @@ MaxReachableLengths packingsolver::box::compute_max_reachable_lengths(
     return result;
 }
 
+std::vector<Block> packingsolver::box::compute_simple_blocks(
+        const Instance& instance,
+        BinTypeId bin_type_id,
+        ItemTypeId item_type_id)
+{
+    const BinType& bin_type = instance.bin_type(bin_type_id);
+    Box bin_box = bin_type.box;
+    const ItemType& item_type = instance.item_type(item_type_id);
+
+    std::vector<Block> blocks;
+    if (item_type.copies < 1)
+        return blocks;
+    for (Rotation rotation: item_type.rotations) {
+        Box rotated_box = item_type.box.rotate(rotation);
+        ItemPos copies_max_x = (std::min)(
+                item_type.copies,
+                (ItemPos)(bin_box.x / rotated_box.x));
+        for (ItemPos cx = 1; cx <= copies_max_x; ++cx) {
+            ItemPos copies_max_y = (std::min)(
+                    item_type.copies / cx,
+                    (ItemPos)(bin_box.y / rotated_box.y));
+            for (ItemPos cy = 1; cy <= copies_max_y; ++cy) {
+                ItemPos copies_max_z = (std::min)(
+                        item_type.copies / (cx * cy),
+                        (ItemPos)(bin_box.z / rotated_box.z));
+                for (ItemPos cz = 1; cz <= copies_max_z; ++cz) {
+                    Block block;
+                    block.is_simple = true;
+                    block.item_type_id = item_type_id;
+                    block.rotation = rotation;
+                    block.box = {cx * rotated_box.x, cy * rotated_box.y, cz * rotated_box.z};
+                    block.item_volume = cx * cy * cz * item_type.volume();
+                    block.item_profit = (double)(cx * cy * cz) * item_type.profit;
+                    block.weight = cx * cy * cz * item_type.weight;
+                    block.item_copies = {{item_type_id, cx * cy * cz}};
+                    block.number_of_items = cx * cy * cz;
+                    block.items.reserve(cx * cy * cz);
+                    for (ItemPos ccx = 0; ccx < cx; ++ccx) {
+                        for (ItemPos ccy = 0; ccy < cy; ++ccy) {
+                            for (ItemPos ccz = 0; ccz < cz; ++ccz) {
+                                SolutionItem solution_item;
+                                solution_item.item_type_id = item_type_id;
+                                solution_item.rotation = rotation;
+                                solution_item.bl_corner = {
+                                    ccx * rotated_box.x,
+                                    ccy * rotated_box.y,
+                                    ccz * rotated_box.z};
+                                block.items.push_back(solution_item);
+                            }
+                        }
+                    }
+                    blocks.push_back(std::move(block));
+                }
+            }
+        }
+    }
+    return blocks;
+}
+
+std::vector<Block> packingsolver::box::copy_blocks(
+        const Instance& instance,
+        BinTypeId bin_type_id,
+        const std::vector<Block>& original_blocks,
+        const std::vector<ItemTypeId>& orig_to_sub_item_type_ids,
+        const std::vector<bool>& new_item_types)
+{
+    const BinType& bin_type = instance.bin_type(bin_type_id);
+    // With at most 3 item types, 'compute_blocks' only keeps the blocks
+    // without waste.
+    bool only_full_blocks = (instance.number_of_item_types() <= 3);
+
+    std::vector<Block> blocks;
+    for (const Block& original_block: original_blocks) {
+        if (original_block.box.x > bin_type.box.x
+                || original_block.box.y > bin_type.box.y
+                || original_block.box.z > bin_type.box.z) {
+            continue;
+        }
+        if (only_full_blocks && original_block.fill_rate() != 1.0)
+            continue;
+        Block block = original_block;
+        bool available = true;
+        for (std::pair<ItemTypeId, ItemPos>& item_copy: block.item_copies) {
+            item_copy.first = (item_copy.first < (ItemTypeId)orig_to_sub_item_type_ids.size())?
+                orig_to_sub_item_type_ids[item_copy.first]:
+                -1;
+            if (item_copy.first == -1
+                    || item_copy.second > instance.item_type(item_copy.first).copies) {
+                available = false;
+                break;
+            }
+        }
+        if (!available)
+            continue;
+        std::sort(block.item_copies.begin(), block.item_copies.end());
+        block.item_profit = 0;
+        for (const std::pair<ItemTypeId, ItemPos>& item_copy: block.item_copies)
+            block.item_profit += item_copy.second * instance.item_type(item_copy.first).profit;
+        if (block.is_simple)
+            block.item_type_id = block.item_copies.front().first;
+        for (SolutionItem& item: block.items)
+            item.item_type_id = orig_to_sub_item_type_ids[item.item_type_id];
+        blocks.push_back(std::move(block));
+    }
+
+    // Simple blocks of the new item types.
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance.number_of_item_types();
+            ++item_type_id) {
+        if (!new_item_types[item_type_id])
+            continue;
+        for (Block& block: compute_simple_blocks(instance, bin_type_id, item_type_id)) {
+            if (only_full_blocks && block.fill_rate() != 1.0)
+                continue;
+            blocks.push_back(std::move(block));
+        }
+    }
+    return blocks;
+}
+
+const std::vector<std::vector<Block>>* Instance::get_blocks(
+        const bool& end) const
+{
+    std::lock_guard<std::mutex> lock(blocks_cache_->mutex);
+    if (blocks_cache_->computed)
+        return &blocks_cache_->blocks;
+    if (end)
+        return nullptr;
+    std::vector<std::vector<Block>> blocks = compute_blocks(*this, BlockParameters(), &end);
+    if (end)
+        return nullptr;
+    blocks_cache_->blocks = std::move(blocks);
+    blocks_cache_->computed = true;
+    return &blocks_cache_->blocks;
+}
+
 std::vector<std::vector<Block>> packingsolver::box::compute_blocks(
     const Instance& instance,
-    const BlockParameters& parameters)
+    const BlockParameters& parameters,
+    const bool* end)
 {
     std::vector<std::vector<Block>> result(instance.number_of_bin_types());
     for (BinTypeId bin_type_id = 0;
@@ -413,7 +511,8 @@ std::vector<std::vector<Block>> packingsolver::box::compute_blocks(
         result[bin_type_id] = compute_blocks_for_bin(
                 instance,
                 bin_type_id,
-                parameters);
+                parameters,
+                end);
     }
     return result;
 }

@@ -4,6 +4,7 @@
 #include "packingsolver/algorithms/truck.hpp"
 
 #include <functional>
+#include <memory>
 
 namespace packingsolver
 {
@@ -348,6 +349,12 @@ struct Parameters
 
 class Solution;
 
+/** Block of the tree search maximal spaces; see 'rectangle/block.hpp'. */
+struct Block;
+
+/** Cache of the blocks; see 'rectangle/instance_cache.hpp'. */
+struct BlocksCache;
+
 /**
  * User-provided feasibility callback.
  *
@@ -383,6 +390,22 @@ public:
 
     /** Get the feasibility callback. */
     inline const FeasibilityCallback& feasibility_callback() const { return feasibility_callback_; }
+
+    /**
+     * Get the blocks of the tree search maximal spaces, for each bin type
+     * (see 'rectangle/block.hpp').
+     *
+     * They are computed at the first call and stored, so that the next calls,
+     * and the sub-instances built from this instance (see
+     * 'InstanceBuilder::set_original_instance'), get them without computing
+     * them again. This method may be called from several threads: a call
+     * waits until the blocks are computed by another one.
+     *
+     * Return 'nullptr' if 'end' becomes true before the blocks are computed;
+     * they are then not stored. In particular, if 'end' is already true, the
+     * blocks are only returned if they have already been computed.
+     */
+    const std::vector<std::vector<Block>>* get_blocks(const bool& end) const;
 
     /** Get unloading constraint type. */
     inline UnloadingConstraint unloading_constraint() const { return parameters_.unloading_constraint; }
@@ -641,6 +664,9 @@ private:
 
     /** True iff all item types have an infinite number of copies. */
     bool all_item_types_infinite_copies_ = false;
+
+    /** Cache of the blocks; see 'get_blocks'. Shared by the copies of the instance. */
+    std::shared_ptr<BlocksCache> blocks_cache_;
 
     friend class InstanceBuilder;
 

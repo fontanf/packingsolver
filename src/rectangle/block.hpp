@@ -108,14 +108,49 @@ struct BlockParameters
 };
 
 /**
+ * Generate the simple blocks of an item type for a bin type: the grids of
+ * copies of the item type, in each of its orientations, which fit in the
+ * bin, without exceeding its maximum weight or the capacity of one of its
+ * resources which is not penalized.
+ */
+std::vector<Block> compute_simple_blocks(
+        const Instance& instance,
+        BinTypeId bin_type_id,
+        ItemTypeId item_type_id);
+
+/**
+ * Copy the blocks 'original_blocks' of a bin type of an original instance
+ * for the bin type 'bin_type_id' of a sub-instance 'instance':
+ * - the item type ids are remapped with 'orig_to_sub_item_type_ids' ('-1'
+ *   for an item type which is not in the sub-instance);
+ * - the blocks which don't fit in the bin, need more copies than available,
+ *   exceed its maximum weight or the capacity of one of its resources which
+ *   is not penalized are removed;
+ * - the profits and the resource consumptions are recomputed for the
+ *   sub-instance;
+ * - the item types 'new_item_types' of the sub-instance, which don't come
+ *   from the original instance, only get their simple blocks.
+ */
+std::vector<Block> copy_blocks(
+        const Instance& instance,
+        BinTypeId bin_type_id,
+        const std::vector<Block>& original_blocks,
+        const std::vector<ItemTypeId>& orig_to_sub_item_type_ids,
+        const std::vector<bool>& new_item_types);
+
+/**
  * Generate up to parameters.maximum_number_of_blocks guillotine blocks for
  * each bin type of the given instance.
  *
  * Returns one vector of blocks per bin type (indexed by BinTypeId).
+ *
+ * If 'end' is not 'nullptr' and becomes true, the generation stops and the
+ * blocks returned are incomplete.
  */
 std::vector<std::vector<Block>> compute_blocks(
     const Instance& instance,
-    const BlockParameters& parameters = {});
+    const BlockParameters& parameters = {},
+    const bool* end = nullptr);
 
 } // namespace rectangle
 } // namespace packingsolver

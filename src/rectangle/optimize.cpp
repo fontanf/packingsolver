@@ -1,5 +1,6 @@
 #include "packingsolver/rectangle/optimize.hpp"
 
+
 #include "packingsolver/rectangle/algorithm_formatter.hpp"
 #include "packingsolver/rectangle/instance_builder.hpp"
 #include "packingsolver/rectangle/post_process.hpp"
@@ -338,11 +339,65 @@ void optimize_tree_search(
     tree_search(instance, ts_parameters);
 }
 
+/**
+ * Compute the expected number of items in a bin x (resp. y) section - a
+ * full-height (resp. full-width) strip as wide (resp. as tall) as the mean
+ * item - rather than in the whole bin: what actually drives 'tree_search''s
+ * skyline branching factor (see 'many_items_in_section_threshold''s own doc
+ * comment).
+ */
+void compute_mean_numbers_of_items_in_sections(
+        const Instance& instance,
+        double& mean_number_of_items_in_x_section,
+        double& mean_number_of_items_in_y_section)
+{
+    double mean_item_width = (double)instance.total_item_width() / instance.number_of_items();
+    double mean_item_height = (double)instance.total_item_height() / instance.number_of_items();
+    double mean_bin_width = (double)instance.total_bin_width() / instance.number_of_bins();
+    double mean_bin_height = (double)instance.total_bin_height() / instance.number_of_bins();
+    mean_number_of_items_in_x_section = mean_bin_height / mean_item_height;
+    mean_number_of_items_in_y_section = mean_bin_width / mean_item_width;
+}
+
+/**
+ * Compute the blocks of the tree search maximal spaces of 'instance' if this
+ * algorithm solves the 'Knapsack' sub-instances of the algorithms which
+ * solve sub-instances (see the automatic selection of 'optimize'), so that
+ * they are computed once for all their subproblems, instead of once per
+ * subproblem (see 'Instance::get_blocks').
+ */
+void request_blocks(
+        const Instance& instance,
+        const OptimizeParameters& parameters,
+        AlgorithmFormatter& algorithm_formatter)
+{
+    if (instance.parameters().unloading_constraint != UnloadingConstraint::None)
+        return;
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < instance.number_of_bin_types();
+            ++bin_type_id) {
+        if (instance.bin_type(bin_type_id).semi_trailer_truck_data.is)
+            return;
+    }
+    double mean_number_of_items_in_x_section = 0;
+    double mean_number_of_items_in_y_section = 0;
+    compute_mean_numbers_of_items_in_sections(
+            instance,
+            mean_number_of_items_in_x_section,
+            mean_number_of_items_in_y_section);
+    if (mean_number_of_items_in_x_section <= parameters.many_items_in_section_threshold
+            || mean_number_of_items_in_y_section <= parameters.many_items_in_section_threshold) {
+        return;
+    }
+    instance.get_blocks(algorithm_formatter.end_boolean());
+}
+
 void optimize_sequential_single_knapsack(
         const Instance& instance,
         const OptimizeParameters& parameters,
         AlgorithmFormatter& algorithm_formatter)
 {
+    request_blocks(instance, parameters, algorithm_formatter);
     for (Counter iteration = 0, queue_size = 1;; ++iteration) {
         NodeId queue_size_ms = queue_size;
         if (parameters.optimization_mode != OptimizationMode::Anytime
@@ -414,6 +469,7 @@ void optimize_sequential_value_correction(
         const OptimizeParameters& parameters,
         AlgorithmFormatter& algorithm_formatter)
 {
+    request_blocks(instance, parameters, algorithm_formatter);
     SequentialValueCorrectionFunction<Instance, Solution> kp_solve
         = [&algorithm_formatter, &parameters](const Instance& kp_instance)
         {
@@ -527,6 +583,7 @@ void optimize_column_generation(
         AlgorithmFormatter& algorithm_formatter,
         BinPos lower_bound)
 {
+    request_blocks(instance, parameters, algorithm_formatter);
     ColumnGenerationPricingFunction<Instance, InstanceBuilder, Solution, rectangle::Output> pricing_function
         = [&parameters](const Instance& kp_instance, PricingType pricing_type)
         {
@@ -893,17 +950,12 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
     // Select algorithms to run.
     ItemPos mean_number_of_items_in_bins
         = largest_bin_space(instance) / mean_item_space(instance);
-    // Expected number of items in a bin x (resp. y) section - a full-height
-    // (resp. full-width) strip as wide (resp. as tall) as the mean item -
-    // rather than in the whole bin: what actually drives 'tree_search''s
-    // skyline branching factor (see 'many_items_in_section_threshold''s own
-    // doc comment).
-    double mean_item_width = (double)instance.total_item_width() / instance.number_of_items();
-    double mean_item_height = (double)instance.total_item_height() / instance.number_of_items();
-    double mean_bin_width = (double)instance.total_bin_width() / instance.number_of_bins();
-    double mean_bin_height = (double)instance.total_bin_height() / instance.number_of_bins();
-    double mean_number_of_items_in_x_section = mean_bin_height / mean_item_height;
-    double mean_number_of_items_in_y_section = mean_bin_width / mean_item_width;
+    double mean_number_of_items_in_x_section = 0;
+    double mean_number_of_items_in_y_section = 0;
+    compute_mean_numbers_of_items_in_sections(
+            instance,
+            mean_number_of_items_in_x_section,
+            mean_number_of_items_in_y_section);
     // Directions 'tree_search' should run with, when the automatic
     // selection below picks it over 'tree_search_maximal_spaces' by
     // restricting to whichever of 'X'/'Y' has few enough items per section

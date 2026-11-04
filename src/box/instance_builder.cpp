@@ -1,5 +1,7 @@
 #include "packingsolver/box/instance_builder.hpp"
 
+#include "box/instance_cache.hpp"
+
 #include "optimizationtools/utils/utils.hpp"
 #include "optimizationtools/containers/indexed_set.hpp"
 
@@ -1191,5 +1193,92 @@ Instance InstanceBuilder::build()
         }
     }
 
+    instance_.blocks_cache_ = std::make_shared<BlocksCache>();
+    if (original_instance_ != nullptr)
+        copy_cache_from_original_instance();
+
     return std::move(instance_);
+}
+
+void InstanceBuilder::copy_cache_from_original_instance()
+{
+    const Instance& original_instance = *original_instance_;
+
+    // Only the blocks already computed are copied, without waiting for a
+    // computation in progress in another thread.
+    std::unique_lock<std::mutex> original_lock(
+            original_instance.blocks_cache_->mutex,
+            std::try_to_lock);
+    if (original_lock.owns_lock() && original_instance.blocks_cache_->computed) {
+        const std::vector<std::vector<Block>>& original_instance_blocks
+            = original_instance.blocks_cache_->blocks;
+        // The blocks are only valid if all the bin types come from the
+        // original instance and are not larger than the original ones.
+        bool valid = true;
+        std::vector<BinTypeId> sub_to_orig_bin_type_ids(instance_.number_of_bin_types(), -1);
+        for (BinTypeId original_bin_type_id = 0;
+                original_bin_type_id < (BinTypeId)orig_to_sub_bin_type_ids_.size();
+                ++original_bin_type_id) {
+            BinTypeId bin_type_id = orig_to_sub_bin_type_ids_[original_bin_type_id];
+            if (bin_type_id != -1)
+                sub_to_orig_bin_type_ids[bin_type_id] = original_bin_type_id;
+        }
+        for (BinTypeId bin_type_id = 0;
+                bin_type_id < instance_.number_of_bin_types();
+                ++bin_type_id) {
+            BinTypeId original_bin_type_id = sub_to_orig_bin_type_ids[bin_type_id];
+            if (original_bin_type_id == -1) {
+                valid = false;
+                break;
+            }
+            const BinType& bin_type = instance_.bin_type(bin_type_id);
+            const BinType& original_bin_type = original_instance.bin_type(original_bin_type_id);
+            if (bin_type.box.x > original_bin_type.box.x
+                    || bin_type.box.y > original_bin_type.box.y
+                    || bin_type.box.z > original_bin_type.box.z) {
+                valid = false;
+                break;
+            }
+        }
+
+        if (valid) {
+            // The blocks of an item type are kept if it comes from the
+            // original instance with the same dimensions, rotations and
+            // weight. The other item types are new: only their simple blocks
+            // are added.
+            std::vector<ItemTypeId> orig_to_sub_item_type_ids(
+                    original_instance.number_of_item_types(),
+                    -1);
+            std::vector<bool> new_item_types(instance_.number_of_item_types(), true);
+            for (ItemTypeId original_item_type_id = 0;
+                    original_item_type_id < (ItemTypeId)orig_to_sub_item_type_ids_.size();
+                    ++original_item_type_id) {
+                ItemTypeId item_type_id = orig_to_sub_item_type_ids_[original_item_type_id];
+                if (item_type_id == -1)
+                    continue;
+                const ItemType& item_type = instance_.item_type(item_type_id);
+                const ItemType& original_item_type = original_instance.item_type(original_item_type_id);
+                if (!(item_type.box == original_item_type.box)
+                        || item_type.rotations != original_item_type.rotations
+                        || item_type.weight != original_item_type.weight) {
+                    continue;
+                }
+                orig_to_sub_item_type_ids[original_item_type_id] = item_type_id;
+                new_item_types[item_type_id] = false;
+            }
+
+            instance_.blocks_cache_->blocks.resize(instance_.number_of_bin_types());
+            for (BinTypeId bin_type_id = 0;
+                    bin_type_id < instance_.number_of_bin_types();
+                    ++bin_type_id) {
+                instance_.blocks_cache_->blocks[bin_type_id] = copy_blocks(
+                        instance_,
+                        bin_type_id,
+                        original_instance_blocks[sub_to_orig_bin_type_ids[bin_type_id]],
+                        orig_to_sub_item_type_ids,
+                        new_item_types);
+            }
+            instance_.blocks_cache_->computed = true;
+        }
+    }
 }

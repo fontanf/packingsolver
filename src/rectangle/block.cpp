@@ -1,5 +1,7 @@
 #include "rectangle/block.hpp"
 
+#include "rectangle/instance_cache.hpp"
+
 #include "optimizationtools/utils/utils.hpp"
 
 #include <algorithm>
@@ -203,6 +205,69 @@ bool resource_capacity_ok(
     return true;
 }
 
+/**
+ * Append the simple blocks of item type 'item_type_id' for bin type
+ * 'bin_type_id' to 'blocks'; see 'compute_simple_blocks'.
+ */
+void append_simple_blocks(
+        const Instance& instance,
+        BinTypeId bin_type_id,
+        ItemTypeId item_type_id,
+        const std::vector<std::vector<std::vector<double>>>& resource_consumption_prefix_sums,
+        std::vector<Block>& blocks)
+{
+    const BinType& bin_type = instance.bin_type(bin_type_id);
+    Rectangle bin_rect = bin_type.rect;
+    const ItemType& item_type = instance.item_type(item_type_id);
+    if (item_type.copies < 1)
+        return;
+    int number_of_rotations = item_type.oriented ? 1 : 2;
+    for (int rot_idx = 0; rot_idx < number_of_rotations; ++rot_idx) {
+        bool rotate = (rot_idx == 1);
+        Length bx = item_type.x(rotate);
+        Length by = item_type.y(rotate);
+        ItemPos copies_max_x = (std::min)(
+                item_type.copies,
+                (ItemPos)(bin_rect.x / bx));
+        for (ItemPos cx = 1; cx <= copies_max_x; ++cx) {
+            ItemPos copies_max_y = (std::min)(
+                    item_type.copies / cx,
+                    (ItemPos)(bin_rect.y / by));
+            for (ItemPos cy = 1; cy <= copies_max_y; ++cy) {
+                Block block;
+                block.is_simple = true;
+                block.item_type_id = item_type_id;
+                block.rotate = rotate;
+                block.rect = {cx * bx, cy * by};
+                block.item_area = cx * cy * item_type.area();
+                block.item_profit = (double)(cx * cy) * item_type.profit;
+                block.weight = cx * cy * item_type.weight;
+                block.item_copies = {{item_type_id, cx * cy}};
+                block.number_of_items = cx * cy;
+
+                if (block.weight > bin_type.maximum_weight)
+                    continue;
+                block.resource_consumption = compute_resource_consumption(
+                        instance, bin_type_id, block.item_copies, resource_consumption_prefix_sums);
+                if (!resource_capacity_ok(instance, bin_type_id, block.resource_consumption))
+                    continue;
+
+                block.items.reserve(cx * cy);
+                for (ItemPos ccx = 0; ccx < cx; ++ccx) {
+                    for (ItemPos ccy = 0; ccy < cy; ++ccy) {
+                        SolutionItem solution_item;
+                        solution_item.item_type_id = item_type_id;
+                        solution_item.rotate = rotate;
+                        solution_item.bl_corner = {ccx * bx, ccy * by};
+                        block.items.push_back(solution_item);
+                    }
+                }
+                blocks.push_back(std::move(block));
+            }
+        }
+    }
+}
+
 struct BlockFillRateLess {
     bool operator()(const Block& block_1, const Block& block_2) const
     {
@@ -221,7 +286,8 @@ struct BlockFillRateLess {
 std::vector<Block> compute_blocks_for_bin(
         const Instance& instance,
         BinTypeId bin_type_id,
-        const BlockParameters& parameters)
+        const BlockParameters& parameters,
+        const bool* end)
 {
     const BinType& bin_type = instance.bin_type(bin_type_id);
     Rectangle bin_rect = bin_type.rect;
@@ -249,56 +315,18 @@ std::vector<Block> compute_blocks_for_bin(
     for (ItemTypeId item_type_id = 0;
             item_type_id < instance.number_of_item_types();
             ++item_type_id) {
-        const ItemType& item_type = instance.item_type(item_type_id);
-        if (item_type.copies < 1)
-            continue;
-        int number_of_rotations = item_type.oriented ? 1 : 2;
-        for (int rot_idx = 0; rot_idx < number_of_rotations; ++rot_idx) {
-            bool rotate = (rot_idx == 1);
-            Length bx = item_type.x(rotate);
-            Length by = item_type.y(rotate);
-            ItemPos copies_max_x = (std::min)(
-                    item_type.copies,
-                    (ItemPos)(bin_rect.x / bx));
-            for (ItemPos cx = 1; cx <= copies_max_x; ++cx) {
-                ItemPos copies_max_y = (std::min)(
-                        item_type.copies / cx,
-                        (ItemPos)(bin_rect.y / by));
-                for (ItemPos cy = 1; cy <= copies_max_y; ++cy) {
-                    Block block;
-                    block.is_simple = true;
-                    block.item_type_id = item_type_id;
-                    block.rotate = rotate;
-                    block.rect = {cx * bx, cy * by};
-                    block.item_area = cx * cy * item_type.area();
-                    block.item_profit = (double)(cx * cy) * item_type.profit;
-                    block.weight = cx * cy * item_type.weight;
-                    block.item_copies = {{item_type_id, cx * cy}};
-                    block.number_of_items = cx * cy;
-
-                    if (block.weight > bin_type.maximum_weight)
-                        continue;
-                    block.resource_consumption = compute_resource_consumption(
-                            instance, bin_type_id, block.item_copies, resource_consumption_prefix_sums);
-                    if (!resource_capacity_ok(instance, bin_type_id, block.resource_consumption))
-                        continue;
-
-                    block.items.reserve(cx * cy);
-                    for (ItemPos ccx = 0; ccx < cx; ++ccx) {
-                        for (ItemPos ccy = 0; ccy < cy; ++ccy) {
-                            SolutionItem solution_item;
-                            solution_item.item_type_id = item_type_id;
-                            solution_item.rotate = rotate;
-                            solution_item.bl_corner = {ccx * bx, ccy * by};
-                            block.items.push_back(solution_item);
-                        }
-                    }
-                    BlockKey key = make_key(block);
-                    if (!seen.count(key)) {
-                        seen.insert(key);
-                        enqueue(std::move(block));
-                    }
-                }
+        std::vector<Block> simple_blocks;
+        append_simple_blocks(
+                instance,
+                bin_type_id,
+                item_type_id,
+                resource_consumption_prefix_sums,
+                simple_blocks);
+        for (Block& block: simple_blocks) {
+            BlockKey key = make_key(block);
+            if (!seen.count(key)) {
+                seen.insert(key);
+                enqueue(std::move(block));
             }
         }
     }
@@ -306,6 +334,8 @@ std::vector<Block> compute_blocks_for_bin(
     while (!blocks_to_process.empty()) {
         if (parameters.maximum_number_of_blocks != -1
                 && (ItemPos)returned_blocks.size() >= parameters.maximum_number_of_blocks)
+            break;
+        if (end != nullptr && *end)
             break;
 
         auto it = std::prev(blocks_to_process.end());
@@ -449,9 +479,116 @@ MaxReachableLengths packingsolver::rectangle::compute_max_reachable_lengths(
     return result;
 }
 
+std::vector<Block> packingsolver::rectangle::compute_simple_blocks(
+        const Instance& instance,
+        BinTypeId bin_type_id,
+        ItemTypeId item_type_id)
+{
+    std::vector<Block> blocks;
+    append_simple_blocks(
+            instance,
+            bin_type_id,
+            item_type_id,
+            compute_resource_consumption_prefix_sums_by_item_type(instance, bin_type_id),
+            blocks);
+    return blocks;
+}
+
+std::vector<Block> packingsolver::rectangle::copy_blocks(
+        const Instance& instance,
+        BinTypeId bin_type_id,
+        const std::vector<Block>& original_blocks,
+        const std::vector<ItemTypeId>& orig_to_sub_item_type_ids,
+        const std::vector<bool>& new_item_types)
+{
+    const BinType& bin_type = instance.bin_type(bin_type_id);
+    std::vector<std::vector<std::vector<double>>> resource_consumption_prefix_sums
+        = compute_resource_consumption_prefix_sums_by_item_type(instance, bin_type_id);
+    // With at most 3 item types, 'compute_blocks' only keeps the blocks
+    // without waste.
+    bool only_full_blocks = (instance.number_of_item_types() <= 3);
+
+    std::vector<Block> blocks;
+    for (const Block& original_block: original_blocks) {
+        if (original_block.rect.x > bin_type.rect.x
+                || original_block.rect.y > bin_type.rect.y) {
+            continue;
+        }
+        if (original_block.weight > bin_type.maximum_weight)
+            continue;
+        if (only_full_blocks && original_block.fill_rate() != 1.0)
+            continue;
+        Block block = original_block;
+        bool available = true;
+        for (std::pair<ItemTypeId, ItemPos>& item_copy: block.item_copies) {
+            item_copy.first = (item_copy.first < (ItemTypeId)orig_to_sub_item_type_ids.size())?
+                orig_to_sub_item_type_ids[item_copy.first]:
+                -1;
+            if (item_copy.first == -1
+                    || item_copy.second > instance.item_type(item_copy.first).copies) {
+                available = false;
+                break;
+            }
+        }
+        if (!available)
+            continue;
+        std::sort(block.item_copies.begin(), block.item_copies.end());
+        block.resource_consumption = compute_resource_consumption(
+                instance, bin_type_id, block.item_copies, resource_consumption_prefix_sums);
+        if (!resource_capacity_ok(instance, bin_type_id, block.resource_consumption))
+            continue;
+        block.item_profit = 0;
+        for (const std::pair<ItemTypeId, ItemPos>& item_copy: block.item_copies)
+            block.item_profit += item_copy.second * instance.item_type(item_copy.first).profit;
+        if (block.is_simple)
+            block.item_type_id = block.item_copies.front().first;
+        for (SolutionItem& item: block.items)
+            item.item_type_id = orig_to_sub_item_type_ids[item.item_type_id];
+        blocks.push_back(std::move(block));
+    }
+
+    // Simple blocks of the new item types.
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance.number_of_item_types();
+            ++item_type_id) {
+        if (!new_item_types[item_type_id])
+            continue;
+        std::vector<Block> simple_blocks;
+        append_simple_blocks(
+                instance,
+                bin_type_id,
+                item_type_id,
+                resource_consumption_prefix_sums,
+                simple_blocks);
+        for (Block& block: simple_blocks) {
+            if (only_full_blocks && block.fill_rate() != 1.0)
+                continue;
+            blocks.push_back(std::move(block));
+        }
+    }
+    return blocks;
+}
+
+const std::vector<std::vector<Block>>* Instance::get_blocks(
+        const bool& end) const
+{
+    std::lock_guard<std::mutex> lock(blocks_cache_->mutex);
+    if (blocks_cache_->computed)
+        return &blocks_cache_->blocks;
+    if (end)
+        return nullptr;
+    std::vector<std::vector<Block>> blocks = compute_blocks(*this, BlockParameters(), &end);
+    if (end)
+        return nullptr;
+    blocks_cache_->blocks = std::move(blocks);
+    blocks_cache_->computed = true;
+    return &blocks_cache_->blocks;
+}
+
 std::vector<std::vector<Block>> packingsolver::rectangle::compute_blocks(
     const Instance& instance,
-    const BlockParameters& parameters)
+    const BlockParameters& parameters,
+    const bool* end)
 {
     std::vector<std::vector<Block>> result(instance.number_of_bin_types());
     for (BinTypeId bin_type_id = 0;
@@ -460,7 +597,8 @@ std::vector<std::vector<Block>> packingsolver::rectangle::compute_blocks(
         result[bin_type_id] = compute_blocks_for_bin(
                 instance,
                 bin_type_id,
-                parameters);
+                parameters,
+                end);
     }
     return result;
 }
