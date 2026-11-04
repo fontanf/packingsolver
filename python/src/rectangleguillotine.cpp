@@ -331,7 +331,8 @@ void bind_rectangleguillotine(nb::module_& m)
                     std::optional<ItemPos> copies_min)
                 {
                     ItemTypeId item_type_id = instance_builder.add_item_type(
-                            width, height, oriented, stack_id);
+                            width, height, oriented);
+                    instance_builder.set_item_type_stack_id(item_type_id, stack_id);
                     if (profit.has_value())
                         instance_builder.set_item_type_profit(item_type_id, *profit);
                     if (copies.has_value())

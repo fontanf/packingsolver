@@ -429,6 +429,25 @@ void optimize_sequential_strips_onedimensional(
     sequential_strips_onedimensional(instance, sso_parameters);
 }
 
+/**
+ * Return true iff the tree search maximal spaces supports the parameters of
+ * 'instance'.
+ */
+bool tree_search_maximal_spaces_supported(
+        const Instance& instance)
+{
+    return instance.number_of_stages_unlimited()
+        && instance.number_of_defects() == 0
+        && instance.number_of_stacks() == instance.number_of_item_types()
+        && instance.parameters().minimum_waste_length == 0
+        && instance.parameters().minimum_distance_1_cuts == 0
+        && instance.parameters().maximum_distance_1_cuts == -1
+        && instance.parameters().minimum_distance_2_cuts == 0
+        && instance.parameters().maximum_distance_2_cuts == -1
+        && instance.parameters().maximum_number_1_cuts == -1
+        && instance.parameters().maximum_number_2_cuts == -1;
+}
+
 void optimize_sequential_single_knapsack(
         const Instance& instance,
         const OptimizeParameters& parameters,
@@ -893,18 +912,8 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
                         || instance.objective() == Objective::BinPackingWithLeftovers
                         || instance.objective() == Objective::OpenDimensionX
                         || instance.objective() == Objective::OpenDimensionY)
-                    && instance.number_of_stages_unlimited()
                     //&& mean_number_of_items_in_bins > parameters.many_items_in_bins_threshold_2
-                    && instance.number_of_defects() == 0
-                    && instance.number_of_stacks() == instance.number_of_item_types()
-                    && instance.parameters().minimum_waste_length == 0
-                    && instance.parameters().minimum_distance_1_cuts == 0
-                    && instance.parameters().maximum_distance_1_cuts == -1
-                    && instance.parameters().minimum_distance_2_cuts == 0
-                    && instance.parameters().maximum_distance_2_cuts == -1
-                    && instance.parameters().maximum_number_1_cuts == -1
-                    && instance.parameters().maximum_number_2_cuts == -1
-                    ) {
+                    && tree_search_maximal_spaces_supported(instance)) {
                 use_tree_search_maximal_spaces = true;
             } else if ((instance.objective() == Objective::Knapsack
                         || instance.objective() == Objective::OpenDimensionX
@@ -1097,6 +1106,17 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
         use_sequential_value_correction = false;
         use_dichotomic_search = false;
         use_column_generation = false;
+    }
+
+    // Compute the blocks of the tree search maximal spaces once for all the
+    // subproblems of the algorithms which solve sub-instances, before the
+    // instance is shared between the threads of the algorithms.
+    if ((use_sequential_single_knapsack
+                || use_sequential_value_correction
+                || use_column_generation)
+            && !instance.cache().blocks_computed
+            && tree_search_maximal_spaces_supported(instance)) {
+        instance.compute_blocks_cache();
     }
 
     // Run selected algorithms.

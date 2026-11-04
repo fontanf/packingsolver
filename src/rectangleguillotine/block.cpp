@@ -148,39 +148,11 @@ std::vector<Block> compute_blocks_for_bin(
     for (ItemTypeId item_type_id = 0;
             item_type_id < instance.number_of_item_types();
             ++item_type_id) {
-        const ItemType& item_type = instance.item_type(item_type_id);
-        if (item_type.copies < 1)
-            continue;
-        int number_of_rotations = item_type.oriented ? 1 : 2;
-        for (int rot_idx = 0; rot_idx < number_of_rotations; ++rot_idx) {
-            bool rotate = (rot_idx == 1);
-            Length bw = item_type.width(rotate);
-            Length bh = item_type.height(rotate);
-            ItemPos copies_max_x = (std::min)(
-                    item_type.copies,
-                    (ItemPos)((bin_w + cut_thickness) / (bw + cut_thickness)));
-            for (ItemPos cx = 1; cx <= copies_max_x; ++cx) {
-                ItemPos copies_max_y = (std::min)(
-                        item_type.copies / cx,
-                        (ItemPos)((bin_h + cut_thickness) / (bh + cut_thickness)));
-                for (ItemPos cy = 1; cy <= copies_max_y; ++cy) {
-                    Block block;
-                    block.is_simple = true;
-                    block.item_type_id = item_type_id;
-                    block.rotate = rotate;
-                    block.rect = {
-                        cx * bw + (cx - 1) * cut_thickness,
-                        cy * bh + (cy - 1) * cut_thickness};
-                    block.item_area = cx * cy * item_type.area();
-                    block.item_profit = (double)(cx * cy) * item_type.profit;
-                    block.item_copies = {{item_type_id, cx * cy}};
-                    block.number_of_items = cx * cy;
-                    BlockKey key = make_key(block);
-                    if (!seen.count(key)) {
-                        seen.insert(key);
-                        enqueue(std::move(block));
-                    }
-                }
+        for (Block& block: compute_simple_blocks(instance, bin_type_id, item_type_id)) {
+            BlockKey key = make_key(block);
+            if (!seen.count(key)) {
+                seen.insert(key);
+                enqueue(std::move(block));
             }
         }
     }
@@ -267,6 +239,51 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
     return os;
 }
 
+std::vector<Block> packingsolver::rectangleguillotine::compute_simple_blocks(
+        const Instance& instance,
+        BinTypeId bin_type_id,
+        ItemTypeId item_type_id)
+{
+    const BinType& bin_type = instance.bin_type(bin_type_id);
+    Length bin_w = bin_type.rect.w;
+    Length bin_h = bin_type.rect.h;
+    Length cut_thickness = instance.parameters().cut_thickness;
+    const ItemType& item_type = instance.item_type(item_type_id);
+
+    std::vector<Block> blocks;
+    if (item_type.copies < 1)
+        return blocks;
+    int number_of_rotations = item_type.oriented ? 1 : 2;
+    for (int rot_idx = 0; rot_idx < number_of_rotations; ++rot_idx) {
+        bool rotate = (rot_idx == 1);
+        Length bw = item_type.width(rotate);
+        Length bh = item_type.height(rotate);
+        ItemPos copies_max_x = (std::min)(
+                item_type.copies,
+                (ItemPos)((bin_w + cut_thickness) / (bw + cut_thickness)));
+        for (ItemPos cx = 1; cx <= copies_max_x; ++cx) {
+            ItemPos copies_max_y = (std::min)(
+                    item_type.copies / cx,
+                    (ItemPos)((bin_h + cut_thickness) / (bh + cut_thickness)));
+            for (ItemPos cy = 1; cy <= copies_max_y; ++cy) {
+                Block block;
+                block.is_simple = true;
+                block.item_type_id = item_type_id;
+                block.rotate = rotate;
+                block.rect = {
+                    cx * bw + (cx - 1) * cut_thickness,
+                    cy * bh + (cy - 1) * cut_thickness};
+                block.item_area = cx * cy * item_type.area();
+                block.item_profit = (double)(cx * cy) * item_type.profit;
+                block.item_copies = {{item_type_id, cx * cy}};
+                block.number_of_items = cx * cy;
+                blocks.push_back(std::move(block));
+            }
+        }
+    }
+    return blocks;
+}
+
 std::vector<std::vector<Block>> packingsolver::rectangleguillotine::compute_blocks(
         const Instance& instance,
         const BlockParameters& parameters)
@@ -278,4 +295,12 @@ std::vector<std::vector<Block>> packingsolver::rectangleguillotine::compute_bloc
         result[bin_type_id] = compute_blocks_for_bin(instance, bin_type_id, parameters);
     }
     return result;
+}
+
+void Instance::compute_blocks_cache(
+        const BlockParameters& parameters) const
+{
+    cache_.blocks = compute_blocks(*this, parameters);
+    cache_.blocks_maximum_number_of_blocks = parameters.maximum_number_of_blocks;
+    cache_.blocks_computed = true;
 }

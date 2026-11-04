@@ -18,7 +18,7 @@ TEST(RectangleGuillotineBranchingScheme, CuttingCostSingleItem)
     instance_builder.set_objective(Objective::BinPackingCuttingCost);
     instance_builder.set_number_of_stages(3);
     instance_builder.set_cut_type(CutType::NonExact);
-    instance_builder.add_item_type(100, 100, false, 0);
+    instance_builder.set_item_type_stack_id(instance_builder.add_item_type(100, 100, false), 0);
     BinTypeId bin_type_id = instance_builder.add_bin_type(100, 100);
 
     instance_builder.set_bin_type_cost(bin_type_id, 1);
@@ -59,7 +59,8 @@ TEST(RectangleGuillotineBranchingScheme, CuttingCostTwoColumns)
     instance_builder.set_objective(Objective::BinPackingCuttingCost);
     instance_builder.set_number_of_stages(3);
     instance_builder.set_cut_type(CutType::NonExact);
-    ItemTypeId item_type_id = instance_builder.add_item_type(100, 100, false, 0);
+    ItemTypeId item_type_id = instance_builder.add_item_type(100, 100, false);
+    instance_builder.set_item_type_stack_id(item_type_id, 0);
     instance_builder.set_item_type_copies(item_type_id, 2);
     BinTypeId bin_type_id = instance_builder.add_bin_type(200, 100);
 
@@ -97,7 +98,7 @@ TEST(RectangleGuillotineBranchingScheme, CuttingCostUnsetIsZero)
     instance_builder.set_objective(Objective::BinPackingCuttingCost);
     instance_builder.set_number_of_stages(3);
     instance_builder.set_cut_type(CutType::NonExact);
-    instance_builder.add_item_type(100, 100, false, 0);
+    instance_builder.set_item_type_stack_id(instance_builder.add_item_type(100, 100, false), 0);
     BinTypeId bin_type_id = instance_builder.add_bin_type(100, 100);
 
     instance_builder.set_bin_type_cost(bin_type_id, 1);
@@ -133,7 +134,8 @@ TEST(RectangleGuillotineBranchingScheme, CuttingCostWasteCost)
     instance_builder.set_objective(Objective::BinPackingCuttingCost);
     instance_builder.set_number_of_stages(3);
     instance_builder.set_cut_type(CutType::NonExact);
-    ItemTypeId item_type_id = instance_builder.add_item_type(100, 100, false, 0);
+    ItemTypeId item_type_id = instance_builder.add_item_type(100, 100, false);
+    instance_builder.set_item_type_stack_id(item_type_id, 0);
     instance_builder.set_item_type_copies(item_type_id, 2);
     BinTypeId bin_type_id = instance_builder.add_bin_type(150, 100);
 

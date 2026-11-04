@@ -71,7 +71,9 @@ Instance InstanceFlipper::flip(const Instance& instance)
         ItemTypeId flipped_item_type_id = flipped_instance_builder.add_item_type(
                 item_type.rect.h,
                 item_type.rect.w,
-                item_type.oriented,
+                item_type.oriented);
+        flipped_instance_builder.set_item_type_stack_id(
+                flipped_item_type_id,
                 item_type.stack_id);
         flipped_instance_builder.set_item_type_profit(
                 flipped_item_type_id,

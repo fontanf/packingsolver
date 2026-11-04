@@ -540,8 +540,8 @@ void Solution::append_bins(
         const std::vector<BinTypeId>& bin_type_ids,
         const std::vector<ItemTypeId>& item_type_ids)
 {
-    for (BinPos bin_pos = 0; bin_pos < solution.number_of_bins(); ++bin_pos)
-        append_bin(solution, bin_pos, 1, bin_type_ids, item_type_ids);
+    for (BinPos bin_pos = 0; bin_pos < solution.number_of_different_bins(); ++bin_pos)
+        append_bin(solution, bin_pos, solution.bin(bin_pos).copies, bin_type_ids, item_type_ids);
 }
 
 void Solution::append_empty_bin(

@@ -909,7 +909,18 @@ const packingsolver::rectangleguillotine::TreeSearchMaximalSpacesOutput packings
     algorithm_formatter.start();
     algorithm_formatter.print_header();
 
-    std::vector<std::vector<Block>> all_blocks = compute_blocks(instance);
+    // Use the blocks of the cache if they have been computed with the same
+    // parameters (see 'compute_blocks_cache').
+    BlockParameters block_parameters;
+    std::vector<std::vector<Block>> computed_blocks;
+    bool use_cached_blocks = instance.cache().blocks_computed
+        && instance.cache().blocks_maximum_number_of_blocks
+        == block_parameters.maximum_number_of_blocks;
+    if (!use_cached_blocks)
+        computed_blocks = compute_blocks(instance, block_parameters);
+    const std::vector<std::vector<Block>>& all_blocks = (use_cached_blocks)?
+        instance.cache().blocks:
+        computed_blocks;
 
     BranchingSchemeMaximalSpaces::Parameters branching_scheme_parameters;
     branching_scheme_parameters.first_cut_orientation

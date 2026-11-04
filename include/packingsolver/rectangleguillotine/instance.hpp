@@ -360,6 +360,101 @@ std::ostream& operator<<(
         const ItemType& item_type);
 
 ////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////// Instance cache ////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * A rectangleguillotine block: a rectangular envelope filled by items
+ * packed via guillotine cuts.
+ *
+ * Leaf blocks (is_simple = true) are uniform cx×cy grids of a single item
+ * type.  Combined blocks (is_simple = false) are formed by placing two
+ * sub-blocks side by side along either axis; child_1_id and child_2_id are
+ * indices into the per-bin block list and always refer to earlier entries
+ * (the list is built bottom-up).  The cut tree is reconstructed on demand
+ * in to_solution from this hierarchical structure.
+ */
+struct Block
+{
+    /** Envelope dimensions (.w = width, .h = height). */
+    Rectangle rect = {0, 0};
+
+    Area item_area = 0;
+    Profit item_profit = 0;
+    Weight weight = 0;
+    ItemPos number_of_items = 0;
+
+    std::vector<std::pair<ItemTypeId, ItemPos>> item_copies;
+
+    /**
+     * Leaf block (is_simple = true): a cx×cy grid of one item type.
+     * rect.w = cx * item_type.width(rotate) + (cx-1) * cut_thickness
+     * rect.h = cy * item_type.height(rotate) + (cy-1) * cut_thickness
+     */
+    bool is_simple = false;
+    ItemTypeId item_type_id = -1;
+    bool rotate = false;
+
+    /**
+     * Combined block (is_simple = false): two sub-blocks placed side by side.
+     * child_1_id and child_2_id are indices into the flat block list for the
+     * bin; they are always smaller than this block's own index (children are
+     * appended before the parent).
+     * cut_is_vertical: true = vertical cut (children placed left/right, X-direction).
+     *                  false = horizontal cut (children placed bottom/top, Y-direction).
+     */
+    bool cut_is_vertical = false;
+    ItemPos child_1_id = -1;
+    ItemPos child_2_id = -1;
+
+    double fill_rate() const
+    {
+        return (rect.w > 0 && rect.h > 0)?
+            (double)item_area / ((Area)rect.w * rect.h):
+            0.0;
+    }
+
+    double efficiency() const
+    {
+        return (rect.w > 0 && rect.h > 0)?
+            (double)item_profit / ((Area)rect.w * rect.h):
+            0.0;
+    }
+};
+
+/**
+ * Parameters for 'compute_blocks' and 'Instance::compute_blocks_cache'.
+ */
+struct BlockParameters
+{
+    /** Maximum number of blocks to generate. */
+    ItemPos maximum_number_of_blocks = 10000;
+};
+
+/**
+ * Data computed once on an instance and passed to the sub-instances built
+ * from it (see 'InstanceBuilder::set_original_instance'), so that the
+ * algorithms solving the sub-instances don't need to compute it again.
+ */
+struct InstanceCache
+{
+    /** True iff 'blocks' has been computed. */
+    bool blocks_computed = false;
+
+    /**
+     * Maximum number of blocks per bin type 'blocks' has been computed with;
+     * see 'BlockParameters::maximum_number_of_blocks'.
+     */
+    ItemPos blocks_maximum_number_of_blocks = -1;
+
+    /**
+     * Blocks of the tree search maximal spaces, for each bin type; see
+     * 'compute_blocks'.
+     */
+    std::vector<std::vector<Block>> blocks;
+};
+
+////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////// Instance ///////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -407,6 +502,19 @@ public:
 
     /** Get the feasibility callback. */
     inline const FeasibilityCallback& feasibility_callback() const { return feasibility_callback_; }
+
+    /** Get the cache. */
+    inline const InstanceCache& cache() const { return cache_; }
+
+    /**
+     * Compute the blocks of the tree search maximal spaces and store them in
+     * the cache.
+     *
+     * The cache is not protected against concurrent accesses: this method
+     * must be called before the instance is shared between threads.
+     */
+    void compute_blocks_cache(
+            const BlockParameters& parameters = BlockParameters()) const;
 
     /** Return true iff the number of stages is unlimited. */
     bool number_of_stages_unlimited() const
@@ -696,6 +804,9 @@ private:
 
     /** True iff all item types are oriented. */
     bool all_item_types_oriented_ = true;
+
+    /** Cache; see 'compute_blocks_cache'. */
+    mutable InstanceCache cache_;
 
     friend class InstanceBuilder;
 
