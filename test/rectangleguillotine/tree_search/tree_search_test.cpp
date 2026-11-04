@@ -664,8 +664,8 @@ TEST_P(RectangleGuillotineTreeSearchRoadef2018FixedStackTest, RectangleGuillotin
         ItemTypeId new_item_type_id = instance_builder.add_item_type(
                 item_type.rect.w,
                 item_type.rect.h,
-                item_type.oriented,
-                0);
+                item_type.oriented);
+        instance_builder.set_item_type_stack_id(new_item_type_id, 0);
         instance_builder.set_item_type_profit(new_item_type_id, item_type.profit);
         instance_builder.set_item_type_copies(new_item_type_id, item_type.copies);
     }

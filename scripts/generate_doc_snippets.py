@@ -259,8 +259,8 @@ def rectangleguillotine(instance):
         stack_id = item_type.get("stack_id", -1)
         if stack_id != -1:
             python.insert(0, ("stack_id", str(stack_id)))
-            cpp_positional += [cpp_value(oriented), str(stack_id)]
-        elif oriented:
+            cpp.insert(0, ("set_{kind}_type_stack_id", str(stack_id)))
+        if oriented:
             cpp_positional.append("true")
         if oriented:
             python.insert(0, ("oriented", "True"))

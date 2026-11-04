@@ -262,8 +262,7 @@ public:
     ItemTypeId add_item_type(
             Length width,
             Length height,
-            bool oriented = false,
-            StackId stack_id = -1);
+            bool oriented = false);
 
     /** Add an item type from an item type of the original instance. */
     ItemTypeId add_item_type_from_original_instance(
@@ -273,6 +272,15 @@ public:
     void set_item_type_profit(
             ItemTypeId item_type_id,
             Profit profit);
+
+    /**
+     * Set the stack of an item type.
+     *
+     * Either all the item types have a stack, or none of them.
+     */
+    void set_item_type_stack_id(
+            ItemTypeId item_type_id,
+            StackId stack_id);
 
     /** Set the number of copies of an item type. */
     void set_item_type_copies(
@@ -339,6 +347,12 @@ private:
 
     /** Build stack_offsets_ and item_type_ids_ in the instance. */
     void build_stacks();
+
+    /**
+     * Copy the cache of the original instance into the instance, for the
+     * item types and bin types which come from the original instance.
+     */
+    void copy_cache_from_original_instance();
 
     /**
      * Number of cutting costs of the instance: one for the bin, one per

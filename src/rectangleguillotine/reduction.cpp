@@ -1183,35 +1183,47 @@ Instance Reduction::reduction_to_instance(
         }
 
         const ItemType& original_item_type = original_instance_->item_type(item_type_id);
-        ItemTypeId new_item_type_id = instance_builder.add_item_type(
-                item.rect.w,
-                item.rect.h,
-                item.oriented,
-                stack_ids[original_item_type.stack_id]);
-        instance_builder.set_item_type_profit(new_item_type_id, original_item_type.profit);
-        instance_builder.set_item_type_copies(new_item_type_id, total_copies);
-        instance_builder.set_item_type_copies_min(new_item_type_id, total_copies_min);
-        // Copy resource consumptions (the bin types themselves, including
-        // their resources, were already copied above via 'add_bin_type(
-        // *original_instance_, bin_type_id)', with their resources in the
-        // same order).
-        for (BinTypeId bin_type_id = 0;
-                bin_type_id < original_instance_->number_of_bin_types();
-                ++bin_type_id) {
-            if (original_to_reduced_bin_type_id[bin_type_id] == -1)
-                continue;
-            const BinType& original_bin_type = original_instance_->bin_type(bin_type_id);
-            for (const ItemResourceConsumption& consumption: original_item_type.resources[bin_type_id]) {
-                const std::vector<double>& schedule
-                    = original_bin_type.resource(consumption.resource_id)
-                        .item_consumptions[consumption.consumption_pos].second;
-                instance_builder.add_resource_consumption(
-                        original_to_reduced_bin_type_id[bin_type_id],
-                        consumption.resource_id,
-                        new_item_type_id,
-                        schedule);
+        ItemTypeId new_item_type_id = -1;
+        if (item.rect.w == original_item_type.rect.w
+                && item.rect.h == original_item_type.rect.h
+                && item.oriented == original_item_type.oriented) {
+            // Unchanged item type: added from the original instance, with its
+            // profit and its resource consumptions, so that the data of the
+            // cache of the original instance related to it is kept.
+            new_item_type_id = instance_builder.add_item_type_from_original_instance(item_type_id);
+        } else {
+            new_item_type_id = instance_builder.add_item_type(
+                    item.rect.w,
+                    item.rect.h,
+                    item.oriented);
+            instance_builder.set_item_type_profit(new_item_type_id, original_item_type.profit);
+            // Copy resource consumptions (the bin types themselves, including
+            // their resources, were already copied above via
+            // 'add_bin_type_from_original_instance', with their resources in
+            // the same order).
+            for (BinTypeId bin_type_id = 0;
+                    bin_type_id < original_instance_->number_of_bin_types();
+                    ++bin_type_id) {
+                if (original_to_reduced_bin_type_id[bin_type_id] == -1)
+                    continue;
+                const BinType& original_bin_type = original_instance_->bin_type(bin_type_id);
+                for (const ItemResourceConsumption& consumption: original_item_type.resources[bin_type_id]) {
+                    const std::vector<double>& schedule
+                        = original_bin_type.resource(consumption.resource_id)
+                            .item_consumptions[consumption.consumption_pos].second;
+                    instance_builder.add_resource_consumption(
+                            original_to_reduced_bin_type_id[bin_type_id],
+                            consumption.resource_id,
+                            new_item_type_id,
+                            schedule);
+                }
             }
         }
+        instance_builder.set_item_type_stack_id(
+                new_item_type_id,
+                stack_ids[original_item_type.stack_id]);
+        instance_builder.set_item_type_copies(new_item_type_id, total_copies);
+        instance_builder.set_item_type_copies_min(new_item_type_id, total_copies_min);
         reduced_item_origin_runs_.push_back(std::move(origin_runs));
     }
 
