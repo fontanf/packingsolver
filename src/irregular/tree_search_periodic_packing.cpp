@@ -25,7 +25,6 @@ using namespace packingsolver::irregular;
 namespace
 {
 /** Defined further below, alongside tree_search_periodic_packing(). */
-std::vector<PeriodicItemPacking> assemble_periodic_packings(const Instance& instance);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1254,7 +1253,10 @@ BranchingSchemePeriodicPacking::BranchingSchemePeriodicPacking(
 {
     BinTypeId bin_type_id = instance_.bin_type_id(0);
 
-    std::vector<PeriodicItemPacking> packings = assemble_periodic_packings(instance_);
+    // Computed by 'tree_search_periodic_packing' before building the branching
+    // scheme, unless the branching scheme is built directly.
+    bool end = false;
+    std::vector<PeriodicItemPacking> packings = *instance_.get_periodic_packings(end);
 
     // compute_item_type_rotations returns [bin_type_id][item_type_id][rotation_idx].
     // Use the first bin type's rotations. This is cheap relative to
@@ -1932,61 +1934,6 @@ void validate_tree_search_periodic_packing_instance(const Instance& instance)
     }
 }
 
-/**
- * Assemble the periodic packings of the instance, reading from
- * Instance::periodic_packings() (see InstanceBuilder::build()):
- * sub-instances built by copying item types from a source instance (e.g.
- * successive sequential_feasibility iterations, or the last-bin
- * post-process) inherit them for free instead of recomputing from scratch,
- * which can otherwise dominate the running time for items with complex
- * shapes. Falls back to computing on the fly the periodic packings of the
- * rare item type whose ones weren't computed (e.g. an Instance not built
- * through InstanceBuilder).
- */
-std::vector<PeriodicItemPacking> assemble_periodic_packings(const Instance& instance)
-{
-    std::vector<PeriodicItemPacking> packings = instance.periodic_packings();
-    std::vector<std::vector<ItemTypeRotation>> item_type_rotations;
-    // Computed lazily (only if some item type's cache actually needs it).
-    // See instance_builder.cpp's periodic_packings_simplification_minimum_
-    // number_of_vertices for why 64.
-    SimplifiedInstance simplified_instance;
-    bool simplified_instance_computed = false;
-    for (ItemTypeId item_type_id = 0;
-            item_type_id < instance.number_of_item_types();
-            ++item_type_id) {
-        const ItemType& item_type = instance.item_type(item_type_id);
-        if (item_type.periodic_packings_computed)
-            continue;
-        if (item_type_rotations.empty()) {
-            auto all_item_type_rotations = compute_item_type_rotations(instance);
-            item_type_rotations = all_item_type_rotations[instance.bin_type_id(0)];
-        }
-        if (!simplified_instance_computed) {
-            simplified_instance = shape_simplification(instance, 0.001, 64);
-            simplified_instance_computed = true;
-        }
-        std::vector<ShapeWithHoles> item_shapes;
-        for (const SimplifiedShape& simplified_shape:
-                simplified_instance.item_types[item_type_id].shapes) {
-            item_shapes.push_back(simplified_shape.shape);
-        }
-        std::vector<PeriodicItemPacking> item_type_packings
-            = compute_periodic_packings_for_item_type(
-                    item_shapes,
-                    item_type_rotations[item_type_id],
-                    instance.item_spacing_scaled());
-        for (PeriodicItemPacking& item_packing: item_type_packings)
-            for (SolutionItem& item: item_packing.items)
-                item.item_type_id = item_type_id;
-        packings.insert(
-                packings.end(),
-                std::make_move_iterator(item_type_packings.begin()),
-                std::make_move_iterator(item_type_packings.end()));
-    }
-    return packings;
-}
-
 }
 
 const packingsolver::irregular::TreeSearchPeriodicPackingOutput
@@ -2042,6 +1989,13 @@ packingsolver::irregular::tree_search_periodic_packing(
     AlgorithmFormatter algorithm_formatter(instance, parameters, output);
     algorithm_formatter.start();
     algorithm_formatter.print_header();
+
+    // Compute the periodic packings before building the branching scheme, so
+    // that the computation stops if the algorithm has to end.
+    if (instance.get_periodic_packings(algorithm_formatter.end_boolean()) == nullptr) {
+        algorithm_formatter.end();
+        return output;
+    }
 
     std::vector<BranchingSchemePeriodicPacking> branching_schemes;
     std::vector<treesearchsolver::IterativeBeamSearchParameters<BranchingSchemePeriodicPacking>> ibs_parameters_list;

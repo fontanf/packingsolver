@@ -2,6 +2,7 @@
 
 #include "packingsolver/irregular/solution.hpp"
 #include "irregular/rotations.hpp"
+#include "irregular/instance_cache.hpp"
 
 namespace packingsolver
 {
@@ -62,6 +63,26 @@ std::vector<PeriodicItemPacking> compute_periodic_packings_for_item_type(
 std::vector<PeriodicItemPacking> compute_periodic_packings(
         const Instance& instance,
         const std::vector<std::vector<ItemTypeRotation>>& item_type_rotations);
+
+/**
+ * Compute the periodic packings of the item types of 'instance' with many
+ * copies for which 'item_type_periodic_packings_computed' is false, and the
+ * periodic packings of an item type wrapping around another one between
+ * them, add them to 'periodic_packings', and set
+ * 'item_type_periodic_packings_computed' for these item types.
+ *
+ * The periodic packings are only computed for the item types with more than
+ * 16 copies whose simplified shapes have at most 300 vertices.
+ *
+ * If 'end' becomes true, the computation stops: the item types whose
+ * periodic packings are not computed keep
+ * 'item_type_periodic_packings_computed' false.
+ */
+void complete_periodic_packings(
+        const Instance& instance,
+        std::vector<bool>& item_type_periodic_packings_computed,
+        std::vector<PeriodicItemPacking>& periodic_packings,
+        const bool& end);
 
 /** Side of an axis-aligned bounding box. */
 enum class BoundingBoxSide

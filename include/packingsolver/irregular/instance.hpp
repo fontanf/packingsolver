@@ -253,29 +253,6 @@ bool operator!=(const SolutionItem& solution_item_1, const SolutionItem& solutio
 std::ostream& operator<<(std::ostream &os, const SolutionItem& item);
 
 /**
- * Fully resolved periodic packing with item metadata (item type, angle,
- * mirror) and a scaled bounding box.
- *
- * A unit cell may contain items of several item types. A periodic packing
- * only depends on the shapes and rotations of its item types, not on the bin
- * dimensions or on the number of copies, so it is computed once, stored in
- * the instance (see Instance::periodic_packings()), and carried over to the
- * sub-instances built from it; the computation lives in
- * src/irregular/periodic_packing.hpp/.cpp.
- */
-struct PeriodicItemPacking
-{
-    std::vector<SolutionItem> items;
-
-    Point vector_1 = {0, 0};
-
-    Point vector_2 = {0, 0};
-
-    /** Axis-aligned bounding box of all items in one cell (scaled coordinates). */
-    AxisAlignedBoundingBox aabb_scaled;
-};
-
-/**
  * Item type structure for a problem of type 'irregular'.
  */
 struct ItemType
@@ -325,19 +302,6 @@ struct ItemType
 
     /** Area of the item type. */
     AreaDbl area_scaled = 0;
-
-    /**
-     * True iff the periodic packings of this item type against itself
-     * (self-NFP-derived lattice tilings) have already been computed. They
-     * are stored in Instance::periodic_packings().
-     *
-     * Copied along with the item type by
-     * InstanceBuilder::add_item_type_from_original_instance, together with its
-     * periodic packings, instead of recomputing them for every sub-instance
-     * built from this item type (e.g. successive sequential_feasibility
-     * iterations).
-     */
-    bool periodic_packings_computed = false;
 
     /**
      * For each bin type (indexed by bin_type_id - a resource's id is only
@@ -427,6 +391,12 @@ struct SimplifiedInstance;
 
 /** Cache of the simplified shapes; see 'irregular/instance_cache.hpp'. */
 struct SimplifiedInstancesCache;
+
+/** Periodic packing; see 'irregular/instance_cache.hpp'. */
+struct PeriodicItemPacking;
+
+/** Cache of the periodic packings; see 'irregular/instance_cache.hpp'. */
+struct PeriodicPackingsCache;
 
 /**
  * Instance class for a problem of type "irregular".
@@ -528,15 +498,6 @@ public:
     inline const ItemType& item_type(ItemTypeId item_type_id) const { return item_types_[item_type_id]; }
 
     /**
-     * Get the periodic packings of the instance, used by the periodic-packing
-     * tree search.
-     *
-     * The item types of a periodic packing are given by the 'item_type_id'
-     * of its items.
-     */
-    inline const std::vector<PeriodicItemPacking>& periodic_packings() const { return periodic_packings_; }
-
-    /**
      * Get the simplified shapes of the instance for a maximum approximation
      * ratio (see 'irregular/shape_simplification.hpp').
      *
@@ -552,6 +513,24 @@ public:
      */
     const SimplifiedInstance* get_simplified_instance(
             double maximum_approximation_ratio,
+            const bool& end) const;
+
+    /**
+     * Get the periodic packings of the item types with many copies, used by
+     * the periodic-packing and maximal-spaces tree searches. The item types
+     * of a periodic packing are given by the 'item_type_id' of its items.
+     *
+     * They are computed at the first call and stored, so that the next calls,
+     * and the sub-instances built from this instance (see
+     * 'InstanceBuilder::set_original_instance'), get them without computing
+     * them again. This method may be called from several threads: a call
+     * waits until the periodic packings are computed by another one.
+     *
+     * Return 'nullptr' if 'end' becomes true before the periodic packings
+     * are computed. In particular, if 'end' is already true, they are only
+     * returned if they have already been computed.
+     */
+    const std::vector<PeriodicItemPacking>* get_periodic_packings(
             const bool& end) const;
 
     /**
@@ -690,14 +669,17 @@ private:
     /** Item types. */
     std::vector<ItemType> item_types_;
 
-    /** Periodic packings. */
-    std::vector<PeriodicItemPacking> periodic_packings_;
-
     /**
      * Cache of the simplified shapes; see 'get_simplified_instance'. Shared
      * by the copies of the instance.
      */
     std::shared_ptr<SimplifiedInstancesCache> simplified_instances_cache_;
+
+    /**
+     * Cache of the periodic packings; see 'get_periodic_packings'. Shared by
+     * the copies of the instance.
+     */
+    std::shared_ptr<PeriodicPackingsCache> periodic_packings_cache_;
 
     /*
      * Private attributes computed by the 'build' method

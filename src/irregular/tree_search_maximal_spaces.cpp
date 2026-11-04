@@ -1,4 +1,5 @@
 #include "irregular/tree_search_maximal_spaces.hpp"
+#include "irregular/instance_cache.hpp"
 #include "irregular/sequential_feasibility.hpp"
 
 #include "packingsolver/irregular/algorithm_formatter.hpp"
@@ -367,14 +368,16 @@ void BranchingSchemeMaximalSpaces::compute_blocks()
     if (!parameters_.use_periodic_blocks)
         return;
 
-    // Periodic blocks. Only the periodic packings already computed in the
-    // instance are used. The blocks aligning the bounding boxes of the items
-    // on a grid are skipped: on the actual geometry, packing the items one
-    // by one does at least as well.
+    // Periodic blocks, from the periodic packings of the instance (computed
+    // by 'tree_search_maximal_spaces' before building the branching scheme,
+    // unless the branching scheme is built directly). The blocks aligning
+    // the bounding boxes of the items on a grid are skipped: on the actual
+    // geometry, packing the items one by one does at least as well.
+    bool end = false;
     BinTypeId bin_type_id = instance().bin_type_id(0);
     std::vector<PeriodicBlock> periodic_blocks = compute_periodic_blocks(
             instance(),
-            instance().periodic_packings(),
+            *instance().get_periodic_packings(end),
             compute_item_type_rotations(instance())[bin_type_id]);
     for (const PeriodicBlock& periodic_block: periodic_blocks) {
         if (periodic_block.packing_id < 0)
@@ -943,6 +946,13 @@ const packingsolver::irregular::TreeSearchMaximalSpacesOutput packingsolver::irr
     local_parameters.timer = parameters.timer;
     std::vector<std::unique_ptr<Output>> local_outputs;
     std::vector<std::unique_ptr<AlgorithmFormatter>> local_algorithm_formatters;
+
+    // Compute the periodic packings before building the branching schemes, so
+    // that the computation stops if the algorithm has to end.
+    if (instance.get_periodic_packings(algorithm_formatter.end_boolean()) == nullptr) {
+        algorithm_formatter.end();
+        return output;
+    }
 
     std::vector<std::function<void()>> tasks;
     std::forward_list<std::exception_ptr> exception_ptr_list;

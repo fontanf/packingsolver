@@ -34,7 +34,7 @@ A rectangular lattice, where :math:`v_2` is perpendicular to :math:`v_1`, is als
 
 Periodic packings mixing item types are also built, for the items shaped like an L or a U: such a *wrapper* item has a large empty rectangle touching a side of its bounding box. A *base*, a single item of another item type or the unit cell of one of its periodic packings, is put in this empty rectangle, and a second copy of the wrapper, rotated by 180°, is put on the other side of the base.
 
-The periodic packings only depend on the item types, so they are computed once by the instance builder, on simplified shapes, and stored in the instance.
+The periodic packings only depend on the item types, so they are computed once, on simplified shapes, the first time an algorithm needs them, and stored in the cache of the instance. The sub-instances built from it get the periodic packings of their item types from this cache.
 
 Blocks
 ------

@@ -1,5 +1,7 @@
 #include "irregular/periodic_packing.hpp"
 
+#include "irregular/instance_cache.hpp"
+
 #include "irregular/shape_simplification.hpp"
 
 #include "shape/no_fit_polygon.hpp"
@@ -2161,4 +2163,198 @@ std::vector<PeriodicItemPacking> packingsolver::irregular::compute_wrapping_peri
         }
     }
     return output;
+}
+
+void packingsolver::irregular::complete_periodic_packings(
+        const Instance& instance,
+        std::vector<bool>& item_type_periodic_packings_computed,
+        std::vector<PeriodicItemPacking>& periodic_packings,
+        const bool& end)
+{
+    item_type_periodic_packings_computed.resize(instance.number_of_item_types(), false);
+    if (instance.number_of_bin_types() > 0) {
+        // The NFP-based self-pairing search periodic_packings relies on can
+        // be expensive (worst case close to quadratic in the shape's vertex
+        // count for highly concave shapes), so it is only worth paying for
+        // item types that will actually be tiled many times over. Below
+        // this threshold, no periodic packing is computed; the item type
+        // still gets plain AABB-grid blocks (cheap regardless of shape
+        // complexity, just no periodic-interlocking ones) when
+        // compute_periodic_blocks_for_item_type is later called on it.
+        const ItemPos periodic_packings_copies_threshold = 16;
+
+        // Even above that copies threshold, a shape with too many vertices
+        // makes this precomputation itself prohibitively expensive: its
+        // cost is driven by the number of convex parts the shape decomposes
+        // into (each pairwise convex-convex NFP, and the final union over
+        // all of them, adds up), and a highly concave shape's part count
+        // grows with its vertex count. Benchmarked against real production
+        // data (fontanf/packingsolver#558): a self-NFP already took ~22s at
+        // 442 vertices (115 convex parts) and didn't finish in two minutes
+        // at 4068 vertices (1070 parts), against ~1s at 151 vertices (47
+        // parts); this cap sits just below where cost starts climbing
+        // steeply, trading a possibly-missed periodic packing for keeping
+        // instance building itself fast regardless of item complexity.
+        const ElementPos periodic_packings_maximum_number_of_vertices = 300;
+
+        // Shapes already at or below this many vertices are left completely
+        // unapproximated by shape_simplification below (see
+        // shape::simplify's minimum_number_of_vertices): only a shape that
+        // actually needs simplifying to fit under the cap above takes on
+        // any approximation risk. 64 is comfortably above the highest floor
+        // observed (by binary search, under -mfma -ffp-contract=fast, which
+        // approximates Apple Silicon's more aggressive FMA contraction) to
+        // still reproduce a real regression on a 127-vertex item type
+        // (fontanf/packingsolver#569): simplifying that shape down to 41
+        // vertices changed which of two near-tied periodic packings the
+        // search preferred; 42 and above did not.
+        const shape::ElementPos periodic_packings_simplification_minimum_number_of_vertices = 64;
+
+        LengthDbl item_item_minimum_spacing = instance.item_spacing_scaled();
+        // Computed lazily (only the first time they are actually needed) since
+        // most instances have few, if any, item types above the copies
+        // threshold below, and since the periodic packings of the item types
+        // copied from another instance are usually already computed.
+        SimplifiedInstance simplified_instance;
+        bool simplified_instance_computed = false;
+        decltype(compute_item_type_rotations(instance)) all_item_type_rotations;
+        bool item_type_rotations_computed = false;
+        // Item types whose periodic packings are computed in this call.
+        std::vector<bool> periodic_packings_computed_here(instance.number_of_item_types(), false);
+        for (ItemTypeId item_type_id = 0;
+                item_type_id < instance.number_of_item_types();
+                ++item_type_id) {
+            if (end)
+                return;
+            const ItemType& item_type = instance.item_type(item_type_id);
+            if (!item_type_periodic_packings_computed[item_type_id]) {
+                periodic_packings_computed_here[item_type_id] = true;
+                if (item_type.copies > periodic_packings_copies_threshold) {
+                    if (!simplified_instance_computed) {
+                        simplified_instance = shape_simplification(
+                                instance,
+                                0.001,
+                                periodic_packings_simplification_minimum_number_of_vertices);
+                        simplified_instance_computed = true;
+                    }
+                    if (!item_type_rotations_computed) {
+                        all_item_type_rotations = compute_item_type_rotations(instance);
+                        item_type_rotations_computed = true;
+                    }
+                    const std::vector<std::vector<ItemTypeRotation>>& item_type_rotations
+                        = all_item_type_rotations[instance.bin_type_id(0)];
+                    std::vector<ShapeWithHoles> item_shapes;
+                    ElementPos number_of_vertices = 0;
+                    for (const SimplifiedShape& simplified_shape:
+                            simplified_instance.item_types[item_type_id].shapes) {
+                        item_shapes.push_back(simplified_shape.shape);
+                        number_of_vertices += simplified_shape.shape.shape.elements.size();
+                    }
+
+                    // The cost of the computation below is driven by the
+                    // shapes it actually runs on -- the simplified ones --
+                    // not by the item type's original, unsimplified vertex
+                    // count, so the cap is checked against the former.
+                    if (number_of_vertices <= periodic_packings_maximum_number_of_vertices) {
+                        std::vector<PeriodicItemPacking> item_type_packings
+                            = compute_periodic_packings_for_item_type(
+                                    item_shapes,
+                                    item_type_rotations[item_type_id],
+                                    item_item_minimum_spacing);
+                        for (PeriodicItemPacking& item_packing: item_type_packings) {
+                            for (SolutionItem& item: item_packing.items)
+                                item.item_type_id = item_type_id;
+                            periodic_packings.push_back(std::move(item_packing));
+                        }
+                    }
+                }
+                item_type_periodic_packings_computed[item_type_id] = true;
+            }
+        }
+
+        // Periodic packings of an item type wrapping around another one (see
+        // compute_wrapping_periodic_packings), between the item types for
+        // which periodic packings are computed above. Those between item
+        // types whose periodic packings were all already computed are
+        // already in 'periodic_packings'.
+        bool compute_wrapping_periodic_packings_needed = false;
+        ItemTypeId number_of_wrapping_item_types = 0;
+        for (ItemTypeId item_type_id = 0;
+                item_type_id < instance.number_of_item_types();
+                ++item_type_id) {
+            if (instance.item_type(item_type_id).copies <= periodic_packings_copies_threshold)
+                continue;
+            number_of_wrapping_item_types++;
+            if (periodic_packings_computed_here[item_type_id])
+                compute_wrapping_periodic_packings_needed = true;
+        }
+        if (end)
+            return;
+        if (compute_wrapping_periodic_packings_needed
+                && number_of_wrapping_item_types >= 2) {
+            if (!simplified_instance_computed) {
+                simplified_instance = shape_simplification(
+                        instance,
+                        0.001,
+                        periodic_packings_simplification_minimum_number_of_vertices);
+                simplified_instance_computed = true;
+            }
+            if (!item_type_rotations_computed) {
+                all_item_type_rotations = compute_item_type_rotations(instance);
+                item_type_rotations_computed = true;
+            }
+            const std::vector<std::vector<ItemTypeRotation>>& item_type_rotations
+                = all_item_type_rotations[instance.bin_type_id(0)];
+            std::vector<PeriodicPackingItemType> wrapping_item_types;
+            for (ItemTypeId item_type_id = 0;
+                    item_type_id < instance.number_of_item_types();
+                    ++item_type_id) {
+                if (instance.item_type(item_type_id).copies <= periodic_packings_copies_threshold)
+                    continue;
+                PeriodicPackingItemType wrapping_item_type;
+                wrapping_item_type.item_type_id = item_type_id;
+                ElementPos number_of_vertices = 0;
+                for (const SimplifiedShape& simplified_shape:
+                        simplified_instance.item_types[item_type_id].shapes) {
+                    wrapping_item_type.shapes.push_back(simplified_shape.shape);
+                    number_of_vertices += simplified_shape.shape.shape.elements.size();
+                }
+                // Same cap as above.
+                if (number_of_vertices > periodic_packings_maximum_number_of_vertices)
+                    continue;
+                wrapping_item_type.rotations = item_type_rotations[item_type_id];
+                wrapping_item_type.compute = periodic_packings_computed_here[item_type_id];
+                wrapping_item_types.push_back(wrapping_item_type);
+            }
+            std::vector<PeriodicItemPacking> single_item_type_packings = periodic_packings;
+            for (PeriodicItemPacking& packing: compute_wrapping_periodic_packings(
+                        wrapping_item_types,
+                        single_item_type_packings,
+                        item_item_minimum_spacing)) {
+                periodic_packings.push_back(std::move(packing));
+            }
+        }
+    }
+
+}
+
+const std::vector<PeriodicItemPacking>* Instance::get_periodic_packings(
+        const bool& end) const
+{
+    std::lock_guard<std::mutex> lock(periodic_packings_cache_->mutex);
+    if (periodic_packings_cache_->computed)
+        return &periodic_packings_cache_->periodic_packings;
+    if (end)
+        return nullptr;
+    // The periodic packings computed before an interruption are kept: the
+    // next call only computes the remaining ones.
+    complete_periodic_packings(
+            *this,
+            periodic_packings_cache_->item_type_periodic_packings_computed,
+            periodic_packings_cache_->periodic_packings,
+            end);
+    if (end)
+        return nullptr;
+    periodic_packings_cache_->computed = true;
+    return &periodic_packings_cache_->periodic_packings;
 }

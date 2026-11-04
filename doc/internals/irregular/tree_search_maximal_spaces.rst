@@ -51,7 +51,7 @@ The bin is also decomposed into trapezoids: a strip below the bin, a strip above
 **Blocks.** A block is a set of items with fixed relative positions. The blocks are:
 
 * one block for each item type in each of its orientations, with a single item;
-* the blocks of the :ref:`periodic packings <internals_irregular_tree_search_periodic_packing>` already computed by the instance builder, that is, only for the item types with many copies (no periodic packing is computed by this algorithm). The blocks of a single item, and the ones aligning the bounding boxes of the items on a grid, are not kept: packing these items one by one does at least as well on their actual shapes. If a periodic block uses an orientation which is not among the orientations of its item type, the trapezoid set of this orientation is built.
+* the blocks of the :ref:`periodic packings <internals_irregular_tree_search_periodic_packing>` of the instance, that is, only for the item types with many copies. The blocks of a single item, and the ones aligning the bounding boxes of the items on a grid, are not kept: packing these items one by one does at least as well on their actual shapes. If a periodic block uses an orientation which is not among the orientations of its item type, the trapezoid set of this orientation is built.
 
 The trapezoids of a block are the trapezoids of its items, shifted by their positions in the block. A block is described by:
 

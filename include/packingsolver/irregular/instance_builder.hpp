@@ -289,6 +289,13 @@ private:
      */
     void copy_cache_from_original_instance();
 
+    /**
+     * Copy the periodic packings of the cache of the original instance into
+     * the cache of the instance, for the item types which come from the
+     * original instance.
+     */
+    void copy_periodic_packings_from_original_instance();
+
     /** Compute bin types area max. */
     AreaDbl compute_bin_types_area_max() const;
 
@@ -304,13 +311,6 @@ private:
 
     /** Mapping from original item type IDs to sub-instance item type IDs. */
     std::vector<ItemTypeId> orig_to_sub_item_type_ids_;
-
-    /**
-     * Periodic packings of a single item type carried over from the
-     * original instance by 'add_item_type_from_original_instance', with
-     * their item type ids already mapped to the sub-instance ones.
-     */
-    std::vector<PeriodicItemPacking> periodic_packings_;
 
     /** Original instance; see 'set_original_instance'. */
     const Instance* original_instance_ = nullptr;
