@@ -11,7 +11,6 @@
 #include "irregular/benders_decomposition.hpp"
 #include "irregular/tree_search_relative_positions.hpp"
 #include "irregular/local_search.hpp"
-#include "irregular/shape_simplification.hpp"
 #include "algorithms/dichotomic_search.hpp"
 #include "algorithms/sequential_value_correction.hpp"
 #include "algorithms/column_generation.hpp"
@@ -552,8 +551,7 @@ Instance instance_with_simplified_shapes(
     if (!instance.cache().simplified_instance_computed
             || instance.cache().simplified_instance_maximum_approximation_ratio
             != maximum_approximation_ratio) {
-        compute_simplified_instance_cache(
-                instance_with_cache,
+        instance_with_cache.compute_simplified_instance_cache(
                 maximum_approximation_ratio);
     }
     return instance_with_cache;
@@ -722,9 +720,6 @@ void optimize_sequential_value_correction(
             auto kp_output = optimize(kp_instance, kp_parameters);
             return kp_output.solution_pool;
         };
-    Instance svc_instance = instance_with_simplified_shapes(
-            instance,
-            parameters.not_anytime_maximum_approximation_ratio);
     SequentialValueCorrectionParameters<Instance, Solution, irregular::Output> svc_parameters;
     svc_parameters.verbosity_level = 0;
     svc_parameters.timer = parameters.timer;
@@ -737,18 +732,16 @@ void optimize_sequential_value_correction(
     if (parameters.optimization_mode != OptimizationMode::Anytime
             && parameters.optimization_mode != OptimizationMode::Exact)
         svc_parameters.maximum_number_of_iterations = parameters.not_anytime_sequential_value_correction_number_of_iterations;
-    svc_parameters.new_solution_callback = [&instance, &algorithm_formatter](
+    svc_parameters.new_solution_callback = [&algorithm_formatter](
             const irregular::Output& ps_output)
     {
         const SequentialValueCorrectionOutput<Instance, Solution, irregular::Output>& pssvc_output
             = static_cast<const SequentialValueCorrectionOutput<Instance, Solution, irregular::Output>&>(ps_output);
         std::stringstream ss;
         ss << "SVC it " << pssvc_output.number_of_iterations;
-        algorithm_formatter.update_solution(
-                convert_solution(instance, pssvc_output.solution_pool.best()),
-                ss.str());
+        algorithm_formatter.update_solution(pssvc_output.solution_pool.best(), ss.str());
     };
-    sequential_value_correction<Instance, InstanceBuilder, Solution, AlgorithmFormatter, irregular::Output>(svc_instance, kp_solve, svc_parameters);
+    sequential_value_correction<Instance, InstanceBuilder, Solution, AlgorithmFormatter, irregular::Output>(instance, kp_solve, svc_parameters);
 }
 
 void optimize_dichotomic_search(
@@ -1461,6 +1454,21 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
     // tree_search_maximal_spaces only supports a single bin.
     if (instance.number_of_bins() > 1)
         use_tree_search_maximal_spaces = false;
+
+    // Simplify the shapes once for all the subproblems of the sequential
+    // value correction (always solved with the not-anytime maximum
+    // approximation ratio), with the approximation budget of the whole
+    // instance, before the instance is shared between the threads of the
+    // algorithms. The sequential single knapsack, whose maximum
+    // approximation ratio changes at each iteration, simplifies the shapes
+    // of its own copy of the instance (see 'instance_with_simplified_shapes').
+    if (use_sequential_value_correction
+            && (!instance.cache().simplified_instance_computed
+                || instance.cache().simplified_instance_maximum_approximation_ratio
+                != parameters.not_anytime_maximum_approximation_ratio)) {
+        instance.compute_simplified_instance_cache(
+                parameters.not_anytime_maximum_approximation_ratio);
+    }
 
     // Run selected algorithms.
     // In 'NotAnytimeDeterministic' mode, algorithms still run in parallel, but
