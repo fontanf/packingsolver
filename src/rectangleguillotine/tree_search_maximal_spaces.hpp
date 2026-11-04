@@ -116,6 +116,13 @@ public:
         std::vector<EmptySpace> empty_spaces;
         std::vector<ItemPos> item_number_of_copies;
 
+        /**
+         * Consumption of each resource of the bin type by the blocks placed
+         * so far: the sum of their 'Block::resource_consumption'. Empty iff
+         * the bin type has no resources.
+         */
+        std::vector<double> resource_consumption;
+
         Area item_area = 0;
         Profit profit = 0;
         ItemPos number_of_items = 0;
@@ -292,8 +299,27 @@ private:
     mutable NodeId node_id_ = 0;
     mutable std::vector<Insertion> insertions_;
 
+    /** True iff the bin type has a resource which is not penalized. */
+    bool has_hard_resources_ = false;
+
     /** True iff the forced first cut for a URS at (depth, cut_orientation) is vertical. */
     bool cut_is_vertical(Depth depth, CutOrientation cut_orientation) const;
+
+    /**
+     * Return true iff placing 'block' in 'node' doesn't exceed the capacity
+     * of a resource which is not penalized.
+     */
+    bool block_resource_feasible(
+            const Node& node,
+            const Block& block) const;
+
+    /**
+     * Profit of placing 'block' in 'node': the profit of its items minus the
+     * penalties of the penalized resources whose capacity it exceeds first.
+     */
+    Profit insertion_profit(
+            const Node& node,
+            const Block& block) const;
 
     /** Index of the URS with smallest area in node.empty_spaces. */
     ItemPos find_best_space(const Node& node) const;

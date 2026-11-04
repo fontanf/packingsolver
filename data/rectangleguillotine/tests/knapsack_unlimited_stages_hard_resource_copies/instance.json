@@ -1,0 +1,23 @@
+{
+    "objective": "knapsack",
+    "number_of_stages": "unlimited",
+    "cut_type": "non-exact",
+    "bin_types": [
+        {
+            "width": 10,
+            "height": 10,
+            "resources": [
+                {
+                    "capacity": 2,
+                    "consumptions": [
+                        {"item_type_id": 0, "consumption": 1}
+                    ]
+                }
+            ]
+        }
+    ],
+    "item_types": [
+        {"width": 2, "height": 10, "oriented": true, "profit": 100, "copies": 5},
+        {"width": 2, "height": 10, "oriented": true, "profit": 10, "copies": 5}
+    ]
+}
