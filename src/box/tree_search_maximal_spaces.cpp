@@ -906,7 +906,13 @@ const packingsolver::box::TreeSearchMaximalSpacesOutput packingsolver::box::tree
     algorithm_formatter.print_header();
 
     MaxReachableLengths max_reachable_lengths = compute_max_reachable_lengths(instance);
-    std::vector<std::vector<Block>> all_blocks = compute_blocks(instance);
+    const std::vector<std::vector<Block>>* blocks
+        = instance.get_blocks(algorithm_formatter.end_boolean());
+    if (blocks == nullptr) {
+        algorithm_formatter.end();
+        return output;
+    }
+    const std::vector<std::vector<Block>>& all_blocks = *blocks;
 
     std::vector<BranchingSchemeMaximalSpaces> branching_schemes;
     std::vector<treesearchsolver::IterativeBeamSearchParameters<BranchingSchemeMaximalSpaces>> ibs_parameters_list;

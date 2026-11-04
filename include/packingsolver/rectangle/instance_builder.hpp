@@ -299,6 +299,12 @@ public:
 private:
 
     /**
+     * Copy the cache of the original instance into the instance, for the
+     * item types and bin types which come from the original instance.
+     */
+    void copy_cache_from_original_instance();
+
+    /**
      * Return the original instance.
      *
      * Throw if it has not been set with 'set_original_instance'.

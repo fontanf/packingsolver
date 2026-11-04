@@ -1,5 +1,6 @@
 #include "packingsolver/box/optimize.hpp"
 
+
 #include "packingsolver/box/algorithm_formatter.hpp"
 #include "packingsolver/box/instance_builder.hpp"
 #include "packingsolver/box/post_process.hpp"
@@ -179,11 +180,84 @@ void optimize_tree_search_maximal_spaces(
     tree_search_maximal_spaces(instance, ts_ms_parameters);
 }
 
+/**
+ * Compute the expected number of items in a bin x (resp. y, z) section, a
+ * slice as thick as the mean item along x (resp. y, z).
+ */
+void compute_mean_numbers_of_items_in_sections(
+        const Instance& instance,
+        double& mean_number_of_items_in_x_section,
+        double& mean_number_of_items_in_y_section,
+        double& mean_number_of_items_in_z_section)
+{
+    double mean_item_x = 0;
+    double mean_item_y = 0;
+    double mean_item_z = 0;
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance.number_of_item_types();
+            ++item_type_id) {
+        const ItemType& item_type = instance.item_type(item_type_id);
+        mean_item_x += (double)item_type.copies * item_type.box.x;
+        mean_item_y += (double)item_type.copies * item_type.box.y;
+        mean_item_z += (double)item_type.copies * item_type.box.z;
+    }
+    mean_item_x /= instance.number_of_items();
+    mean_item_y /= instance.number_of_items();
+    mean_item_z /= instance.number_of_items();
+    double mean_bin_x = 0;
+    double mean_bin_y = 0;
+    double mean_bin_z = 0;
+    for (BinPos bin_pos = 0; bin_pos < instance.number_of_bins(); ++bin_pos) {
+        const BinType& bin_type = instance.bin_type(instance.bin_type_id(bin_pos));
+        mean_bin_x += bin_type.box.x;
+        mean_bin_y += bin_type.box.y;
+        mean_bin_z += bin_type.box.z;
+    }
+    mean_bin_x /= instance.number_of_bins();
+    mean_bin_y /= instance.number_of_bins();
+    mean_bin_z /= instance.number_of_bins();
+    mean_number_of_items_in_x_section
+        = (mean_bin_y * mean_bin_z) / (mean_item_y * mean_item_z);
+    mean_number_of_items_in_y_section
+        = (mean_bin_x * mean_bin_z) / (mean_item_x * mean_item_z);
+    mean_number_of_items_in_z_section
+        = (mean_bin_x * mean_bin_y) / (mean_item_x * mean_item_y);
+}
+
+/**
+ * Compute the blocks of the tree search maximal spaces of 'instance' if this
+ * algorithm solves the 'Knapsack' sub-instances of the algorithms which
+ * solve sub-instances (see the automatic selection of 'optimize'), so that
+ * they are computed once for all their subproblems, instead of once per
+ * subproblem (see 'Instance::get_blocks').
+ */
+void request_blocks(
+        const Instance& instance,
+        const OptimizeParameters& parameters,
+        AlgorithmFormatter& algorithm_formatter)
+{
+    double mean_number_of_items_in_x_section = 0;
+    double mean_number_of_items_in_y_section = 0;
+    double mean_number_of_items_in_z_section = 0;
+    compute_mean_numbers_of_items_in_sections(
+            instance,
+            mean_number_of_items_in_x_section,
+            mean_number_of_items_in_y_section,
+            mean_number_of_items_in_z_section);
+    if (mean_number_of_items_in_x_section <= parameters.many_items_in_section_threshold
+            || mean_number_of_items_in_y_section <= parameters.many_items_in_section_threshold
+            || mean_number_of_items_in_z_section <= parameters.many_items_in_section_threshold) {
+        return;
+    }
+    instance.get_blocks(algorithm_formatter.end_boolean());
+}
+
 void optimize_sequential_single_knapsack(
         const Instance& instance,
         const OptimizeParameters& parameters,
         AlgorithmFormatter& algorithm_formatter)
 {
+    request_blocks(instance, parameters, algorithm_formatter);
     for (Counter iteration = 0, queue_size = 1;; ++iteration) {
         NodeId queue_size_ms = queue_size;
         if (parameters.optimization_mode != OptimizationMode::Anytime
@@ -255,6 +329,7 @@ void optimize_sequential_value_correction(
         const OptimizeParameters& parameters,
         AlgorithmFormatter& algorithm_formatter)
 {
+    request_blocks(instance, parameters, algorithm_formatter);
     SequentialValueCorrectionFunction<Instance, Solution> kp_solve
         = [&algorithm_formatter, &parameters](const Instance& kp_instance)
         {
@@ -367,6 +442,7 @@ void optimize_column_generation(
         const OptimizeParameters& parameters,
         AlgorithmFormatter& algorithm_formatter)
 {
+    request_blocks(instance, parameters, algorithm_formatter);
     ColumnGenerationPricingFunction<Instance, InstanceBuilder, Solution, box::Output> pricing_function
         = [&algorithm_formatter, &parameters](const Instance& kp_instance, PricingType)
         {
@@ -616,38 +692,14 @@ packingsolver::box::Output packingsolver::box::optimize(
     // Select algorithms to run.
     ItemPos mean_number_of_items_in_bins
         = largest_bin_space(instance) / mean_item_space(instance);
-    double mean_item_x = 0;
-    double mean_item_y = 0;
-    double mean_item_z = 0;
-    for (ItemTypeId item_type_id = 0;
-            item_type_id < instance.number_of_item_types();
-            ++item_type_id) {
-        const ItemType& item_type = instance.item_type(item_type_id);
-        mean_item_x += (double)item_type.copies * item_type.box.x;
-        mean_item_y += (double)item_type.copies * item_type.box.y;
-        mean_item_z += (double)item_type.copies * item_type.box.z;
-    }
-    mean_item_x /= instance.number_of_items();
-    mean_item_y /= instance.number_of_items();
-    mean_item_z /= instance.number_of_items();
-    double mean_bin_x = 0;
-    double mean_bin_y = 0;
-    double mean_bin_z = 0;
-    for (BinPos bin_pos = 0; bin_pos < instance.number_of_bins(); ++bin_pos) {
-        const BinType& bin_type = instance.bin_type(instance.bin_type_id(bin_pos));
-        mean_bin_x += bin_type.box.x;
-        mean_bin_y += bin_type.box.y;
-        mean_bin_z += bin_type.box.z;
-    }
-    mean_bin_x /= instance.number_of_bins();
-    mean_bin_y /= instance.number_of_bins();
-    mean_bin_z /= instance.number_of_bins();
-    double mean_number_of_items_in_x_section
-        = (mean_bin_y * mean_bin_z) / (mean_item_y * mean_item_z);
-    double mean_number_of_items_in_y_section
-        = (mean_bin_x * mean_bin_z) / (mean_item_x * mean_item_z);
-    double mean_number_of_items_in_z_section
-        = (mean_bin_x * mean_bin_y) / (mean_item_x * mean_item_y);
+    double mean_number_of_items_in_x_section = 0;
+    double mean_number_of_items_in_y_section = 0;
+    double mean_number_of_items_in_z_section = 0;
+    compute_mean_numbers_of_items_in_sections(
+            instance,
+            mean_number_of_items_in_x_section,
+            mean_number_of_items_in_y_section,
+            mean_number_of_items_in_z_section);
     // Directions 'tree_search' should run with, when the automatic
     // selection below picks it over 'tree_search_maximal_spaces' by
     // restricting to whichever of 'X'/'Y'/'Z' has few enough items per
