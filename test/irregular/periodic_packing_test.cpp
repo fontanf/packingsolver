@@ -1,6 +1,7 @@
 #define PACKINGSOLVER_PERIODIC_PACKING_TEST_ENABLE_DEBUG
 
 #include "packingsolver/irregular/optimize.hpp"
+#include "irregular/instance_cache.hpp"
 #include "irregular/periodic_packing.hpp"
 #include "irregular/rotations.hpp"
 #include "irregular/tree_search_periodic_packing.hpp"
@@ -21,6 +22,31 @@
 using namespace packingsolver;
 using namespace packingsolver::irregular;
 
+
+namespace
+{
+
+/** Periodic packings of 'instance', computed if needed. */
+const std::vector<PeriodicItemPacking>& periodic_packings(
+        const Instance& instance)
+{
+    bool end = false;
+    return *instance.get_periodic_packings(end);
+}
+
+/**
+ * Periodic packings of 'instance' if they have already been computed (or
+ * copied from an original instance), 'nullptr' otherwise: with 'end' already
+ * true, 'Instance::get_periodic_packings' doesn't compute them.
+ */
+const std::vector<PeriodicItemPacking>* computed_periodic_packings(
+        const Instance& instance)
+{
+    bool end = true;
+    return instance.get_periodic_packings(end);
+}
+
+}
 
 struct ComputePeriodicPackingsSingleShapeTestParams
 {
@@ -524,10 +550,11 @@ TEST(ComputePeriodicPackingsInstanceTest, AabbScaledMatchesPlacedItems)
     }
 }
 
-// The periodic packings computed by InstanceBuilder::build() are stored in
-// the instance, and carried over, with their item type ids remapped, to the
-// sub-instances built with InstanceBuilder::add_item_type_from_original_instance,
-// instead of being recomputed.
+// The periodic packings computed by Instance::get_periodic_packings are stored
+// in the cache of the instance, and carried over, with their item type ids
+// remapped, to the sub-instances built with
+// InstanceBuilder::add_item_type_from_original_instance, instead of being
+// recomputed.
 TEST(ComputePeriodicPackingsInstanceTest, PeriodicPackingsCarriedOverToSubInstances)
 {
     InstanceBuilder instance_builder;
@@ -543,12 +570,11 @@ TEST(ComputePeriodicPackingsInstanceTest, PeriodicPackingsCarriedOverToSubInstan
     instance_builder.set_item_type_copies(item_type_id_1, 20);
     Instance instance = instance_builder.build();
 
-    ASSERT_FALSE(instance.periodic_packings().empty());
-    for (const PeriodicItemPacking& packing: instance.periodic_packings())
+    ASSERT_FALSE(periodic_packings(instance).empty());
+    for (const PeriodicItemPacking& packing: periodic_packings(instance))
         for (const SolutionItem& item: packing.items)
             EXPECT_EQ(item.item_type_id, item_type_id_1);
-    EXPECT_TRUE(instance.item_type(item_type_id_0).periodic_packings_computed);
-    EXPECT_TRUE(instance.item_type(item_type_id_1).periodic_packings_computed);
+    EXPECT_NE(computed_periodic_packings(instance), nullptr);
 
     // Sub-instance with the item types in the reverse order.
     InstanceBuilder sub_instance_builder;
@@ -558,12 +584,12 @@ TEST(ComputePeriodicPackingsInstanceTest, PeriodicPackingsCarriedOverToSubInstan
     sub_instance_builder.add_item_type_from_original_instance(item_type_id_0);
     Instance sub_instance = sub_instance_builder.build();
 
-    ASSERT_EQ(sub_instance.periodic_packings().size(), instance.periodic_packings().size());
+    ASSERT_EQ((*computed_periodic_packings(sub_instance)).size(), periodic_packings(instance).size());
     for (std::size_t packing_pos = 0;
-            packing_pos < sub_instance.periodic_packings().size();
+            packing_pos < (*computed_periodic_packings(sub_instance)).size();
             ++packing_pos) {
-        const PeriodicItemPacking& packing = instance.periodic_packings()[packing_pos];
-        const PeriodicItemPacking& sub_packing = sub_instance.periodic_packings()[packing_pos];
+        const PeriodicItemPacking& packing = periodic_packings(instance)[packing_pos];
+        const PeriodicItemPacking& sub_packing = (*computed_periodic_packings(sub_instance))[packing_pos];
         ASSERT_EQ(sub_packing.items.size(), packing.items.size());
         for (std::size_t item_pos = 0; item_pos < packing.items.size(); ++item_pos) {
             EXPECT_EQ(sub_packing.items[item_pos].item_type_id, sub_item_type_id_1);
@@ -584,7 +610,7 @@ TEST(ComputePeriodicPackingsInstanceTest, PeriodicPackingsCarriedOverToSubInstan
     sub_instance_builder_2.add_bin_type(shape::build_rectangle(2000, 2000));
     sub_instance_builder_2.add_item_type_from_original_instance(item_type_id_0);
     Instance sub_instance_2 = sub_instance_builder_2.build();
-    EXPECT_TRUE(sub_instance_2.periodic_packings().empty());
+    EXPECT_TRUE((*computed_periodic_packings(sub_instance_2)).empty());
 }
 
 struct ComputeLargestEmptySideRectangleTestParams
@@ -773,7 +799,7 @@ TEST(ComputeWrappingPeriodicPackingsTest, LShapesAroundSquare)
     Instance instance = instance_builder.build();
 
     std::vector<PeriodicItemPacking> wrapping_packings;
-    for (const PeriodicItemPacking& packing: instance.periodic_packings())
+    for (const PeriodicItemPacking& packing: periodic_packings(instance))
         if (!periodic_packing_has_single_item_type(packing))
             wrapping_packings.push_back(packing);
     ASSERT_FALSE(wrapping_packings.empty());
@@ -812,7 +838,7 @@ TEST(ComputeWrappingPeriodicPackingsTest, LShapesAroundPairs)
 
     const PeriodicItemPacking* best_packing = nullptr;
     double best_density = 0.0;
-    for (const PeriodicItemPacking& packing: instance.periodic_packings()) {
+    for (const PeriodicItemPacking& packing: periodic_packings(instance)) {
         if (periodic_packing_has_single_item_type(packing))
             continue;
         ItemPos number_of_l_shapes = 0;
@@ -854,7 +880,7 @@ TEST(ComputeWrappingPeriodicPackingsTest, BlockItemsInsideBlocks)
     auto all_item_type_rotations = compute_item_type_rotations(instance);
     std::vector<PeriodicBlock> blocks = compute_periodic_blocks(
             instance,
-            instance.periodic_packings(),
+            periodic_packings(instance),
             all_item_type_rotations[instance.bin_type_id(0)]);
 
     ItemPos number_of_wrapping_blocks = 0;
@@ -895,7 +921,7 @@ TEST(ComputeWrappingPeriodicPackingsTest, AllowedRotationsWithNegativeAngles)
     Instance instance = instance_builder.build();
 
     ItemPos number_of_wrapping_packings = 0;
-    for (const PeriodicItemPacking& packing: instance.periodic_packings()) {
+    for (const PeriodicItemPacking& packing: periodic_packings(instance)) {
         if (!periodic_packing_has_single_item_type(packing))
             number_of_wrapping_packings++;
         for (const SolutionItem& item: packing.items) {
@@ -920,7 +946,7 @@ TEST(ComputePeriodicBlocksTest, ClippedLatticeBlocks)
     auto all_item_type_rotations = compute_item_type_rotations(instance);
     std::vector<PeriodicBlock> blocks = compute_periodic_blocks(
             instance,
-            instance.periodic_packings(),
+            periodic_packings(instance),
             all_item_type_rotations[instance.bin_type_id(0)]);
     ASSERT_FALSE(blocks.empty());
 
@@ -986,7 +1012,7 @@ TEST(ComputePeriodicBlocksTest, WrappingBlockExactRectangle)
     auto all_item_type_rotations = compute_item_type_rotations(instance);
     std::vector<PeriodicBlock> blocks = compute_periodic_blocks(
             instance,
-            instance.periodic_packings(),
+            periodic_packings(instance),
             all_item_type_rotations[instance.bin_type_id(0)]);
 
     double scale_value = instance.parameters().scale_value;
@@ -1025,7 +1051,7 @@ TEST(ComputePeriodicBlocksTest, FramedBlocks)
     auto all_item_type_rotations = compute_item_type_rotations(instance);
     std::vector<PeriodicBlock> blocks = compute_periodic_blocks(
             instance,
-            instance.periodic_packings(),
+            periodic_packings(instance),
             all_item_type_rotations[instance.bin_type_id(0)]);
 
     LengthDbl spacing_scaled = instance.item_spacing_scaled();
@@ -1080,7 +1106,7 @@ TEST(ComputePeriodicPackingsInstanceTest, RectangularLattice)
     Instance instance = instance_builder.build();
 
     double best_density = 0.0;
-    for (const PeriodicItemPacking& packing: instance.periodic_packings()) {
+    for (const PeriodicItemPacking& packing: periodic_packings(instance)) {
         bool rectangular = (packing.vector_1.x == 0.0 && packing.vector_2.y == 0.0)
             || (packing.vector_1.y == 0.0 && packing.vector_2.x == 0.0);
         if (rectangular)
