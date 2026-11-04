@@ -362,7 +362,13 @@ void optimize_column_generation(
     // default.
     cg_parameters.rounding_heuristic = columngenerationsolver::Activation::Never;
     cg_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
-    cg_parameters.use_cutting_planes = columngenerationsolver::Activation::Never;
+    // The subset-row cuts are enforced in the pricing subproblems with
+    // resources (see 'ColumnGenerationParameters::use_cutting_planes'), which
+    // the dynamic programming algorithm doesn't support: without extra
+    // constraints, the pricing subproblems would be solved by the much
+    // slower tree search instead of the dynamic programming algorithm.
+    if (!has_extra_constraints(instance))
+        cg_parameters.use_cutting_planes = columngenerationsolver::Activation::Never;
     // Unlike the other domains, this one already has its own dedicated,
     // purpose-built sequential feasibility scheme for 'BinPacking' (see
     // 'optimize_milp_assignment'/'MilpAssignmentParameters::
