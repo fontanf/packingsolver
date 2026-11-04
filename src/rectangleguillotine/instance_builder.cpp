@@ -1802,10 +1802,11 @@ void InstanceBuilder::copy_cache_from_original_instance()
                 const BinType& bin_type = instance_.bin_type(bin_type_id);
                 const std::vector<Block>& original_blocks
                     = original_instance_blocks[sub_to_orig_bin_type_ids[bin_type_id]];
-                // Keep the blocks which fit in the bin and whose items are
-                // available in the sub-instance. A combined block is only kept
-                // if its two children are, so that the children of a block are
-                // still before it.
+                // Keep the blocks which fit in the bin, whose items are
+                // available in the sub-instance and which don't exceed the
+                // capacity of a resource which is not penalized. A combined
+                // block is only kept if its two children are, so that the
+                // children of a block are still before it.
                 std::vector<ItemPos> orig_to_sub_block_ids(original_blocks.size(), -1);
                 for (ItemPos original_block_id = 0;
                         original_block_id < (ItemPos)original_blocks.size();
@@ -1835,6 +1836,12 @@ void InstanceBuilder::copy_cache_from_original_instance()
                     if (!available)
                         continue;
                     std::sort(block.item_copies.begin(), block.item_copies.end());
+                    // The resources of the bin types may differ from the
+                    // original ones.
+                    block.resource_consumption = compute_block_resource_consumption(
+                            instance_, bin_type_id, block.item_copies);
+                    if (!block_resource_feasible(instance_, bin_type_id, block))
+                        continue;
                     if (block.is_simple) {
                         block.item_type_id = block.item_copies.front().first;
                         block.item_profit = block.number_of_items

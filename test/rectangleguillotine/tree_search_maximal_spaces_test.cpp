@@ -38,9 +38,13 @@ TEST_P(
 {
     RectangleGuillotineTreeSearchMaximalSpacesTestParams test_params = GetParam();
     InstanceBuilder instance_builder;
-    instance_builder.read_item_types(test_params.items_path.string());
-    instance_builder.read_bin_types(test_params.bins_path.string());
-    instance_builder.read_parameters(test_params.parameters_path.string());
+    if (test_params.items_path.extension() == ".json") {
+        instance_builder.read(test_params.items_path.string());
+    } else {
+        instance_builder.read_item_types(test_params.items_path.string());
+        instance_builder.read_bin_types(test_params.bins_path.string());
+        instance_builder.read_parameters(test_params.parameters_path.string());
+    }
     Instance instance = instance_builder.build();
 
     TreeSearchMaximalSpacesParameters tree_search_maximal_spaces_parameters;
@@ -86,6 +90,38 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "rectangleguillotine" / "tests" / "bin_packing_unlimited_stages_hard_trims" / "bins.csv",
                 fs::path("data") / "rectangleguillotine" / "tests" / "bin_packing_unlimited_stages_hard_trims" / "parameters.csv",
                 fs::path("data") / "rectangleguillotine" / "tests" / "bin_packing_unlimited_stages_hard_trims" / "solution.csv",
+            }, {
+                // A resource of capacity 1 consumed by item types 0 and 1:
+                // they can't be packed together, item types 0 and 2 are.
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_unlimited_stages_hard_resource" / "instance.json",
+                fs::path(""),
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_unlimited_stages_hard_resource" / "solution.csv",
+            }, {
+                // A resource of capacity 2 consumed by the 5 copies of item
+                // type 0: the blocks with more than 2 copies of it are not
+                // generated, 2 copies are packed with 3 copies of item type 1.
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_unlimited_stages_hard_resource_copies" / "instance.json",
+                fs::path(""),
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_unlimited_stages_hard_resource_copies" / "solution.csv",
+            }, {
+                // The same resource, penalized with a penalty of 60: packing
+                // item types 0 and 1 together (190 - 60) is worse than
+                // packing item types 0 and 2 (150).
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_unlimited_stages_penalized_resource" / "instance.json",
+                fs::path(""),
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_unlimited_stages_penalized_resource" / "solution.csv",
+            }, {
+                // A resource of capacity 1 with the consumption schedule
+                // [1, 0] for item types 0 and 1: only their first copy
+                // consumes it, so the two copies of item type 0 can be
+                // packed together, with item type 2 but not item type 1.
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_unlimited_stages_resource_schedule" / "instance.json",
+                fs::path(""),
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_unlimited_stages_resource_schedule" / "solution.csv",
             }}));
 
 namespace
@@ -162,6 +198,10 @@ void check_cached_blocks(
                 profit += item_copy.second * instance.item_type(item_copy.first).profit;
             }
             EXPECT_DOUBLE_EQ(block.item_profit, profit);
+            EXPECT_EQ(
+                    block.resource_consumption,
+                    compute_block_resource_consumption(instance, bin_type_id, block.item_copies));
+            EXPECT_TRUE(block_resource_feasible(instance, bin_type_id, block));
             if (block.is_simple) {
                 const ItemType& item_type = instance.item_type(block.item_type_id);
                 EXPECT_EQ(block.rect.w % item_type.width(block.rotate), 0);
