@@ -361,19 +361,43 @@ def two_rows(items, length):
     return [list(row) for row in rows] if rec(0) else None
 
 
+def column_packing(items, strip_height):
+    """The simple packing which starts the sequential feasibility: the items
+    (of height 1), sorted by decreasing length, in columns of 'strip_height'
+    items, each one in the first column with room left, else in a new
+    column. Returns the placements (x, row, length)."""
+    columns = []
+    placements = []
+    for i in sorted(items, reverse=True):
+        column = next((c for c in columns if c["count"] < strip_height), None)
+        if column is None:
+            x = columns[-1]["x"] + columns[-1]["width"] if columns else 0
+            column = {"x": x, "width": i, "count": 0}
+            columns.append(column)
+        placements.append((column["x"], column["count"], i))
+        column["count"] += 1
+    return placements
+
+
 def sequential_feasibility_open_dimension(items, strip_height):
     """Open dimension x objective, items of height 1 and a strip of height
-    2."""
-    area = sum(items)
-    # Twice the area of the items, divided by the height of the strip.
-    length = -(-2 * area // strip_height)
-    iterations = []
+    2: the column packing, then the sub-problems."""
+    placements = column_packing(items, strip_height)
+    x_max = max(x + i for x, _, i in placements)
+    length = min(int(0.99 * x_max), x_max - 1)
+    iterations = [{"length": None, "placements": placements, "x_max": x_max, "next_length": length}]
     while length > 0:
         rows = two_rows(items, length)
-        iteration = {"length": length, "rows": rows}
+        iteration = {"length": length, "placements": None}
         iterations.append(iteration)
         if rows is None:
             break
+        iteration["placements"] = []
+        for r, row in enumerate(rows):
+            position = 0
+            for i in row:
+                iteration["placements"].append((position, r, i))
+                position += i
         x_max = max(sum(row) for row in rows)
         iteration["x_max"] = x_max
         length = min(int(0.99 * x_max), x_max - 1)

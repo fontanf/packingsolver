@@ -310,18 +310,17 @@ def figure_sequential_feasibility():
     y = -0.5
     for k, iteration in enumerate(iterations):
         length = iteration["length"]
-        title = "sub-problem {}: length {}".format(k + 1, length)
-        if k == 0:
-            title += " (twice the area of the items, divided by the height of the strip)"
+        if length is None:
+            title = "column packing"
+            length = iteration["x_max"]
+        else:
+            title = "sub-problem {}: length {}".format(k, length)
         fig.text(0, y, title, w=16, align="left", extra="fontStyle=1;")
         y -= 0.4
         fig.rect(0, y - strip_height * HEIGHT, length * scale, strip_height * HEIGHT, "", GRAY)
-        if iteration["rows"] is not None:
-            for r, row in enumerate(iteration["rows"]):
-                position = 0
-                for i in row:
-                    fig.rect(position * scale, y - (r + 1) * HEIGHT, i * scale, HEIGHT, str(i), styles[i])
-                    position += i
+        if iteration["placements"] is not None:
+            for x, r, i in iteration["placements"]:
+                fig.rect(x * scale, y - (r + 1) * HEIGHT, i * scale, HEIGHT, str(i), styles[i])
             x_max = iteration["x_max"]
             fig.polyline([(x_max * scale, y + 0.1), (x_max * scale, y - strip_height * HEIGHT - 0.1)],
                          "strokeColor=#b85450;dashed=1;strokeWidth=2;")
