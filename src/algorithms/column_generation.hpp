@@ -1448,12 +1448,11 @@ struct ColumnGenerationParameters: packingsolver::Parameters<Instance, Solution,
     /**
      * Enable subset-row cutting planes (see 'SubsetRowCutExtra' and
      * 'ColumnGenerationPricingSolver::separate_cuts'/'solve_pricing' above)
-     * at the root of the limited discrepancy search. Off by default: cuts
-     * only tighten the bound if the pricing solver also enforces them
-     * during search, otherwise they only add master LP overhead for
-     * comparatively little benefit.
+     * at the root of the limited discrepancy search. The pricing solver
+     * enforces them by penalizing the columns which contain enough items of
+     * the subset of a cut.
      */
-    columngenerationsolver::Activation use_cutting_planes = columngenerationsolver::Activation::Never;
+    columngenerationsolver::Activation use_cutting_planes = columngenerationsolver::Activation::Always;
 
     /**
      * Whether 'pricing_function' has something genuinely useful to offer
