@@ -592,6 +592,16 @@ public:
     inline const InstanceCache& cache() const { return cache_; }
 
     /**
+     * Compute the simplified shapes for 'maximum_approximation_ratio' and
+     * store them in the cache.
+     *
+     * The cache is not protected against concurrent accesses: this method
+     * must be called before the instance is shared between threads.
+     */
+    void compute_simplified_instance_cache(
+            double maximum_approximation_ratio) const;
+
+    /**
      * Return the scaled shape of item type 'item_type_id', shape 'item_shape_pos',
      * after applying the given mirror (axial symmetry about the y-axis) and
      * rotation angle.
@@ -730,8 +740,8 @@ private:
     /** Periodic packings. */
     std::vector<PeriodicItemPacking> periodic_packings_;
 
-    /** Cache. */
-    InstanceCache cache_;
+    /** Cache; see 'compute_simplified_instance_cache'. */
+    mutable InstanceCache cache_;
 
     /*
      * Private attributes computed by the 'build' method
@@ -793,10 +803,6 @@ private:
 
 
     friend class InstanceBuilder;
-
-    friend void compute_simplified_instance_cache(
-            Instance& instance,
-            double maximum_approximation_ratio);
 
 };
 

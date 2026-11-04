@@ -252,13 +252,12 @@ SimplifiedInstance irregular::shape_simplification(
     return simplified_instance;
 }
 
-void packingsolver::irregular::compute_simplified_instance_cache(
-        Instance& instance,
-        double maximum_approximation_ratio)
+void Instance::compute_simplified_instance_cache(
+        double maximum_approximation_ratio) const
 {
-    instance.cache_.simplified_instance = shape_simplification(
-            instance,
+    cache_.simplified_instance = shape_simplification(
+            *this,
             maximum_approximation_ratio);
-    instance.cache_.simplified_instance_maximum_approximation_ratio = maximum_approximation_ratio;
-    instance.cache_.simplified_instance_computed = true;
+    cache_.simplified_instance_maximum_approximation_ratio = maximum_approximation_ratio;
+    cache_.simplified_instance_computed = true;
 }

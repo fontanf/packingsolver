@@ -2,7 +2,6 @@
 #include "packingsolver/irregular/optimize.hpp"
 #include "packingsolver/irregular/solution.hpp"
 #include "irregular/solution_builder.hpp"
-#include "irregular/shape_simplification.hpp"
 
 #include <gtest/gtest.h>
 #include <boost/filesystem.hpp>
@@ -330,7 +329,7 @@ TEST(Irregular, InstanceCacheSubInstance)
             {{build_shape({{0, 0}, {30, 0}, {30, 10}, {15, 12}, {0, 10}})}});
     Instance instance = instance_builder.build();
     EXPECT_FALSE(instance.cache().simplified_instance_computed);
-    compute_simplified_instance_cache(instance, 0.2);
+    instance.compute_simplified_instance_cache(0.2);
     ASSERT_TRUE(instance.cache().simplified_instance_computed);
     const SimplifiedInstance& simplified_instance = instance.cache().simplified_instance;
 

@@ -19,13 +19,5 @@ SimplifiedInstance shape_simplification(
         double maximum_approximation_ratio,
         shape::ElementPos minimum_number_of_vertices = 4);
 
-/**
- * Compute the simplified shapes of the cache of an instance; see
- * 'InstanceCache'.
- */
-void compute_simplified_instance_cache(
-        Instance& instance,
-        double maximum_approximation_ratio);
-
 }
 }
