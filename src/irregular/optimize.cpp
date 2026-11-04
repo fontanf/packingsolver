@@ -534,42 +534,6 @@ void optimize_local_search_direct_trigonometry(
             LocalSearchEngine::DirectTrigonometry);
 }
 
-/**
- * Return a copy of 'instance' whose cache contains the simplified shapes for
- * 'maximum_approximation_ratio'.
- *
- * It is used by the sequential algorithms, so that the shapes are simplified
- * once for all their subproblems, with the approximation budget of the whole
- * instance, instead of once per subproblem, with the much smaller budget of
- * a single bin.
- */
-Instance instance_with_simplified_shapes(
-        const Instance& instance,
-        double maximum_approximation_ratio)
-{
-    Instance instance_with_cache = instance;
-    if (!instance.cache().simplified_instance_computed
-            || instance.cache().simplified_instance_maximum_approximation_ratio
-            != maximum_approximation_ratio) {
-        instance_with_cache.compute_simplified_instance_cache(
-                maximum_approximation_ratio);
-    }
-    return instance_with_cache;
-}
-
-/**
- * Convert a solution of a copy of 'instance' (see
- * 'instance_with_simplified_shapes') into a solution of 'instance'.
- */
-Solution convert_solution(
-        const Instance& instance,
-        const Solution& solution)
-{
-    Solution new_solution(instance);
-    new_solution.append_bins(solution, {}, {});
-    return new_solution;
-}
-
 void optimize_sequential_single_knapsack(
         const Instance& instance,
         const OptimizeParameters& parameters,
@@ -634,9 +598,12 @@ void optimize_sequential_single_knapsack(
                 auto kp_output = optimize(kp_instance, kp_parameters);
                 return kp_output.solution_pool;
             };
-        Instance ssk_instance = instance_with_simplified_shapes(
-                instance,
-                maximum_approximation_ratio);
+        // Simplify the shapes once for all the subproblems of this iteration,
+        // with the approximation budget of the whole instance, instead of
+        // once per subproblem, with the much smaller budget of a single bin.
+        instance.get_simplified_instance(
+                maximum_approximation_ratio,
+                algorithm_formatter.end_boolean());
         SequentialValueCorrectionParameters<Instance, Solution, irregular::Output> svc_parameters;
         svc_parameters.verbosity_level = 0;
         svc_parameters.timer = parameters.timer;
@@ -651,18 +618,16 @@ void optimize_sequential_single_knapsack(
         svc_parameters.scarce_item_types_profit_factor_exponent
             = parameters.sequential_value_correction_scarce_item_types_profit_factor_exponent;
         svc_parameters.new_solution_callback = [
-            &instance, &algorithm_formatter, iteration](
+            &algorithm_formatter, iteration](
                     const irregular::Output& ps_output)
             {
                 const SequentialValueCorrectionOutput<Instance, Solution, irregular::Output>& pssvc_output
                     = static_cast<const SequentialValueCorrectionOutput<Instance, Solution, irregular::Output>&>(ps_output);
                 std::stringstream ss;
                 ss << "SSK it " << iteration;
-                algorithm_formatter.update_solution(
-                        convert_solution(instance, pssvc_output.solution_pool.best()),
-                        ss.str());
+                algorithm_formatter.update_solution(pssvc_output.solution_pool.best(), ss.str());
             };
-        sequential_value_correction<Instance, InstanceBuilder, Solution, AlgorithmFormatter, irregular::Output>(ssk_instance, kp_solve, svc_parameters);
+        sequential_value_correction<Instance, InstanceBuilder, Solution, AlgorithmFormatter, irregular::Output>(instance, kp_solve, svc_parameters);
 
         // Check end.
         if (algorithm_formatter.end_boolean())
@@ -699,6 +664,13 @@ void optimize_sequential_value_correction(
                 parameters.sequential_value_correction_subproblem_tree_search_queue_size - 1,
                 parameters.anytime_sequential_value_correction_growing_queue_maximum_number_of_iterations);
     }
+
+    // Simplify the shapes once for all the subproblems, which are solved with
+    // the not-anytime maximum approximation ratio, with the approximation
+    // budget of the whole instance.
+    instance.get_simplified_instance(
+            parameters.not_anytime_maximum_approximation_ratio,
+            algorithm_formatter.end_boolean());
 
     SequentialValueCorrectionFunction<Instance, Solution> kp_solve
         = [&algorithm_formatter, &parameters](const Instance& kp_instance)
@@ -1454,21 +1426,6 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
     // tree_search_maximal_spaces only supports a single bin.
     if (instance.number_of_bins() > 1)
         use_tree_search_maximal_spaces = false;
-
-    // Simplify the shapes once for all the subproblems of the sequential
-    // value correction (always solved with the not-anytime maximum
-    // approximation ratio), with the approximation budget of the whole
-    // instance, before the instance is shared between the threads of the
-    // algorithms. The sequential single knapsack, whose maximum
-    // approximation ratio changes at each iteration, simplifies the shapes
-    // of its own copy of the instance (see 'instance_with_simplified_shapes').
-    if (use_sequential_value_correction
-            && (!instance.cache().simplified_instance_computed
-                || instance.cache().simplified_instance_maximum_approximation_ratio
-                != parameters.not_anytime_maximum_approximation_ratio)) {
-        instance.compute_simplified_instance_cache(
-                parameters.not_anytime_maximum_approximation_ratio);
-    }
 
     // Run selected algorithms.
     // In 'NotAnytimeDeterministic' mode, algorithms still run in parallel, but

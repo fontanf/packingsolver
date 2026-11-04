@@ -1,5 +1,7 @@
 #include "rectangleguillotine/block.hpp"
 
+#include "rectangleguillotine/instance_cache.hpp"
+
 #include "optimizationtools/utils/utils.hpp"
 
 #include <algorithm>
@@ -124,7 +126,8 @@ struct BlockFillRateLess {
 std::vector<Block> compute_blocks_for_bin(
         const Instance& instance,
         BinTypeId bin_type_id,
-        const BlockParameters& parameters)
+        const BlockParameters& parameters,
+        const bool* end)
 {
     const BinType& bin_type = instance.bin_type(bin_type_id);
     Length bin_w = bin_type.rect.w;
@@ -160,6 +163,8 @@ std::vector<Block> compute_blocks_for_bin(
     while (!blocks_to_process.empty()) {
         if (parameters.maximum_number_of_blocks != -1
                 && (ItemPos)returned_blocks.size() >= parameters.maximum_number_of_blocks)
+            break;
+        if (end != nullptr && *end)
             break;
 
         auto it = std::prev(blocks_to_process.end());
@@ -286,21 +291,30 @@ std::vector<Block> packingsolver::rectangleguillotine::compute_simple_blocks(
 
 std::vector<std::vector<Block>> packingsolver::rectangleguillotine::compute_blocks(
         const Instance& instance,
-        const BlockParameters& parameters)
+        const BlockParameters& parameters,
+        const bool* end)
 {
     std::vector<std::vector<Block>> result(instance.number_of_bin_types());
     for (BinTypeId bin_type_id = 0;
             bin_type_id < instance.number_of_bin_types();
             ++bin_type_id) {
-        result[bin_type_id] = compute_blocks_for_bin(instance, bin_type_id, parameters);
+        result[bin_type_id] = compute_blocks_for_bin(instance, bin_type_id, parameters, end);
     }
     return result;
 }
 
-void Instance::compute_blocks_cache(
-        const BlockParameters& parameters) const
+const std::vector<std::vector<Block>>* Instance::get_blocks(
+        const bool& end) const
 {
-    cache_.blocks = compute_blocks(*this, parameters);
-    cache_.blocks_maximum_number_of_blocks = parameters.maximum_number_of_blocks;
-    cache_.blocks_computed = true;
+    std::lock_guard<std::mutex> lock(blocks_cache_->mutex);
+    if (blocks_cache_->computed)
+        return &blocks_cache_->blocks;
+    if (end)
+        return nullptr;
+    std::vector<std::vector<Block>> blocks = compute_blocks(*this, BlockParameters(), &end);
+    if (end)
+        return nullptr;
+    blocks_cache_->blocks = std::move(blocks);
+    blocks_cache_->computed = true;
+    return &blocks_cache_->blocks;
 }

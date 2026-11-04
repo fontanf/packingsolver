@@ -86,18 +86,36 @@ Direction default_direction(
 
 }
 
+namespace
+{
+
+/**
+ * Return the simplified shapes of 'instance' for
+ * 'maximum_approximation_ratio': those of its cache if they have already
+ * been computed (see 'Instance::get_simplified_instance'), otherwise newly
+ * computed ones, which are not stored in the cache since the tree search
+ * uses many maximum approximation ratios.
+ */
+SimplifiedInstance compute_simplified_instance(
+        const Instance& instance,
+        double maximum_approximation_ratio)
+{
+    bool end = true;
+    const SimplifiedInstance* simplified_instance = instance.get_simplified_instance(
+            maximum_approximation_ratio,
+            end);
+    if (simplified_instance != nullptr)
+        return *simplified_instance;
+    return shape_simplification(instance, maximum_approximation_ratio);
+}
+
+}
+
 BranchingScheme::BranchingScheme(
         const Instance& instance,
         const Parameters& parameters):
     instance_(instance),
-    // Use the simplified shapes of the cache of the instance if they have
-    // been computed for the same maximum approximation ratio.
-    simplified_instance_(
-            (instance.cache().simplified_instance_computed
-             && instance.cache().simplified_instance_maximum_approximation_ratio
-             == parameters.maximum_approximation_ratio)?
-            instance.cache().simplified_instance:
-            shape_simplification(
+    simplified_instance_(compute_simplified_instance(
                 instance,
                 parameters.maximum_approximation_ratio)),
     parameters_(parameters)

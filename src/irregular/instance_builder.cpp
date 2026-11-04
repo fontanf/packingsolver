@@ -1,4 +1,5 @@
 #include "packingsolver/irregular/instance_builder.hpp"
+#include "irregular/instance_cache.hpp"
 
 #include <cmath>
 
@@ -1468,6 +1469,7 @@ Instance InstanceBuilder::build()
         }
     }
 
+    instance_.simplified_instances_cache_ = std::make_shared<SimplifiedInstancesCache>();
     if (original_instance_ != nullptr)
         copy_cache_from_original_instance();
 
@@ -1477,9 +1479,14 @@ Instance InstanceBuilder::build()
 void InstanceBuilder::copy_cache_from_original_instance()
 {
     const Instance& original_instance = *original_instance_;
-    const InstanceCache& original_cache = original_instance.cache();
 
-    if (original_cache.simplified_instance_computed) {
+    // Only the simplified shapes already computed are copied, without
+    // waiting for a computation in progress in another thread.
+    std::unique_lock<std::mutex> original_lock(
+            original_instance.simplified_instances_cache_->mutex,
+            std::try_to_lock);
+    if (original_lock.owns_lock()
+            && !original_instance.simplified_instances_cache_->simplified_instances.empty()) {
         // The simplified shapes are only valid if all the item types and bin
         // types come from the original instance, with the same scale and the
         // same spacings, since the inflated shapes depend on them, and if the
@@ -1506,17 +1513,11 @@ void InstanceBuilder::copy_cache_from_original_instance()
                 sub_to_orig_bin_type_ids[bin_type_id] = original_bin_type_id;
         }
 
-        SimplifiedInstance simplified_instance;
         for (ItemTypeId item_type_id = 0;
                 valid && item_type_id < instance_.number_of_item_types();
                 ++item_type_id) {
-            ItemTypeId original_item_type_id = sub_to_orig_item_type_ids[item_type_id];
-            if (original_item_type_id == -1) {
+            if (sub_to_orig_item_type_ids[item_type_id] == -1)
                 valid = false;
-                break;
-            }
-            simplified_instance.item_types.push_back(
-                    original_cache.simplified_instance.item_types[original_item_type_id]);
         }
         for (BinTypeId bin_type_id = 0;
                 valid && bin_type_id < instance_.number_of_bin_types();
@@ -1547,15 +1548,29 @@ void InstanceBuilder::copy_cache_from_original_instance()
                     valid = false;
                 }
             }
-            simplified_instance.bin_types.push_back(
-                    original_cache.simplified_instance.bin_types[original_bin_type_id]);
         }
 
         if (valid) {
-            instance_.cache_.simplified_instance = std::move(simplified_instance);
-            instance_.cache_.simplified_instance_maximum_approximation_ratio
-                = original_cache.simplified_instance_maximum_approximation_ratio;
-            instance_.cache_.simplified_instance_computed = true;
+            for (const auto& original_entry:
+                    original_instance.simplified_instances_cache_->simplified_instances) {
+                const SimplifiedInstance& original_simplified_instance = original_entry.second;
+                SimplifiedInstance simplified_instance;
+                for (ItemTypeId item_type_id = 0;
+                        item_type_id < instance_.number_of_item_types();
+                        ++item_type_id) {
+                    simplified_instance.item_types.push_back(
+                            original_simplified_instance.item_types[sub_to_orig_item_type_ids[item_type_id]]);
+                }
+                for (BinTypeId bin_type_id = 0;
+                        bin_type_id < instance_.number_of_bin_types();
+                        ++bin_type_id) {
+                    simplified_instance.bin_types.push_back(
+                            original_simplified_instance.bin_types[sub_to_orig_bin_type_ids[bin_type_id]]);
+                }
+                instance_.simplified_instances_cache_->simplified_instances.insert({
+                        original_entry.first,
+                        std::move(simplified_instance)});
+            }
         }
     }
 }

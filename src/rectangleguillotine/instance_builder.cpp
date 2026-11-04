@@ -1,6 +1,7 @@
 #include "packingsolver/rectangleguillotine/instance_builder.hpp"
 
 #include "rectangleguillotine/block.hpp"
+#include "rectangleguillotine/instance_cache.hpp"
 
 #include "optimizationtools/utils/utils.hpp"
 #include "optimizationtools/containers/indexed_set.hpp"
@@ -1715,6 +1716,7 @@ Instance InstanceBuilder::build()
             instance_.item_types_[fixed_item.item_type_id].copies_fixed += bin_type.copies;
     }
 
+    instance_.blocks_cache_ = std::make_shared<BlocksCache>();
     if (original_instance_ != nullptr)
         copy_cache_from_original_instance();
 
@@ -1724,9 +1726,15 @@ Instance InstanceBuilder::build()
 void InstanceBuilder::copy_cache_from_original_instance()
 {
     const Instance& original_instance = *original_instance_;
-    const InstanceCache& original_cache = original_instance.cache();
 
-    if (original_cache.blocks_computed) {
+    // Only the blocks already computed are copied, without waiting for a
+    // computation in progress in another thread.
+    std::unique_lock<std::mutex> original_lock(
+            original_instance.blocks_cache_->mutex,
+            std::try_to_lock);
+    if (original_lock.owns_lock() && original_instance.blocks_cache_->computed) {
+        const std::vector<std::vector<Block>>& original_instance_blocks
+            = original_instance.blocks_cache_->blocks;
         // The blocks are only valid with the same cut thickness, if all the
         // bin types come from the original instance, and if the bins are not
         // larger than the original ones.
@@ -1793,7 +1801,7 @@ void InstanceBuilder::copy_cache_from_original_instance()
                     ++bin_type_id) {
                 const BinType& bin_type = instance_.bin_type(bin_type_id);
                 const std::vector<Block>& original_blocks
-                    = original_cache.blocks[sub_to_orig_bin_type_ids[bin_type_id]];
+                    = original_instance_blocks[sub_to_orig_bin_type_ids[bin_type_id]];
                 // Keep the blocks which fit in the bin and whose items are
                 // available in the sub-instance. A combined block is only kept
                 // if its two children are, so that the children of a block are
@@ -1854,10 +1862,8 @@ void InstanceBuilder::copy_cache_from_original_instance()
                     }
                 }
             }
-            instance_.cache_.blocks = std::move(blocks);
-            instance_.cache_.blocks_maximum_number_of_blocks
-                = original_cache.blocks_maximum_number_of_blocks;
-            instance_.cache_.blocks_computed = true;
+            instance_.blocks_cache_->blocks = std::move(blocks);
+            instance_.blocks_cache_->computed = true;
         }
     }
 }

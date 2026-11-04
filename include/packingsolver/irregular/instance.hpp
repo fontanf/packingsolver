@@ -5,6 +5,7 @@
 #include "shape/shape.hpp"
 
 #include <functional>
+#include <memory>
 
 namespace packingsolver
 {
@@ -421,64 +422,11 @@ class Solution;
  */
 using FeasibilityCallback = std::function<FeasibilityCallbackResult(const Solution&)>;
 
-////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////// Instance cache ////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
+/** Simplified shapes of an instance; see 'irregular/shape_simplification.hpp'. */
+struct SimplifiedInstance;
 
-/** Simplified shape and simplified inflated shape. */
-struct SimplifiedShape
-{
-    ShapeWithHoles shape;
-
-    ShapeWithHoles shape_inflated;
-};
-
-/** Simplified shapes of a bin type. */
-struct SimplifiedBinType
-{
-    std::vector<SimplifiedShape> borders;
-
-    std::vector<SimplifiedShape> defects;
-};
-
-/** Simplified shapes of an item type. */
-struct SimplifiedItemType
-{
-    std::vector<SimplifiedShape> shapes;
-};
-
-/** Simplified shapes of an instance; see 'shape_simplification'. */
-struct SimplifiedInstance
-{
-    std::vector<SimplifiedItemType> item_types;
-
-    std::vector<SimplifiedBinType> bin_types;
-};
-
-/**
- * Data computed from an instance and passed to its sub-instances, so that
- * they don't need to compute it again.
- *
- * The cached data only depends on the shapes and on the parameters of the
- * instance, not on the number of copies or on the profits of the item types,
- * nor on the objective, which may differ in the sub-instances.
- *
- * When a sub-instance is built from an original instance (see
- * 'InstanceBuilder::set_original_instance'), 'InstanceBuilder::build' copies
- * the cache of the original instance into it, with the item type and bin
- * type ids of the sub-instance.
- */
-struct InstanceCache
-{
-    /** True iff 'simplified_instance' has been computed. */
-    bool simplified_instance_computed = false;
-
-    /** Maximum approximation ratio used to compute 'simplified_instance'. */
-    double simplified_instance_maximum_approximation_ratio = 0.0;
-
-    /** Simplified shapes of the instance. */
-    SimplifiedInstance simplified_instance;
-};
+/** Cache of the simplified shapes; see 'irregular/instance_cache.hpp'. */
+struct SimplifiedInstancesCache;
 
 /**
  * Instance class for a problem of type "irregular".
@@ -588,18 +536,23 @@ public:
      */
     inline const std::vector<PeriodicItemPacking>& periodic_packings() const { return periodic_packings_; }
 
-    /** Get the cache of the instance. */
-    inline const InstanceCache& cache() const { return cache_; }
-
     /**
-     * Compute the simplified shapes for 'maximum_approximation_ratio' and
-     * store them in the cache.
+     * Get the simplified shapes of the instance for a maximum approximation
+     * ratio (see 'irregular/shape_simplification.hpp').
      *
-     * The cache is not protected against concurrent accesses: this method
-     * must be called before the instance is shared between threads.
+     * They are computed at the first call for this ratio and stored, so that
+     * the next calls, and the sub-instances built from this instance (see
+     * 'InstanceBuilder::set_original_instance'), get them without computing
+     * them again. This method may be called from several threads: a call
+     * waits until the simplified shapes are computed by another one.
+     *
+     * Return 'nullptr' if 'end' is true before the simplified shapes are
+     * computed. In particular, if 'end' is already true, the simplified
+     * shapes are only returned if they have already been computed.
      */
-    void compute_simplified_instance_cache(
-            double maximum_approximation_ratio) const;
+    const SimplifiedInstance* get_simplified_instance(
+            double maximum_approximation_ratio,
+            const bool& end) const;
 
     /**
      * Return the scaled shape of item type 'item_type_id', shape 'item_shape_pos',
@@ -740,8 +693,11 @@ private:
     /** Periodic packings. */
     std::vector<PeriodicItemPacking> periodic_packings_;
 
-    /** Cache; see 'compute_simplified_instance_cache'. */
-    mutable InstanceCache cache_;
+    /**
+     * Cache of the simplified shapes; see 'get_simplified_instance'. Shared
+     * by the copies of the instance.
+     */
+    std::shared_ptr<SimplifiedInstancesCache> simplified_instances_cache_;
 
     /*
      * Private attributes computed by the 'build' method

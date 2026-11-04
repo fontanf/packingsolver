@@ -105,8 +105,21 @@ Instance build_instance_with_blocks()
     instance_builder.set_item_type_copies(instance_builder.add_item_type(2, 9), 3);
     instance_builder.set_item_type_copies(instance_builder.add_item_type(8, 3), 2);
     Instance instance = instance_builder.build();
-    instance.compute_blocks_cache();
+    bool end = false;
+    instance.get_blocks(end);
     return instance;
+}
+
+/**
+ * Blocks of 'instance' if they have already been computed (or copied from
+ * an original instance), 'nullptr' otherwise: with 'end' already true,
+ * 'Instance::get_blocks' doesn't compute them.
+ */
+const std::vector<std::vector<Block>>* computed_blocks(
+        const Instance& instance)
+{
+    bool end = true;
+    return instance.get_blocks(end);
 }
 
 using BlockKey = std::pair<std::pair<Length, Length>, std::vector<std::pair<ItemTypeId, ItemPos>>>;
@@ -131,15 +144,16 @@ std::set<BlockKey> block_keys(
 void check_cached_blocks(
         const Instance& instance)
 {
-    ASSERT_TRUE(instance.cache().blocks_computed);
-    ASSERT_EQ(instance.cache().blocks.size(), (size_t)instance.number_of_bin_types());
+    const std::vector<std::vector<Block>>* blocks = computed_blocks(instance);
+    ASSERT_NE(blocks, nullptr);
+    ASSERT_EQ(blocks->size(), (size_t)instance.number_of_bin_types());
     for (BinTypeId bin_type_id = 0;
             bin_type_id < instance.number_of_bin_types();
             ++bin_type_id) {
         const BinType& bin_type = instance.bin_type(bin_type_id);
-        const std::vector<Block>& blocks = instance.cache().blocks[bin_type_id];
-        for (ItemPos block_id = 0; block_id < (ItemPos)blocks.size(); ++block_id) {
-            const Block& block = blocks[block_id];
+        const std::vector<Block>& bin_type_blocks = (*blocks)[bin_type_id];
+        for (ItemPos block_id = 0; block_id < (ItemPos)bin_type_blocks.size(); ++block_id) {
+            const Block& block = bin_type_blocks[block_id];
             EXPECT_LE(block.rect.w, bin_type.rect.w);
             EXPECT_LE(block.rect.h, bin_type.rect.h);
             Profit profit = 0;
@@ -181,7 +195,7 @@ TEST(RectangleGuillotineTreeSearchMaximalSpaces, InstanceCacheBlocksSubInstance)
     Instance sub_instance = sub_instance_builder.build();
     check_cached_blocks(sub_instance);
     EXPECT_EQ(
-            block_keys(sub_instance.cache().blocks[0]),
+            block_keys((*computed_blocks(sub_instance))[0]),
             block_keys(compute_blocks(sub_instance)[0]));
 }
 
@@ -205,10 +219,10 @@ TEST(RectangleGuillotineTreeSearchMaximalSpaces, InstanceCacheBlocksProfitsAndCo
     }
     Instance sub_instance = sub_instance_builder.build();
     check_cached_blocks(sub_instance);
-    EXPECT_FALSE(sub_instance.cache().blocks[0].empty());
+    EXPECT_FALSE((*computed_blocks(sub_instance))[0].empty());
     EXPECT_LT(
-            sub_instance.cache().blocks[0].size(),
-            instance.cache().blocks[0].size());
+            (*computed_blocks(sub_instance))[0].size(),
+            (*computed_blocks(instance))[0].size());
 }
 
 TEST(RectangleGuillotineTreeSearchMaximalSpaces, InstanceCacheBlocksCroppedBin)
@@ -230,7 +244,7 @@ TEST(RectangleGuillotineTreeSearchMaximalSpaces, InstanceCacheBlocksCroppedBin)
     }
     Instance sub_instance = sub_instance_builder.build();
     check_cached_blocks(sub_instance);
-    EXPECT_FALSE(sub_instance.cache().blocks[0].empty());
+    EXPECT_FALSE((*computed_blocks(sub_instance))[0].empty());
 }
 
 TEST(RectangleGuillotineTreeSearchMaximalSpaces, InstanceCacheBlocksNewItemTypes)
@@ -272,7 +286,7 @@ TEST(RectangleGuillotineTreeSearchMaximalSpaces, InstanceCacheBlocksNewItemTypes
             ++item_type_id) {
         ItemPos number_of_simple_blocks = 0;
         ItemPos number_of_combined_blocks = 0;
-        for (const Block& block: sub_instance.cache().blocks[0]) {
+        for (const Block& block: (*computed_blocks(sub_instance))[0]) {
             for (const std::pair<ItemTypeId, ItemPos>& item_copy: block.item_copies) {
                 if (item_copy.first != item_type_id)
                     continue;
@@ -301,8 +315,8 @@ TEST(RectangleGuillotineTreeSearchMaximalSpaces, InstanceCacheBlocksReduction)
     Reduction reduction(instance);
     check_cached_blocks(reduction.instance());
     EXPECT_EQ(
-            block_keys(reduction.instance().cache().blocks[0]).size(),
-            block_keys(instance.cache().blocks[0]).size());
+            block_keys((*computed_blocks(reduction.instance()))[0]).size(),
+            block_keys((*computed_blocks(instance))[0]).size());
 }
 
 TEST(RectangleGuillotineTreeSearchMaximalSpaces, InstanceCacheBlocksDropped)
@@ -319,5 +333,5 @@ TEST(RectangleGuillotineTreeSearchMaximalSpaces, InstanceCacheBlocksDropped)
     sub_instance_builder.add_bin_type_from_original_instance(0);
     sub_instance_builder.add_item_type_from_original_instance(0);
     Instance sub_instance = sub_instance_builder.build();
-    EXPECT_FALSE(sub_instance.cache().blocks_computed);
+    EXPECT_EQ(computed_blocks(sub_instance), nullptr);
 }
