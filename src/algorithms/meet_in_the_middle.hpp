@@ -159,17 +159,19 @@ inline std::vector<Length> mim_patterns(
 }
 
 /**
- * Remove every pattern dominated by an earlier one (Côté & Iori 2018,
- * Proposition 7): given 'positions_and_widths' - pairs '(position,
- * effective_width)', e.g. the output of the widening step below - sorted
- * by position, drop any entry 's' for which an earlier entry 'p' (p < s)
- * already reaches at least as far ('s + width_s <= p + width_p'): packing
- * the item at 'p' then covers everything packing it at 's' would, so 's'
- * is never needed. Domination is transitive here (if 'p' dominates 's' and
- * is itself later dominated by some earlier 'p2', then 'p2' reaches at
- * least as far as 'p' and therefore at least as far as 's' too), so a
- * single pass comparing every pair against the original set is enough -
- * no need to re-check pairs after a removal.
+ * Remove every redundant pattern (Côté & Iori 2018, Proposition 7): given
+ * 'positions_and_widths' - pairs '(position, effective_width)', e.g. the
+ * output of the widening step below - drop any entry 'p' for which a later
+ * entry 's' (p < s) doesn't reach farther ('s + width_s <= p + width_p'):
+ * the interval occupied by the item packed at 's' is then included in the
+ * interval occupied by the item packed at 'p', so the item packed at 'p' can
+ * always be moved to 's'. The opposite doesn't hold: an item whose right
+ * border is between 'p' and 's' can be packed beside the item packed at
+ * 's', but not beside the item packed at 'p'.
+ *
+ * A single pass comparing every pair against the original set is enough:
+ * if 's' is itself removed because of a later 's2', then 's2' doesn't reach
+ * farther than 's', and therefore than 'p', either.
  */
 inline std::vector<Length> prune_dominated_patterns(
         const std::vector<std::pair<Length, Length>>& positions_and_widths)
@@ -182,8 +184,10 @@ inline std::vector<Length> prune_dominated_patterns(
             if (positions_and_widths[j].first <= positions_and_widths[i].first)
                 continue;
             Length reach_j = positions_and_widths[j].first + positions_and_widths[j].second;
-            if (reach_j <= reach_i)
-                dominated[j] = true;
+            if (reach_j <= reach_i) {
+                dominated[i] = true;
+                break;
+            }
         }
     }
     std::vector<Length> result;
@@ -223,16 +227,14 @@ struct MimVariant
  *   solution where it ends up on one threshold-determined side only, so
  *   the other side is skipped for it entirely.
  * - Preprocessing 2, §3.3 (Propositions 6-7): every (item, rotation)'s
- *   patterns are first "widened" - since no other valid pattern can exist
- *   strictly between its natural edge and the next real pattern position
- *   (by the MIM principle itself), it can be pretended wide enough to
- *   reach that next position "for free", without changing feasibility;
- *   right patterns are additionally moved as far left as that same
- *   argument allows, using every *other item's* own (per-rotation)
- *   pattern sets to find how close another item's right edge could really
- *   get. Once every pattern has this "enlarged" width, a later pattern
- *   that never reaches any farther than an earlier one is redundant and
- *   dropped.
+ *   patterns are first "widened": a left pattern up to the next pattern
+ *   of any *other* item (by the MIM principle, no other item starts in
+ *   between), and a right pattern is moved left to the farthest right
+ *   edge of any other item before it, keeping its own right edge. Once
+ *   every pattern has this "enlarged" width, an earlier pattern whose
+ *   enlarged interval contains the enlarged interval of a later one is
+ *   redundant and dropped (the item can always be moved to the later
+ *   one).
  *
  * 'widths[item_id]' lists item 'item_id''s width under each of its
  * allowed rotations (a single-element list for an item that cannot
@@ -368,24 +370,32 @@ inline std::vector<std::vector<std::vector<Length>>> minimal_mim_patterns(
     }
 
     // Preprocessing 2, part A (Propositions 6A and 7): widen, then prune,
-    // every variant's own left patterns - self-contained, only ever
-    // referencing that variant's own (post-Preprocessing-1) pattern set.
+    // every variant's own left patterns. A left pattern 'p' is widened up to
+    // the first pattern 'q >= p + width' of any *other* item (any of its
+    // rotations): in a solution satisfying the MIM principle, no other item
+    // starts between 'p + width' and 'q', so no item overlapping the
+    // variant's y-span uses this space. The patterns are taken once, upfront
+    // (after Preprocessing 1), before any of them is pruned.
+    std::vector<std::vector<Length>> own_positions_before_part_a(variants.size());
+    for (size_t variant_id = 0; variant_id < variants.size(); ++variant_id) {
+        std::vector<Length>& positions = own_positions_before_part_a[variant_id];
+        positions = left[variant_id];
+        positions.insert(positions.end(), right[variant_id].begin(), right[variant_id].end());
+    }
     for (size_t variant_id = 0; variant_id < variants.size(); ++variant_id) {
         if (left[variant_id].empty())
             continue;
-        std::vector<Length> own_positions = left[variant_id];
-        own_positions.insert(own_positions.end(), right[variant_id].begin(), right[variant_id].end());
-        std::sort(own_positions.begin(), own_positions.end());
-
+        const MimVariant& variant = variants[variant_id];
         std::vector<std::pair<Length, Length>> widened;
         widened.reserve(left[variant_id].size());
         for (Length p: left[variant_id]) {
             Length q = capacity;
-            for (Length s: own_positions) {
-                if (s > p && s >= p + variants[variant_id].width) {
-                    q = s;
-                    break;
-                }
+            for (size_t other_variant_id = 0; other_variant_id < variants.size(); ++other_variant_id) {
+                if (variants[other_variant_id].item_id == variant.item_id)
+                    continue;
+                for (Length s: own_positions_before_part_a[other_variant_id])
+                    if (s >= p + variant.width && s < q)
+                        q = s;
             }
             widened.push_back({p, q - p});
         }

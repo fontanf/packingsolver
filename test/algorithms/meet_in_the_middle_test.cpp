@@ -3,6 +3,9 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <functional>
+#include <random>
+#include <sstream>
 
 using namespace packingsolver;
 
@@ -190,20 +193,18 @@ TEST(MeetInTheMiddle, MinimalMimPatternsContainsOnlyValidPositions)
 // The following three tests pin down 'minimal_mim_patterns''s exact output
 // (including the §3.3 preprocessing - Proposition 5's "skip the unused
 // side" for the minimum-width item, and Propositions 6-7's widen-then-
-// prune passes) against an independent Python re-implementation of the
-// same algorithm, itself hand- and script-verified against the underlying
-// propositions (see the worked examples in the commit history/discussion
-// that introduced this): widths = (6, 4, 3, 7) in W = 20 exercises the
-// left-pattern widen+prune (Preprocessing 2, part A - item 0's pattern 4
-// is dropped, dominated by pattern 3's enlarged reach); widths = (8, 5, 6)
-// in W = 20 exercises the right-pattern cross-item widen+move (part B -
-// item 0's right pattern at 12 moves to 11, widened from 8 to 9 so its
-// right border stays at 20); Example 1 from the paper itself (widths =
-// (5, 10, 12, 15), W = 27) is the same instance already used to validate
-// the unpreprocessed 'mim_patterns' above, now checked all the way
-// through the preprocessing too. All three use single-rotation items, to
-// isolate the preprocessing logic from the multiple-choice generalization
-// (checked separately below).
+// prune passes); 'MinimalMimPatternsPreserveTwoDimensionalFeasibility'
+// below checks that they preserve feasibility. widths = (6, 4, 3, 7) in
+// W = 20 exercises the left-pattern widen+prune (Preprocessing 2, part A -
+// item 0's normal pattern 3 is not kept); widths = (8, 5, 6) in W = 20
+// exercises the right-pattern
+// cross-item widen+move (part B - item 0's right pattern at 12 moves to 11,
+// widened from 8 to 9 so its right border stays at 20); Example 1 from the
+// paper itself (widths = (5, 10, 12, 15), W = 27) is the same instance
+// already used to validate the unpreprocessed 'mim_patterns' above, now
+// checked all the way through the preprocessing too. All three use
+// single-rotation items, to isolate the preprocessing logic from the
+// multiple-choice generalization (checked separately below).
 TEST(MeetInTheMiddle, MinimalMimPatternsPreprocessingLeftWidenAndPrune)
 {
     std::vector<std::vector<std::vector<Length>>> result = minimal_mim_patterns(single_rotation({6, 4, 3, 7}), 20);
@@ -230,7 +231,7 @@ TEST(MeetInTheMiddle, MinimalMimPatternsPreprocessingExample1)
     EXPECT_EQ(result[0][0], (std::vector<Length>{10, 12, 22}));
     EXPECT_EQ(result[1][0], (std::vector<Length>{0, 5, 12, 17}));
     EXPECT_EQ(result[2][0], (std::vector<Length>{0, 5, 10, 15}));
-    EXPECT_EQ(result[3][0], (std::vector<Length>{0, 12}));
+    EXPECT_EQ(result[3][0], (std::vector<Length>{0, 5, 12}));
 }
 
 TEST(MeetInTheMiddle, MinimalMimPatternsWithRotationsMatchesSingleRotationWhenOnlyOneChoice)
@@ -250,19 +251,150 @@ TEST(MeetInTheMiddle, MinimalMimPatternsWithRotationsMatchesSingleRotationWhenOn
 TEST(MeetInTheMiddle, MinimalMimPatternsWithRotationsIsSoundAndNeverLarger)
 {
     // Item 0 is rotatable (widths 6 or 9); items 1-3 are fixed (4, 3, 7).
-    // Verified (via an independent Python re-implementation, itself
-    // cross-checked against the single-rotation results above) that the
-    // multiple-choice computation is at least as tight, item by item and
-    // rotation by rotation, as flattening every rotation into an
-    // independent "item" (the unsound shortcut this generalizes away
-    // from) would be on the same instance.
+    // Pins down the multiple-choice computation; see
+    // 'MinimalMimPatternsPreserveTwoDimensionalFeasibility' for its
+    // soundness.
     std::vector<std::vector<Length>> item_widths = {{6, 9}, {4}, {3}, {7}};
     std::vector<std::vector<std::vector<Length>>> result = minimal_mim_patterns(item_widths, 20);
     ASSERT_EQ(result.size(), 4u);
     ASSERT_EQ(result[0].size(), 2u);
-    EXPECT_EQ(result[0][0], (std::vector<Length>{0, 3, 7, 10, 11, 14}));  // rotation width 6
-    EXPECT_EQ(result[0][1], (std::vector<Length>{0, 3, 11}));             // rotation width 9
+    EXPECT_EQ(result[0][0], (std::vector<Length>{0, 3, 4, 7, 10, 11, 14}));  // rotation width 6
+    EXPECT_EQ(result[0][1], (std::vector<Length>{0, 4, 7, 11}));             // rotation width 9
     EXPECT_EQ(result[1][0], (std::vector<Length>{0, 3, 6, 7, 9, 10, 13, 16}));
     EXPECT_EQ(result[2][0], (std::vector<Length>{10, 11, 13, 17}));
-    EXPECT_EQ(result[3][0], (std::vector<Length>{0, 3, 4, 7, 9, 10, 13}));
+    EXPECT_EQ(result[3][0], (std::vector<Length>{0, 3, 4, 6, 7, 9, 10, 13}));
+}
+
+namespace
+{
+
+/** Item of a small two-dimensional instance: its (width, height) per rotation. */
+using BruteForceItem = std::vector<std::pair<Length, Length>>;
+
+/**
+ * Check by brute force whether 'items' can be packed in a 'bin_width' x
+ * 'bin_height' bin, each item (in rotation 'r') at an x-position of
+ * 'x_positions[item_id][r]' and at a y-position which is a normal pattern of
+ * the heights of the other items.
+ */
+bool brute_force_feasible(
+        Length bin_width,
+        Length bin_height,
+        const std::vector<BruteForceItem>& items,
+        const std::vector<std::vector<std::vector<Length>>>& x_positions)
+{
+    std::vector<std::vector<std::vector<Length>>> y_positions(items.size());
+    for (size_t item_id = 0; item_id < items.size(); ++item_id) {
+        std::vector<std::vector<Length>> other_heights;
+        for (size_t other_item_id = 0; other_item_id < items.size(); ++other_item_id) {
+            if (other_item_id == item_id)
+                continue;
+            std::vector<Length> heights;
+            for (const auto& orientation: items[other_item_id])
+                heights.push_back(orientation.second);
+            other_heights.push_back(heights);
+        }
+        for (const auto& orientation: items[item_id]) {
+            y_positions[item_id].push_back(normal_patterns(
+                        other_heights,
+                        bin_height - orientation.second));
+        }
+    }
+
+    struct Placement { Length x; Length y; Length width; Length height; };
+    std::vector<Placement> placements;
+    std::function<bool(size_t)> search = [&](size_t item_id)
+    {
+        if (item_id == items.size())
+            return true;
+        for (size_t rotation_id = 0; rotation_id < items[item_id].size(); ++rotation_id) {
+            Length width = items[item_id][rotation_id].first;
+            Length height = items[item_id][rotation_id].second;
+            for (Length x: x_positions[item_id][rotation_id]) {
+                if (x < 0 || x + width > bin_width)
+                    continue;
+                for (Length y: y_positions[item_id][rotation_id]) {
+                    bool overlap = false;
+                    for (const Placement& placement: placements) {
+                        if (x < placement.x + placement.width
+                                && placement.x < x + width
+                                && y < placement.y + placement.height
+                                && placement.y < y + height) {
+                            overlap = true;
+                            break;
+                        }
+                    }
+                    if (overlap)
+                        continue;
+                    placements.push_back({x, y, width, height});
+                    if (search(item_id + 1))
+                        return true;
+                    placements.pop_back();
+                }
+            }
+        }
+        return false;
+    };
+    return search(0);
+}
+
+}
+
+TEST(MeetInTheMiddle, MinimalMimPatternsPreserveTwoDimensionalFeasibility)
+{
+    // The minimal MIM patterns must preserve the feasibility of packing
+    // problems: on random small two-dimensional instances, restricting the
+    // x-positions of the items to them must not make a feasible instance
+    // infeasible. The reference restricts them to the normal patterns.
+    std::mt19937_64 generator(0);
+    Counter number_of_feasible_instances = 0;
+    for (Counter instance_id = 0; instance_id < 1000; ++instance_id) {
+        Length bin_width = std::uniform_int_distribution<Length>(5, 10)(generator);
+        Length bin_height = std::uniform_int_distribution<Length>(5, 10)(generator);
+        size_t number_of_items = std::uniform_int_distribution<size_t>(3, 6)(generator);
+        std::vector<BruteForceItem> items;
+        Length area = 0;
+        for (size_t item_id = 0; item_id < number_of_items; ++item_id) {
+            Length width = std::uniform_int_distribution<Length>(1, bin_width)(generator);
+            Length height = std::uniform_int_distribution<Length>(1, bin_height)(generator);
+            BruteForceItem item = {{width, height}};
+            if (width != height
+                    && height <= bin_width
+                    && width <= bin_height
+                    && std::uniform_int_distribution<int>(0, 3)(generator) == 0) {
+                item.push_back({height, width});
+            }
+            items.push_back(item);
+            area += width * height;
+        }
+        if (area > bin_width * bin_height)
+            continue;
+
+        std::vector<std::vector<Length>> widths(items.size());
+        for (size_t item_id = 0; item_id < items.size(); ++item_id)
+            for (const auto& orientation: items[item_id])
+                widths[item_id].push_back(orientation.first);
+        std::vector<std::vector<std::vector<Length>>> normal(items.size());
+        for (size_t item_id = 0; item_id < items.size(); ++item_id) {
+            std::vector<std::vector<Length>> other_widths;
+            for (size_t other_item_id = 0; other_item_id < items.size(); ++other_item_id)
+                if (other_item_id != item_id)
+                    other_widths.push_back(widths[other_item_id]);
+            for (Length width: widths[item_id])
+                normal[item_id].push_back(normal_patterns(other_widths, bin_width - width));
+        }
+        std::vector<std::vector<std::vector<Length>>> minimal
+            = minimal_mim_patterns(widths, bin_width);
+
+        bool feasible = brute_force_feasible(bin_width, bin_height, items, normal);
+        if (!feasible)
+            continue;
+        number_of_feasible_instances++;
+        std::stringstream ss;
+        ss << "bin " << bin_width << "x" << bin_height << ", items";
+        for (const BruteForceItem& item: items)
+            ss << " " << item[0].first << "x" << item[0].second << ((item.size() > 1)? "r": "");
+        EXPECT_TRUE(brute_force_feasible(bin_width, bin_height, items, minimal)) << ss.str();
+    }
+    EXPECT_GE(number_of_feasible_instances, 100);
 }
