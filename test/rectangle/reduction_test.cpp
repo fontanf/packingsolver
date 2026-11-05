@@ -1174,6 +1174,20 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "rectangle" / "tests" / "feasibility_full_span_shrinks_bin_for_next_rounds",
                 []() { ReductionParameters p; p.lift_item_dimensions = false; return p; }(),
             },
+            {
+                // Bin 10x11, 1 copy (Feasibility). Item 0 (3x6, 2 copies)
+                // is tall: its companion bin is 3x4 (the bin height is
+                // shrunk to 6 + 4 = 10). Item 1 (3x4) fits in the
+                // companion bin of one copy of item 0, so both copies of
+                // item 0 are enlarged to 3x10, but only one of them has a
+                // companion: the other copy must still get an (empty)
+                // entry in 'companions_by_copy', otherwise unreducing a
+                // solution containing both copies reads past its end.
+                // Lifting is disabled so that the reduced instance keeps
+                // the item dimensions.
+                fs::path("data") / "rectangle" / "tests" / "feasibility_tall_enlargement_unused_companion_bin",
+                []() { ReductionParameters p; p.lift_item_dimensions = false; return p; }(),
+            },
         }));
 
 TEST(RectangleReduction, DISABLED_ReportBenchmarkRmv)
