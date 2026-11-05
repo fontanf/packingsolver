@@ -116,6 +116,88 @@ if __name__ == "__main__":
                 run_command(command)
 
 
+    elif benchmark == "rectangleguillotine_bin_packing_uo":
+
+        datacsv_path = os.path.join(
+                "data",
+                "rectangle",
+                "data_bin_packing_uo.csv")
+
+        data_dir = os.path.dirname(os.path.realpath(datacsv_path))
+        with open(datacsv_path, newline='') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+
+                instance_path = os.path.join(
+                        data_dir,
+                        row["Path"])
+
+                json_output_path = os.path.join(
+                        output_directory,
+                        row["Path"] + "_output.json")
+                if not os.path.exists(os.path.dirname(json_output_path)):
+                    os.makedirs(os.path.dirname(json_output_path))
+
+                certificate_path = os.path.join(
+                        output_directory,
+                        row["Path"] + "_solution.csv")
+                if not os.path.exists(os.path.dirname(certificate_path)):
+                    os.makedirs(os.path.dirname(certificate_path))
+
+                command = (
+                        rectangleguillotine_main
+                        + "  --verbosity-level 1"
+                        + "  --items \"" + instance_path + "\""
+                        + " --bin-infinite-copies"
+                        + " --objective bin-packing"
+                        + " --predefined UO"
+                        + "  --time-limit 60"
+                        + "  --output \"" + json_output_path + "\""
+                        + " --certificate \"" + certificate_path + "\"")
+                run_command(command)
+
+
+    elif benchmark == "rectangleguillotine_bin_packing_ur":
+
+        datacsv_path = os.path.join(
+                "data",
+                "rectangle",
+                "data_bin_packing_ur.csv")
+
+        data_dir = os.path.dirname(os.path.realpath(datacsv_path))
+        with open(datacsv_path, newline='') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+
+                instance_path = os.path.join(
+                        data_dir,
+                        row["Path"])
+
+                json_output_path = os.path.join(
+                        output_directory,
+                        row["Path"] + "_output.json")
+                if not os.path.exists(os.path.dirname(json_output_path)):
+                    os.makedirs(os.path.dirname(json_output_path))
+
+                certificate_path = os.path.join(
+                        output_directory,
+                        row["Path"] + "_solution.csv")
+                if not os.path.exists(os.path.dirname(certificate_path)):
+                    os.makedirs(os.path.dirname(certificate_path))
+
+                command = (
+                        rectangleguillotine_main
+                        + "  --verbosity-level 1"
+                        + "  --items \"" + instance_path + "\""
+                        + " --bin-infinite-copies"
+                        + " --objective bin-packing"
+                        + " --predefined UR"
+                        + "  --time-limit 60"
+                        + "  --output \"" + json_output_path + "\""
+                        + " --certificate \"" + certificate_path + "\"")
+                run_command(command)
+
+
     elif benchmark == "rectangleguillotine_bin_packing_3nho":
 
         datacsv_path = os.path.join(
