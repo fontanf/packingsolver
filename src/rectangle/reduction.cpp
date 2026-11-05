@@ -221,6 +221,13 @@ bool Reduction::try_reduce_group(
             for (BinPos copy = 0; copy < solution_bin.copies; ++copy)
                 companions_by_big_item[big_item_pos].push_back(companions);
         }
+        // The check solution only contains the companion bins it uses: the
+        // copies of the big items whose companion bin is unused get no
+        // companions, so that 'companions_by_copy' has one entry per copy.
+        for (size_t i = 0; i < checked_big_item_ids.size(); ++i) {
+            companions_by_big_item[i].resize(
+                    reduction_item_types[checked_big_item_ids[i]].copies);
+        }
     } else {
         // No candidate companions at all for any checked big item: the
         // "empty group" case - see 'trivially_feasible''s own doc comment
