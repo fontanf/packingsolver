@@ -1,4 +1,5 @@
 #include "packingsolver/irregular/instance_builder.hpp"
+#include "irregular/solution_builder.hpp"
 #include "irregular/tree_search_maximal_spaces.hpp"
 
 #include <gtest/gtest.h>
@@ -79,3 +80,67 @@ INSTANTIATE_TEST_SUITE_P(
             fs::path("data") / "irregular" / "tests" / "trapezoidal_insertions_3.json",
             fs::path("data") / "irregular" / "tests" / "trapezoidal_insertions_4.json",
             }));
+
+struct IrregularTreeSearchMaximalSpacesSolutionTestParams
+{
+    fs::path instance_path;
+    fs::path certificate_path;
+};
+
+inline std::ostream& operator<<(std::ostream& os, const IrregularTreeSearchMaximalSpacesSolutionTestParams& test_params)
+{
+    os << test_params.instance_path;
+    return os;
+}
+
+class IrregularTreeSearchMaximalSpacesSolutionTest: public testing::TestWithParam<IrregularTreeSearchMaximalSpacesSolutionTestParams> { };
+
+TEST_P(IrregularTreeSearchMaximalSpacesSolutionTest, IrregularTreeSearchMaximalSpaces)
+{
+    IrregularTreeSearchMaximalSpacesSolutionTestParams test_params = GetParam();
+    std::cout << "Instance path: " << test_params.instance_path << std::endl;
+    std::cout << "Certificate path: " << test_params.certificate_path << std::endl;
+
+    InstanceBuilder instance_builder;
+    instance_builder.read(test_params.instance_path.string());
+    Instance instance = instance_builder.build();
+
+    TreeSearchMaximalSpacesParameters parameters;
+    parameters.verbosity_level = 0;
+    parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytimeSequential;
+    parameters.not_anytime_tree_search_queue_size = 4;
+    TreeSearchMaximalSpacesOutput output = tree_search_maximal_spaces(instance, parameters);
+
+    SolutionBuilder solution_builder(instance);
+    solution_builder.read(test_params.certificate_path.string());
+    Solution solution = solution_builder.build();
+    std::cout << std::endl
+        << "Reference solution" << std::endl
+        << "------------------" << std::endl;
+    solution.format(std::cout);
+
+    EXPECT_EQ(!(output.solution_pool.best() < solution), true);
+    EXPECT_EQ(!(solution < output.solution_pool.best()), true);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+        Irregular,
+        IrregularTreeSearchMaximalSpacesSolutionTest,
+        testing::ValuesIn(std::vector<IrregularTreeSearchMaximalSpacesSolutionTestParams>{
+            {
+                // A resource of capacity 1 consumed by item types 0 and 1: they
+                // can't be packed together, item types 0 and 2 are.
+                fs::path("data") / "irregular" / "tests" / "knapsack_hard_resource.json",
+                fs::path("data") / "irregular" / "tests" / "knapsack_hard_resource_solution.json"
+            }, {
+                // A resource of capacity 2 consumed by the 5 copies of item type
+                // 0: 2 copies are packed with 3 copies of item type 1.
+                fs::path("data") / "irregular" / "tests" / "knapsack_hard_resource_copies.json",
+                fs::path("data") / "irregular" / "tests" / "knapsack_hard_resource_copies_solution.json"
+            }, {
+                // The resource of 'knapsack_hard_resource', penalized with a
+                // penalty of 60: packing item types 0 and 1 together (190 - 60) is
+                // worse than packing item types 0 and 2 (150).
+                fs::path("data") / "irregular" / "tests" / "knapsack_penalized_resource.json",
+                fs::path("data") / "irregular" / "tests" / "knapsack_penalized_resource_solution.json"
+            }}));

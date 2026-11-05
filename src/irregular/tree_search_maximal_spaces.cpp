@@ -4,6 +4,7 @@
 
 #include "packingsolver/irregular/algorithm_formatter.hpp"
 
+#include "irregular/resources.hpp"
 #include "irregular/rotations.hpp"
 #include "irregular/solution_builder.hpp"
 #include "irregular/tree_search_periodic_packing.hpp"
@@ -263,6 +264,10 @@ BranchingSchemeMaximalSpaces::Block BranchingSchemeMaximalSpaces::build_block(
             block.item_copies.push_back({trapezoid_set.item_type_id, 1});
     }
     std::sort(block.item_copies.begin(), block.item_copies.end());
+    block.resource_consumption = compute_resource_consumption(
+            instance(),
+            instance().bin_type_id(0),
+            block.item_copies);
 
     AreaDbl core_rectangle_area = -1.0;
     for (const AxisAlignedBoundingBox& rectangle: block.rectangles) {
@@ -356,13 +361,18 @@ BranchingSchemeMaximalSpaces::Block BranchingSchemeMaximalSpaces::build_block(
 
 void BranchingSchemeMaximalSpaces::compute_blocks()
 {
+    BinTypeId bin_type_id = instance().bin_type_id(0);
+
     // Single items.
     for (TrapezoidSetId trapezoid_set_id = 0;
             trapezoid_set_id < (TrapezoidSetId)bin_type_.trapezoid_sets.size();
             ++trapezoid_set_id) {
         BlockItem item;
         item.trapezoid_set_id = trapezoid_set_id;
-        blocks_.push_back(build_block({item}));
+        Block block = build_block({item});
+        if (!resource_feasible(instance(), bin_type_id, {}, block.resource_consumption))
+            continue;
+        blocks_.push_back(block);
     }
 
     if (!parameters_.use_periodic_blocks)
@@ -372,9 +382,10 @@ void BranchingSchemeMaximalSpaces::compute_blocks()
     // by 'tree_search_maximal_spaces' before building the branching scheme,
     // unless the branching scheme is built directly). The blocks aligning
     // the bounding boxes of the items on a grid are skipped: on the actual
-    // geometry, packing the items one by one does at least as well.
+    // geometry, packing the items one by one does at least as well. The
+    // blocks which exceed the capacity of a resource which is not penalized
+    // are already discarded.
     bool end = false;
-    BinTypeId bin_type_id = instance().bin_type_id(0);
     std::vector<PeriodicBlock> periodic_blocks = compute_periodic_blocks(
             instance(),
             *instance().get_periodic_packings(end),
@@ -435,19 +446,29 @@ const std::shared_ptr<BranchingSchemeMaximalSpaces::Node> BranchingSchemeMaximal
         node->number_of_items++;
         node->profit += item_type.profit;
     }
-
-    for (ItemPos block_id = 0; block_id < (ItemPos)blocks_.size(); ++block_id) {
-        bool feasible = true;
-        for (const std::pair<ItemTypeId, ItemPos>& item_copies: blocks_[block_id].item_copies) {
-            if (node->item_number_of_copies[item_copies.first] + item_copies.second
-                    > instance().item_type(item_copies.first).copies) {
-                feasible = false;
-                break;
-            }
-        }
-        if (feasible)
-            node->valid_block_ids.push_back(block_id);
+    std::vector<std::pair<ItemTypeId, ItemPos>> fixed_item_copies;
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance().number_of_item_types();
+            ++item_type_id) {
+        if (node->item_number_of_copies[item_type_id] > 0)
+            fixed_item_copies.push_back({item_type_id, node->item_number_of_copies[item_type_id]});
     }
+    BinTypeId bin_type_id = instance().bin_type_id(0);
+    node->resource_consumption.assign(bin_type.number_of_resources(), 0.0);
+    std::vector<double> fixed_items_resource_consumption = compute_resource_consumption(
+            instance(),
+            bin_type_id,
+            fixed_item_copies);
+    node->profit -= resource_penalty(
+            instance(),
+            bin_type_id,
+            node->resource_consumption,
+            fixed_items_resource_consumption);
+    node->resource_consumption = fixed_items_resource_consumption;
+
+    for (ItemPos block_id = 0; block_id < (ItemPos)blocks_.size(); ++block_id)
+        if (block_valid(*node, blocks_[block_id]))
+            node->valid_block_ids.push_back(block_id);
     remove_unusable_spaces(*node);
     node->greedy_value = node->profit;
     return node;
@@ -624,7 +645,7 @@ std::vector<BranchingSchemeMaximalSpaces::Insertion> BranchingSchemeMaximalSpace
                     AreaDbl area = (bl_corner.x + block_width - x_min)
                         * (bl_corner.y + block_height - y_min);
                     double density = (std::min)(1.0, block.item_area / area);
-                    double guide = block.profit
+                    double guide = insertion_profit(node, block)
                         * std::pow(density, parameters_.beta)
                         * std::pow(block.number_of_items, -parameters_.gamma);
                     if (best_insertion.block_id == -1
@@ -667,6 +688,36 @@ std::vector<BranchingSchemeMaximalSpaces::Insertion> BranchingSchemeMaximalSpace
     return insertions;
 }
 
+bool BranchingSchemeMaximalSpaces::block_valid(
+        const Node& node,
+        const Block& block) const
+{
+    for (const std::pair<ItemTypeId, ItemPos>& item_copies: block.item_copies) {
+        if (node.item_number_of_copies[item_copies.first] + item_copies.second
+                > instance().item_type(item_copies.first).copies) {
+            return false;
+        }
+    }
+    return resource_feasible(
+            instance(),
+            instance().bin_type_id(0),
+            node.resource_consumption,
+            block.resource_consumption);
+}
+
+Profit BranchingSchemeMaximalSpaces::insertion_profit(
+        const Node& node,
+        const Block& block) const
+{
+    if (node.resource_consumption.empty())
+        return block.profit;
+    return block.profit - resource_penalty(
+            instance(),
+            instance().bin_type_id(0),
+            node.resource_consumption,
+            block.resource_consumption);
+}
+
 void BranchingSchemeMaximalSpaces::apply_insertion(
         Node& node,
         const Insertion& insertion) const
@@ -687,20 +738,18 @@ void BranchingSchemeMaximalSpaces::apply_insertion(
         for (const GeneralizedTrapezoid& trapezoid: item_shape_trapezoids)
             node.trapezoids.push_back(shifted(trapezoid, insertion.x, insertion.y));
 
-    // Update the number of copies and the valid blocks.
+    // Update the profit before the resource consumptions: the penalties
+    // depend on the previous consumptions.
+    node.profit += insertion_profit(node, block);
+    add_resource_consumption(node.resource_consumption, block.resource_consumption);
+
+    // Update the number of copies and the valid blocks. The consumptions
+    // only increase: a block which exceeds the capacity of a resource which
+    // is not penalized can't be packed anymore.
     for (const std::pair<ItemTypeId, ItemPos>& item_copies: block.item_copies)
         node.item_number_of_copies[item_copies.first] += item_copies.second;
     for (ItemPos block_pos = 0; block_pos < (ItemPos)node.valid_block_ids.size(); ) {
-        const Block& candidate_block = blocks_[node.valid_block_ids[block_pos]];
-        bool feasible = true;
-        for (const std::pair<ItemTypeId, ItemPos>& item_copies: candidate_block.item_copies) {
-            if (node.item_number_of_copies[item_copies.first] + item_copies.second
-                    > instance().item_type(item_copies.first).copies) {
-                feasible = false;
-                break;
-            }
-        }
-        if (feasible) {
+        if (block_valid(node, blocks_[node.valid_block_ids[block_pos]])) {
             ++block_pos;
         } else {
             node.valid_block_ids[block_pos] = node.valid_block_ids.back();
@@ -711,7 +760,6 @@ void BranchingSchemeMaximalSpaces::apply_insertion(
     node.item_area += block.item_area;
     node.number_of_items += block.number_of_items;
     node.number_of_blocks++;
-    node.profit += block.profit;
 
     // Update the empty spaces. The new ones too small for all the valid
     // blocks are discarded (see 'may_fit').

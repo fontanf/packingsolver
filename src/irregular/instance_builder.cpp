@@ -674,6 +674,41 @@ void InstanceBuilder::read(
                 add_fixed_item(bin_type_id, item_type_id, bl_corner, angle, mirror);
             }
         }
+
+        // Read resources.
+        if (json_item.contains("resources")) {
+            for (const auto& json_resource: json_item["resources"]) {
+                double capacity = json_resource["capacity"];
+                bool penalize = json_resource.value("penalize", false);
+                double penalty = json_resource.value("penalty", 0.0);
+                ResourceId resource_id = add_bin_type_resource(bin_type_id, capacity, penalize, penalty);
+                if (json_resource.contains("consumptions")) {
+                    for (const auto& json_consumption: json_resource["consumptions"]) {
+                        ItemTypeId item_type_id = json_consumption["item_type_id"];
+                        if (json_consumption.contains("consumption_schedule")) {
+                            // Per-copy consumption schedule (a copy past
+                            // the end of the schedule repeats its last
+                            // entry); see 'Resource::item_consumptions'.
+                            std::vector<double> schedule = json_consumption["consumption_schedule"];
+                            add_resource_consumption(
+                                    bin_type_id,
+                                    resource_id,
+                                    item_type_id,
+                                    schedule);
+                        } else {
+                            // Uniform consumption, regardless of how many
+                            // copies are already packed.
+                            double consumption = json_consumption["consumption"];
+                            add_resource_consumption(
+                                    bin_type_id,
+                                    resource_id,
+                                    item_type_id,
+                                    {consumption});
+                        }
+                    }
+                }
+            }
+        }
     }
 
     // Read item types.

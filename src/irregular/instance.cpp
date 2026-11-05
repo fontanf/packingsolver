@@ -836,6 +836,31 @@ void Instance::write(
             json["bin_types"][bin_type_id]["defects"][defect_id]["defect_type"] = defect.type;
             json["bin_types"][bin_type_id]["defects"][defect_id]["item_defect_minimum_spacing"] = defect.item_defect_minimum_spacing;
         }
+        // Bin resources.
+        for (ResourceId resource_id = 0;
+                resource_id < bin_type.number_of_resources();
+                ++resource_id) {
+            const Resource& resource = bin_type.resource(resource_id);
+            nlohmann::json json_resource;
+            json_resource["capacity"] = resource.capacity;
+            json_resource["penalize"] = resource.penalize;
+            json_resource["penalty"] = resource.penalty;
+            json_resource["consumptions"] = nlohmann::json::array();
+            for (const std::pair<ItemTypeId, std::vector<double>>& entry: resource.item_consumptions) {
+                const std::vector<double>& schedule = entry.second;
+                if (schedule.empty())
+                    continue;
+                nlohmann::json json_consumption;
+                json_consumption["item_type_id"] = entry.first;
+                if (schedule.size() == 1) {
+                    json_consumption["consumption"] = schedule[0];
+                } else {
+                    json_consumption["consumption_schedule"] = schedule;
+                }
+                json_resource["consumptions"].push_back(json_consumption);
+            }
+            json["bin_types"][bin_type_id]["resources"][resource_id] = json_resource;
+        }
     }
 
     // Export items.

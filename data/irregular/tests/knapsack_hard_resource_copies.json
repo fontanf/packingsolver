@@ -1,0 +1,37 @@
+{
+    "objective": "knapsack",
+    "bin_types": [
+        {
+            "type": "rectangle",
+            "width": 10,
+            "height": 10,
+            "resources": [
+                {
+                    "capacity": 2,
+                    "consumptions": [
+                        {
+                            "item_type_id": 0,
+                            "consumption": 1
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "item_types": [
+        {
+            "type": "rectangle",
+            "width": 2,
+            "height": 10,
+            "profit": 100,
+            "copies": 5
+        },
+        {
+            "type": "rectangle",
+            "width": 2,
+            "height": 10,
+            "profit": 10,
+            "copies": 5
+        }
+    ]
+}

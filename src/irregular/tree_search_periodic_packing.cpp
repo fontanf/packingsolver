@@ -4,6 +4,7 @@
 #include "packingsolver/irregular/algorithm_formatter.hpp"
 
 #include "irregular/periodic_packing.hpp"
+#include "irregular/resources.hpp"
 #include "irregular/rotations.hpp"
 #include "irregular/shape_simplification.hpp"
 #include "irregular/solution_builder.hpp"
@@ -1238,6 +1239,24 @@ std::vector<PeriodicBlock> packingsolver::irregular::compute_periodic_blocks(
 
     add_framed_blocks(instance, item_type_rotations, output);
 
+    // Resources.
+    if (instance.number_of_bin_types() > 0) {
+        BinTypeId bin_type_id = instance.bin_type_id(0);
+        if (instance.bin_type(bin_type_id).number_of_resources() > 0) {
+            std::vector<PeriodicBlock> feasible_output;
+            for (PeriodicBlock& block: output) {
+                block.resource_consumption = compute_resource_consumption(
+                        instance,
+                        bin_type_id,
+                        block.item_copies);
+                if (!resource_feasible(instance, bin_type_id, {}, block.resource_consumption))
+                    continue;
+                feasible_output.push_back(std::move(block));
+            }
+            output = std::move(feasible_output);
+        }
+    }
+
     return output;
 }
 
@@ -1360,7 +1379,9 @@ BranchingSchemePeriodicPacking::root() const
                 obstacle.y_max - obstacle.y_min);
     }
     // The fixed items are part of every solution: they consume copies of
-    // their item types.
+    // their item types and resources.
+    BinTypeId bin_type_id = instance_.bin_type_id(0);
+    std::vector<std::pair<ItemTypeId, ItemPos>> fixed_item_copies;
     for (const FixedItem& fixed_item: bin_type().fixed_items) {
         const ItemType& item_type = instance_.item_type(fixed_item.item_type_id);
         node->item_number_of_copies[fixed_item.item_type_id]++;
@@ -1368,16 +1389,38 @@ BranchingSchemePeriodicPacking::root() const
         node->number_of_items++;
         node->profit += item_type.profit;
     }
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance_.number_of_item_types();
+            ++item_type_id) {
+        if (node->item_number_of_copies[item_type_id] > 0)
+            fixed_item_copies.push_back({item_type_id, node->item_number_of_copies[item_type_id]});
+    }
+    node->resource_consumption.assign(bin_type().number_of_resources(), 0.0);
+    std::vector<double> fixed_items_resource_consumption = compute_resource_consumption(
+            instance_,
+            bin_type_id,
+            fixed_item_copies);
+    node->profit -= resource_penalty(
+            instance_,
+            bin_type_id,
+            node->resource_consumption,
+            fixed_items_resource_consumption);
+    node->resource_consumption = fixed_items_resource_consumption;
     ItemPos number_of_blocks = (ItemPos)blocks_.size();
     for (ItemPos block_id = 0; block_id < number_of_blocks; ++block_id) {
-        // Skip the blocks which would exceed the copies left by the fixed
-        // items.
-        bool feasible = true;
+        // Skip the blocks which would exceed the copies or the resources left
+        // by the fixed items.
+        bool feasible = resource_feasible(
+                instance_,
+                bin_type_id,
+                node->resource_consumption,
+                blocks_[block_id].resource_consumption);
         for (const std::pair<ItemTypeId, ItemPos>& kv: blocks_[block_id].item_copies) {
+            if (!feasible)
+                break;
             if (node->item_number_of_copies[kv.first] + kv.second
                     > instance_.item_type(kv.first).copies) {
                 feasible = false;
-                break;
             }
         }
         if (feasible)
@@ -1592,7 +1635,7 @@ double BranchingSchemePeriodicPacking::compute_insertion_guide(
     const PeriodicBlock& block = blocks_[insertion.block_id];
 
     double node_fill_rate = (double)parent.item_area / (bin_bx() * bin_by());
-    double v = block.item_profit;
+    double v = insertion_profit(parent, block);
     double f = block.fill_rate();
     double n = (double)block.number_of_items;
     if (node_fill_rate < parameters_.configuration_switch_threshold) {
@@ -1610,6 +1653,19 @@ double BranchingSchemePeriodicPacking::compute_insertion_guide(
             * std::pow(f, parameters_.beta_2)
             * std::pow(n, -parameters_.gamma_2);
     }
+}
+
+Profit BranchingSchemePeriodicPacking::insertion_profit(
+        const Node& node,
+        const PeriodicBlock& block) const
+{
+    if (node.resource_consumption.empty())
+        return block.item_profit;
+    return block.item_profit - resource_penalty(
+            instance_,
+            instance_.bin_type_id(0),
+            node.resource_consumption,
+            block.resource_consumption);
 }
 
 double BranchingSchemePeriodicPacking::active_delta(const Node& node) const
@@ -1723,19 +1779,32 @@ void BranchingSchemePeriodicPacking::apply_insertion(
     pb.bl_corner = insertion.bl_corner;
     node.placed_blocks.push_back(pb);
 
+    // Update the profit before the resource consumptions: the penalties
+    // depend on the previous consumptions.
+    node.profit += insertion_profit(node, block);
+    add_resource_consumption(node.resource_consumption, block.resource_consumption);
+
     // Update item copy counts.
     for (const std::pair<ItemTypeId, ItemPos>& kv: block.item_copies)
         node.item_number_of_copies[kv.first] += kv.second;
 
     // Update valid block ids: remove blocks that can no longer be placed.
+    // The consumptions only increase: a block which exceeds the capacity of
+    // a resource which is not penalized can't be placed anymore.
+    BinTypeId bin_type_id = instance_.bin_type_id(0);
     for (ItemPos i = 0; i < (ItemPos)node.valid_block_ids.size(); ) {
         const PeriodicBlock& candidate = blocks_[node.valid_block_ids[i]];
-        bool feasible = true;
+        bool feasible = resource_feasible(
+                instance_,
+                bin_type_id,
+                node.resource_consumption,
+                candidate.resource_consumption);
         for (const std::pair<ItemTypeId, ItemPos>& kv: candidate.item_copies) {
+            if (!feasible)
+                break;
             if (node.item_number_of_copies[kv.first] + kv.second
                     > instance_.item_type(kv.first).copies) {
                 feasible = false;
-                break;
             }
         }
         if (feasible) {
@@ -1750,7 +1819,6 @@ void BranchingSchemePeriodicPacking::apply_insertion(
     node.item_area += block.item_area;
     node.number_of_items += block.number_of_items;
     node.number_of_blocks++;
-    node.profit += block.item_profit;
 
     // Update empty spaces.
     cut_empty_spaces(node.empty_spaces, insertion.bl_corner, block.bx, block.by);

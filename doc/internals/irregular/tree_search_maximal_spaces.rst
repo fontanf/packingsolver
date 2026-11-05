@@ -6,7 +6,7 @@ Tree search with maximal spaces
 Objectives
 ----------
 
-This algorithm only handles instances with a single bin. It solves the :code:`knapsack` and :code:`feasibility` objectives directly, and the :code:`bin-packing`, :code:`bin-packing-with-leftovers`, :code:`open-dimension-x`, :code:`open-dimension-y` and :code:`open-dimension-xy` objectives through the :ref:`sequential feasibility <internals_generic_algorithms_sequential_feasibility>` algorithm, which solves a sequence of :code:`feasibility` sub-problems with this algorithm.
+This algorithm only handles instances with a single bin. It solves the :code:`knapsack` and :code:`feasibility` objectives directly, and the :code:`bin-packing`, :code:`bin-packing-with-leftovers`, :code:`open-dimension-x`, :code:`open-dimension-y` and :code:`open-dimension-xy` objectives through the :ref:`sequential feasibility <internals_generic_algorithms_sequential_feasibility>` algorithm, which solves a sequence of :code:`feasibility` sub-problems with this algorithm. It supports the resources of the bin.
 
 Principle
 ---------
@@ -59,7 +59,10 @@ The trapezoids of a block are the trapezoids of its items, shifted by their posi
 * its supporting parts: the supporting parts of its items which are not covered by another item of the block. A supporting part is covered if a trapezoid of another item of the block overlaps it horizontally and has its bottom at or above the lowest point of the supporting part, that is, if another item of the block lies on top of it;
 * its supported parts: the supported parts of its *lowest* item (the one whose bottom is the lowest, then the leftmost one) which are not covered by another item of the block. A supported part is covered if a trapezoid of another item of the block overlaps it horizontally and has its top at or below the highest point of the supported part. Only the lowest item is used, since resting the block on the bottom of its other items would mostly lead to the same positions, for a much larger number of slides;
 * its rectangles: the rectangles covering its items (see below), and its *core rectangle*, the largest of them;
-* its number of items, the area of its items and their profit.
+* its number of items, the area of its items and their profit;
+* its resource consumption: the consumption of each resource of the bin by its items alone in the bin, the consumption of the copies of an item type starting at the first entry of its consumption schedule.
+
+The blocks which exceed the capacity of a resource which is not *penalize* on their own are not generated.
 
 **Rectangles.** Each item, in each orientation, is covered by rectangles: its inflated simplified shape, in the frame of the direction, is given to :code:`shape::outer_approximation_by_rectangles`, with a maximum waste (area of the rectangles minus the area of the shape) of 10% of the area of the shape. While this gives more than 8 rectangles, the maximum waste is doubled and the rectangles are computed again: the number of maximal empty spaces grows quickly with the number of rectangles, and so does the time needed to update them. For example, a frame whose hole represents 20% of its area is covered by 4 rectangles, which keeps its hole free, but it would be covered by its bounding box alone with a maximum waste of 30%.
 
@@ -73,8 +76,8 @@ A node stores:
 * the blocks packed, with their positions;
 * the trapezoids which a new block must not overlap: the obstacles of the bin and the inflated trapezoids of the items packed;
 * the maximal empty spaces;
-* for each item type, its number of copies packed, and the blocks which don't use more copies than available, called the *valid* blocks;
-* the number of items packed, their area, their profit, and the profit of the greedy completion of the node (see below).
+* for each item type, its number of copies packed, and the blocks which don't use more copies than available and don't exceed the capacity of a resource which is not *penalize* given the blocks already packed, called the *valid* blocks;
+* the number of items packed, their area, their profit, their resource consumption (the sum of the consumptions of the fixed items and of the blocks packed), and the profit of the greedy completion of the node (see below).
 
 **Maximal empty spaces.** An empty space is an axis-aligned rectangle of the bin which doesn't overlap the rectangles covering the items packed and the obstacles. An empty space is *maximal* if it isn't contained in another empty space. The maximal empty spaces may overlap each other.
 
@@ -122,7 +125,7 @@ The slide fails, and the position is discarded, if the end of the supporting par
 
 where:
 
-* :math:`V` is the profit of the block;
+* :math:`V` is the profit of the block, minus the penalties of the *penalize* resources whose capacity it makes exceeded;
 * :math:`N` is its number of items;
 * :math:`D` is its *density*: the area of its items divided by the area of the rectangle going from the bottom-left corner of the empty space (or from the bottom-left corner of the bounding box of the block, if it is lower or more to the left) to the top-right corner of the bounding box of the block, capped at 1. It penalizes the blocks leaving free space between them and the corner of the empty space, and the blocks wasting space inside their own bounding box.
 
@@ -132,7 +135,7 @@ For each block, only its best position is kept. The insertions of the node are t
 
 **7. Failed empty spaces.** If no block has a valid position in the selected empty space, the empty space is removed from the node and the next one is selected, until an insertion is found or no empty space is left. This is valid since a block which can't be inserted in an empty space can't be inserted there later either: later, there are more items packed and fewer valid blocks.
 
-Applying an insertion to a node adds the block to the node, adds its inflated trapezoids to the trapezoids of the node, updates the numbers of copies and the valid blocks, and cuts the empty spaces by its rectangles.
+Applying an insertion to a node adds the block to the node, adds its inflated trapezoids to the trapezoids of the node, updates the profit, the resource consumption, the numbers of copies and the valid blocks, and cuts the empty spaces by its rectangles.
 
 Example
 -------
@@ -174,6 +177,7 @@ Limitations
 * The defects are always obstacles, whatever the quality rules of the items.
 * The empty spaces are approximations of the free space: a block which only fits across several empty spaces, or whose core rectangle is too large for the empty spaces of a concavity, may be missed.
 * Only the bottom-left corner of the bin is used as anchor (in each direction), unlike in the tree search with periodic packings, where the empty space closest to any corner of the bin is selected.
+* Summing the consumptions of the blocks is exact for the uniform consumption schedules. For a non-increasing schedule, such as the ones of the cuts of the Benders decomposition, it overestimates the consumption when the copies of an item type are in several blocks: this is conservative for the resources which are not *penalize*, and may charge a penalty which the solution doesn't.
 * The greedy completions dominate the running time: since each child is evaluated by a greedy completion, which slides all the candidate blocks at each stage, the algorithm gets slow on instances with many different item types.
 
 Automatic selection
