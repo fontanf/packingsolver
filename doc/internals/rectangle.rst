@@ -53,6 +53,18 @@ Its master problem also decides the x-positions of the items (contiguous relaxat
 
 See :doc:`the detailed description <rectangle/benders_decomposition_contiguity>`.
 
+Tree search on packing classes
+---------------------------------
+
+This algorithm solves the :code:`feasibility` objective exactly, for a single bin.
+
+It decides, for each axis and each pair of items, whether their projections on the axis overlap or are disjoint, without fixing the positions of the items, which are only computed once these relations describe a valid packing class. Its running time doesn't depend on the size of the bin.
+
+.. image:: ../img/rectangle_tree_search_packing_classes_packing_class.svg
+   :align: center
+
+See :doc:`the detailed description <rectangle/tree_search_packing_classes>`.
+
 Dual feasible functions
 -------------------------
 
@@ -91,6 +103,7 @@ See :doc:`the detailed description <rectangle/bar_relaxation>`.
    rectangle/tree_search_maximal_spaces
    rectangle/benders_decomposition
    rectangle/benders_decomposition_contiguity
+   rectangle/tree_search_packing_classes
    rectangle/dual_feasible_functions
    rectangle/conservative_scales
    rectangle/bar_relaxation

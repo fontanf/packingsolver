@@ -8,6 +8,7 @@
 #include "rectangle/tree_search_maximal_spaces.hpp"
 #include "rectangle/benders_decomposition.hpp"
 #include "rectangle/benders_decomposition_contiguity.hpp"
+#include "rectangle/tree_search_packing_classes.hpp"
 #include "rectangle/dual_feasible_functions.hpp"
 #include "rectangle/conservative_scales.hpp"
 #include "rectangle/bar_relaxation.hpp"
@@ -667,6 +668,10 @@ void optimize_benders_decomposition(
     bd_parameters.timer = parameters.timer;
     bd_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
     bd_parameters.optimization_mode = parameters.optimization_mode;
+    bd_parameters.subproblem_use_benders_decomposition_contiguity
+        = parameters.benders_decomposition_subproblem_use_benders_decomposition_contiguity;
+    bd_parameters.subproblem_use_tree_search_packing_classes
+        = parameters.benders_decomposition_subproblem_use_tree_search_packing_classes;
     // Only applied by 'benders_decomposition' itself in non-'Anytime' modes
     // (see 'BendersDecompositionParameters::not_anytime_maximum_number_of_iterations'),
     // so it is harmless to always set it here.
@@ -708,6 +713,24 @@ void optimize_benders_decomposition_contiguity(
         algorithm_formatter.update_bounds(psbdc_output);
     };
     benders_decomposition_contiguity(instance, bdc_parameters);
+}
+
+void optimize_tree_search_packing_classes(
+        const Instance& instance,
+        const OptimizeParameters& parameters,
+        AlgorithmFormatter& algorithm_formatter)
+{
+    TreeSearchPackingClassesParameters tspc_parameters;
+    tspc_parameters.verbosity_level = 0;
+    tspc_parameters.timer = parameters.timer;
+    tspc_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+    tspc_parameters.new_solution_callback = [&algorithm_formatter](
+            const rectangle::Output& ps_output)
+    {
+        algorithm_formatter.update_solution(ps_output.solution_pool.best(), "TSPC");
+        algorithm_formatter.update_bounds(ps_output);
+    };
+    tree_search_packing_classes(instance, tspc_parameters);
 }
 
 /**
@@ -971,6 +994,7 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
     bool use_column_generation = parameters.use_column_generation;
     bool use_benders_decomposition = parameters.use_benders_decomposition;
     bool use_benders_decomposition_contiguity = parameters.use_benders_decomposition_contiguity;
+    bool use_tree_search_packing_classes = parameters.use_tree_search_packing_classes;
     bool use_bar_relaxation = parameters.use_bar_relaxation;
     if (instance.number_of_bins() <= 1) {
         use_sequential_single_knapsack = false;
@@ -1002,12 +1026,28 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
         if (instance.objective() != Objective::Knapsack
                 && instance.objective() != Objective::Feasibility)
             use_bar_relaxation = false;
+        // 'tree_search_packing_classes' only supports the 'Feasibility'
+        // objective, with a single bin type used once, without defects,
+        // fixed items, unloading constraints, weight constraints and
+        // resources.
+        bool tree_search_packing_classes_applies
+            = instance.objective() == Objective::Feasibility
+            && instance.number_of_bin_types() == 1
+            && instance.bin_type(0).copies == 1
+            && instance.bin_type(0).defects.empty()
+            && instance.bin_type(0).fixed_items.empty()
+            && instance.parameters().unloading_constraint == UnloadingConstraint::None
+            && !instance.weight_matters()
+            && !instance.resources_matter();
+        if (!tree_search_packing_classes_applies)
+            use_tree_search_packing_classes = false;
         // Automatic selection.
         if (!use_tree_search
                 && !use_tree_search_maximal_spaces
                 && !use_benders_decomposition
                 && !use_bar_relaxation
-                && !use_benders_decomposition_contiguity) {
+                && !use_benders_decomposition_contiguity
+                && !use_tree_search_packing_classes) {
             if ((instance.objective() == Objective::Knapsack
                         || instance.objective() == Objective::Feasibility)
                     && instance.parameters().unloading_constraint == UnloadingConstraint::None) {
@@ -1049,6 +1089,8 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
                         && instance.bin_type(0).copies == 1) {
                     use_benders_decomposition_contiguity = true;
                 }
+                if (tree_search_packing_classes_applies)
+                    use_tree_search_packing_classes = true;
             }
         }
     } else if (instance.objective() == Objective::Feasibility) {
@@ -1057,6 +1099,7 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
         use_dichotomic_search = false;
         use_benders_decomposition = false;
         use_benders_decomposition_contiguity = false;
+        use_tree_search_packing_classes = false;
         use_bar_relaxation = false;
         // Automatic selection.
         if (!use_tree_search
@@ -1087,6 +1130,7 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
         // validation) - this branch is only reached when
         // 'instance.number_of_bins() > 1'.
         use_benders_decomposition_contiguity = false;
+        use_tree_search_packing_classes = false;
         // Automatic selection.
         if (!use_tree_search
                 && !use_sequential_single_knapsack
@@ -1127,6 +1171,7 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
         // 'benders_decomposition_contiguity' only supports 'Knapsack'/
         // 'Feasibility' (see its own validation).
         use_benders_decomposition_contiguity = false;
+        use_tree_search_packing_classes = false;
         if (instance.objective() == Objective::BinPackingWithLeftovers)
             use_benders_decomposition = false;
         if (instance.objective() == Objective::BinPackingWithLeftovers
@@ -1171,6 +1216,7 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
         // 'benders_decomposition_contiguity' only supports 'Knapsack'/
         // 'Feasibility' (see its own validation).
         use_benders_decomposition_contiguity = false;
+        use_tree_search_packing_classes = false;
         if (instance.number_of_bin_types() == 1) {
             if (use_dichotomic_search) {
                 use_dichotomic_search = false;
@@ -1331,6 +1377,19 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
         auto context = task_context();
         tasks.push_back([&exception_ptr, &instance, context]() {
             wrapper<decltype(&optimize_benders_decomposition_contiguity), optimize_benders_decomposition_contiguity>(
+                    exception_ptr,
+                    instance,
+                    *context.first,
+                    *context.second);
+        });
+    }
+    // Tree search on packing classes.
+    if (use_tree_search_packing_classes) {
+        exception_ptr_list.push_front(std::exception_ptr());
+        std::exception_ptr& exception_ptr = exception_ptr_list.front();
+        auto context = task_context();
+        tasks.push_back([&exception_ptr, &instance, context]() {
+            wrapper<decltype(&optimize_tree_search_packing_classes), optimize_tree_search_packing_classes>(
                     exception_ptr,
                     instance,
                     *context.first,

@@ -106,6 +106,9 @@ int main(int argc, char *argv[])
             ("use-dichotomic-search,", po::value<bool>(), "enable dichotomic search")
             ("use-benders-decomposition,", po::value<bool>(), "enable Benders decomposition algorithm")
             ("use-benders-decomposition-contiguity,", po::value<bool>(), "enable contiguity-master Benders decomposition algorithm")
+            ("benders-decomposition-subproblem-use-benders-decomposition-contiguity,", po::value<bool>(), "use the contiguity-master Benders decomposition in the subproblems of the Benders decomposition")
+            ("benders-decomposition-subproblem-use-tree-search-packing-classes,", po::value<bool>(), "use the tree search on packing classes in the subproblems of the Benders decomposition")
+            ("use-tree-search-packing-classes,", po::value<bool>(), "enable tree search on packing classes algorithm")
             ("sequential-value-correction-subproblem-tree-search-queue-size,", po::value<NodeId>(), "set sequential value correction subproblem queue size")
             ("sequential-value-correction-subproblem-tree-search-maximal-spaces-queue-size,", po::value<NodeId>(), "set sequential value correction subproblem maximal spaces queue size")
             ("sequential-value-correction-restrict-bin-types,", po::value<bool>(), "")
@@ -245,6 +248,12 @@ int main(int argc, char *argv[])
             parameters.use_benders_decomposition = vm["use-benders-decomposition"].as<bool>();
         if (vm.count("use-benders-decomposition-contiguity"))
             parameters.use_benders_decomposition_contiguity = vm["use-benders-decomposition-contiguity"].as<bool>();
+        if (vm.count("benders-decomposition-subproblem-use-benders-decomposition-contiguity"))
+            parameters.benders_decomposition_subproblem_use_benders_decomposition_contiguity = vm["benders-decomposition-subproblem-use-benders-decomposition-contiguity"].as<bool>();
+        if (vm.count("benders-decomposition-subproblem-use-tree-search-packing-classes"))
+            parameters.benders_decomposition_subproblem_use_tree_search_packing_classes = vm["benders-decomposition-subproblem-use-tree-search-packing-classes"].as<bool>();
+        if (vm.count("use-tree-search-packing-classes"))
+            parameters.use_tree_search_packing_classes = vm["use-tree-search-packing-classes"].as<bool>();
 
         if (vm.count("sequential-value-correction-subproblem-tree-search-queue-size"))
             parameters.sequential_value_correction_subproblem_tree_search_queue_size = vm["sequential-value-correction-subproblem-tree-search-queue-size"].as<NodeId>();
