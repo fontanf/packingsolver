@@ -53,6 +53,13 @@ struct PeriodicBlock
     /** Sum of profits of all items in the block. */
     Profit item_profit = 0;
 
+    /**
+     * Consumption of each resource of the bin type by the items of the block
+     * alone in the bin (see 'compute_resource_consumption'). Empty iff the
+     * bin type has no resources.
+     */
+    std::vector<double> resource_consumption;
+
     /** Total number of items in the block. */
     int number_of_items = 0;
 
@@ -82,6 +89,9 @@ std::vector<PeriodicBlock> compute_periodic_blocks_for_item_type(
  * Compute the periodic blocks of all item types (see
  * compute_periodic_blocks_for_item_type), plus the blocks of the periodic
  * packings of several item types.
+ *
+ * Their resource consumptions are computed, and the blocks which exceed the
+ * capacity of a resource which is not penalized are discarded.
  */
 std::vector<PeriodicBlock> compute_periodic_blocks(
         const Instance& instance,
@@ -149,6 +159,13 @@ public:
         std::vector<EmptySpace> empty_spaces;
 
         std::vector<ItemPos> item_number_of_copies;
+
+        /**
+         * Consumption of each resource of the bin type by the fixed items and
+         * the placed blocks: the sum of their consumptions. Empty iff the bin
+         * type has no resources.
+         */
+        std::vector<double> resource_consumption;
 
         AreaDbl item_area = 0.0;
         ItemPos number_of_items = 0;
@@ -452,6 +469,15 @@ private:
             const PeriodicBlock& block,
             Point bl_corner,
             double delta) const;
+
+    /**
+     * Profit of inserting a block in a node: the profit of its items minus
+     * the penalties of the penalized resources whose capacity it exceeds
+     * first.
+     */
+    Profit insertion_profit(
+            const Node& node,
+            const PeriodicBlock& block) const;
 
     double compute_insertion_guide(
             const Node& parent,

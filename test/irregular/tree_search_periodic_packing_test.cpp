@@ -109,6 +109,30 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "irregular" / "tests" / "periodic_packing_single_item_exact_fit_triangle.json",
                 fs::path("data") / "irregular" / "tests" / "periodic_packing_single_item_exact_fit_triangle_solution.json"
             }, {
+                // A resource of capacity 1 consumed by item types 0 and 1: they
+                // can't be packed together, item types 0 and 2 are.
+                fs::path("data") / "irregular" / "tests" / "knapsack_hard_resource.json",
+                fs::path("data") / "irregular" / "tests" / "knapsack_hard_resource_solution.json"
+            }, {
+                // A resource of capacity 2 consumed by the 5 copies of item type
+                // 0: the blocks with more than 2 copies of it are not generated, 2
+                // copies are packed with 3 copies of item type 1.
+                fs::path("data") / "irregular" / "tests" / "knapsack_hard_resource_copies.json",
+                fs::path("data") / "irregular" / "tests" / "knapsack_hard_resource_copies_solution.json"
+            }, {
+                // The resource of 'knapsack_hard_resource', penalized with a
+                // penalty of 60: packing item types 0 and 1 together (190 - 60) is
+                // worse than packing item types 0 and 2 (150).
+                fs::path("data") / "irregular" / "tests" / "knapsack_penalized_resource.json",
+                fs::path("data") / "irregular" / "tests" / "knapsack_penalized_resource_solution.json"
+            }, {
+                // A resource of capacity 1 with the consumption schedule [1, 0]
+                // for item types 0 and 1: the two copies of item type 0 in a block
+                // only consume 1, so they can be packed together with item type 2
+                // but not with item type 1.
+                fs::path("data") / "irregular" / "tests" / "knapsack_resource_schedule.json",
+                fs::path("data") / "irregular" / "tests" / "knapsack_resource_schedule_solution.json"
+            }, {
                 // Bin 20x10, a defect covering the 5-wide middle strip
                 // (x in [5,10)), a 10x10 item with 2 copies (a single copy
                 // would make the bin's tracked width collapse via the

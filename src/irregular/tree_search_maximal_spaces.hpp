@@ -115,6 +115,15 @@ public:
 
         /** Profit of the items. */
         Profit profit = 0;
+
+        /**
+         * Consumption of each resource of the bin type by the items of the
+         * block alone in the bin (see 'compute_resource_consumption'). The
+         * blocks which exceed the capacity of a resource which is not
+         * penalized are not generated. Empty iff the bin type has no
+         * resources.
+         */
+        std::vector<double> resource_consumption;
     };
 
     struct Insertion
@@ -168,7 +177,17 @@ public:
         /** For each item type, number of copies in the node. */
         std::vector<ItemPos> item_number_of_copies;
 
-        /** Blocks which don't use more copies than available. */
+        /**
+         * Consumption of each resource of the bin type by the fixed items and
+         * the packed blocks: the sum of their consumptions. Empty iff the bin
+         * type has no resources.
+         */
+        std::vector<double> resource_consumption;
+
+        /**
+         * Blocks which don't use more copies than available and don't exceed
+         * the capacity of a resource which is not penalized.
+         */
         std::vector<ItemPos> valid_block_ids;
 
         /** Area of the packed items. */
@@ -431,6 +450,23 @@ private:
     std::vector<Insertion> insertions(
             Node& node,
             bool only_best) const;
+
+    /**
+     * Return true iff a block may be packed in a node: it doesn't use more
+     * copies than available and doesn't exceed the capacity of a resource
+     * which is not penalized.
+     */
+    bool block_valid(
+            const Node& node,
+            const Block& block) const;
+
+    /**
+     * Profit of packing a block in a node: the profit of its items minus the
+     * penalties of the penalized resources whose capacity it exceeds first.
+     */
+    Profit insertion_profit(
+            const Node& node,
+            const Block& block) const;
 
     /** Apply an insertion to a node. */
     void apply_insertion(
