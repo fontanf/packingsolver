@@ -155,6 +155,23 @@ struct BendersDecompositionParameters: packingsolver::Parameters<Instance, Solut
     bool master_problem_use_milp_assignment = true;
 
     /**
+     * Use the contiguity-master Benders decomposition to solve the
+     * feasibility subproblems.
+     *
+     * If neither this nor 'subproblem_use_tree_search_packing_classes' is
+     * set, the algorithms solving the subproblems are selected automatically.
+     * Otherwise, the subproblems are solved by the tree search, to find the
+     * packings of the feasible subproblems, and by the selected algorithms.
+     */
+    bool subproblem_use_benders_decomposition_contiguity = false;
+
+    /**
+     * Use the tree search on packing classes to solve the feasibility
+     * subproblems; see 'subproblem_use_benders_decomposition_contiguity'.
+     */
+    bool subproblem_use_tree_search_packing_classes = false;
+
+    /**
      * Maximum number of iterations, in non-'Anytime' optimization modes
      * only (-1: unlimited). 'Anytime' mode instead relies on the timer (or
      * full convergence, i.e. every bin of the master's candidate found

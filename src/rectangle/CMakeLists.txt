@@ -21,7 +21,8 @@ target_sources(PackingSolver_rectangle PRIVATE
     reduction.cpp
     block.cpp
     sequential_feasibility.cpp
-    tree_search_maximal_spaces.cpp)
+    tree_search_maximal_spaces.cpp
+    tree_search_packing_classes.cpp)
 target_include_directories(PackingSolver_rectangle PUBLIC
     ${PROJECT_SOURCE_DIR}/include)
 target_include_directories(PackingSolver_rectangle PRIVATE

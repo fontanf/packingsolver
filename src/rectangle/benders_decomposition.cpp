@@ -98,6 +98,34 @@ enum class SelectionFeasibility
 };
 
 /**
+ * Parameters of the 'optimize' call solving a feasibility subproblem.
+ */
+OptimizeParameters subproblem_parameters(
+        const BendersDecompositionParameters& parameters)
+{
+    OptimizeParameters sub_parameters;
+    sub_parameters.verbosity_level = 0;
+    sub_parameters.timer = parameters.timer;
+    sub_parameters.optimization_mode
+        = (parameters.optimization_mode == OptimizationMode::Exact)?
+        OptimizationMode::Exact:
+        (parameters.optimization_mode == OptimizationMode::NotAnytimeSequential)?
+        OptimizationMode::NotAnytimeSequential:
+        OptimizationMode::NotAnytimeDeterministic;
+    sub_parameters.not_anytime_tree_search_queue_size = parameters.subproblem_queue_size;
+    sub_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
+    if (parameters.subproblem_use_benders_decomposition_contiguity
+            || parameters.subproblem_use_tree_search_packing_classes) {
+        sub_parameters.use_tree_search = true;
+        sub_parameters.use_benders_decomposition_contiguity
+            = parameters.subproblem_use_benders_decomposition_contiguity;
+        sub_parameters.use_tree_search_packing_classes
+            = parameters.subproblem_use_tree_search_packing_classes;
+    }
+    return sub_parameters;
+}
+
+/**
  * Check whether 'selected_items' (copies of item types, possibly zero for
  * some) all fit together in a single bin of the given type; see
  * 'SelectionFeasibility'.
@@ -127,17 +155,7 @@ SelectionFeasibility selection_feasibility(
         return SelectionFeasibility::Feasible;
     Instance sub_instance = sub_instance_builder.build();
 
-    OptimizeParameters sub_parameters;
-    sub_parameters.verbosity_level = 0;
-    sub_parameters.timer = parameters.timer;
-    sub_parameters.optimization_mode
-        = (parameters.optimization_mode == OptimizationMode::Exact)?
-        OptimizationMode::Exact:
-        (parameters.optimization_mode == OptimizationMode::NotAnytimeSequential)?
-        OptimizationMode::NotAnytimeSequential:
-        OptimizationMode::NotAnytimeDeterministic;
-    sub_parameters.not_anytime_tree_search_queue_size = parameters.subproblem_queue_size;
-    sub_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
+    OptimizeParameters sub_parameters = subproblem_parameters(parameters);
     auto sub_output = optimize(sub_instance, sub_parameters);
     if (sub_output.solution_pool.best().feasible())
         return SelectionFeasibility::Feasible;
@@ -1107,17 +1125,7 @@ BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
             Instance sub_instance = sub_instance_builder.build();
 
             // Solve.
-            OptimizeParameters sub_parameters;
-            sub_parameters.verbosity_level = 0;
-            sub_parameters.timer = parameters.timer;
-            sub_parameters.optimization_mode
-                = (parameters.optimization_mode == OptimizationMode::Exact)?
-                OptimizationMode::Exact:
-                (parameters.optimization_mode == OptimizationMode::NotAnytimeSequential)?
-                OptimizationMode::NotAnytimeSequential:
-                OptimizationMode::NotAnytimeDeterministic;
-            sub_parameters.not_anytime_tree_search_queue_size = parameters.subproblem_queue_size;
-            sub_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
+            OptimizeParameters sub_parameters = subproblem_parameters(parameters);
             auto subproblem_begin = std::chrono::steady_clock::now();
             auto sub_output = optimize(sub_instance, sub_parameters);
             auto subproblem_end = std::chrono::steady_clock::now();

@@ -223,6 +223,14 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
      */
     bool use_benders_decomposition_contiguity = false;
 
+    /**
+     * Use the tree search on packing classes (see
+     * 'tree_search_packing_classes.hpp'). Only supported for the
+     * 'Feasibility' objective, on an instance with a single bin type used
+     * exactly once, without defects, fixed items and unloading constraints.
+     */
+    bool use_tree_search_packing_classes = false;
+
     /** Guides used in the tree search algorithm. */
     std::vector<GuideId> tree_search_guides;
 
@@ -305,6 +313,25 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
      * the Benders decomposition algorithm.
      */
     NodeId benders_decomposition_subproblem_tree_search_queue_size = 128;
+
+    /**
+     * Use the contiguity-master Benders decomposition to solve the
+     * feasibility subproblems of the Benders decomposition algorithm.
+     *
+     * If neither this nor
+     * 'benders_decomposition_subproblem_use_tree_search_packing_classes' is
+     * set, the algorithms solving the subproblems are selected automatically.
+     * Otherwise, the subproblems are solved by the tree search, to find the
+     * packings of the feasible subproblems, and by the selected algorithms.
+     */
+    bool benders_decomposition_subproblem_use_benders_decomposition_contiguity = false;
+
+    /**
+     * Use the tree search on packing classes to solve the feasibility
+     * subproblems of the Benders decomposition algorithm; see
+     * 'benders_decomposition_subproblem_use_benders_decomposition_contiguity'.
+     */
+    bool benders_decomposition_subproblem_use_tree_search_packing_classes = false;
 
     /*
      * Parameters for non-anytime mode
