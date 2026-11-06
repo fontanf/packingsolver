@@ -205,6 +205,15 @@ struct BendersDecompositionContiguityParameters: packingsolver::Parameters<Insta
     Counter not_anytime_maximum_number_of_iterations = -1;
 
     /**
+     * Maximum number of operations of the sweep solving the master problem
+     * of the first iteration, for the 'Feasibility' objective (see
+     * 'onedimentional_contiguity/sweep.hpp'); -1 for no limit, 0 to disable
+     * it. If it doesn't prove the master problem infeasible, the master
+     * problem is solved as usual.
+     */
+    Counter first_master_problem_sweep_maximum_number_of_operations = 100000000;
+
+    /**
      * Seed for the random unit-removal orderings of the no-good cut
      * strengthening procedure (Wang et al. 2025 §3.5.2, step (3) - see
      * 'shrink_via_removal' in 'benders_decomposition_contiguity.cpp').

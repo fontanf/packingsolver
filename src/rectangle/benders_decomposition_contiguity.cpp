@@ -6,6 +6,7 @@
 #include "rectangle/instance_flipper.hpp"
 #include "rectangle/onedimentional_contiguity/milp.hpp"
 #include "rectangle/onedimentional_contiguity/tree_search.hpp"
+#include "rectangle/onedimentional_contiguity/sweep.hpp"
 
 #include "mathoptsolverscmake/mathopt.hpp"
 #ifdef HIGHS_FOUND
@@ -1258,6 +1259,8 @@ LbdResult run_lbd(
     lbmp_parameters.master_problem_tree_search_guide_id = parameters.master_problem_tree_search_guide_id;
     lbmp_parameters.master_problem_tree_search_not_anytime_queue_size = parameters.master_problem_tree_search_not_anytime_queue_size;
     lbmp_parameters.seed = parameters.seed;
+    lbmp_parameters.first_master_problem_sweep_maximum_number_of_operations
+        = parameters.first_master_problem_sweep_maximum_number_of_operations;
     // 'instance' is already the instance of the direction of the caller.
     lbmp_parameters.direction = Direction::X;
     BendersDecompositionContiguityOutput lbmp_output = benders_decomposition_contiguity(lbmp_instance, lbmp_parameters);
@@ -1313,6 +1316,22 @@ void benders_decomposition_contiguity_direction(
     direction_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
 
     const BinType& bin_type = direction_instance.bin_type(0);
+
+    // For the 'Feasibility' objective, the master problem of the first
+    // iteration, without cuts, is first solved by the sweep, which is much
+    // faster to prove that it is infeasible.
+    if (direction_instance.objective() == Objective::Feasibility
+            && direction_parameters.first_master_problem_sweep_maximum_number_of_operations != 0) {
+        SweepParameters sweep_parameters;
+        sweep_parameters.timer = direction_parameters.timer;
+        sweep_parameters.maximum_number_of_operations
+            = direction_parameters.first_master_problem_sweep_maximum_number_of_operations;
+        SweepOutput sweep_output = sweep(direction_instance, sweep_parameters);
+        if (sweep_output.status == OnedimensionalContiguityResult::Status::Infeasible) {
+            algorithm_formatter.update_is_proven_infeasible();
+            return;
+        }
+    }
 
     std::vector<NoGoodCut> no_good_cuts;
     std::mt19937_64 generator(direction_parameters.seed);

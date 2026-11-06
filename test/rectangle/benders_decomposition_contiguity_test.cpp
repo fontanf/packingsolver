@@ -394,22 +394,27 @@ class RectangleBendersDecompositionContiguityDirectionsTest: public testing::Tes
 TEST_P(RectangleBendersDecompositionContiguityDirectionsTest, RectangleBendersDecompositionContiguityDirections)
 {
     // Each direction of the master problem, and both in parallel, must reach
-    // the same result. The master problem is solved exactly, as in
-    // 'optimize', so that each direction reaches a conclusion.
+    // the same result, with and without the sweep solving the first master
+    // problem. The master problem is solved exactly, as in 'optimize', so
+    // that each direction reaches a conclusion.
     RectangleBendersDecompositionContiguityTestParams test_params = GetParam();
     Instance instance = read_instance(test_params);
-    for (Direction direction: {Direction::X, Direction::Y, Direction::Any}) {
-        std::stringstream ss;
-        ss << "direction " << direction;
-        SCOPED_TRACE(ss.str());
+    for (bool use_sweep: {true, false}) {
+        for (Direction direction: {Direction::X, Direction::Y, Direction::Any}) {
+            std::stringstream ss;
+            ss << "direction " << direction << ", sweep " << use_sweep;
+            SCOPED_TRACE(ss.str());
 
-        BendersDecompositionContiguityParameters parameters;
-        parameters.verbosity_level = 0;
-        parameters.optimization_mode = OptimizationMode::Exact;
-        parameters.direction = direction;
-        BendersDecompositionContiguityOutput output = benders_decomposition_contiguity(instance, parameters);
+            BendersDecompositionContiguityParameters parameters;
+            parameters.verbosity_level = 0;
+            parameters.optimization_mode = OptimizationMode::Exact;
+            parameters.direction = direction;
+            if (!use_sweep)
+                parameters.first_master_problem_sweep_maximum_number_of_operations = 0;
+            BendersDecompositionContiguityOutput output = benders_decomposition_contiguity(instance, parameters);
 
-        check_output(instance, test_params, output);
+            check_output(instance, test_params, output);
+        }
     }
 }
 
@@ -448,6 +453,8 @@ INSTANTIATE_TEST_SUITE_P(
             directions_test_params("feasibility_items_overlapping_along_both_axes_infeasible"),
             directions_test_params("feasibility_long_chain_infeasible"),
             directions_test_params("feasibility_cgcut2_subproblem_feasible"),
-            // Proven in a few iterations along x, in many more along y.
+            // Without the sweep, proven in a few iterations along x, in many
+            // more along y.
             directions_test_params("feasibility_cgcut2_subproblem_infeasible"),
+            directions_test_params("feasibility_hifi_a2_subproblem_infeasible"),
         }));
