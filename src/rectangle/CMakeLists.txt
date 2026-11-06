@@ -15,6 +15,7 @@ target_sources(PackingSolver_rectangle PRIVATE
     item_subset_incompatibility.cpp
     onedimentional_contiguity/milp.cpp
     onedimentional_contiguity/tree_search.cpp
+    onedimentional_contiguity/sweep.cpp
     dual_feasible_functions.cpp
     conservative_scales.cpp
     bar_relaxation.cpp

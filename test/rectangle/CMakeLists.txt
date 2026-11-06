@@ -3,6 +3,7 @@ target_sources(PackingSolver_rectangle_test PRIVATE
     rectangle_test.cpp
     benders_decomposition_test.cpp
     benders_decomposition_contiguity_test.cpp
+    onedimentional_contiguity_sweep_test.cpp
     tree_search_packing_classes_test.cpp
     item_subset_incompatibility_test.cpp
     conservative_scales_test.cpp
