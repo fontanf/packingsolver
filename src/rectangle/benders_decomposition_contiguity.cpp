@@ -3,6 +3,7 @@
 #include "packingsolver/rectangle/algorithm_formatter.hpp"
 #include "packingsolver/rectangle/instance_builder.hpp"
 #include "rectangle/solution_builder.hpp"
+#include "rectangle/instance_flipper.hpp"
 #include "rectangle/onedimentional_contiguity/milp.hpp"
 #include "rectangle/onedimentional_contiguity/tree_search.hpp"
 
@@ -11,9 +12,13 @@
 #include "mathoptsolverscmake/mathopt_highs.hpp"
 #endif
 
+#include "algorithms/thread_pool.hpp"
+
 #include <algorithm>
 #include <cmath>
+#include <forward_list>
 #include <functional>
+#include <memory>
 #include <random>
 #include <sstream>
 
@@ -1253,6 +1258,8 @@ LbdResult run_lbd(
     lbmp_parameters.master_problem_tree_search_guide_id = parameters.master_problem_tree_search_guide_id;
     lbmp_parameters.master_problem_tree_search_not_anytime_queue_size = parameters.master_problem_tree_search_not_anytime_queue_size;
     lbmp_parameters.seed = parameters.seed;
+    // 'instance' is already the instance of the direction of the caller.
+    lbmp_parameters.direction = Direction::X;
     BendersDecompositionContiguityOutput lbmp_output = benders_decomposition_contiguity(lbmp_instance, lbmp_parameters);
 
     LbdResult result(instance);
@@ -1269,37 +1276,55 @@ LbdResult run_lbd(
     return result;
 }
 
-}
-
-BendersDecompositionContiguityOutput packingsolver::rectangle::benders_decomposition_contiguity(
+/**
+ * Run the decomposition along a direction: along 'Direction::X', the master
+ * problem decides the x-positions of the items; along 'Direction::Y', it is
+ * run on the flipped instance, so that it decides their y-positions.
+ *
+ * The solutions are reported in 'instance', unflipped.
+ */
+void benders_decomposition_contiguity_direction(
         const Instance& instance,
-        const BendersDecompositionContiguityParameters& parameters)
+        const BendersDecompositionContiguityParameters& parameters,
+        Direction direction,
+        AlgorithmFormatter& algorithm_formatter,
+        Counter& number_of_iterations)
 {
-    if (instance.objective() != Objective::Knapsack
-            && instance.objective() != Objective::Feasibility)
-        throw std::invalid_argument(FUNC_SIGNATURE);
-    if (instance.number_of_bin_types() != 1
-            || instance.bin_type(0).copies != 1)
-        throw std::invalid_argument(FUNC_SIGNATURE);
+    std::unique_ptr<InstanceFlipper> instance_flipper;
+    if (direction == Direction::Y)
+        instance_flipper.reset(new InstanceFlipper(instance));
+    const Instance& direction_instance = (direction == Direction::Y)?
+        instance_flipper->flipped_instance():
+        instance;
+    auto report_solution = [&instance_flipper, &algorithm_formatter](
+            const Solution& direction_solution,
+            const std::string& label)
+    {
+        if (instance_flipper == nullptr) {
+            algorithm_formatter.update_solution(direction_solution, label);
+        } else {
+            algorithm_formatter.update_solution(
+                    instance_flipper->unflip_solution(direction_solution),
+                    label);
+        }
+    };
 
-    BendersDecompositionContiguityOutput output(instance);
-    AlgorithmFormatter algorithm_formatter(instance, parameters, output);
-    algorithm_formatter.start();
-    algorithm_formatter.print_header();
+    BendersDecompositionContiguityParameters direction_parameters = parameters;
+    direction_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
 
-    const BinType& bin_type = instance.bin_type(0);
+    const BinType& bin_type = direction_instance.bin_type(0);
 
     std::vector<NoGoodCut> no_good_cuts;
-    std::mt19937_64 generator(parameters.seed);
+    std::mt19937_64 generator(direction_parameters.seed);
 
-    for (output.number_of_iterations = 0;
+    for (number_of_iterations = 0;
             ;
-            ++output.number_of_iterations) {
-        if (parameters.not_anytime_maximum_number_of_iterations >= 0
-                && output.number_of_iterations >= parameters.not_anytime_maximum_number_of_iterations) {
+            ++number_of_iterations) {
+        if (direction_parameters.not_anytime_maximum_number_of_iterations >= 0
+                && number_of_iterations >= direction_parameters.not_anytime_maximum_number_of_iterations) {
             break;
         }
-        if (parameters.timer.needs_to_end())
+        if (direction_parameters.timer.needs_to_end())
             break;
 
         // The master problem is solved repeatedly, once per Benders
@@ -1313,29 +1338,29 @@ BendersDecompositionContiguityOutput packingsolver::rectangle::benders_decomposi
         // is actually proven; everything else (including 'Anytime') maps to
         // 'NotAnytimeDeterministic'.
         OptimizationMode master_problem_optimization_mode
-            = (parameters.optimization_mode == OptimizationMode::Exact)?
+            = (direction_parameters.optimization_mode == OptimizationMode::Exact)?
             OptimizationMode::Exact:
-            (parameters.optimization_mode == OptimizationMode::NotAnytimeSequential)?
+            (direction_parameters.optimization_mode == OptimizationMode::NotAnytimeSequential)?
             OptimizationMode::NotAnytimeSequential:
             OptimizationMode::NotAnytimeDeterministic;
 
         OnedimensionalContiguityResult bmp_result;
-        if (parameters.use_tree_search) {
+        if (direction_parameters.use_tree_search) {
             TreeSearchParameters tree_search_parameters;
-            tree_search_parameters.timer = parameters.timer;
+            tree_search_parameters.timer = direction_parameters.timer;
             tree_search_parameters.optimization_mode = master_problem_optimization_mode;
-            tree_search_parameters.guide_id = parameters.master_problem_tree_search_guide_id;
-            tree_search_parameters.not_anytime_queue_size = parameters.master_problem_tree_search_not_anytime_queue_size;
-            bmp_result = tree_search(instance, no_good_cuts, tree_search_parameters);
+            tree_search_parameters.guide_id = direction_parameters.master_problem_tree_search_guide_id;
+            tree_search_parameters.not_anytime_queue_size = direction_parameters.master_problem_tree_search_not_anytime_queue_size;
+            bmp_result = tree_search(direction_instance, no_good_cuts, tree_search_parameters);
         } else {
             MilpParameters milp_parameters;
-            milp_parameters.timer = parameters.timer;
+            milp_parameters.timer = direction_parameters.timer;
             milp_parameters.optimization_mode = master_problem_optimization_mode;
-            milp_parameters.solver = parameters.master_problem_milp_solver;
-            bmp_result = milp(instance, no_good_cuts, milp_parameters);
+            milp_parameters.solver = direction_parameters.master_problem_milp_solver;
+            bmp_result = milp(direction_instance, no_good_cuts, milp_parameters);
         }
 
-        if (parameters.timer.needs_to_end())
+        if (direction_parameters.timer.needs_to_end())
             break;
 
         if (bmp_result.status == OnedimensionalContiguityResult::Status::Infeasible) {
@@ -1355,12 +1380,12 @@ BendersDecompositionContiguityOutput packingsolver::rectangle::benders_decomposi
             break;
         }
 
-        if (instance.objective() == Objective::Knapsack
+        if (direction_instance.objective() == Objective::Knapsack
                 && bmp_result.bound != std::numeric_limits<double>::infinity()) {
             algorithm_formatter.update_knapsack_bound(bmp_result.bound);
         }
 
-        if (parameters.timer.needs_to_end())
+        if (direction_parameters.timer.needs_to_end())
             break;
 
         std::vector<YCheckUnit> y_check_units;
@@ -1370,7 +1395,7 @@ BendersDecompositionContiguityOutput packingsolver::rectangle::benders_decomposi
         if (y_check_units.empty()) {
             y_check_result.status = YCheckStatus::Feasible;
         } else {
-            y_check_result = y_check(bin_type.rect.x, bin_type.rect.y, y_check_units, parameters.timer);
+            y_check_result = y_check(bin_type.rect.x, bin_type.rect.y, y_check_units, direction_parameters.timer);
         }
 
         if (y_check_result.status == YCheckStatus::Inconclusive) {
@@ -1383,7 +1408,7 @@ BendersDecompositionContiguityOutput packingsolver::rectangle::benders_decomposi
         }
 
         if (y_check_result.status == YCheckStatus::Feasible) {
-            SolutionBuilder solution_builder(instance);
+            SolutionBuilder solution_builder(direction_instance);
             if (!bmp_result.selected_units.empty()) {
                 BinPos bin_pos = solution_builder.add_bin(0, 1);
                 for (size_t index = 0; index < bmp_result.selected_units.size(); ++index) {
@@ -1397,12 +1422,12 @@ BendersDecompositionContiguityOutput packingsolver::rectangle::benders_decomposi
             }
             Solution solution = solution_builder.build();
             std::stringstream ss;
-            ss << "BDC it " << output.number_of_iterations;
-            algorithm_formatter.update_solution(solution, ss.str());
+            ss << "BDC " << direction << " it " << number_of_iterations;
+            report_solution(solution, ss.str());
             break;
         }
 
-        if (instance.objective() == Objective::Knapsack) {
+        if (direction_instance.objective() == Objective::Knapsack) {
             // The BMP's exact (unit, x, orientation) choice is infeasible,
             // but a different x-positioning of the very same item *subset*
             // might still work (Wang et al. 2025 §3.4): escalate to LBD
@@ -1411,15 +1436,15 @@ BendersDecompositionContiguityOutput packingsolver::rectangle::benders_decomposi
             // is genuinely a subset the BMP chose to select - see the
             // 'Feasibility' branch below for why it is skipped there.
             LbdResult lbd_result = run_lbd(
-                    instance, bmp_result.selected_units, parameters);
+                    direction_instance, bmp_result.selected_units, direction_parameters);
 
             if (lbd_result.status == LbdResult::Status::Inconclusive)
                 break;
 
             if (lbd_result.status == LbdResult::Status::Feasible) {
                 std::stringstream ss;
-                ss << "BDC it " << output.number_of_iterations << " (LBD)";
-                algorithm_formatter.update_solution(lbd_result.solution, ss.str());
+                ss << "BDC " << direction << " it " << number_of_iterations << " (LBD)";
+                report_solution(lbd_result.solution, ss.str());
                 break;
             }
 
@@ -1433,7 +1458,7 @@ BendersDecompositionContiguityOutput packingsolver::rectangle::benders_decomposi
             // infeasible item set, each needing its own (now recursive)
             // call to 'run_lbd' to re-derive the same fact.
             no_good_cuts.push_back(build_covering_cut(
-                    instance, bmp_result.selected_units));
+                    direction_instance, bmp_result.selected_units));
         } else {
             // 'Feasibility' always sets 'copies_min == copies' (see
             // 'onedimentional_contiguity::milp'/'::tree_search'), so the
@@ -1458,14 +1483,113 @@ BendersDecompositionContiguityOutput packingsolver::rectangle::benders_decomposi
             // 'onedimentional_contiguity::build_positional_no_good_cut'.
             std::vector<Candidate> shrunk = shrink_via_split(
                     bin_type.rect.x, bin_type.rect.y,
-                    bmp_result.selected_units, parameters.timer);
+                    bmp_result.selected_units, direction_parameters.timer);
             shrunk = shrink_via_sweep(
-                    bin_type.rect.x, bin_type.rect.y, std::move(shrunk), parameters.timer);
+                    bin_type.rect.x, bin_type.rect.y, std::move(shrunk), direction_parameters.timer);
             shrunk = shrink_via_removal(
-                    bin_type.rect.x, bin_type.rect.y, instance,
-                    std::move(shrunk), generator, parameters.timer);
+                    bin_type.rect.x, bin_type.rect.y, direction_instance,
+                    std::move(shrunk), generator, direction_parameters.timer);
             no_good_cuts.push_back(build_lifted_cut(
-                    bin_type.rect.x, instance, shrunk, parameters));
+                    bin_type.rect.x, direction_instance, shrunk, direction_parameters));
+        }
+    }
+
+}
+
+}
+
+BendersDecompositionContiguityOutput packingsolver::rectangle::benders_decomposition_contiguity(
+        const Instance& instance,
+        const BendersDecompositionContiguityParameters& parameters)
+{
+    if (instance.objective() != Objective::Knapsack
+            && instance.objective() != Objective::Feasibility)
+        throw std::invalid_argument(FUNC_SIGNATURE);
+    if (instance.number_of_bin_types() != 1
+            || instance.bin_type(0).copies != 1)
+        throw std::invalid_argument(FUNC_SIGNATURE);
+
+    BendersDecompositionContiguityOutput output(instance);
+    AlgorithmFormatter algorithm_formatter(instance, parameters, output);
+    algorithm_formatter.start();
+    algorithm_formatter.print_header();
+
+    if (parameters.direction != Direction::Any) {
+        benders_decomposition_contiguity_direction(
+                instance,
+                parameters,
+                parameters.direction,
+                algorithm_formatter,
+                output.number_of_iterations);
+    } else {
+        // Both directions run in parallel; in 'NotAnytimeDeterministic' mode,
+        // each one reports to its own algorithm formatter, writing into its
+        // own output, so that their solutions and bounds are replayed in a
+        // fixed order (x then y) once both have terminated, instead of the
+        // order in which they actually finish (see
+        // 'rectangleguillotine::column_generation_strips').
+        bool deterministic = (parameters.optimization_mode == OptimizationMode::NotAnytimeDeterministic);
+        packingsolver::Parameters<Instance, Solution, Output> local_parameters;
+        local_parameters.verbosity_level = 0;
+        local_parameters.timer = parameters.timer;
+        Output local_output_x(instance);
+        Output local_output_y(instance);
+        AlgorithmFormatter local_algorithm_formatter_x(
+                instance,
+                local_parameters,
+                local_output_x);
+        AlgorithmFormatter local_algorithm_formatter_y(
+                instance,
+                local_parameters,
+                local_output_y);
+        AlgorithmFormatter* algorithm_formatter_x = (deterministic)?
+            &local_algorithm_formatter_x:
+            &algorithm_formatter;
+        AlgorithmFormatter* algorithm_formatter_y = (deterministic)?
+            &local_algorithm_formatter_y:
+            &algorithm_formatter;
+        Counter number_of_iterations_x = 0;
+        Counter number_of_iterations_y = 0;
+
+        std::vector<std::function<void()>> tasks;
+        std::forward_list<std::exception_ptr> exception_ptr_list;
+        exception_ptr_list.push_front(std::exception_ptr());
+        std::exception_ptr& exception_ptr_x = exception_ptr_list.front();
+        tasks.push_back([&exception_ptr_x, &instance, &parameters, algorithm_formatter_x, &number_of_iterations_x]() {
+            wrapper<decltype(&benders_decomposition_contiguity_direction), benders_decomposition_contiguity_direction>(
+                    exception_ptr_x,
+                    instance,
+                    parameters,
+                    Direction::X,
+                    *algorithm_formatter_x,
+                    number_of_iterations_x);
+        });
+        exception_ptr_list.push_front(std::exception_ptr());
+        std::exception_ptr& exception_ptr_y = exception_ptr_list.front();
+        tasks.push_back([&exception_ptr_y, &instance, &parameters, algorithm_formatter_y, &number_of_iterations_y]() {
+            wrapper<decltype(&benders_decomposition_contiguity_direction), benders_decomposition_contiguity_direction>(
+                    exception_ptr_y,
+                    instance,
+                    parameters,
+                    Direction::Y,
+                    *algorithm_formatter_y,
+                    number_of_iterations_y);
+        });
+        run(tasks, parameters.optimization_mode != OptimizationMode::NotAnytimeSequential);
+        for (const std::exception_ptr& exception_ptr: exception_ptr_list)
+            if (exception_ptr)
+                std::rethrow_exception(exception_ptr);
+        output.number_of_iterations = number_of_iterations_x + number_of_iterations_y;
+
+        if (deterministic) {
+            algorithm_formatter.update_solution(
+                    local_output_x.solution_pool.best(),
+                    local_output_x.solution_pool.best_label());
+            algorithm_formatter.update_bounds(local_output_x);
+            algorithm_formatter.update_solution(
+                    local_output_y.solution_pool.best(),
+                    local_output_y.solution_pool.best_label());
+            algorithm_formatter.update_bounds(local_output_y);
         }
     }
 
