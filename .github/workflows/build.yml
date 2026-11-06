@@ -40,7 +40,9 @@ jobs:
       if: matrix.os == 'ubuntu-latest'
     - name: Build
       run: |
-        cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+        # SCIP is off by default, since it is built from source; it is on here
+        # so that the algorithms which require it are built and tested.
+        cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DPACKINGSOLVER_USE_SCIP=ON
         # Bound the number of jobs: without a value, '--parallel' runs an unlimited
         # 'make -j', which makes the macOS runners (3 CPUs, 7 GB) swap.
         cmake --build build --config Release --parallel ${{ runner.os == 'macOS' && 3 || 4 }}

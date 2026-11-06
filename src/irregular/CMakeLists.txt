@@ -19,6 +19,7 @@ target_sources(PackingSolver_irregular PRIVATE
     tree_search_periodic_packing.cpp
     tree_search_maximal_spaces.cpp
     tree_search_relative_positions.cpp
+    global_nonlinear_programming.cpp
     linear_programming/anchor.cpp
     linear_programming/separation_model.cpp
     linear_programming/separator.cpp
@@ -62,6 +63,10 @@ if (PackingSolver_USE_KNITRO)
         KnitroCpp::knitrocpp)
     target_compile_definitions(PackingSolver_irregular PRIVATE
         KNITRO_FOUND=1)
+endif()
+if (PACKINGSOLVER_USE_SCIP)
+    target_compile_definitions(PackingSolver_irregular PRIVATE
+        SCIP_FOUND=1)
 endif()
 add_library(PackingSolver::irregular ALIAS PackingSolver_irregular)
 
