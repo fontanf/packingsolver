@@ -5,6 +5,8 @@
 #include <gtest/gtest.h>
 #include <boost/filesystem.hpp>
 
+#include <sstream>
+
 using namespace packingsolver;
 using namespace packingsolver::rectangle;
 namespace fs = boost::filesystem;
@@ -128,9 +130,12 @@ inline std::ostream& operator<<(
 
 class RectangleBendersDecompositionContiguityTest: public testing::TestWithParam<RectangleBendersDecompositionContiguityTestParams> { };
 
-TEST_P(RectangleBendersDecompositionContiguityTest, RectangleBendersDecompositionContiguity)
+namespace
 {
-    RectangleBendersDecompositionContiguityTestParams test_params = GetParam();
+
+Instance read_instance(
+        const RectangleBendersDecompositionContiguityTestParams& test_params)
+{
     InstanceBuilder instance_builder;
     if (!test_params.instance_path.empty()) {
         instance_builder.read(test_params.instance_path.string());
@@ -139,12 +144,15 @@ TEST_P(RectangleBendersDecompositionContiguityTest, RectangleBendersDecompositio
         instance_builder.read_bin_types(test_params.bins_path.string());
         instance_builder.read_parameters(test_params.parameters_path.string());
     }
-    Instance instance = instance_builder.build();
+    return instance_builder.build();
+}
 
-    BendersDecompositionContiguityParameters parameters;
-    parameters.verbosity_level = 0;
-    BendersDecompositionContiguityOutput output = benders_decomposition_contiguity(instance, parameters);
-
+/** Check the output against the expected result of a test. */
+void check_output(
+        const Instance& instance,
+        const RectangleBendersDecompositionContiguityTestParams& test_params,
+        const BendersDecompositionContiguityOutput& output)
+{
     if (test_params.certificate_path.empty()) {
         EXPECT_EQ(output.is_proven_infeasible, true);
     } else {
@@ -159,6 +167,20 @@ TEST_P(RectangleBendersDecompositionContiguityTest, RectangleBendersDecompositio
         EXPECT_EQ(!(output.solution_pool.best() < solution), true);
         EXPECT_EQ(!(solution < output.solution_pool.best()), true);
     }
+}
+
+}
+
+TEST_P(RectangleBendersDecompositionContiguityTest, RectangleBendersDecompositionContiguity)
+{
+    RectangleBendersDecompositionContiguityTestParams test_params = GetParam();
+    Instance instance = read_instance(test_params);
+
+    BendersDecompositionContiguityParameters parameters;
+    parameters.verbosity_level = 0;
+    BendersDecompositionContiguityOutput output = benders_decomposition_contiguity(instance, parameters);
+
+    check_output(instance, test_params, output);
 }
 
 INSTANTIATE_TEST_SUITE_P(
@@ -332,4 +354,100 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path(),
                 fs::path("data") / "rectangle" / "tests" / "knapsack_penalize_resource" / "solution.csv",
                 fs::path("data") / "rectangle" / "tests" / "knapsack_penalize_resource" / "instance.json",
+            }, {
+                // Fixtures of 'tree_search_packing_classes_test.cpp'.
+                fs::path("data") / "rectangle" / "tests" / "feasibility_four_corners_feasible" / "items.csv",
+                fs::path("data") / "rectangle" / "tests" / "feasibility_four_corners_feasible" / "bins.csv",
+                fs::path("data") / "rectangle" / "tests" / "feasibility_four_corners_feasible" / "parameters.csv",
+                fs::path("data") / "rectangle" / "tests" / "feasibility_four_corners_feasible" / "solution.csv",
+            }, {
+                fs::path("data") / "rectangle" / "tests" / "feasibility_rotation_needed_feasible" / "items.csv",
+                fs::path("data") / "rectangle" / "tests" / "feasibility_rotation_needed_feasible" / "bins.csv",
+                fs::path("data") / "rectangle" / "tests" / "feasibility_rotation_needed_feasible" / "parameters.csv",
+                fs::path("data") / "rectangle" / "tests" / "feasibility_rotation_needed_feasible" / "solution.csv",
+            }, {
+                fs::path("data") / "rectangle" / "tests" / "feasibility_induced_cycle_feasible" / "items.csv",
+                fs::path("data") / "rectangle" / "tests" / "feasibility_induced_cycle_feasible" / "bins.csv",
+                fs::path("data") / "rectangle" / "tests" / "feasibility_induced_cycle_feasible" / "parameters.csv",
+                fs::path("data") / "rectangle" / "tests" / "feasibility_induced_cycle_feasible" / "solution.csv",
+            }, {
+                fs::path("data") / "rectangle" / "tests" / "feasibility_items_overlapping_along_both_axes_infeasible" / "items.csv",
+                fs::path("data") / "rectangle" / "tests" / "feasibility_items_overlapping_along_both_axes_infeasible" / "bins.csv",
+                fs::path("data") / "rectangle" / "tests" / "feasibility_items_overlapping_along_both_axes_infeasible" / "parameters.csv",
+                fs::path(""),
+            }, {
+                fs::path("data") / "rectangle" / "tests" / "feasibility_long_chain_infeasible" / "items.csv",
+                fs::path("data") / "rectangle" / "tests" / "feasibility_long_chain_infeasible" / "bins.csv",
+                fs::path("data") / "rectangle" / "tests" / "feasibility_long_chain_infeasible" / "parameters.csv",
+                fs::path(""),
+            }, {
+                // Subproblem of the Benders decomposition on the
+                // 'christofides1977/cgcut2' knapsack instance.
+                fs::path("data") / "rectangle" / "tests" / "feasibility_cgcut2_subproblem_feasible" / "items.csv",
+                fs::path("data") / "rectangle" / "tests" / "feasibility_cgcut2_subproblem_feasible" / "bins.csv",
+                fs::path("data") / "rectangle" / "tests" / "feasibility_cgcut2_subproblem_feasible" / "parameters.csv",
+                fs::path("data") / "rectangle" / "tests" / "feasibility_cgcut2_subproblem_feasible" / "solution.csv",
             }}));
+
+class RectangleBendersDecompositionContiguityDirectionsTest: public testing::TestWithParam<RectangleBendersDecompositionContiguityTestParams> { };
+
+TEST_P(RectangleBendersDecompositionContiguityDirectionsTest, RectangleBendersDecompositionContiguityDirections)
+{
+    // Each direction of the master problem, and both in parallel, must reach
+    // the same result. The master problem is solved exactly, as in
+    // 'optimize', so that each direction reaches a conclusion.
+    RectangleBendersDecompositionContiguityTestParams test_params = GetParam();
+    Instance instance = read_instance(test_params);
+    for (Direction direction: {Direction::X, Direction::Y, Direction::Any}) {
+        std::stringstream ss;
+        ss << "direction " << direction;
+        SCOPED_TRACE(ss.str());
+
+        BendersDecompositionContiguityParameters parameters;
+        parameters.verbosity_level = 0;
+        parameters.optimization_mode = OptimizationMode::Exact;
+        parameters.direction = direction;
+        BendersDecompositionContiguityOutput output = benders_decomposition_contiguity(instance, parameters);
+
+        check_output(instance, test_params, output);
+    }
+}
+
+namespace
+{
+
+/**
+ * Parameters of a test on the instance of a directory of 'data/rectangle/
+ * tests'; the instance is expected to be infeasible iff the directory has no
+ * 'solution.csv'.
+ */
+RectangleBendersDecompositionContiguityTestParams directions_test_params(
+        const std::string& name)
+{
+    fs::path directory = fs::path("data") / "rectangle" / "tests" / name;
+    fs::path certificate_path = directory / "solution.csv";
+    return {
+        directory / "items.csv",
+        directory / "bins.csv",
+        directory / "parameters.csv",
+        (fs::exists(certificate_path))? certificate_path: fs::path(""),
+    };
+}
+
+}
+
+INSTANTIATE_TEST_SUITE_P(
+        Rectangle,
+        RectangleBendersDecompositionContiguityDirectionsTest,
+        testing::ValuesIn(std::vector<RectangleBendersDecompositionContiguityTestParams>{
+            directions_test_params("feasibility_exact_tiling_feasible"),
+            directions_test_params("feasibility_item_too_big_infeasible"),
+            directions_test_params("feasibility_four_corners_feasible"),
+            directions_test_params("feasibility_rotation_needed_feasible"),
+            directions_test_params("feasibility_induced_cycle_feasible"),
+            directions_test_params("feasibility_items_overlapping_along_both_axes_infeasible"),
+            directions_test_params("feasibility_long_chain_infeasible"),
+            directions_test_params("feasibility_cgcut2_subproblem_feasible"),
+            // Proven in a few iterations along x, in many more along y.
+            directions_test_params("feasibility_cgcut2_subproblem_infeasible"),
+        }));

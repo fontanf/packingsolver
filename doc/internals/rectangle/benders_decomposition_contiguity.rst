@@ -15,7 +15,7 @@ Principle
 
 It is a combinatorial Benders decomposition, following Côté, Dell'Amico and Iori (2014) for the strip packing problem, as adapted by Wang, Baldacci, Furini, Wei and Liu (2025) to a bin of fixed size.
 
-Unlike the :ref:`Benders decomposition <internals_rectangle_benders_decomposition>`, whose master problem only sees the area of the items, the master problem here also decides the x-position of each item. The subproblem, the *y-check*, then only has to find y-positions consistent with them.
+Unlike the :ref:`Benders decomposition <internals_rectangle_benders_decomposition>`, whose master problem only sees the area of the items, the master problem here also decides the x-position of each item. The subproblem, the *y-check*, then only has to find y-positions consistent with them. It runs in both directions in parallel, the x-axis and the y-axis exchanging their roles (see :ref:`Directions <internals_rectangle_benders_decomposition_contiguity_directions>`).
 
 Master problem
 --------------
@@ -124,6 +124,17 @@ The cut forbids the remaining units at all their candidate placements in their w
 .. image:: ../../img/rectangle_benders_decomposition_contiguity_lifted_windows.svg
    :scale: 100%
    :align: center
+
+.. _internals_rectangle_benders_decomposition_contiguity_directions:
+
+Directions
+----------
+
+The description above is along the x-axis: the master problem decides the x-positions of the items, and the y-check their y-positions. The decomposition can also be run along the y-axis, on the instance with the two axes swapped: the master problem then decides the y-positions, and the y-check the x-positions.
+
+Which direction is faster depends on the instance: the lengths of the items may be hard to combine into the width of the bin but not into its height, or conversely, and the contiguous relaxation along one axis may be infeasible while it is feasible along the other. By default (parameter :code:`direction` set to :code:`Any`), both directions run in parallel, and the first one to find a solution, to prove the instance infeasible, or to prove the solution optimal stops the other one. In the :code:`not-anytime-sequential` mode, they run one after the other; in the :code:`not-anytime-deterministic` mode, their results are combined in a fixed order once both have ended.
+
+The local Benders decompositions of the :code:`knapsack` objective run in the direction of the decomposition which calls them.
 
 Automatic selection
 -------------------
