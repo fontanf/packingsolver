@@ -98,6 +98,7 @@ int main(int argc, char *argv[])
             ("use-benders-decomposition,", po::value<bool>(), "enable Benders decomposition algorithm")
             ("benders-decomposition-use-tree-search-relative-positions,", po::value<bool>(), "use the tree search on relative positions in the subproblems of the Benders decomposition algorithm")
             ("use-tree-search-relative-positions,", po::value<bool>(), "use the tree search on relative positions (Feasibility objective with a single bin, open dimension objectives)")
+            ("use-global-nonlinear-programming,", po::value<bool>(), "use the global nonlinear programming algorithm (Feasibility objective with a single convex bin; requires SCIP)")
             ("use-dichotomic-search,", po::value<bool>(), "enable dichotomic search")
             ("reduce,", po::value<bool>(), "enable/disable instance reduction (preprocessing)")
             ("initial-maximum-approximation-ratio,", po::value<double>(), "initial maximum approximation ratio")
@@ -210,6 +211,8 @@ int main(int argc, char *argv[])
             parameters.benders_decomposition_use_tree_search_relative_positions = vm["benders-decomposition-use-tree-search-relative-positions"].as<bool>();
         if (vm.count("use-tree-search-relative-positions"))
             parameters.use_tree_search_relative_positions = vm["use-tree-search-relative-positions"].as<bool>();
+        if (vm.count("use-global-nonlinear-programming"))
+            parameters.use_global_nonlinear_programming = vm["use-global-nonlinear-programming"].as<bool>();
         if (vm.count("use-dichotomic-search"))
             parameters.use_dichotomic_search = vm["use-dichotomic-search"].as<bool>();
         if (vm.count("reduce"))

@@ -6,6 +6,7 @@ project(PackingSolver LANGUAGES CXX)
 option(PACKINGSOLVER_USE_CLP "Use CLP" ON)
 option(PACKINGSOLVER_USE_HIGHS "Use HiGHS" ON)
 option(PACKINGSOLVER_USE_KNITRO "Use Knitro" OFF)
+option(PACKINGSOLVER_USE_SCIP "Use SCIP" OFF)
 
 # Build options.
 option(PACKINGSOLVER_BUILD_MAIN "Build main" ON)

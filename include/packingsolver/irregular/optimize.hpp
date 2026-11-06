@@ -316,6 +316,14 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
      */
     bool use_tree_search_relative_positions = false;
 
+    /**
+     * Use the global nonlinear programming algorithm (only for the
+     * 'Feasibility' objective with a single convex bin; only selected
+     * automatically in 'Exact' mode, if an item type has continuous
+     * rotations). Requires SCIP.
+     */
+    bool use_global_nonlinear_programming = false;
+
     /** Initial maximum approximation ratio. */
     double initial_maximum_approximation_ratio = 0.10;
 

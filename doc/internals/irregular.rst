@@ -92,6 +92,15 @@ The relative position of each pair of items must be in one of the convex pieces 
 
 See :doc:`the detailed description <irregular/tree_search_relative_positions>`.
 
+Global nonlinear programming
+-------------------------------
+
+This algorithm solves the :code:`feasibility` objective with a single convex bin, exactly, including when the items can be rotated by any angle, where the tree search on relative positions proves nothing. It requires SCIP: PackingSolver must be built with :code:`-DPACKINGSOLVER_USE_SCIP=ON`.
+
+Each item has a position and a rotation, given by its cosine and its sine, and each pair of convex parts of different items a separating line. The model is a nonconvex quadratically constrained program, solved to global optimality by the spatial branch-and-bound of SCIP, first on the pairs of items, then on the increasing subsets of the largest items, until a subset is proven infeasible. It only solves small instances (a few items); it is a baseline for exact algorithms with continuous rotations.
+
+See :doc:`the detailed description <irregular/global_nonlinear_programming>`.
+
 One-dimensional bound
 ------------------------
 
@@ -110,3 +119,4 @@ Relaxes the instance to a one-dimensional problem (each bin and item type keeps 
    irregular/milp_raster
    irregular/benders_decomposition
    irregular/tree_search_relative_positions
+   irregular/global_nonlinear_programming

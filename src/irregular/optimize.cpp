@@ -10,6 +10,7 @@
 #include "irregular/milp_raster.hpp"
 #include "irregular/benders_decomposition.hpp"
 #include "irregular/tree_search_relative_positions.hpp"
+#include "irregular/global_nonlinear_programming.hpp"
 #include "irregular/local_search.hpp"
 #include "algorithms/dichotomic_search.hpp"
 #include "algorithms/sequential_value_correction.hpp"
@@ -966,6 +967,25 @@ void optimize_tree_search_relative_positions(
     tree_search_relative_positions(instance, tsrp_parameters);
 }
 
+void optimize_global_nonlinear_programming(
+        const Instance& instance,
+        const OptimizeParameters& parameters,
+        AlgorithmFormatter& algorithm_formatter)
+{
+    GlobalNonlinearProgrammingParameters gnlp_parameters;
+    gnlp_parameters.verbosity_level = 0;
+    gnlp_parameters.timer = parameters.timer;
+    gnlp_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+    gnlp_parameters.new_solution_callback = [&algorithm_formatter](
+            const irregular::Output& output) {
+        algorithm_formatter.update_solution(
+                output.solution_pool.best(),
+                "GNLP");
+        algorithm_formatter.update_bounds(output);
+    };
+    global_nonlinear_programming(instance, gnlp_parameters);
+}
+
 /**
  * Area of the bin of a single-bin instance which is left for the items to
  * place: its area minus the areas of its fixed items and of its defects
@@ -1173,6 +1193,11 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
     bool use_milp_raster = parameters.use_milp_raster;
     bool use_benders_decomposition = parameters.use_benders_decomposition;
     bool use_tree_search_relative_positions = parameters.use_tree_search_relative_positions;
+    bool use_global_nonlinear_programming = parameters.use_global_nonlinear_programming;
+    if (instance.objective() != Objective::Feasibility
+            || instance.number_of_bins() != 1) {
+        use_global_nonlinear_programming = false;
+    }
     // Benders decomposition only supports these objectives.
     if (instance.objective() != Objective::Knapsack
             && instance.objective() != Objective::BinPacking
@@ -1202,6 +1227,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         if (!use_tree_search
                 && !use_benders_decomposition
                 && !use_tree_search_relative_positions
+                && !use_global_nonlinear_programming
                 && !use_tree_search_periodic_packing
                 && !use_tree_search_maximal_spaces
                 && !use_local_search_linear_programming
@@ -1250,6 +1276,19 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
                         || instance.objective() == Objective::OpenDimensionX
                         || instance.objective() == Objective::OpenDimensionY) {
                     use_tree_search_relative_positions = true;
+                }
+                // The tree search on relative positions proves nothing with
+                // continuous rotations.
+                bool continuous_rotations = false;
+                for (ItemTypeId item_type_id = 0;
+                        item_type_id < instance.number_of_item_types();
+                        ++item_type_id) {
+                    if (!instance.item_type(item_type_id).has_only_discrete_rotations())
+                        continuous_rotations = true;
+                }
+                if (continuous_rotations
+                        && global_nonlinear_programming_supports(instance)) {
+                    use_global_nonlinear_programming = true;
                 }
             }
         }
@@ -1666,6 +1705,19 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         auto context = task_context();
         tasks.push_back([&exception_ptr, &instance, context]() {
             wrapper<decltype(&optimize_tree_search_relative_positions), optimize_tree_search_relative_positions>(
+                    exception_ptr,
+                    instance,
+                    *context.first,
+                    *context.second);
+        });
+    }
+    // Global nonlinear programming.
+    if (use_global_nonlinear_programming) {
+        exception_ptr_list.push_front(std::exception_ptr());
+        std::exception_ptr& exception_ptr = exception_ptr_list.front();
+        auto context = task_context();
+        tasks.push_back([&exception_ptr, &instance, context]() {
+            wrapper<decltype(&optimize_global_nonlinear_programming), optimize_global_nonlinear_programming>(
                     exception_ptr,
                     instance,
                     *context.first,

@@ -13,6 +13,10 @@ target_sources(PackingSolver_irregular_test PRIVATE
     black_box_optimization/no_fit_polygon_test.cpp
     direct_trigonometry/polygon_test.cpp
     nonlinear_programming/separating_line_test.cpp)
+if (PACKINGSOLVER_USE_SCIP)
+    target_sources(PackingSolver_irregular_test PRIVATE
+        global_nonlinear_programming_test.cpp)
+endif()
 target_include_directories(PackingSolver_irregular_test PRIVATE
     ${PROJECT_SOURCE_DIR}/src)
 target_link_libraries(PackingSolver_irregular_test
