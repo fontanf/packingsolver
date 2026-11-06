@@ -63,6 +63,10 @@ if (PACKINGSOLVER_USE_KNITRO)
 endif()
 if (PACKINGSOLVER_USE_SCIP)
     set(MATHOPTSOLVERSCMAKE_USE_SCIP ON)
+    # Ipopt is only used by the NLP heuristics of SCIP, not by its spatial
+    # branch-and-bound; its prebuilt static libraries don't link on macOS
+    # (the gfortran runtime needs libgcc) and are shared on Windows.
+    set(MATHOPTSOLVERSCMAKE_SCIP_USE_IPOPT OFF)
 endif()
 FetchContent_Declare(
     mathoptsolverscmake
