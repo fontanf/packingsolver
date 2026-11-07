@@ -29,6 +29,9 @@ const double weight_minimum_increase_ratio = 1.2;
 const double weight_maximum_increase_ratio = 2.0;
 const double weight_decay = 0.95;
 
+/** Number of entries of a chunk of the index of the items of a bin. */
+const Counter index_chunk_size = 16;
+
 /** Coordinate descent step multipliers. */
 const double coordinate_descent_step_success = 1.1;
 const double coordinate_descent_step_failure = 0.5;
@@ -1221,9 +1224,42 @@ Separator::Evaluation Separator::evaluate(
         if (loss > loss_bound)
             return evaluation;
     }
-    for (ItemPos item_pos_2: bins_items_[item_state.bin_pos]) {
-        if (item_pos_2 == item_pos)
+    // Items whose bounding box intersects the one of the item, in the order
+    // of the items of the bin, so that the losses are summed in the same
+    // order whatever the index.
+    AxisAlignedBoundingBox aabb = translate(
+            item_types_[items_item_type_id_[item_pos]].orientations[item_state.orientation_id].aabb_inflated,
+            item_state.position);
+    if (bins_index_search_[item_state.bin_pos] != number_of_searches_)
+        build_index(item_state.bin_pos);
+    const std::vector<IndexEntry>& index = bins_index_[item_state.bin_pos];
+    const std::vector<LengthDbl>& chunks_x_max = bins_index_chunks_x_max_[item_state.bin_pos];
+    intersecting_items_.clear();
+    for (Counter chunk_pos = 0; chunk_pos < (Counter)chunks_x_max.size(); ++chunk_pos) {
+        Counter entry_pos_start = chunk_pos * index_chunk_size;
+        if (index[entry_pos_start].aabb.x_min >= aabb.x_max - tolerance)
+            break;
+        if (aabb.x_min >= chunks_x_max[chunk_pos] - tolerance)
             continue;
+        Counter entry_pos_end = (std::min)(entry_pos_start + index_chunk_size, (Counter)index.size());
+        for (Counter entry_pos = entry_pos_start; entry_pos < entry_pos_end; ++entry_pos) {
+            const IndexEntry& entry = index[entry_pos];
+            if (entry.aabb.x_min >= aabb.x_max - tolerance)
+                break;
+            if (entry.item_pos != item_pos
+                    && aabbs_intersect(aabb, entry.aabb)) {
+                intersecting_items_.push_back(entry.item_pos);
+            }
+        }
+    }
+    std::sort(
+            intersecting_items_.begin(),
+            intersecting_items_.end(),
+            [this](ItemPos item_pos_1, ItemPos item_pos_2)
+            {
+                return items_bin_item_pos_[item_pos_1] < items_bin_item_pos_[item_pos_2];
+            });
+    for (ItemPos item_pos_2: intersecting_items_) {
         if (!collide(item_pos, item_state, item_pos_2))
             continue;
         collision = true;
@@ -1396,10 +1432,39 @@ Separator::Candidate Separator::refine(
     return current;
 }
 
+void Separator::build_index(BinPos bin_pos)
+{
+    std::vector<IndexEntry>& index = bins_index_[bin_pos];
+    index.clear();
+    for (ItemPos item_pos: bins_items_[bin_pos])
+        index.push_back({item_aabb(item_pos, items_state_[item_pos]), item_pos});
+    std::sort(
+            index.begin(),
+            index.end(),
+            [](const IndexEntry& entry_1, const IndexEntry& entry_2)
+            {
+                return entry_1.aabb.x_min < entry_2.aabb.x_min;
+            });
+    std::vector<LengthDbl>& chunks_x_max = bins_index_chunks_x_max_[bin_pos];
+    chunks_x_max.clear();
+    for (Counter entry_pos = 0; entry_pos < (Counter)index.size(); ++entry_pos) {
+        if (entry_pos % index_chunk_size == 0)
+            chunks_x_max.push_back(index[entry_pos].aabb.x_max);
+        chunks_x_max.back() = (std::max)(chunks_x_max.back(), index[entry_pos].aabb.x_max);
+    }
+    bins_index_search_[bin_pos] = number_of_searches_;
+}
+
 Separator::Candidate Separator::search_placement(
         ItemPos item_pos,
         bool insertion)
 {
+    // The indexes of the bins built for the previous search are outdated.
+    number_of_searches_++;
+    bins_index_.resize(bins_items_.size());
+    bins_index_chunks_x_max_.resize(bins_items_.size());
+    bins_index_search_.resize(bins_items_.size(), -1);
+
     // Algorithm 6 of the Sparrow paper.
     const SeparatorItemType& item_type = item_types_[items_item_type_id_[item_pos]];
     LengthDbl minimum_dimension = item_type.minimum_dimension;
