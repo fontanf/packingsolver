@@ -30,13 +30,9 @@ The master problem is a :ref:`onedimensional <internals_onedimensional>` instanc
 * each bin type has its area, rounded up, as length, and keeps its copies, its cost and its resources;
 * each item type has its area, rounded down, as length, and keeps its copies and, for the :code:`knapsack` objective, its profit.
 
-The roundings keep the master problem a relaxation. It is solved with the :ref:`MILP assignment <internals_onedimensional_milp_assignment>` algorithm, in non-anytime mode, or in :code:`exact` mode in the :code:`exact` mode.
+The roundings keep the master problem a relaxation. It is solved by the onedimensional solver, with its :ref:`MILP assignment <internals_onedimensional_milp_assignment>` algorithm, in non-anytime mode, or in :code:`exact` mode in the :code:`exact` mode.
 
-The cuts are encoded as onedimensional *resources* on the bin types, as in the rectangle version: a cut forbidding :math:`n_i` copies of each item type :math:`i` of a set :math:`S`, with lifted item types :math:`L`, is the resource of capacity :math:`\sum_{i \in S} n_i - 1` where the copies of item type :math:`i \in S` consume :math:`(1, \ldots, 1, 0)` (:math:`n_i` ones) and the copies of item type :math:`j \in L` consume :math:`(1, 0)`. With the variables :math:`x_{i,t,k,c}` of the MILP assignment model (bin :math:`k` of type :math:`t` contains at least :math:`c` copies of item type :math:`i`), it is the constraint, for each bin :math:`(t, k)`:
-
-.. math::
-
-   \sum_{i \in S} \sum_{c \le n_i} x_{i,t,k,c} + \sum_{j \in L} x_{j,t,k,1} \le \sum_{i \in S} n_i - 1
+The cuts are *resources* of the bin types of the onedimensional problem, as in the rectangle version: a resource of a bin type has a capacity, and each copy of an item type in a bin consumes a quantity of it, given by a consumption schedule (the :math:`c`-th copy consumes the :math:`c`-th entry of the schedule, or its last entry beyond it). A cut forbidding :math:`n_i` copies of each item type :math:`i` of a set :math:`S`, with lifted item types :math:`L`, is the resource of capacity :math:`\sum_{i \in S} n_i - 1` where the copies of item type :math:`i \in S` consume :math:`(1, \ldots, 1, 0)` (:math:`n_i` ones), so that they count up to :math:`n_i`, and the copies of item type :math:`j \in L` consume :math:`(1, 0)`, so that the first one counts for 1.
 
 Iterations
 ----------

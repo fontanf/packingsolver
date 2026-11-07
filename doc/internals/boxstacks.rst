@@ -24,6 +24,11 @@ This decomposition is much cheaper than the full tree search below, and is desig
 
 See :doc:`the detailed description <boxstacks/sequential_onedimensional_rectangle>`.
 
+.. toctree::
+   :hidden:
+
+   boxstacks/sequential_onedimensional_rectangle
+
 Tree search
 ------------
 
@@ -40,14 +45,12 @@ This algorithm is more expensive than the sequential one-dimensional / rectangle
 
 See :doc:`the detailed description <boxstacks/tree_search>`.
 
+.. toctree::
+   :hidden:
+
+   boxstacks/tree_search
+
 Box bounds
 ----------
 
 The instance is relaxed to a :ref:`box <internals_box>` instance, dropping the stacking, axle weight, stack density and unloading constraints (the items with a nesting height keep their reduced height). Every solution of the original instance is a solution of the relaxation, so the bounds computed by the box algorithms on it are valid bounds. They are computed by default, and can be disabled with :code:`--use-box-bounds 0` (CLI) or :code:`use_box_bounds` (Python).
-
-.. toctree::
-   :maxdepth: 1
-   :hidden:
-
-   boxstacks/sequential_onedimensional_rectangle
-   boxstacks/tree_search

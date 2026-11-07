@@ -28,6 +28,11 @@ The positions of the items are fixed once they are inserted, but the positions o
 
 See :doc:`the detailed description <rectangleguillotine/tree_search>`.
 
+.. toctree::
+   :hidden:
+
+   rectangleguillotine/tree_search
+
 Tree search with maximal spaces
 ----------------------------------
 
@@ -41,6 +46,11 @@ It is a tree search algorithm where a block of items is packed at each stage, in
    :align: center
 
 See :doc:`the detailed description <rectangleguillotine/tree_search_maximal_spaces>`.
+
+.. toctree::
+   :hidden:
+
+   rectangleguillotine/tree_search_maximal_spaces
 
 Column generation strips
 ---------------------------
@@ -56,6 +66,11 @@ It is a tree search algorithm where a whole strip is packed at each stage. Contr
 
 See :doc:`the detailed description <rectangleguillotine/column_generation_strips>`.
 
+.. toctree::
+   :hidden:
+
+   rectangleguillotine/column_generation_strips
+
 Sequential strips / one-dimensional
 ---------------------------------------
 
@@ -67,6 +82,11 @@ It is a two-phase heuristic: it first generates strips containing all the items 
    :align: center
 
 See :doc:`the detailed description <rectangleguillotine/sequential_strips_onedimensional>`.
+
+.. toctree::
+   :hidden:
+
+   rectangleguillotine/sequential_strips_onedimensional
 
 Tree search hypergraph
 -------------------------
@@ -82,6 +102,11 @@ This is a kind of tree search algorithm, but instead of generating children from
 
 See :doc:`the detailed description <rectangleguillotine/tree_search_hypergraph>`.
 
+.. toctree::
+   :hidden:
+
+   rectangleguillotine/tree_search_hypergraph
+
 Tree search hypergraph with infinite copies
 -------------------------------------------
 
@@ -96,20 +121,14 @@ This algorithm works the same way as the tree search hypergraph algorithm, excep
 
 See :doc:`the detailed description <rectangleguillotine/tree_search_hypergraph_infinite_copies>`.
 
+.. toctree::
+   :hidden:
+
+   rectangleguillotine/tree_search_hypergraph_infinite_copies
+
 Dual feasible functions
 -------------------------
 
 This algorithm computes a bound for the :code:`bin-packing` objective.
 
 See :ref:`rectangle <internals_rectangle_dual_feasible_functions>`
-
-.. toctree::
-   :maxdepth: 1
-   :hidden:
-
-   rectangleguillotine/tree_search
-   rectangleguillotine/tree_search_maximal_spaces
-   rectangleguillotine/column_generation_strips
-   rectangleguillotine/sequential_strips_onedimensional
-   rectangleguillotine/tree_search_hypergraph
-   rectangleguillotine/tree_search_hypergraph_infinite_copies

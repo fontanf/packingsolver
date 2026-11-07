@@ -61,6 +61,11 @@ The position in the bin of a vertex :math:`u` of a part :math:`P` of an item at 
 
 For a fixed edge, the closest vertex doesn't depend on the translations and the scales of the parts, so the constraint is linear in the positions and the scales. It proves that the two parts don't overlap: the line separates them.
 
+On the left of the figure below, an item made of two convex parts, with scale :math:`\lambda = 0.6`: each part is scaled around its center, so the shrunk item (in red) is inside the item (dashed). On the right, the separation constraint of a pair of parts :math:`P` and :math:`Q`: the vertex :math:`v` of :math:`Q` is beyond the line through the selected edge :math:`e` of :math:`P`, of outward normal :math:`n`, by at least the spacing (dashed line):
+
+.. image:: ../../img/irregular_shrunk_items.svg
+   :align: center
+
 **Always feasible.** The linear program always has a solution: the current positions with null scales. With null scales, the parts are reduced to their centers, which are in the bin. And the edge of each pair of parts is selected among the edges whose constraint is satisfied by the centers of the two parts (with the spacing): the one which separates the two parts the best in the current layout. When two parts don't overlap, the edge which separates them the best always separates their centers, since the centers are in the parts; so the restriction only matters for the parts which overlap. If no edge separates the centers (two centers closer than the spacing, or a center in an obstacle), the edge which separates the parts the best is selected, and the linear program may be infeasible.
 
 This is the separation model of the :ref:`nonlinear programming engine <internals_irregular_local_search_nonlinear_programming>`, where the separating line of each pair of parts is a variable, with the direction of the line fixed during the step.

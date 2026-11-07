@@ -17,6 +17,11 @@ Like the :ref:`dual feasible functions <internals_rectangle_dual_feasible_functi
 
 **Conservative scales.** New widths :math:`w'_j` are *conservative* if, for every set of items whose original widths sum to at most the width :math:`W` of the bin, their new widths also sum to at most :math:`W`. Then any set of items which can be crossed by a horizontal line in a packing still fits along the width with the new widths, so the area bound computed with the new widths is still valid.
 
+In the example below, the bin is 10 × 4, and the items are three 4 × 4 items and one 7 × 4 item. Any two 4-wide items fit side by side along the width, but not three of them, and the 7-wide item fits with none of them. So the new widths are conservative as long as any two 4-wide items still fit, and the 7-wide item alone: the widths 5, 5, 5 and 10, which maximize the transformed area. The area bound goes from 2 to 3 bins, the optimal number of bins:
+
+.. image:: ../../img/rectangle_conservative_scales_widths.svg
+   :align: center
+
 **Linear program.** Among the conservative scales, the ones maximizing the transformed area are computed by a linear program.
 
 **Input**:
@@ -66,6 +71,7 @@ Source files
 ------------
 
 * :code:`src/rectangle/conservative_scales.hpp`, :code:`src/rectangle/conservative_scales.cpp`
+* :code:`scripts/doc_figures/rectangle_conservative_scales.py`: the figure of this page
 
 References:
 

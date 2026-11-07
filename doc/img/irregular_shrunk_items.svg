@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="564.0" height="175.86" viewBox="-44.0 -124.26 564.0 175.86">
+<defs><marker id="arrow0" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#b85450"/></marker></defs>
+<rect x="-44.0" y="-124.26" width="564.0" height="175.86" fill="#ffffff"/>
+<polygon points="0,0 102,0 102,-68 0,-102" fill="none" stroke="#b85450" stroke-width="1" stroke-dasharray="3 3"/>
+<polygon points="20.4,-17.0 81.6,-17.0 81.6,-57.8 20.4,-78.2" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<ellipse cx="51.0" cy="-42.5" rx="2.72" ry="2.72" fill="#000000" stroke="#000000" stroke-width="1"/>
+<polygon points="102,0 170,0 170,-51.0 102,-68" fill="none" stroke="#b85450" stroke-width="1" stroke-dasharray="3 3"/>
+<polygon points="115.6,-11.9 156.4,-11.9 156.4,-42.5 115.6,-52.7" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<ellipse cx="136.0" cy="-29.75" rx="2.72" ry="2.72" fill="#000000" stroke="#000000" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="85.0" y="24.2">convex parts scaled by λ = 0.6 around</tspan><tspan x="85.0" y="38.6">their centers</tspan></text>
+<polygon points="272,0 357.0,-10.2 374,-74.8 289.0,-95.2" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="323.0" y="-40.85">P</tspan></text>
+<polygon points="428.4,-20.4 496.4,-6.8 510,-85.0 469.2,-102" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="476.0" y="-49.35">Q</tspan></text>
+<polyline points="346.62,29.26 384.38,-114.26" fill="none" stroke="#000000" stroke-width="1"/>
+<polyline points="376.21,37.04 413.98,-106.47" fill="none" stroke="#000000" stroke-width="1" stroke-dasharray="3 3"/>
+<polyline points="357.0,-10.2 374,-74.8" fill="none" stroke="#6c8ebf" stroke-width="4"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="353.6" y="-41.7">e</tspan></text>
+<polyline points="365.5,-25.5 391.8,-18.58" fill="none" stroke="#b85450" stroke-width="2" marker-end="url(#arrow0)"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#b85450" text-anchor="middle"><tspan x="402.0" y="-5.88">n</tspan></text>
+<ellipse cx="428.4" cy="-20.4" rx="2.72" ry="2.72" fill="#000000" stroke="#000000" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="440.3" y="-6.0">v</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="391.0" y="24.2">the closest vertex of Q beyond the edge of</tspan><tspan x="391.0" y="38.6">P, by the spacing</tspan></text>
+</svg>

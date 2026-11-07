@@ -19,6 +19,11 @@ For each item type and each orientation, the shapes are simplified into polygons
 
 Each polygon is described by *poles*: disjoint circles inscribed in it. The first one is the largest inscribed circle (the pole of inaccessibility); each next one is the largest circle inscribed in the polygon minus the previous circles. Poles are generated until they cover 90% of the area with at least 8 poles, or 80% with at least 16 poles, with at most 64 poles.
 
+The figure below shows the first 10 poles of a polygon, numbered in the order in which they are generated:
+
+.. image:: ../../img/irregular_poles.svg
+   :align: center
+
 Each pole is found with a quadtree search inspired by Mapbox's polylabel algorithm: a square cell is only split if the distance of its center to the boundary of the region, plus its half-diagonal, can improve the best circle found. All the searches of a polygon use the same quadtree, so the distance of the center of a cell to the boundary of the polygon is computed only once and kept, together with its distance to the poles already considered: a next search only accounts for the poles added since. Computing the poles is the most expensive part of the preprocessing, so the item types are processed in parallel by the workers of the separator.
 
 The *hazards* of a bin are the obstacles an item may collide with: its borders, its defects (inflated by the spacings), its fixed items, and its exterior.
@@ -43,11 +48,16 @@ Moves
 
 At each iteration of a separation, each colliding item, in a random order, is removed from the layout and put back at the best placement found by the following search:
 
-* the current placement, and 25 samples around it, in the same bin;
+* the current placement, and 25 samples around it, in the same bin: the center of the item is drawn in its current bounding box;
 * 50 samples in random bins, in random allowed orientations;
-* the 3 best distinct samples are refined by coordinate descent: the item is moved in small steps along the axes, the step growing (×1.1) after a successful move and shrinking (×0.5) after a failed one; then the best result is refined further with smaller steps.
+* the 3 best distinct samples are refined by coordinate descent: the item is moved in small steps along an axis or a diagonal, drawn at random again after a failed move, the step growing (×1.1) after a successful move and shrinking (×0.5) after a failed one; then the best result is refined further with smaller steps.
 
 A placement without collision is always preferred. The evaluation of a candidate placement stops as soon as its weighted loss exceeds the one of the worst of the best candidates.
+
+The figure below shows the search for the item whose current placement is dashed, with a single bin and a single orientation. The samples are drawn at the center of the item: in red around the current placement, in gray in the whole bin. The black paths are the coordinate descents from the 3 best samples, and the item is put back at the end of the best one, in red:
+
+.. image:: ../../img/irregular_moves.svg
+   :align: center
 
 With several workers (3 by default), each worker moves the colliding items from the current layout, in its own random order, in its own thread, and the layout of the worker with the smallest weighted loss is kept.
 
@@ -66,7 +76,7 @@ Initial layout and disruption
 
 When a solution is loaded, the items which stick out of their bin are moved back by removing a slice of the bin at a random position: the items after the slice are shifted towards the slice. The missing items are then inserted one by one, each at the best of 1000 sampled placements, the placements without collision being scored to favor the bottom left of the first bins.
 
-A layout is disrupted by swapping two large items; the items covered by one of them after the swap are moved to the space it left.
+A layout is disrupted by swapping two large items; the items covered by one of them after the swap are moved to the space it left. For the :code:`knapsack` objective, the missing items aren't inserted when a solution is loaded, and the disruption is drawn among several ones which change the set of items (see :ref:`the local search <internals_irregular_local_search>`).
 
 The distance between two layouts, used by the population of the iterated local search, describes each item by its bin, its orientation, and the cell of a grid containing the center of its bounding box (the cells of an item type being as large as its smallest dimension). The copies of an item type being interchangeable, the distance is the number of items whose description doesn't match the description of an item of the other layout.
 

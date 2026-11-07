@@ -14,6 +14,11 @@ This is a direct generalization of the :ref:`tree search for rectangle <internal
 
 See :doc:`the detailed description <box/tree_search>`.
 
+.. toctree::
+   :hidden:
+
+   box/tree_search
+
 Tree search with maximal spaces
 ----------------------------------
 
@@ -22,6 +27,11 @@ This algorithm solves the :code:`feasibility` and :code:`knapsack` objectives wi
 It is a tree search algorithm where a block of items is packed at each stage, in a corner of the maximal empty spaces of the bin. The :ref:`tree search with maximal spaces for rectangle <internals_rectangle_tree_search_maximal_spaces>` is its two-dimensional version.
 
 See :doc:`the detailed description <box/tree_search_maximal_spaces>`.
+
+.. toctree::
+   :hidden:
+
+   box/tree_search_maximal_spaces
 
 Dual feasible functions
 -------------------------
@@ -32,15 +42,12 @@ It is the generalization to three dimensions of the :ref:`dual feasible function
 
 See :doc:`the detailed description <box/dual_feasible_functions>`.
 
+.. toctree::
+   :hidden:
+
+   box/dual_feasible_functions
+
 Trivial bounds
 --------------
 
 Closed-form bounds, computed for every instance: a volume-based fractional bound for the :code:`knapsack` objective, a volume-based number of bins for the :code:`bin-packing` objective, and bounds from the volume and the dimensions of the items for the open dimension objectives.
-
-.. toctree::
-   :maxdepth: 1
-   :hidden:
-
-   box/tree_search
-   box/tree_search_maximal_spaces
-   box/dual_feasible_functions

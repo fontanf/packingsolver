@@ -28,6 +28,11 @@ It is a generalization of the tree search algorithm for :code:`rectangle`.
 
 See :doc:`the detailed description <irregular/tree_search>`.
 
+.. toctree::
+   :hidden:
+
+   irregular/tree_search
+
 Tree search with periodic packings
 -------------------------------------
 
@@ -36,6 +41,11 @@ This algorithm solves the :code:`knapsack` and :code:`feasibility` objectives wi
 It is designed for instances with many copies of a few item types. The periodic packings of the item types (lattice packings of one or two items) are computed first; blocks of items are built from them, and a tree search with maximal empty spaces packs a block at each stage.
 
 See :doc:`the detailed description <irregular/tree_search_periodic_packing>`.
+
+.. toctree::
+   :hidden:
+
+   irregular/tree_search_periodic_packing
 
 Tree search with maximal spaces
 ----------------------------------
@@ -46,21 +56,32 @@ It lies between the two previous algorithms. Like the tree search with periodic 
 
 See :doc:`the detailed description <irregular/tree_search_maximal_spaces>`.
 
+.. toctree::
+   :hidden:
+
+   irregular/tree_search_maximal_spaces
+
 Local search
 --------------
 
-This algorithm solves the :code:`feasibility` objective, and the :code:`bin-packing`, :code:`bin-packing-with-leftovers` and :code:`open-dimension-*` objectives through sequential feasibility.
+This algorithm solves the :code:`feasibility` objective, the :code:`bin-packing`, :code:`bin-packing-with-leftovers` and :code:`open-dimension-*` objectives through sequential feasibility, and, with the direct trigonometry and black-box optimization engines, the :code:`knapsack` objective through a sequence of feasibility sub-problems of increasing profit.
 
-It works on complete layouts which are allowed to be infeasible, and tries to make them feasible. When it fails, it starts again from a disruption of a failed layout, drawn from a population (iterated local search). Three engines are available:
+It works on complete layouts which are allowed to be infeasible, and tries to make them feasible. When it fails, it starts again from a disruption of a failed layout, drawn from a population (iterated local search). Four engines are available:
 
 * direct trigonometry: the items may overlap, and the overlap is minimized by moving the items one by one to the best of many sampled positions;
 * linear programming: the items may be shrunk instead of overlapping, and linear programs move them slightly while maximizing their sizes;
-* nonlinear programming: the same with nonlinear programs, in which the items may also rotate (requires Knitro).
+* nonlinear programming: the same with nonlinear programs, in which the items may also rotate (requires Knitro);
+* black-box optimization: the items may overlap, and nonlinear programs move them all at once to minimize their squared penetration depths, computed from their no-fit polygons (requires Knitro).
 
 .. image:: ../img/irregular_local_search.svg
    :align: center
 
 See :doc:`the detailed description <irregular/local_search>`.
+
+.. toctree::
+   :hidden:
+
+   irregular/local_search
 
 MILP raster
 --------------
@@ -74,6 +95,11 @@ It rasterizes the bins and the items onto a grid and solves the resulting placem
 
 See :doc:`the detailed description <irregular/milp_raster>`.
 
+.. toctree::
+   :hidden:
+
+   irregular/milp_raster
+
 Benders decomposition
 ------------------------
 
@@ -82,6 +108,11 @@ This algorithm solves the :code:`knapsack`, :code:`bin-packing` and :code:`varia
 Its master problem assigns the items to the bins considering only their areas, as a one-dimensional problem. For each bin of its solution, a subproblem checks whether the items actually fit; if not, no-good cuts forbidding infeasible subsets of them are added to the master problem, which is solved again. With the :ref:`tree search on relative positions <internals_irregular_tree_search_relative_positions>` in its subproblems, the cuts are proven, so the value of the master problem is a bound, and the algorithm is exact.
 
 See :doc:`the detailed description <irregular/benders_decomposition>`.
+
+.. toctree::
+   :hidden:
+
+   irregular/benders_decomposition
 
 Tree search on relative positions
 ------------------------------------
@@ -92,6 +123,11 @@ The relative position of each pair of items must be in one of the convex pieces 
 
 See :doc:`the detailed description <irregular/tree_search_relative_positions>`.
 
+.. toctree::
+   :hidden:
+
+   irregular/tree_search_relative_positions
+
 Global nonlinear programming
 -------------------------------
 
@@ -101,22 +137,14 @@ Each item has a position and a rotation, given by its cosine and its sine, and e
 
 See :doc:`the detailed description <irregular/global_nonlinear_programming>`.
 
+.. toctree::
+   :hidden:
+
+   irregular/global_nonlinear_programming
+
 One-dimensional bound
 ------------------------
 
 This algorithm computes a bound for the :code:`bin-packing`, :code:`knapsack` and :code:`variable-sized-bin-packing` objectives.
 
 Relaxes the instance to a one-dimensional problem (each bin and item type keeps only its area) and solves it, which is much cheaper than solving the irregular problem itself. The resulting bin-packing / knapsack / variable-sized-bin-packing bound is a valid bound for the original instance, since no irregular packing can use less total area than this relaxation requires. With 100 item types or more, solving the one-dimensional problem may take a long time, so only its :ref:`trivial bound <internals_onedimensional>` is computed.
-
-.. toctree::
-   :maxdepth: 1
-   :hidden:
-
-   irregular/tree_search
-   irregular/tree_search_periodic_packing
-   irregular/tree_search_maximal_spaces
-   irregular/local_search
-   irregular/milp_raster
-   irregular/benders_decomposition
-   irregular/tree_search_relative_positions
-   irregular/global_nonlinear_programming

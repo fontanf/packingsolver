@@ -19,6 +19,11 @@ The possible insertions for an unpacked item are the ones where the new item is 
 
 See :doc:`the detailed description <rectangle/tree_search>`.
 
+.. toctree::
+   :hidden:
+
+   rectangle/tree_search
+
 Tree search with maximal spaces
 ----------------------------------
 
@@ -32,6 +37,11 @@ It is a tree search algorithm where a block of items is packed at each stage. Th
 
 See :doc:`the detailed description <rectangle/tree_search_maximal_spaces>`.
 
+.. toctree::
+   :hidden:
+
+   rectangle/tree_search_maximal_spaces
+
 Benders decomposition
 ------------------------
 
@@ -44,6 +54,11 @@ Its master problem assigns the items to the bins considering only their areas, a
 
 See :doc:`the detailed description <rectangle/benders_decomposition>`.
 
+.. toctree::
+   :hidden:
+
+   rectangle/benders_decomposition
+
 Benders decomposition with contiguity
 ----------------------------------------
 
@@ -52,6 +67,11 @@ This algorithm solves the :code:`knapsack` and :code:`feasibility` objectives ex
 Its master problem also decides the x-positions of the items (contiguous relaxation), and its subproblem only searches y-positions consistent with them.
 
 See :doc:`the detailed description <rectangle/benders_decomposition_contiguity>`.
+
+.. toctree::
+   :hidden:
+
+   rectangle/benders_decomposition_contiguity
 
 Tree search on packing classes
 ---------------------------------
@@ -65,6 +85,11 @@ It decides, for each axis and each pair of items, whether their projections on t
 
 See :doc:`the detailed description <rectangle/tree_search_packing_classes>`.
 
+.. toctree::
+   :hidden:
+
+   rectangle/tree_search_packing_classes
+
 Dual feasible functions
 -------------------------
 
@@ -77,6 +102,11 @@ It builds dominated instances, in which every feasible solution of the original 
 
 See :doc:`the detailed description <rectangle/dual_feasible_functions>`.
 
+.. toctree::
+   :hidden:
+
+   rectangle/dual_feasible_functions
+
 Conservative scales
 ----------------------
 
@@ -85,6 +115,11 @@ This algorithm computes a bound for the :code:`bin-packing` and :code:`feasibili
 It optimizes new dimensions for the items with linear programs, such that the packings remain feasible, and computes the area bound with them.
 
 See :doc:`the detailed description <rectangle/conservative_scales>`.
+
+.. toctree::
+   :hidden:
+
+   rectangle/conservative_scales
 
 Bar relaxation
 -----------------
@@ -96,14 +131,6 @@ It slices the bins into unit rows and columns, and only requires that the items 
 See :doc:`the detailed description <rectangle/bar_relaxation>`.
 
 .. toctree::
-   :maxdepth: 1
    :hidden:
 
-   rectangle/tree_search
-   rectangle/tree_search_maximal_spaces
-   rectangle/benders_decomposition
-   rectangle/benders_decomposition_contiguity
-   rectangle/tree_search_packing_classes
-   rectangle/dual_feasible_functions
-   rectangle/conservative_scales
    rectangle/bar_relaxation
