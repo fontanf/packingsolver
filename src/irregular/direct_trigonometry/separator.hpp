@@ -76,8 +76,8 @@ struct SeparatorParameters
      *
      * At each iteration of a separation, each worker moves the colliding
      * items from the current layout, in its own random order, in its own
-     * thread; the layout of the worker with the smallest weighted loss is
-     * kept.
+     * thread (the first worker in the calling thread); the layout of the
+     * worker with the smallest weighted loss is kept.
      */
     Counter number_of_workers = 3;
 
@@ -706,6 +706,16 @@ private:
      * separation with several workers.
      */
     std::vector<std::shared_ptr<Separator>> workers_;
+
+    /** Threads running the workers; see 'move_items_workers'. */
+    struct WorkerThreads;
+
+    /**
+     * Threads running the workers, created with them. Declared after
+     * 'workers_', so that the threads are joined before the workers are
+     * destroyed.
+     */
+    std::shared_ptr<WorkerThreads> worker_threads_;
 
 };
 
