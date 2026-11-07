@@ -19,6 +19,11 @@ It works exactly as its two-dimensional version, which this page assumes known, 
 
 **Maximal empty spaces.** They are boxes. When a block is placed, each maximal space it overlaps is replaced by up to six new spaces: the parts of the space before and after the block along x, along y and along z, each one extending over the whole space along the two other axes. The spaces contained in another one, and the spaces in which no remaining block fits, are removed.
 
+For example, when a block is placed in the corner of an empty bin, the bin is replaced by three maximal spaces, which overlap each other:
+
+.. image:: ../../img/box_maximal_spaces.svg
+   :align: center
+
 **Selection of the space.** The distance of a space to the corners of the bin is the sum, over the three axes, of the distance between the space and the closest side of the bin along this axis. The space of smallest distance is selected, the largest one in case of ties, and the blocks are placed in its corner on the side of the closest corner of the bin.
 
 **Fitness.** The fitness of a block placed in a space is :math:`V \times C^\alpha \times L^\beta \times N^{-\gamma}`, with the same parameters as in two dimensions, where :math:`C` is the area of the faces of the block in contact with the sides of the bin and with the blocks already placed, divided by its total surface, and :math:`L` is the fraction of the volume of the space which remains usable: in each direction, the length of the space not covered by the block is reduced to the largest length reachable with the remaining items.
@@ -37,6 +42,7 @@ Source files
 
 * :code:`src/box/block.hpp`, :code:`src/box/block.cpp`: the blocks
 * :code:`src/box/tree_search_maximal_spaces.hpp`, :code:`src/box/tree_search_maximal_spaces.cpp`: the branching scheme and the search
+* :code:`scripts/doc_figures/box.py`: the figures of the box pages
 
 References:
 

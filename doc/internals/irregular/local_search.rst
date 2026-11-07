@@ -8,7 +8,9 @@ Objectives
 
 The local search solves the :code:`feasibility` objective directly: it looks for a packing of all the items in the available bins. It solves the :code:`bin-packing`, :code:`bin-packing-with-leftovers`, :code:`open-dimension-x`, :code:`open-dimension-y` and :code:`open-dimension-xy` objectives through the :ref:`sequential feasibility <internals_generic_algorithms_sequential_feasibility>` algorithm: each time a packing is found, the space available is shrunk (one bin fewer, or the length of the last bin or the open dimension shrunk by 0.1%), and the local search is run again, starting from the previous packing.
 
-It doesn't solve the :code:`knapsack` and :code:`variable-sized-bin-packing` objectives.
+With the direct trigonometry and black-box optimization engines, it also solves the :code:`knapsack` objective, through a sequence of feasibility sub-problems of increasing profit (see below).
+
+It doesn't solve the :code:`variable-sized-bin-packing` objective.
 
 Principle
 ---------
@@ -17,9 +19,10 @@ Unlike the tree searches, the local search works on complete layouts: all the it
 
 * :ref:`direct trigonometry <internals_irregular_local_search_direct_trigonometry>`: the items may overlap; the overlap is minimized by moving the items one by one to the best of many sampled positions;
 * :ref:`linear programming <internals_irregular_local_search_linear_programming>`: the items may be shrunk instead of overlapping; linear programs move them slightly and maximize their sizes;
-* :ref:`nonlinear programming <internals_irregular_local_search_nonlinear_programming>`: the same with nonlinear programs, in which the items may also rotate.
+* :ref:`nonlinear programming <internals_irregular_local_search_nonlinear_programming>`: the same with nonlinear programs, in which the items may also rotate;
+* :ref:`black-box optimization <internals_irregular_local_search_black_box_optimization>`: the items may overlap; nonlinear programs move them all at once to minimize their squared penetration depths, computed from their no-fit polygons.
 
-Each engine provides a *separator*, which tries to make a layout feasible: a *separation*. A separation succeeds if the layout becomes feasible. Otherwise, it stops when it doesn't make progress anymore, and its layout is the best one found, with the smallest *loss*. The loss measures how far a layout is from being feasible: the overlap for the direct trigonometry engine, the area lost by shrinking the items for the other ones.
+Each engine provides a *separator*, which tries to make a layout feasible: a *separation*. A separation succeeds if the layout becomes feasible. Otherwise, it stops when it doesn't make progress anymore, and its layout is the best one found, with the smallest *loss*. The loss measures how far a layout is from being feasible: the overlap for the direct trigonometry engine, the squared penetration depths for the black-box optimization engine, the area lost by shrinking the items for the other ones.
 
 The engines share the search on top of the separator, described below.
 
@@ -44,10 +47,23 @@ The population keeps layouts which have a small loss and which are different fro
 
 In anytime mode, the search goes on until the time limit. In the non-anytime modes, it stops after a given number of failed separations (and, for the direct trigonometry engine, after a given number of item moves); the instance is then considered infeasible.
 
+Knapsack
+--------
+
+For the :code:`knapsack` objective, the layouts don't contain all the items, but a set of items whose profit is strictly greater than a *profit threshold*. Each sub-problem consists in finding a solution whose profit is strictly greater than the profit of the best solution found so far, with the iterated local search above:
+
+1. the profit threshold is set to the profit of the best solution found so far (0 at the start, from an empty layout);
+2. items which are not in the layout are inserted, each one at the best of sampled positions, until the profit of the layout is above the threshold; they are drawn by binary tournament on their profit per unit area;
+3. the layout is separated, and disrupted as long as the separations fail.
+
+The disruptions change the set of items while keeping its profit above the threshold. Each one is drawn at random among: the swap of two large items, the move of an item to the best of sampled positions, the insertion of an item which isn't in the layout, the exchange of an item of the layout with an item which isn't in it, inserted around its position, and the removal of an item.
+
+The search stops when a sub-problem fails, or when all the items are packed. Each sub-problem only asks for a slightly more profitable set of items, so the separations are shorter than for the other objectives, and the search tries more disruptions.
+
 Automatic selection
 -------------------
 
-The direct trigonometry engine is part of the automatic selection, for the objectives it supports, alongside the tree search. The linear and nonlinear programming engines are only run when they are selected explicitly. See :ref:`algorithm selection <internals_algorithm_selection>`.
+The direct trigonometry engine is part of the automatic selection, for the objectives it supports except :code:`knapsack`, alongside the tree search. The linear programming, nonlinear programming and black-box optimization engines are only run when they are selected explicitly. See :ref:`algorithm selection <internals_algorithm_selection>`.
 
 Source files
 ------------
@@ -65,6 +81,7 @@ References:
    :maxdepth: 1
    :hidden:
 
-   local_search_direct_trigonometry
-   local_search_linear_programming
-   local_search_nonlinear_programming
+   Direct trigonometry engine <local_search_direct_trigonometry>
+   Linear programming engine <local_search_linear_programming>
+   Nonlinear programming engine <local_search_nonlinear_programming>
+   Black-box optimization engine <local_search_black_box_optimization>

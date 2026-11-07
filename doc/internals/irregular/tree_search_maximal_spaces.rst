@@ -83,6 +83,11 @@ A node stores:
 
 Since the rectangles contain the items, the empty spaces are really empty, but they don't cover all the free space: the parts of the rectangles outside of the items (their waste) are free but in no empty space. This is why the empty spaces are only used to select where to try to insert a block, and why the blocks are allowed to stick out of them.
 
+In the example below, an L-shape is covered by 2 rectangles, without waste, and a triangle by 3 rectangles, whose parts outside the triangle are wasted. The node has 7 maximal empty spaces; the one whose bottom-left corner is the closest to the bottom-left corner of the bin is selected for the next insertions (see below):
+
+.. image:: ../../img/irregular_maximal_empty_spaces.svg
+   :align: center
+
 The root node has a single empty space, the bounding box of the bin shrunk by the item-bin spacing, which is then cut by the rectangles of the obstacles.
 
 When a block is packed, its rectangles, at its position, are removed from the empty spaces: each empty space overlapping at least one of them is cut by all of them, which replaces it by its maximal parts on the left, on the right, below and above each rectangle. Then, the new parts contained in another empty space are discarded.

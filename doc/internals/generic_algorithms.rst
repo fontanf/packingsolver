@@ -17,6 +17,11 @@ It fills the bins one by one, each with a knapsack sub-problem on the remaining 
 
 See :doc:`the detailed description <generic_algorithms/sequential_single_knapsack>`.
 
+.. toctree::
+   :hidden:
+
+   generic_algorithms/sequential_single_knapsack
+
 Sequential value correction
 ----------------------------
 
@@ -28,6 +33,11 @@ It is closely related to sequential single knapsack, but instead of restarting w
    :align: center
 
 See :doc:`the detailed description <generic_algorithms/sequential_value_correction>`.
+
+.. toctree::
+   :hidden:
+
+   generic_algorithms/sequential_value_correction
 
 Dichotomic search
 ------------------
@@ -41,6 +51,11 @@ It searches, by dichotomy, for the smallest achievable waste percentage: for a g
 
 See :doc:`the detailed description <generic_algorithms/dichotomic_search>`.
 
+.. toctree::
+   :hidden:
+
+   generic_algorithms/dichotomic_search
+
 Column generation
 -------------------
 
@@ -52,6 +67,11 @@ It solves the linear relaxation of a model whose variables are the possible cont
    :align: center
 
 See :doc:`the detailed description <generic_algorithms/column_generation>`.
+
+.. toctree::
+   :hidden:
+
+   generic_algorithms/column_generation
 
 Sequential feasibility
 -------------------------
@@ -66,11 +86,6 @@ It repeatedly solves a :code:`feasibility` sub-problem asking whether all the it
 See :doc:`the detailed description <generic_algorithms/sequential_feasibility>`.
 
 .. toctree::
-   :maxdepth: 1
    :hidden:
 
-   generic_algorithms/sequential_single_knapsack
-   generic_algorithms/sequential_value_correction
-   generic_algorithms/dichotomic_search
-   generic_algorithms/column_generation
    generic_algorithms/sequential_feasibility

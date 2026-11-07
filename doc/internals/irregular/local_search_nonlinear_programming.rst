@@ -66,6 +66,11 @@ where :math:`R(\theta)` is the rotation of angle :math:`\theta`. For an obstacle
 
 Two convex parts don't overlap if and only if such a line exists, so, unlike in the linear programming engine, no separating edge needs to be selected: the optimization chooses the lines. These are the quasi-phi-functions of Stoyan, Pankratov and Romanova (2016).
 
+In the figure below, the line of normal :math:`n(\alpha_{PQ})` and offset :math:`\beta_{PQ}` separates the parts :math:`P` and :math:`Q`: the vertices of :math:`P` are on its side, and the vertices of :math:`Q` beyond the dashed line, at the spacing :math:`s`. Since :math:`\alpha_{PQ}` and :math:`\beta_{PQ}` are variables, the line rotates and moves with the parts:
+
+.. image:: ../../img/irregular_separating_line.svg
+   :align: center
+
 The lines are initialized with the lines separating the parts with the largest gap in the current layout (or with the smallest penetration if they overlap), computed exactly from the Minkowski difference of the two parts.
 
 **Always feasible.** As in the linear programming engine, the current positions with null scales are a solution: the parts are then reduced to their centers, which stay in the bin, and two distinct centers can always be separated by a line. The exceptions are a center inside an obstacle, and two centers closer than the spacing.

@@ -55,7 +55,17 @@ Insertions
 
 To insert an item in the current bin, a supported part of the item, in one of its orientations, is put on a supporting part of the last inserted item. The item then slides along the supporting part, following the slopes of both chains, to the right, until it doesn't overlap the skyline and the extra trapezoids anymore. The insertion is discarded if the item then sticks out of the bin.
 
+The supporting and supported parts are convex chains of edges: a supporting part goes from left to right, a supported part from right to left. At the start, the first point of the supported part, its rightmost point, is put on the first point of the supporting part, its leftmost point. Then, at each step, the item moves along the current edge of the supporting part or along the current edge of the supported part, the one with the larger slope, so that the two parts stay in contact without crossing; when it reaches the end of an edge, it goes on with the next edge of the same part. So the reference point of the item (black dot) follows the edges of both parts by decreasing slope. In a real insertion, the slide stops at the first position without overlap; the figure below shows the whole slide, the supporting part in green and the supported part in red:
+
+.. image:: ../../img/irregular_tree_search_slide.svg
+   :align: center
+
 The insertions of the parent node which are still valid are kept: each one is checked against the last inserted item, and slides further if needed. So the candidate positions accumulate along the search, and an item can be inserted against any item of the front, not only the last one.
+
+In the example below, the root node has one insertion per item, at the bottom left of the bin. In the child node in which the triangle is packed, the insertions of the square and of the L-shape slide to the right until they don't overlap the triangle anymore (their previous positions are dashed), and the insertion of the triangle is discarded, since its only copy is packed. New insertions rest on the supporting part of the triangle, its hypotenuse (in green): put at its top, they stick out of the bin, so they slide down the hypotenuse until they are below the top of the bin:
+
+.. image:: ../../img/irregular_tree_search_insertions.svg
+   :align: center
 
 If no item can be inserted in the current bin, the items are inserted in a new bin, resting on the supporting parts of the bin itself: its bottom border, and the tops of its defects. Bins in which no item fits are skipped.
 

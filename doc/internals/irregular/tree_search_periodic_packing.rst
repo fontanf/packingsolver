@@ -34,6 +34,11 @@ A rectangular lattice, where :math:`v_2` is perpendicular to :math:`v_1`, is als
 
 Periodic packings mixing item types are also built, for the items shaped like an L or a U: such a *wrapper* item has a large empty rectangle touching a side of its bounding box. A *base*, a single item of another item type or the unit cell of one of its periodic packings, is put in this empty rectangle, and a second copy of the wrapper, rotated by 180°, is put on the other side of the base.
 
+The figure below shows a periodic packing of each kind, as computed by the solver: the unit cell is darker, and the arrows are the vectors of the lattice. The horizontal lattice of the hexagons is also rectangular; their vertical lattice is denser. Two triangles in rotations 0° and 180° form a square, and two L-shapes in rotations 0° and 180° wrapped around a rectangle tile the plane exactly:
+
+.. image:: ../../img/irregular_periodic_packings.svg
+   :align: center
+
 The periodic packings only depend on the item types, so they are computed once, on simplified shapes, the first time an algorithm needs them, and stored in the cache of the instance. The sub-instances built from it get the periodic packings of their item types from this cache.
 
 Blocks

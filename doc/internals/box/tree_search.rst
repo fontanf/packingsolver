@@ -24,6 +24,11 @@ A node stores the *skyline* of its current bin: the list of the *uncovered items
 
 When an item is inserted, each uncovered item it overlaps in the yz-plane is replaced by the parts of it which the new item doesn't cover (up to four rectangles: below and above the new item along y, and before and after it along z), and the new item becomes an uncovered item.
 
+In the example below, the items A, B and C are packed. Seen from the end of the x-axis, the skyline has three uncovered items: A, ending at :math:`x = 4`, B, ending at :math:`x = 3`, and C, ending at :math:`x = 2`. The item inserted (in red) starts at the end of A along y and at the end of B along z, and is pushed along x until it doesn't overlap the skyline anymore: it rests against C, at :math:`x = 2`:
+
+.. image:: ../../img/box_tree_search_skyline.svg
+   :align: center
+
 **Effective skyline.** When the space between an item and a side of the bin along y (or z) is smaller than the smallest dimension of the items along y (or z), no item can be inserted there anymore: the uncovered items on this side are considered to reach the end of the item along x. This effective skyline is used for the dominance and for the volumes below.
 
 **Volumes.** The *current volume* of a node is the volume of the bins before the current one plus the volume behind the effective skyline; its *waste* is the current volume minus the volume of the items packed. The *guide volume* is the volume of the bins before the current one plus the volume of the current bin behind the largest x-coordinate of the start of its items, plus the volume of the effective skyline beyond it.
@@ -74,3 +79,4 @@ Source files
 ------------
 
 * :code:`src/box/tree_search.hpp`, :code:`src/box/tree_search.cpp`
+* :code:`scripts/doc_figures/box.py`: the figures of the box pages

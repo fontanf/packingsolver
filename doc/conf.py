@@ -23,7 +23,7 @@ import sys
 # The local extensions ('_ext').
 sys.path.insert(0, os.path.abspath('_ext'))
 
-extensions = ['myst_parser', 'sphinx.ext.mathjax', 'sphinx_design', 'example_tabs']
+extensions = ['myst_parser', 'sphinx.ext.mathjax', 'sphinx_design', 'example_tabs', 'toc_section_pages']
 
 templates_path = ['_templates']
 exclude_patterns = ['_build', '_ext', 'Thumbs.db', '.DS_Store', 'TODO.md']
