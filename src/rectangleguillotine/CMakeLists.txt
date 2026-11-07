@@ -7,6 +7,7 @@ target_sources(PackingSolver_rectangleguillotine PRIVATE
     solution.cpp
     solution_builder.cpp
     instance_flipper.cpp
+    normal_positions.cpp
     algorithm_formatter.cpp
     optimize.cpp
     reduction.cpp

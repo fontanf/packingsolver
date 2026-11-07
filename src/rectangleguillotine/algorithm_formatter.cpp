@@ -229,6 +229,14 @@ void AlgorithmFormatter::print(
     }
 }
 
+Profit AlgorithmFormatter::best_solution_profit()
+{
+    mutex_.lock();
+    Profit profit = output_.solution_pool.best().profit();
+    mutex_.unlock();
+    return profit;
+}
+
 void AlgorithmFormatter::update_solution(
         const Solution& solution,
         const std::string& s)

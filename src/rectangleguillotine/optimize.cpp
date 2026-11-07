@@ -366,12 +366,18 @@ void optimize_tree_search_hypergraph(
     TreeSearchHypergraphParameters tsh_parameters;
     tsh_parameters.verbosity_level = 0;
     tsh_parameters.timer = parameters.timer;
+    tsh_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
+    tsh_parameters.best_known_profit = [&algorithm_formatter]()
+    {
+        return algorithm_formatter.best_solution_profit();
+    };
     tsh_parameters.new_solution_callback = [&algorithm_formatter](
             const rectangleguillotine::Output& ps_output)
     {
         algorithm_formatter.update_solution(
                 ps_output.solution_pool.best(),
                 "TSH " + ps_output.solution_pool.best_label());
+        algorithm_formatter.update_bounds(ps_output);
     };
     tree_search_hypergraph(instance, tsh_parameters);
 }
@@ -655,7 +661,7 @@ void optimize_column_generation(
 {
     request_blocks(instance, algorithm_formatter);
     ColumnGenerationPricingFunction<Instance, InstanceBuilder, Solution, rectangleguillotine::Output> pricing_function
-        = [&algorithm_formatter, &parameters](const Instance& kp_instance, PricingType)
+        = [&algorithm_formatter, &parameters](const Instance& kp_instance, PricingType pricing_type)
         {
             OptimizeParameters kp_parameters;
             kp_parameters.verbosity_level = 0;
@@ -670,6 +676,23 @@ void optimize_column_generation(
             kp_parameters.not_anytime_tree_search_maximal_spaces_queue_size
                 = parameters.column_generation_subproblem_tree_search_maximal_spaces_queue_size;
             kp_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
+            kp_parameters.tree_search_hypergraph_maximum_number_of_states
+                = parameters.tree_search_hypergraph_maximum_number_of_states;
+            // 'PricingType::Dual' calls are rare and exist to prove a bound:
+            // the 'tree_search_hypergraph' algorithm is exact, and its bound
+            // is valid even when it is interrupted, so force it alone,
+            // bypassing the regular (heuristic) automatic algorithm
+            // selection, when it supports the instance.
+            // In 'Exact' mode, also solved in 'Exact' mode so that the bound
+            // is actually proven.
+            if (pricing_type == PricingType::Dual
+                    && tree_search_hypergraph_supported(kp_instance)
+                    && tree_search_hypergraph_number_of_states(kp_instance)
+                    <= parameters.tree_search_hypergraph_maximum_number_of_states) {
+                if (parameters.optimization_mode == OptimizationMode::Exact)
+                    kp_parameters.optimization_mode = OptimizationMode::Exact;
+                kp_parameters.use_tree_search_hypergraph = true;
+            }
             return optimize(kp_instance, kp_parameters);
         };
 
@@ -679,6 +702,7 @@ void optimize_column_generation(
     cg_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
     cg_parameters.optimization_mode = parameters.optimization_mode;
     cg_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
+    cg_parameters.pricing_function_has_dual_bound = true;
     // The sequential feasibility scheme solves a column generation for each
     // number of bins from the lower bound: too slow when the solutions use
     // many bins. With a single bin type, the bound of the master problem is
@@ -965,6 +989,16 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
                 use_column_generation_strips = true;
             } else {
                 use_tree_search = true;
+            }
+            // In 'Exact' mode, the 'tree_search_hypergraph' algorithm proves
+            // the optimality (or the infeasibility) of the solutions, while
+            // the other algorithms find good solutions quickly, from which
+            // it starts.
+            if (parameters.optimization_mode == OptimizationMode::Exact
+                    && tree_search_hypergraph_supported(instance)
+                    && tree_search_hypergraph_number_of_states(instance)
+                    <= parameters.tree_search_hypergraph_maximum_number_of_states) {
+                use_tree_search_hypergraph = true;
             }
         }
     } else if (instance.objective() == Objective::Feasibility) {

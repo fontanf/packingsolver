@@ -3,6 +3,7 @@
 #include "packingsolver/rectangleguillotine/algorithm_formatter.hpp"
 #include "packingsolver/rectangleguillotine/post_process.hpp"
 #include "rectangleguillotine/solution_builder.hpp"
+#include "rectangleguillotine/normal_positions.hpp"
 
 #include <algorithm>
 #include <limits>
@@ -17,108 +18,6 @@ using namespace packingsolver::rectangleguillotine;
 
 namespace
 {
-
-/*
- * The normal positions along a dimension of the bin: the lengths of the
- * combinations of item dimensions (with a cut thickness between two
- * consecutive items), up to the length of the bin. Any guillotine pattern
- * can be transformed into a pattern with the same items whose cuts are at
- * normal positions (pushing its items towards the origin), so the dynamic
- * program only needs the sub-rectangles of normal dimensions (Herz 1972;
- * Christofides and Whitlock 1977).
- */
-struct NormalPositions
-{
-    /** The normal positions, increasing; 'positions[0]' is 0. */
-    std::vector<Length> positions;
-
-    /**
-     * For each length 'x' between 0 and the length of the bin, the index of
-     * the largest normal position not larger than 'x'.
-     */
-    std::vector<Counter> floor;
-};
-
-NormalPositions compute_normal_positions(
-        const std::vector<Length>& dimensions,
-        Length length,
-        Length cut_thickness)
-{
-    // A combination of 'n' items, followed by their 'n' cuts, has a length
-    // which is a sum of 'dimension + cut_thickness'; its normal position is
-    // this length minus the last cut.
-    std::vector<bool> reached(length + cut_thickness + 1, false);
-    reached[0] = true;
-    for (Length x = 0; x <= length + cut_thickness; ++x) {
-        if (!reached[x])
-            continue;
-        for (Length dimension: dimensions) {
-            Length next = x + dimension + cut_thickness;
-            if (next <= length + cut_thickness)
-                reached[next] = true;
-        }
-    }
-    NormalPositions normal_positions;
-    normal_positions.positions.push_back(0);
-    for (Length x = cut_thickness + 1; x <= length + cut_thickness; ++x)
-        if (reached[x])
-            normal_positions.positions.push_back(x - cut_thickness);
-    normal_positions.floor.resize(length + 1);
-    Counter index = 0;
-    for (Length x = 0; x <= length; ++x) {
-        while (index + 1 < (Counter)normal_positions.positions.size()
-                && normal_positions.positions[index + 1] <= x) {
-            ++index;
-        }
-        normal_positions.floor[x] = index;
-    }
-    return normal_positions;
-}
-
-/*
- * The raster points along a dimension of the bin (Scheithauer and Terno,
- * 1996): the lengths of what remains of the bin after cutting a normal
- * length, rounded down to a normal position:
- *   R = { <L - q - t> : q normal position } (and 0),
- * where <x> is the largest normal position not larger than x.
- *
- * They are the only lengths of the sub-rectangles that the dynamic program
- * needs: a sub-rectangle of a pattern can be extended until the content of
- * its neighbor (pushed to the other side), and its length is then a raster
- * point. If 'x' is a raster point and 'c' a normal position, <x - c - t> is
- * also a raster point, so the recurrence only uses raster points.
- */
-NormalPositions compute_raster_points(
-        const NormalPositions& normal_positions,
-        Length length,
-        Length cut_thickness)
-{
-    std::vector<bool> is_raster_point(length + 1, false);
-    is_raster_point[0] = true;
-    is_raster_point[normal_positions.positions[normal_positions.floor[length]]] = true;
-    for (Length position: normal_positions.positions) {
-        if (position == 0)
-            continue;
-        Length rest = length - position - cut_thickness;
-        if (rest < 0)
-            break;
-        is_raster_point[normal_positions.positions[normal_positions.floor[rest]]] = true;
-    }
-    NormalPositions raster_points;
-    for (Length x = 0; x <= length; ++x)
-        if (is_raster_point[x])
-            raster_points.positions.push_back(x);
-    raster_points.floor.resize(length + 1);
-    Counter index = 0;
-    for (Length x = 0; x <= length; ++x) {
-        while (index + 1 < (Counter)raster_points.positions.size()
-                && raster_points.positions[index + 1] <= x) {
-            ++index;
-        }
-        raster_points.floor[x] = index;
-    }
-    return raster_points;
-}
 
 /*
  * The table of the dynamic program: the maximum profit of a guillotine

@@ -93,11 +93,11 @@ Tree search hypergraph
 
 This algorithm solves the :code:`feasibility` and :code:`knapsack` objectives exactly.
 
-It generates unlimited-staged guillotine patterns.
+It generates guillotine patterns with any number of stages, or an unlimited number of stages.
 
-This is a kind of tree search algorithm, but instead of generating children from one parent node, children are generated from two parent nodes: two blocks are combined either side by side or one above the other. The blocks are processed best first, guided by a dynamic programming bound, until the best block is proven optimal.
+It is a bidirectional labeling algorithm in a decision hypergraph whose states are the sub-plates of the patterns and whose hyperarcs are the guillotine cuts (Léonard and Clautiaux, 2026). A label of a state is the vector of the numbers of copies of the item types of a pattern of the state. Forward labels are built from the leaves towards the bin, backward labels from the bin towards the leaves, and the patterns are obtained by merging them, the two directions stopping half-way thanks to bounds from the linear relaxation of the flow formulation of the hypergraph.
 
-.. image:: ../img/rectangleguillotine_tree_search_hypergraph_combinations.svg
+.. image:: ../img/rectangleguillotine_tree_search_hypergraph_merge.svg
    :align: center
 
 See :doc:`the detailed description <rectangleguillotine/tree_search_hypergraph>`.
@@ -114,7 +114,7 @@ This algorithm solves the :code:`feasibility` and :code:`knapsack` objectives.
 
 It generates unlimited-staged guillotine patterns.
 
-This algorithm works the same way as the tree search hypergraph algorithm, except that the item type quantities are not taken into account, so it can be solved by dynamic programming. Therefore, it is very fast, and it gives a bound, but the generated solution might be infeasible regarding the available number of item copies.
+This algorithm generates the guillotine patterns of each sub-rectangle from the patterns of the two parts of its cuts, as the tree search hypergraph algorithm, except that the item type quantities are not taken into account, so it can be solved by dynamic programming. Therefore, it is very fast, and it gives a bound, but the generated solution might be infeasible regarding the available number of item copies.
 
 .. image:: ../img/rectangleguillotine_tree_search_hypergraph_infinite_copies_combinations.svg
    :align: center

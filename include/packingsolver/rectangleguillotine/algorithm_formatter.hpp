@@ -78,6 +78,12 @@ public:
 
     const Output& output() const { return output_; }
 
+    /**
+     * Get the profit of the best solution, which may be updated by other
+     * threads.
+     */
+    Profit best_solution_profit();
+
 private:
 
     /** Instance. */
