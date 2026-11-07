@@ -1,5 +1,7 @@
 """Figures of the detailed description of the tree searches hypergraph of
-rectangleguillotine: two blocks combined side by side or one above the other.
+rectangleguillotine: the states and the hyperarcs of a pattern, the merge of
+the labels at a hyperarc, and, for the tree search hypergraph with infinite
+copies, two blocks combined side by side or one above the other.
 
 Usage, from the root of the repository:
 
@@ -11,7 +13,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import figure
-from figure import BLUE, RED, GREEN, YELLOW
+from figure import BLUE, RED, GREEN, YELLOW, GRAY
 
 SVG_DIR = "doc/img"
 PREFIX = "rectangleguillotine_"
@@ -98,6 +100,78 @@ def figure_combinations(with_items, name):
     fig.write(SVG_DIR + "/" + PREFIX + name + ".svg")
 
 
+################################################################################
+# Tree search hypergraph: states and hyperarcs of a 2-staged pattern.
+################################################################################
+
+BIN = (12, 8)
+# A 2-staged pattern, vertical first stage: three strips.
+PATTERN = [
+    ("A", 0, 0, 5, 3),
+    ("B", 0, 3, 5, 4),
+    ("C", 5, 0, 4, 8),
+    ("D", 9, 0, 3, 5),
+]
+OUTLINE = "fillColor=none;strokeColor=#000000;strokeWidth=2;"
+DASHED = "fillColor=none;strokeColor=#000000;dashed=1;"
+
+
+def draw_pattern(fig, ox, oy, styles=None):
+    for name, x, y, w, h in PATTERN:
+        style = BLUE if styles is None else styles[name]
+        fig.rect(ox + x, oy + y, w, h, name, style)
+    fig.rect(ox, oy, BIN[0], BIN[1], "", OUTLINE)
+
+
+def figure_states():
+    """The pattern, and two hyperarcs: the first strip of the part S of the
+    bin to cut, and the first piece of the part of the first strip."""
+    fig = figure.Figure(unit=14)
+    draw_pattern(fig, 0, 0)
+    fig.text(BIN[0] / 2, -1.2, "a 2-staged pattern", w=12, size=11)
+
+    def state(x, y, w, h, label, style):
+        fig.rect(x, y, w, h, "", style)
+        fig.text(x + w / 2, y - 0.9, label, w=10, size=11)
+
+    # S(12, 8, V, 2) <- N(5, 8, H, 1) + S(7, 8, V, 2).
+    ox = 16
+    state(ox, 0, 12, 8, "S(12, 8, V, 2)", GRAY)
+    fig.big_arrow(ox + 6, -2.2, length=2.2)
+    state(ox - 1, -14, 5, 8, "N(5, 8, H, 1)", BLUE)
+    state(ox + 6, -14, 7, 8, "S(7, 8, V, 2)", GRAY)
+    fig.text(ox + 6, -16.6, "first strip, and the rest", w=14, size=11)
+
+    # S(5, 8, H, 1) <- N(5, 3, V, 0) + S(5, 5, H, 1).
+    ox = 34
+    state(ox, 0, 5, 8, "S(5, 8, H, 1)", GRAY)
+    fig.big_arrow(ox + 2.5, -2.2, length=2.2)
+    state(ox - 3.5, -14, 5, 3, "N(5, 3, V, 0)", BLUE)
+    state(ox + 3.5, -14, 5, 5, "S(5, 5, H, 1)", GRAY)
+    fig.text(ox + 2.5, -16.6, "first piece, and the rest", w=14, size=11)
+    fig.write(SVG_DIR + "/" + PREFIX + "tree_search_hypergraph_states.svg")
+
+
+def figure_merge():
+    """The labels merged at the hyperarc S(5, 8) <- N(5, 3) + S(5, 5): a
+    forward label of each source, and a backward label of the target."""
+    fig = figure.Figure(unit=16)
+    styles = {"A": BLUE, "B": GREEN, "C": RED, "D": RED}
+    draw_pattern(fig, 0, 0, styles)
+    fig.rect(0, 0, 5, 8, "", "fillColor=none;strokeColor=#000000;strokeWidth=3;dashed=1;")
+    legend = [
+        (BLUE, "forward label of N(5, 3): {A}"),
+        (GREEN, "forward label of S(5, 5): {B}"),
+        (RED, "backward label of S(5, 8) (dashed): {C, D}"),
+    ]
+    for k, (style, text) in enumerate(legend):
+        y = BIN[1] - 1.5 - 2.2 * k
+        fig.rect(BIN[0] + 1.5, y, 1, 1, "", style)
+        fig.text(BIN[0] + 3, y + 0.5, text, w=16, align="left", size=11)
+    fig.write(SVG_DIR + "/" + PREFIX + "tree_search_hypergraph_merge.svg")
+
+
 if __name__ == "__main__":
-    figure_combinations(True, "tree_search_hypergraph_combinations")
+    figure_states()
+    figure_merge()
     figure_combinations(False, "tree_search_hypergraph_infinite_copies_combinations")

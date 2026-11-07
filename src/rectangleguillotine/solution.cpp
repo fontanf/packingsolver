@@ -450,14 +450,6 @@ void Solution::update_indicators(
         this->number_of_stages_feasible_ = false;
     }
 
-    if (!minimum_waste_length_feasible()) {
-        for (const SolutionNode& node: bin.nodes) {
-            std::cout << node << std::endl;
-        }
-        write("solution_rectangleguillotine.csv");
-        exit(1);
-    }
-
     cutting_cost_ += instance().parameters().waste_cost * (waste() - waste_before_bin);
 
     // Update number_of_infeasible_item_copies_min_.

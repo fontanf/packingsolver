@@ -423,15 +423,22 @@ void SolutionBuilder::read(
             const SolutionNode& node = nodes[bin_pos][node_id];
             if (node.f == -1 && bin_type_id < 0)
                 bin_type_id = node.item_type_id;
-            if (node.d == 1) {
+            // The orientation of the cuts of the first node which differs
+            // from its parent (a node identical to its parent, for example
+            // a first-level sub-plate covering the whole bin, doesn't tell
+            // the orientation of its cut).
+            if (node.d >= 1) {
                 const SolutionNode& parent = nodes[bin_pos][node.f];
-                if (node.b == parent.b && node.t == parent.t) {
-                    first_cut_orientation = CutOrientation::Vertical;
-                } else if (node.l == parent.l && node.r == parent.r) {
-                    first_cut_orientation = CutOrientation::Horizontal;
-                } else {
+                bool same_x = (node.l == parent.l && node.r == parent.r);
+                bool same_y = (node.b == parent.b && node.t == parent.t);
+                if (same_x && same_y)
+                    continue;
+                bool vertical = same_y;
+                if (!same_x && !same_y)
                     throw std::logic_error(FUNC_SIGNATURE);
-                }
+                first_cut_orientation = (vertical == (node.d % 2 == 1))?
+                    CutOrientation::Vertical:
+                    CutOrientation::Horizontal;
                 break;
             }
         }

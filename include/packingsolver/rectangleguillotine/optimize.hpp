@@ -226,6 +226,15 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
     Area tree_search_hypergraph_infinite_copies_maximum_bin_area = 10000000;
 
     /**
+     * Maximum number of states of the hypergraph of an instance for which
+     * the 'tree_search_hypergraph' algorithm is used, automatically in
+     * 'Exact' mode for the 'Knapsack' and 'Feasibility' objectives with a
+     * single bin, and for the 'PricingType::Dual' calls of the pricing of
+     * the column generation.
+     */
+    Counter tree_search_hypergraph_maximum_number_of_states = 1 << 22;
+
+    /**
      * Size of the queue in the tree search algorithm for the pricing knapsack subproblem of
      * the sequential value correction algorithm.
      */
