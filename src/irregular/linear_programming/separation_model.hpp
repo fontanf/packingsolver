@@ -121,6 +121,31 @@ public:
             const StepParameters& parameters,
             const optimizationtools::Timer& timer) const;
 
+    /**
+     * Solve the linear program of an anchor step, and update the positions
+     * of the items.
+     *
+     * The items keep their scales. The linear program minimizes
+     * 'x_weight * x + y_weight * y' summed over the items, the parts of the
+     * items staying in 'container' (in scaled coordinates, the bin spacing
+     * included).
+     *
+     * The edge of each pair of parts is the one which separates them the best
+     * in the current state. The current state is kept feasible: a constraint
+     * which it doesn't satisfy (for example, two parts whose corners are at
+     * the spacing from each other, but whose edges are not) is relaxed to its
+     * current value.
+     *
+     * Return false if the linear program hasn't been solved.
+     */
+    bool anchor_step(
+            std::vector<SeparationModelItem>& items,
+            double x_weight,
+            double y_weight,
+            const AxisAlignedBoundingBox& container,
+            const StepParameters& parameters,
+            const optimizationtools::Timer& timer) const;
+
 private:
 
     /** Convex part of an item or of an obstacle. */
@@ -193,11 +218,15 @@ private:
      * best; if there is none, the one which separates them the best.
      * 'best_value' is set to the largest value of the constraints of all
      * the edges, so that it measures the separation of the two parts.
+     *
+     * If 'fixed_scales' is true, the scales don't change during the step:
+     * the selected edge is the one which separates the two parts the best.
      */
     Constraint best_constraint(
             const std::vector<SeparationModelItem>& items,
             Counter part_pos_1,
             Counter part_pos_2,
+            bool fixed_scales,
             LengthDbl& best_value) const;
 
     /** Value of a constraint in a state (minus its spacing). */
@@ -221,7 +250,21 @@ private:
     LengthDbl compute_constraints(
             const std::vector<SeparationModelItem>& items,
             const std::vector<LengthDbl>& movements,
+            bool fixed_scales,
             std::vector<Constraint>& constraints) const;
+
+    /**
+     * Solve the linear program of a step (see 'step') or, if 'fixed_scales'
+     * is true, of an anchor step (see 'anchor_step').
+     */
+    bool solve_step(
+            std::vector<SeparationModelItem>& items,
+            const StepParameters& parameters,
+            bool fixed_scales,
+            double x_weight,
+            double y_weight,
+            const AxisAlignedBoundingBox& container,
+            const optimizationtools::Timer& timer) const;
 
     /** Instance. */
     const Instance& instance_;

@@ -1,0 +1,21 @@
+{
+    "objective": "bin-packing-with-leftovers",
+    "parameters": {
+        "item_item_minimum_spacing": 50
+    },
+    "bin_types": [
+        {
+            "type": "rectangle",
+            "width": 1000,
+            "height": 1000
+        }
+    ],
+    "item_types": [
+        {
+            "copies": 2,
+            "type": "rectangle",
+            "width": 400,
+            "height": 300
+        }
+    ]
+}

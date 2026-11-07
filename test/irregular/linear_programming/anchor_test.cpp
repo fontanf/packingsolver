@@ -5,6 +5,8 @@
 #include <gtest/gtest.h>
 #include <boost/filesystem.hpp>
 
+#include <cmath>
+
 using namespace packingsolver;
 using namespace packingsolver::irregular;
 namespace fs = boost::filesystem;
@@ -202,4 +204,53 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "irregular" / "tests" / "linear_programming_anchor/lp_two_staircases_bl_initial.json",
                 1.0, 1.0,
                 fs::path("data") / "irregular" / "tests" / "linear_programming_anchor/lp_two_staircases_bl_expected.json"
+            }, {
+                // Two squares with an item-item spacing and an item-bin
+                // spacing pushed to the bottom-left corner.
+                fs::path("data") / "irregular" / "tests" / "linear_programming_anchor/lp_two_items_spacing.json",
+                fs::path("data") / "irregular" / "tests" / "linear_programming_anchor/lp_two_items_spacing_initial.json",
+                1.0, 1.0,
+                fs::path("data") / "irregular" / "tests" / "linear_programming_anchor/lp_two_items_spacing_expected.json"
+            }, {
+                // Same squares pushed to the top-right corner.
+                fs::path("data") / "irregular" / "tests" / "linear_programming_anchor/lp_two_items_spacing.json",
+                fs::path("data") / "irregular" / "tests" / "linear_programming_anchor/lp_two_items_spacing_top_right_initial.json",
+                -1.0, -1.0,
+                fs::path("data") / "irregular" / "tests" / "linear_programming_anchor/lp_two_items_spacing_top_right_expected.json"
             }}));
+
+TEST(IrregularLinearProgrammingAnchor, DiagonalSpacing)
+{
+    // Two rectangles whose corners face each other diagonally: the gaps
+    // along the axes (40) are smaller than the spacing (50), but the
+    // distance between the rectangles (56.6) isn't.
+    fs::path directory = fs::path("data") / "irregular" / "tests" / "linear_programming_anchor";
+    InstanceBuilder instance_builder;
+    instance_builder.read((directory / "lp_diagonal_spacing.json").string());
+    Instance instance = instance_builder.build();
+    SolutionBuilder initial_solution_builder(instance);
+    initial_solution_builder.read((directory / "lp_diagonal_spacing_initial.json").string());
+    Solution initial_solution = initial_solution_builder.build();
+
+    LinearProgrammingAnchorOutput output = linear_programming_anchor(
+            initial_solution,
+            1.0,
+            1.0);
+    const Solution& solution = output.solution;
+    solution.format(std::cout);
+
+    ASSERT_EQ(solution.number_of_different_bins(), 1);
+    const SolutionBin& solution_bin = solution.bin(0);
+    ASSERT_EQ(solution_bin.items.size(), 2);
+    const LengthDbl width = 400;
+    const LengthDbl height = 300;
+    const Point& bl_corner_1 = solution_bin.items[0].bl_corner;
+    const Point& bl_corner_2 = solution_bin.items[1].bl_corner;
+    std::cout << "Item 1: " << bl_corner_1.to_string() << std::endl;
+    std::cout << "Item 2: " << bl_corner_2.to_string() << std::endl;
+    LengthDbl gap_x = (std::max)(0.0, (std::abs)(bl_corner_2.x - bl_corner_1.x) - width);
+    LengthDbl gap_y = (std::max)(0.0, (std::abs)(bl_corner_2.y - bl_corner_1.y) - height);
+    EXPECT_GE(std::sqrt(gap_x * gap_x + gap_y * gap_y), 50 - 1e-3);
+    // The items moved towards the corner.
+    EXPECT_LT(bl_corner_1.x + bl_corner_1.y + bl_corner_2.x + bl_corner_2.y, 780 - 1);
+}
