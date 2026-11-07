@@ -1440,8 +1440,10 @@ Value ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution, Output>
         const Column& column) const
 {
     // Only ever builds subset-row cuts - see 'build_subset_row_cut' above.
-    const SubsetRowCutExtra& extra = *std::static_pointer_cast<SubsetRowCutExtra>(cut.extra);
-    const Solution& extra_solution = *std::static_pointer_cast<Solution>(column.extra);
+    // Called very often: cast the raw pointers to avoid the reference count
+    // updates of 'std::static_pointer_cast'.
+    const SubsetRowCutExtra& extra = *static_cast<const SubsetRowCutExtra*>(cut.extra.get());
+    const Solution& extra_solution = *static_cast<const Solution*>(column.extra.get());
     int number_of_items_present = 0;
     for (ItemTypeId item_type_id: extra.item_type_ids) {
         if (extra_solution.item_copies(item_type_id) > 0)
