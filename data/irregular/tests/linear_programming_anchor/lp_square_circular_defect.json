@@ -1,0 +1,26 @@
+{
+    "objective": "bin-packing-with-leftovers",
+    "bin_types": [
+        {
+            "type": "rectangle",
+            "width": 1000,
+            "height": 400,
+            "defects": [
+                {
+                    "type": "circle",
+                    "x": 500,
+                    "y": 200,
+                    "radius": 100,
+                    "item_defect_minimum_spacing": 20
+                }
+            ]
+        }
+    ],
+    "item_types": [
+        {
+            "type": "rectangle",
+            "width": 100,
+            "height": 100
+        }
+    ]
+}

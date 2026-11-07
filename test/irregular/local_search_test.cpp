@@ -5,6 +5,9 @@
 #include <gtest/gtest.h>
 #include <boost/filesystem.hpp>
 
+#include <algorithm>
+#include <cmath>
+
 using namespace packingsolver;
 using namespace packingsolver::irregular;
 namespace fs = boost::filesystem;
@@ -172,6 +175,72 @@ TEST(IrregularLocalSearch, DirectTrigonometryFeasibility)
             Solution::OverlappingItems overlapping_items = solution.compute_overlapping_items(bin_pos);
             EXPECT_TRUE(overlapping_items.item_item_pairs.empty());
             EXPECT_TRUE(overlapping_items.items_outside_bin.empty());
+        }
+    }
+}
+
+TEST(IrregularLocalSearch, LinearProgrammingFeasibilityCircles)
+{
+    // Bin 45x25; four circles of radius 5 and four 10x10 squares, with an
+    // item-item spacing. Without initial solution, the separator places the
+    // items at random positions.
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(Objective::Feasibility);
+    instance_builder.set_item_item_minimum_spacing(0.5);
+    instance_builder.add_bin_type(rectangle_shape(45, 25));
+    ItemShape circle_shape;
+    circle_shape.shape_orig.shape = shape::build_circle(5);
+    ItemTypeId circle_id = instance_builder.add_item_type({circle_shape});
+    instance_builder.set_item_type_copies(circle_id, 4);
+    ItemTypeId square_id = instance_builder.add_item_type(rectangle_item_shape(10, 10));
+    instance_builder.set_item_type_copies(square_id, 4);
+    Instance instance = instance_builder.build();
+
+    LocalSearchParameters parameters;
+    parameters.verbosity_level = 0;
+    parameters.engine = LocalSearchEngine::LinearProgramming;
+    std::mt19937_64 generator(0);
+    LocalSearchOutput output = local_search(instance, generator, nullptr, parameters);
+    const Solution& solution = output.solution_pool.best();
+    EXPECT_TRUE(solution.full());
+    EXPECT_TRUE(solution.feasible());
+    for (BinPos bin_pos = 0; bin_pos < solution.number_of_different_bins(); ++bin_pos) {
+        Solution::OverlappingItems overlapping_items = solution.compute_overlapping_items(bin_pos);
+        EXPECT_TRUE(overlapping_items.item_item_pairs.empty());
+        EXPECT_TRUE(overlapping_items.items_outside_bin.empty());
+    }
+    // Spacing between the items. The reference point of a circle is its
+    // center, and the one of a square its bottom-left corner.
+    if (solution.number_of_different_bins() != 1)
+        return;
+    const SolutionBin& solution_bin = solution.bin(0);
+    auto rectangle_distance = [](
+            const Point& point,
+            const Point& bl_corner,
+            LengthDbl size)
+    {
+        LengthDbl gap_x = (std::max)({0.0, bl_corner.x - point.x, point.x - bl_corner.x - size});
+        LengthDbl gap_y = (std::max)({0.0, bl_corner.y - point.y, point.y - bl_corner.y - size});
+        return std::sqrt(gap_x * gap_x + gap_y * gap_y);
+    };
+    for (ItemPos item_pos_1 = 0; item_pos_1 < (ItemPos)solution_bin.items.size(); ++item_pos_1) {
+        const SolutionItem& item_1 = solution_bin.items[item_pos_1];
+        for (ItemPos item_pos_2 = item_pos_1 + 1; item_pos_2 < (ItemPos)solution_bin.items.size(); ++item_pos_2) {
+            const SolutionItem& item_2 = solution_bin.items[item_pos_2];
+            LengthDbl item_distance = 0.0;
+            if (item_1.item_type_id == circle_id && item_2.item_type_id == circle_id) {
+                item_distance = distance(item_1.bl_corner, item_2.bl_corner) - 10;
+            } else if (item_1.item_type_id == circle_id) {
+                item_distance = rectangle_distance(item_1.bl_corner, item_2.bl_corner, 10) - 5;
+            } else if (item_2.item_type_id == circle_id) {
+                item_distance = rectangle_distance(item_2.bl_corner, item_1.bl_corner, 10) - 5;
+            } else {
+                LengthDbl gap_x = (std::max)(0.0, std::abs(item_1.bl_corner.x - item_2.bl_corner.x) - 10);
+                LengthDbl gap_y = (std::max)(0.0, std::abs(item_1.bl_corner.y - item_2.bl_corner.y) - 10);
+                item_distance = std::sqrt(gap_x * gap_x + gap_y * gap_y);
+            }
+            EXPECT_GE(item_distance, 0.5 - 1e-3)
+                << "items " << item_pos_1 << " and " << item_pos_2;
         }
     }
 }

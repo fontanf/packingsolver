@@ -236,7 +236,7 @@ LengthDbl LinearProgrammingSeparator::separation() const
         if (!model.supported()) {
             throw std::invalid_argument(
                     FUNC_SIGNATURE + ": "
-                    "the shapes must be made of line segments.");
+                    "the borders of the bins must be made of line segments.");
         }
         separation = (std::min)(separation, model.separation(items));
     }
@@ -260,7 +260,7 @@ bool LinearProgrammingSeparator::step(
         if (!model.supported()) {
             throw std::invalid_argument(
                     FUNC_SIGNATURE + ": "
-                    "the shapes must be made of line segments.");
+                    "the borders of the bins must be made of line segments.");
         }
         BinSeparationModel::StepParameters step_parameters;
         step_parameters.movement_ratio = movement_ratio;

@@ -135,8 +135,8 @@ bool separation_model_anchor(
 /**
  * Anchor of a bin with the edge separators of 'utils.hpp'.
  *
- * Used for the shapes which the separation model doesn't support (circular
- * arcs). The minimum spacings are not enforced.
+ * Used for the bins which the separation model doesn't support (borders with
+ * circular arcs). The minimum spacings are not enforced.
  */
 Solution edge_separator_anchor(
         const Instance& instance,

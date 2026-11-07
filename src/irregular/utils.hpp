@@ -96,8 +96,15 @@ inline InstanceBasicShapeDecomposition compute_instance_basic_shape_decompositio
         for (Counter defect_pos = 0;
                 defect_pos < (Counter)bin_type.defects.size();
                 ++defect_pos) {
-            for (const Shape& part: shape::compute_convex_partition(
-                    bin_type.defects[defect_pos].shape_scaled)) {
+            const ShapeWithHoles& defect_shape = bin_type.defects[defect_pos].shape_scaled;
+            if (!defect_shape.is_polygon()) {
+                // Defects with convex circular arcs, such as circles.
+                const BasicShapesDecomposition decomposition = decompose_into_basic_shapes(defect_shape);
+                for (const BasicShape& basic_shape: decomposition.basic_shapes)
+                    ibsd.bin_types_defects[bin_type_id].push_back(basic_shape);
+                continue;
+            }
+            for (const Shape& part: shape::compute_convex_partition(defect_shape)) {
                 BasicShape basic_shape;
                 basic_shape.type = BasicShapeType::ConvexPolygon;
                 basic_shape.shape = part;
