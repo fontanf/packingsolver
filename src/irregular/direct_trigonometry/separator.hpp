@@ -535,6 +535,12 @@ private:
             const Evaluation& bound,
             bool insertion);
 
+    /**
+     * Build the index of the bounding boxes of the items of a bin (see
+     * 'bins_index_').
+     */
+    void build_index(BinPos bin_pos);
+
     /** Search a placement for an item. */
     Candidate search_placement(
             ItemPos item_pos,
@@ -648,6 +654,44 @@ private:
 
     /** Position of each item in the item list of its bin. */
     std::vector<ItemPos> items_bin_item_pos_;
+
+    /** Entry of the index of the bounding boxes of the items of a bin. */
+    struct IndexEntry
+    {
+        /** Bounding box of the item. */
+        AxisAlignedBoundingBox aabb;
+
+        /** Item. */
+        ItemPos item_pos;
+    };
+
+    /**
+     * For each bin, the bounding boxes of its items, sorted by 'x_min'.
+     *
+     * An evaluation only goes through the entries whose 'x_min' is smaller
+     * than the 'x_max' of the evaluated placement, skipping the chunks of
+     * entries whose largest 'x_max' is smaller than its 'x_min'.
+     *
+     * The index of a bin is built at the first evaluation of a placement in
+     * it during a search (see 'search_placement'): during a search, only the
+     * searched item moves, and it is skipped.
+     */
+    std::vector<std::vector<IndexEntry>> bins_index_;
+
+    /** Number of searches of placements ('search_placement'). */
+    Counter number_of_searches_ = 0;
+
+    /** For each bin, the search for which its index has been built. */
+    std::vector<Counter> bins_index_search_;
+
+    /** For each bin, the largest 'x_max' of each chunk of 'bins_index_'. */
+    std::vector<std::vector<LengthDbl>> bins_index_chunks_x_max_;
+
+    /**
+     * Items whose bounding box intersects the one of the evaluated placement
+     * (see 'evaluate').
+     */
+    std::vector<ItemPos> intersecting_items_;
 
     /** Collision entries of the pairs of items (triangular matrix). */
     std::vector<Entry> pair_entries_;
