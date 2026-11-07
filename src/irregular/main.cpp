@@ -90,6 +90,7 @@ int main(int argc, char *argv[])
             ("use-local-search-linear-programming,", po::value<bool>(), "enable local search algorithm with the linear programming engine")
             ("use-local-search-nonlinear-programming,", po::value<bool>(), "enable local search algorithm with the nonlinear programming engine (requires Knitro)")
             ("use-local-search-direct-trigonometry,", po::value<bool>(), "enable local search algorithm with the direct trigonometry engine")
+            ("tree-search-maximum-number-of-item-types,", po::value<Counter>(), "item types the tree search expands at each node (-1: all)")
             ("use-local-search-black-box-optimization,", po::value<bool>(), "enable local search algorithm with the black-box optimization engine (requires Knitro)")
             ("local-search-weighting-scheme,", po::value<LocalSearchWeightingScheme>(), "set the weighting scheme of the local search: multiplicative, additive")
             ("use-sequential-single-knapsack,", po::value<bool>(), "enable sequential-single-knapsack")
@@ -195,6 +196,8 @@ int main(int argc, char *argv[])
             parameters.use_local_search_linear_programming = vm["use-local-search-linear-programming"].as<bool>();
         if (vm.count("use-local-search-nonlinear-programming"))
             parameters.use_local_search_nonlinear_programming = vm["use-local-search-nonlinear-programming"].as<bool>();
+        if (vm.count("tree-search-maximum-number-of-item-types"))
+            parameters.tree_search_maximum_number_of_item_types = vm["tree-search-maximum-number-of-item-types"].as<Counter>();
         if (vm.count("use-local-search-direct-trigonometry"))
             parameters.use_local_search_direct_trigonometry = vm["use-local-search-direct-trigonometry"].as<bool>();
         if (vm.count("use-local-search-black-box-optimization"))

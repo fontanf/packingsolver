@@ -327,6 +327,13 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
     /** Initial maximum approximation ratio. */
     double initial_maximum_approximation_ratio = 0.10;
 
+    /**
+     * Number of item types the tree search expands at each node: the biggest
+     * ones with at least one insertion. A node's cost and memory otherwise
+     * grow with the number of item types. -1 (the default): all of them.
+     */
+    Counter tree_search_maximum_number_of_item_types = -1;
+
     /** Decrease factor for the maximum approximation ratio. */
     double maximum_approximation_ratio_factor = 0.75;
 

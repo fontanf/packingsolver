@@ -120,6 +120,17 @@ BranchingScheme::BranchingScheme(
                 parameters.maximum_approximation_ratio)),
     parameters_(parameters)
 {
+    item_type_ids_by_area_.resize(instance.number_of_item_types());
+    std::iota(item_type_ids_by_area_.begin(), item_type_ids_by_area_.end(), 0);
+    std::stable_sort(
+            item_type_ids_by_area_.begin(),
+            item_type_ids_by_area_.end(),
+            [&instance](ItemTypeId item_type_id_1, ItemTypeId item_type_id_2)
+            {
+                return instance.item_type(item_type_id_1).area_orig
+                    > instance.item_type(item_type_id_2).area_orig;
+            });
+
     // Compute bin_type_ids_ and previous_bins_area_.
     //
     // For the Knapsack objective, bins are considered by increasing space,
@@ -1032,28 +1043,52 @@ void BranchingScheme::insertions(
         }
 
         // Create insertions on the supporting parts of the last inserted item.
-        // Loop through each supporting part of the last inserted item.
-        for (ShapePos supporting_part_pos: bb_bin_type.trapezoid_sets[parent->trapezoid_set_id].supporting_parts) {
-            const Support& supporting_part = bb_bin_type.supporting_parts[supporting_part_pos];
-            //std::cout << "supporting_part " << supporting_part.shape.to_string(0) << std::endl;
+        if (parameters_.maximum_number_of_item_types >= 0) {
+            auto insert_set = [&](TrapezoidSetId supported_trapezoid_set_id)
+            {
+                for (ShapePos supporting_part_pos: bb_bin_type.trapezoid_sets[parent->trapezoid_set_id].supporting_parts) {
+                    for (ShapePos supported_part_pos: trapezoid_sets[supported_trapezoid_set_id].supported_parts) {
+                        if (time_limit_reached(parent->children_insertions.size()))
+                            return false;
+                        insertion_trapezoid_set(
+                                parent,
+                                supported_trapezoid_set_id,
+                                supporting_part_pos,
+                                parent->x,
+                                parent->y,
+                                supported_part_pos,
+                                Direction::Any);
+                    }
+                }
+                return true;
+            };
+            if (!insert_biggest_item_types(parent, trapezoid_sets, valid_trapezoid_set_ids, insert_set))
+                return;
+        } else {
+            // Create insertions on the supporting parts of the last inserted item.
+            // Loop through each supporting part of the last inserted item.
+            for (ShapePos supporting_part_pos: bb_bin_type.trapezoid_sets[parent->trapezoid_set_id].supporting_parts) {
+                const Support& supporting_part = bb_bin_type.supporting_parts[supporting_part_pos];
+                //std::cout << "supporting_part " << supporting_part.shape.to_string(0) << std::endl;
 
-            // Loop through each supported part of each remaining item.
-            for (TrapezoidSetId supported_trapezoid_set_id: valid_trapezoid_set_ids) {
-                //std::cout << "trapezoid_set_id " << trapezoid_set_id << std::endl;
-                const TrapezoidSet& supported_trapezoid_set = trapezoid_sets[supported_trapezoid_set_id];
-                for (ShapePos supported_part_pos: supported_trapezoid_set.supported_parts) {
-                    if (time_limit_reached(parent->children_insertions.size()))
-                        return;
-                    const Support& supported_part = bb_bin_type.supported_parts[supported_part_pos];
+                // Loop through each supported part of each remaining item.
+                for (TrapezoidSetId supported_trapezoid_set_id: valid_trapezoid_set_ids) {
+                    //std::cout << "trapezoid_set_id " << trapezoid_set_id << std::endl;
+                    const TrapezoidSet& supported_trapezoid_set = trapezoid_sets[supported_trapezoid_set_id];
+                    for (ShapePos supported_part_pos: supported_trapezoid_set.supported_parts) {
+                        if (time_limit_reached(parent->children_insertions.size()))
+                            return;
+                        const Support& supported_part = bb_bin_type.supported_parts[supported_part_pos];
 
-                    insertion_trapezoid_set(
-                            parent,
-                            supported_trapezoid_set_id,
-                            supporting_part_pos,
-                            parent->x,
-                            parent->y,
-                            supported_part_pos,
-                            Direction::Any);
+                        insertion_trapezoid_set(
+                                parent,
+                                supported_trapezoid_set_id,
+                                supporting_part_pos,
+                                parent->x,
+                                parent->y,
+                                supported_part_pos,
+                                Direction::Any);
+                    }
                 }
             }
         }
@@ -1091,6 +1126,41 @@ void BranchingScheme::insertions(
         }
 
         // Create insertions on the supporting parts of the bin.
+        if (parameters_.maximum_number_of_item_types >= 0) {
+            auto insert_set = [&](TrapezoidSetId supported_trapezoid_set_id)
+            {
+                const TrapezoidSet& supported_trapezoid_set = trapezoid_sets[supported_trapezoid_set_id];
+                const ItemType& supported_item_type = instance().item_type(supported_trapezoid_set.item_type_id);
+                for (ShapePos supporting_part_pos: bb_bin_type.bin_supporting_part_ids) {
+                    const Support& supporting_part = bb_bin_type.supporting_parts[supporting_part_pos];
+                    for (ShapePos supported_part_pos: supported_trapezoid_set.supported_parts) {
+                        if (time_limit_reached(parent->children_insertions.size()))
+                            return false;
+                        const Support& supported_part = bb_bin_type.supported_parts[supported_part_pos];
+                        const ItemShape& item_shape = supported_item_type.shapes[supported_part.item_shape_pos];
+                        if (supporting_part.defect_id >= 0
+                                && instance().can_contain(
+                                    item_shape.quality_rule,
+                                    bin_type.defects[supporting_part.defect_id].type)) {
+                            return false;
+                        }
+                        insertion_trapezoid_set(
+                                parent,
+                                supported_trapezoid_set_id,
+                                supporting_part_pos,
+                                0.0,
+                                0.0,
+                                supported_part_pos,
+                                new_bin_direction,
+                                new_bin_pos);
+                    }
+                }
+                return true;
+            };
+            if (!insert_biggest_item_types(parent, trapezoid_sets, valid_trapezoid_set_ids, insert_set))
+                return;
+            continue;
+        }
         for (ShapePos supporting_part_pos: bb_bin_type.bin_supporting_part_ids) {
             const Support& supporting_part = bb_bin_type.supporting_parts[supporting_part_pos];
 
@@ -1133,6 +1203,32 @@ void BranchingScheme::insertions(
             }
         }
     }
+}
+
+bool BranchingScheme::insert_biggest_item_types(
+        const std::shared_ptr<Node>& parent,
+        const std::vector<TrapezoidSet>& trapezoid_sets,
+        const std::vector<TrapezoidSetId>& valid_trapezoid_set_ids,
+        const std::function<bool(TrapezoidSetId)>& insert_set) const
+{
+    std::vector<std::vector<TrapezoidSetId>> item_type_trapezoid_set_ids(instance().number_of_item_types());
+    for (TrapezoidSetId trapezoid_set_id: valid_trapezoid_set_ids)
+        item_type_trapezoid_set_ids[trapezoid_sets[trapezoid_set_id].item_type_id].push_back(trapezoid_set_id);
+    Counter number_of_item_types = 0;
+    for (ItemTypeId item_type_id: item_type_ids_by_area_) {
+        if (item_type_trapezoid_set_ids[item_type_id].empty())
+            continue;
+        ItemPos number_of_insertions = parent->children_insertions.size();
+        for (TrapezoidSetId trapezoid_set_id: item_type_trapezoid_set_ids[item_type_id])
+            if (!insert_set(trapezoid_set_id))
+                return false;
+        // An item type without an insertion does not count: smaller ones are tried instead.
+        if ((ItemPos)parent->children_insertions.size() > number_of_insertions
+                && ++number_of_item_types >= parameters_.maximum_number_of_item_types) {
+            break;
+        }
+    }
+    return true;
 }
 
 void BranchingScheme::update_insertion(
@@ -2247,6 +2343,7 @@ const packingsolver::irregular::TreeSearchOutput packingsolver::irregular::tree_
                 BranchingScheme::Parameters branching_scheme_parameters;
                 branching_scheme_parameters.guide_id = guide_id;
                 branching_scheme_parameters.direction = direction;
+                branching_scheme_parameters.maximum_number_of_item_types = parameters.maximum_number_of_item_types;
                 if (parameters.optimization_mode == OptimizationMode::Anytime
                         || parameters.optimization_mode == OptimizationMode::Exact) {
                     branching_scheme_parameters.maximum_approximation_ratio

@@ -342,6 +342,7 @@ void optimize_tree_search(
     ts_parameters.not_anytime_maximum_approximation_ratio = parameters.not_anytime_maximum_approximation_ratio;
     ts_parameters.maximum_approximation_ratio_factor = parameters.maximum_approximation_ratio_factor;
     ts_parameters.minimum_maximum_approximation_ratio = parameters.minimum_maximum_approximation_ratio;
+    ts_parameters.maximum_number_of_item_types = parameters.tree_search_maximum_number_of_item_types;
     ts_parameters.json_search_tree_path = parameters.json_search_tree_path;
     ts_parameters.new_solution_callback = [&algorithm_formatter](
             const irregular::Output& ts_output)

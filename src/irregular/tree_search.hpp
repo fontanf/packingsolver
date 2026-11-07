@@ -12,6 +12,7 @@
 #include "optimizationtools/utils/utils.hpp"
 #include "optimizationtools/utils/timer.hpp"
 
+#include <functional>
 #include <sstream>
 #include <cmath>
 
@@ -240,6 +241,9 @@ public:
 
         double maximum_approximation_ratio = 0.05;
 
+        /** Item types expanded at each node, biggest first among those with an insertion; -1: all. */
+        Counter maximum_number_of_item_types = -1;
+
         /**
          * Timer to check against inside insertions() and children(), so a
          * single node whose candidate insertions are numerous on a complex
@@ -271,6 +275,17 @@ public:
 
     void insertions(
             const std::shared_ptr<Node>& parent) const;
+
+    /**
+     * Insert the biggest item types of 'valid_trapezoid_set_ids' through
+     * 'insert_set', until 'maximum_number_of_item_types' of them got an
+     * insertion; false if 'insert_set' asked to stop.
+     */
+    bool insert_biggest_item_types(
+            const std::shared_ptr<Node>& parent,
+            const std::vector<TrapezoidSet>& trapezoid_sets,
+            const std::vector<TrapezoidSetId>& valid_trapezoid_set_ids,
+            const std::function<bool(TrapezoidSetId)>& insert_set) const;
 
     Node child_tmp(
             const std::shared_ptr<Node>& parent,
@@ -484,6 +499,9 @@ private:
      * Otherwise, this matches 'instance_.bin_type_id(bin_pos)'.
      */
     std::vector<BinTypeId> bin_type_ids_;
+
+    /** Item types by decreasing area: the order 'maximum_number_of_item_types' takes them in. */
+    std::vector<ItemTypeId> item_type_ids_by_area_;
 
     /** Total area of the bins preceding each position, in the same order as 'bin_type_ids_'. */
     std::vector<AreaDbl> previous_bins_area_;
@@ -717,6 +735,8 @@ struct TreeSearchParameters: packingsolver::Parameters<Instance, Solution, Outpu
     double maximum_approximation_ratio_factor = 1.0;
 
     double minimum_maximum_approximation_ratio = 0.0;
+
+    Counter maximum_number_of_item_types = -1;
 };
 
 const TreeSearchOutput tree_search(
