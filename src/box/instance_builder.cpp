@@ -1206,10 +1206,7 @@ void InstanceBuilder::copy_cache_from_original_instance()
 
     // Only the blocks already computed are copied, without waiting for a
     // computation in progress in another thread.
-    std::unique_lock<std::mutex> original_lock(
-            original_instance.blocks_cache_->mutex,
-            std::try_to_lock);
-    if (original_lock.owns_lock() && original_instance.blocks_cache_->computed) {
+    if (original_instance.blocks_cache_->computed.load(std::memory_order_acquire)) {
         const std::vector<std::vector<Block>>& original_instance_blocks
             = original_instance.blocks_cache_->blocks;
         // The blocks are only valid if all the bin types come from the
