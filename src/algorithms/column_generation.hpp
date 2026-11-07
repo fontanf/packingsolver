@@ -1008,12 +1008,10 @@ std::vector<std::shared_ptr<const Cut>> ColumnGenerationPricingSolver<Instance, 
     //   of those columns), used further down to compute each candidate
     //   triple's violation without rescanning every column;
     // - for each item type, 'item_columns' (the sorted list of indices -
-    //   into 'column_items' - of every column that contains it), used by
-    //   'subset_violation' below to compute a larger (cardinality 5 or 7)
-    //   candidate's violation the same way - via a merge over just the
-    //   columns its own item types actually appear in - rather than
-    //   rescanning every active column regardless of whether it has any
-    //   overlap with the candidate at all.
+    //   into 'column_items' - of every column that contains it), used
+    //   below to compute the violations of the larger (cardinality 5 or 7)
+    //   candidates incrementally, from just the columns of the item types
+    //   added to them.
     std::vector<std::vector<ItemTypeId>> neighbors(instance_.number_of_item_types());
     std::vector<std::vector<ItemPos>> item_columns(instance_.number_of_item_types());
     using ItemTypeIdPair = std::pair<ItemTypeId, ItemTypeId>;
@@ -1198,7 +1196,7 @@ std::vector<std::shared_ptr<const Cut>> ColumnGenerationPricingSolver<Instance, 
     // co-occurring pair, one item type at a time, into a subset of the
     // target cardinality, always adding whichever co-occurrence neighbor
     // of the current subset maximizes its resulting violation. Evaluated
-    // by direct column scan ('subset_violation' below) rather than the
+    // incrementally (see 'column_counts' below) rather than with the
     // pairwise inclusion-exclusion trick above: that trick is specific to
     // counting "exactly 2 vs exactly 3" of a *triple*, it does not
     // generalize to distinguishing the coefficient 0/1/2/3 bands of a
@@ -1216,50 +1214,23 @@ std::vector<std::shared_ptr<const Cut>> ColumnGenerationPricingSolver<Instance, 
     // every edge of such a cycle is its own seed.
     const std::array<ItemPos, 2> generalized_subset_row_cardinalities = {5, 7};
     const ItemPos maximum_number_of_extension_seeds = 200;
-    // 'k'-way merge (k == 'subset.size()', 5 or 7) over 'item_columns'
-    // instead of a rescan of every active column: mirrors the pairwise
-    // merge 'pair_columns_of' above already uses for the cardinality-3
-    // pass, generalized from 2 lists to k. 'positions[i]' is how far
-    // 'item_columns[subset[i]]' has been consumed so far; each iteration
-    // advances every list currently at the smallest not-yet-consumed
-    // column index (there may be several, if that column contains more
-    // than one of 'subset''s item types), so every iteration retires at
-    // least one list entry - total iterations, and total work (each
-    // iteration does O(k) work to find the minimum and advance matching
-    // lists), are bounded by the combined length of the k lists, i.e. by
-    // how often 'subset''s own item types actually appear, not by how
-    // many active columns exist overall (most of which have no overlap
-    // with 'subset' at all and would contribute nothing to a full rescan
-    // anyway).
-    auto subset_violation = [&column_items, &item_columns](const std::vector<ItemTypeId>& subset) -> Value
+    // The violation of an extension of a subset of the beam is computed by
+    // merging the columns of the subset, with their numbers of item types of
+    // the subset ('touched_columns' and 'column_counts'), with the columns
+    // of the added item type ('item_columns'): the left-hand side of the cut
+    // is the sum over the columns of floor(count / 2) * value. This doesn't
+    // build the extended subset, and only the extensions kept in the beam
+    // are built.
+    struct Extension
     {
-        std::size_t subset_size = subset.size();
-        std::vector<std::size_t> positions(subset_size, 0);
-        Value lhs = 0.0;
-        while (true) {
-            ItemPos min_column = -1;
-            for (std::size_t i = 0; i < subset_size; ++i) {
-                const std::vector<ItemPos>& list = item_columns[subset[i]];
-                if (positions[i] < list.size()
-                        && (min_column == -1 || list[positions[i]] < min_column)) {
-                    min_column = list[positions[i]];
-                }
-            }
-            if (min_column == -1)
-                break;
-            int count = 0;
-            for (std::size_t i = 0; i < subset_size; ++i) {
-                const std::vector<ItemPos>& list = item_columns[subset[i]];
-                if (positions[i] < list.size() && list[positions[i]] == min_column) {
-                    ++count;
-                    ++positions[i];
-                }
-            }
-            if (count >= 2)
-                lhs += (Value)(count / 2) * column_items[min_column].value;
-        }
-        return lhs - (Value)(subset.size() / 2);
+        ItemPos beam_pos;
+        ItemTypeId item_type_id;
+        Value violation;
     };
+    std::vector<ItemPos> column_counts(column_items.size(), 0);
+    std::vector<ItemPos> touched_columns;
+    std::vector<bool> is_candidate(instance_.number_of_item_types(), false);
+    std::vector<ItemTypeId> candidate_item_type_ids;
     struct PairScore
     {
         ItemTypeId item_type_id_1;
@@ -1292,56 +1263,156 @@ std::vector<std::shared_ptr<const Cut>> ColumnGenerationPricingSolver<Instance, 
     const ItemPos extension_beam_width = 10;
     for (const PairScore& seed: pair_scores) {
         std::vector<std::vector<ItemTypeId>> beam = {{seed.item_type_id_1, seed.item_type_id_2}};
+        std::vector<Value> beam_violations;
         // Grow the same beam through every target cardinality in increasing
         // order (5, then 7), checking for violations at each checkpoint
         // along the way: the first 3 growth steps (2 -> 5) are shared work
         // for both, no need to restart from the pair for cardinality 7.
         for (ItemPos target_cardinality: generalized_subset_row_cardinalities) {
             while ((ItemPos)beam.front().size() < target_cardinality) {
-                std::vector<std::pair<std::vector<ItemTypeId>, Value>> candidates;
-                std::set<std::vector<ItemTypeId>> seen;
-                for (const std::vector<ItemTypeId>& partial: beam) {
-                    std::set<ItemTypeId> candidate_pool;
+                std::vector<Extension> extensions;
+                for (ItemPos beam_pos = 0; beam_pos < (ItemPos)beam.size(); ++beam_pos) {
+                    const std::vector<ItemTypeId>& partial = beam[beam_pos];
+
+                    // Co-occurrence neighbors of the subset, in increasing
+                    // order of item type id.
+                    candidate_item_type_ids.clear();
+                    for (ItemTypeId item_type_id: partial)
+                        is_candidate[item_type_id] = true;
                     for (ItemTypeId item_type_id: partial) {
-                        for (ItemTypeId neighbor: neighbors[item_type_id])
-                            candidate_pool.insert(neighbor);
+                        for (ItemTypeId neighbor: neighbors[item_type_id]) {
+                            if (is_candidate[neighbor])
+                                continue;
+                            is_candidate[neighbor] = true;
+                            candidate_item_type_ids.push_back(neighbor);
+                        }
                     }
                     for (ItemTypeId item_type_id: partial)
-                        candidate_pool.erase(item_type_id);
-                    for (ItemTypeId candidate: candidate_pool) {
-                        std::vector<ItemTypeId> trial = partial;
-                        trial.push_back(candidate);
-                        std::sort(trial.begin(), trial.end());
-                        if (!seen.insert(trial).second)
+                        is_candidate[item_type_id] = false;
+                    for (ItemTypeId item_type_id: candidate_item_type_ids)
+                        is_candidate[item_type_id] = false;
+                    std::sort(candidate_item_type_ids.begin(), candidate_item_type_ids.end());
+
+                    // An extension is already given by a previous subset of
+                    // the beam iff this previous subset only differs from
+                    // this one by the added item type, and if the item type
+                    // of this subset that it doesn't contain is one of its
+                    // own co-occurrence neighbors.
+                    std::vector<ItemTypeId> duplicate_item_type_ids;
+                    for (ItemPos previous_beam_pos = 0;
+                            previous_beam_pos < beam_pos;
+                            ++previous_beam_pos) {
+                        const std::vector<ItemTypeId>& previous_partial = beam[previous_beam_pos];
+                        std::vector<ItemTypeId> only_in_previous;
+                        std::vector<ItemTypeId> only_in_partial;
+                        std::set_difference(
+                                previous_partial.begin(), previous_partial.end(),
+                                partial.begin(), partial.end(),
+                                std::back_inserter(only_in_previous));
+                        std::set_difference(
+                                partial.begin(), partial.end(),
+                                previous_partial.begin(), previous_partial.end(),
+                                std::back_inserter(only_in_partial));
+                        if (only_in_previous.size() != 1 || only_in_partial.size() != 1)
                             continue;
-                        candidates.push_back({trial, subset_violation(trial)});
+                        bool is_previous_neighbor = false;
+                        for (ItemTypeId item_type_id: previous_partial) {
+                            if (std::binary_search(
+                                        neighbors[item_type_id].begin(),
+                                        neighbors[item_type_id].end(),
+                                        only_in_partial.front())) {
+                                is_previous_neighbor = true;
+                                break;
+                            }
+                        }
+                        if (is_previous_neighbor)
+                            duplicate_item_type_ids.push_back(only_in_previous.front());
                     }
+
+                    touched_columns.clear();
+                    for (ItemTypeId item_type_id: partial) {
+                        for (ItemPos column_pos: item_columns[item_type_id]) {
+                            if (column_counts[column_pos] == 0)
+                                touched_columns.push_back(column_pos);
+                            column_counts[column_pos]++;
+                        }
+                    }
+                    std::sort(touched_columns.begin(), touched_columns.end());
+                    Value maximum_lhs = (Value)((partial.size() + 1) / 2);
+                    for (ItemTypeId candidate: candidate_item_type_ids) {
+                        if (std::find(
+                                    duplicate_item_type_ids.begin(),
+                                    duplicate_item_type_ids.end(),
+                                    candidate)
+                                != duplicate_item_type_ids.end()) {
+                            continue;
+                        }
+                        // Sum in increasing order of column, so that equal
+                        // subsets get bitwise equal violations.
+                        const std::vector<ItemPos>& candidate_columns = item_columns[candidate];
+                        Value lhs = 0.0;
+                        ItemPos touched_pos = 0;
+                        ItemPos candidate_pos = 0;
+                        while (touched_pos < (ItemPos)touched_columns.size()
+                                || candidate_pos < (ItemPos)candidate_columns.size()) {
+                            ItemPos column_pos = -1;
+                            ItemPos count = 0;
+                            if (candidate_pos == (ItemPos)candidate_columns.size()
+                                    || (touched_pos < (ItemPos)touched_columns.size()
+                                        && touched_columns[touched_pos] < candidate_columns[candidate_pos])) {
+                                column_pos = touched_columns[touched_pos];
+                                count = column_counts[column_pos];
+                                ++touched_pos;
+                            } else if (touched_pos == (ItemPos)touched_columns.size()
+                                    || candidate_columns[candidate_pos] < touched_columns[touched_pos]) {
+                                column_pos = candidate_columns[candidate_pos];
+                                count = 1;
+                                ++candidate_pos;
+                            } else {
+                                column_pos = touched_columns[touched_pos];
+                                count = column_counts[column_pos] + 1;
+                                ++touched_pos;
+                                ++candidate_pos;
+                            }
+                            if (count >= 2)
+                                lhs += (Value)(count / 2) * column_items[column_pos].value;
+                        }
+                        extensions.push_back({beam_pos, candidate, lhs - maximum_lhs});
+                    }
+                    for (ItemPos column_pos: touched_columns)
+                        column_counts[column_pos] = 0;
                 }
                 // No co-occurrence neighbor left to grow into from any
                 // subset in the beam: stop here, this seed will be
                 // discarded below (and skipped for any larger target
                 // cardinality still to come) for not reaching this one.
-                if (candidates.empty())
+                if (extensions.empty())
                     break;
                 std::sort(
-                        candidates.begin(),
-                        candidates.end(),
-                        [](const std::pair<std::vector<ItemTypeId>, Value>& candidate_1, const std::pair<std::vector<ItemTypeId>, Value>& candidate_2)
+                        extensions.begin(),
+                        extensions.end(),
+                        [](const Extension& extension_1, const Extension& extension_2)
                         {
-                            return candidate_1.second > candidate_2.second;
+                            return extension_1.violation > extension_2.violation;
                         });
-                if ((ItemPos)candidates.size() > extension_beam_width)
-                    candidates.resize(extension_beam_width);
-                beam.clear();
-                for (auto& candidate: candidates)
-                    beam.push_back(std::move(candidate.first));
+                if ((ItemPos)extensions.size() > extension_beam_width)
+                    extensions.resize(extension_beam_width);
+                std::vector<std::vector<ItemTypeId>> next_beam;
+                beam_violations.clear();
+                for (const Extension& extension: extensions) {
+                    std::vector<ItemTypeId> item_type_ids = beam[extension.beam_pos];
+                    item_type_ids.push_back(extension.item_type_id);
+                    std::sort(item_type_ids.begin(), item_type_ids.end());
+                    next_beam.push_back(std::move(item_type_ids));
+                    beam_violations.push_back(extension.violation);
+                }
+                beam = std::move(next_beam);
             }
             if ((ItemPos)beam.front().size() != target_cardinality)
                 break;
-            for (const std::vector<ItemTypeId>& subset: beam) {
-                Value violation = subset_violation(subset);
-                if (violation > 1e-6)
-                    violated_subsets.push_back({subset, violation});
+            for (ItemPos beam_pos = 0; beam_pos < (ItemPos)beam.size(); ++beam_pos) {
+                if (beam_violations[beam_pos] > 1e-6)
+                    violated_subsets.push_back({beam[beam_pos], beam_violations[beam_pos]});
             }
         }
     }
