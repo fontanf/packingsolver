@@ -188,7 +188,6 @@ def convert_packomania_coop():
                 {
                     "type": "rectangle",
                     "height": widths[instance_name.split("-", 1)[0]],
-                    "width": 100,
                 }
             ],
             "item_types": [],
@@ -203,6 +202,11 @@ def convert_packomania_coop():
                         "radius": r,
                     }
                 )
+
+        # The strip is long enough to pack all the circles in a row.
+        dic["bin_types"][0]["width"] = sum(
+                2 * item_type["radius"]
+                for item_type in dic["item_types"])
 
         write_dict(dic, path)
 
