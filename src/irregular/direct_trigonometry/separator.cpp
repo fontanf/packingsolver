@@ -7,7 +7,9 @@
 #include <algorithm>
 #include <atomic>
 #include <cmath>
+#include <condition_variable>
 #include <exception>
+#include <mutex>
 #include <thread>
 
 using namespace packingsolver;
@@ -1557,6 +1559,69 @@ void Separator::copy_state(const Separator& separator)
     hazard_entries_ = separator.hazard_entries_;
 }
 
+struct Separator::WorkerThreads
+{
+    /** Mutex protecting the attributes below, except 'threads'. */
+    std::mutex mutex;
+
+    /** Notified when a round starts or when the threads must stop. */
+    std::condition_variable start_condition;
+
+    /** Notified when the last thread has finished its round. */
+    std::condition_variable done_condition;
+
+    /** Number of the current round; incremented to start a round. */
+    Counter round = 0;
+
+    /** Number of threads which haven't finished the current round. */
+    Counter number_of_running_threads = 0;
+
+    /** Timer of the current round. */
+    const optimizationtools::Timer* timer = nullptr;
+
+    /** True iff the threads must stop. */
+    bool stop = false;
+
+    /** Threads, each running a worker. */
+    std::vector<std::thread> threads;
+
+    /** Run the rounds of 'worker' until the threads must stop. */
+    void run(Separator& worker)
+    {
+        Counter last_round = 0;
+        std::unique_lock<std::mutex> lock(mutex);
+        for (;;) {
+            start_condition.wait(
+                    lock,
+                    [this, last_round]()
+                    {
+                        return stop || round != last_round;
+                    });
+            if (stop)
+                return;
+            last_round = round;
+            const optimizationtools::Timer& round_timer = *timer;
+            lock.unlock();
+            worker.move_items(round_timer);
+            lock.lock();
+            number_of_running_threads--;
+            if (number_of_running_threads == 0)
+                done_condition.notify_one();
+        }
+    }
+
+    ~WorkerThreads()
+    {
+        {
+            std::lock_guard<std::mutex> lock(mutex);
+            stop = true;
+        }
+        start_condition.notify_all();
+        for (std::thread& thread: threads)
+            thread.join();
+    }
+};
+
 void Separator::move_items_workers(const optimizationtools::Timer& timer)
 {
     // Algorithm 10 of the Sparrow paper.
@@ -1566,23 +1631,49 @@ void Separator::move_items_workers(const optimizationtools::Timer& timer)
                 ++worker_pos) {
             std::shared_ptr<Separator> worker(new Separator(*this));
             worker->workers_.clear();
+            worker->worker_threads_ = nullptr;
             worker->generator_.seed(generator_());
             workers_.push_back(worker);
         }
     }
 
-    std::vector<std::thread> threads;
-    for (const std::shared_ptr<Separator>& worker: workers_) {
-        worker->copy_state(*this);
-        Separator* worker_pointer = worker.get();
-        threads.push_back(std::thread(
-                    [worker_pointer, &timer]()
-                    {
-                        worker_pointer->move_items(timer);
-                    }));
+    // The first worker runs in the calling thread, the other ones in the
+    // threads of 'worker_threads_', created once with the workers rather than
+    // at each iteration.
+    if (worker_threads_ == nullptr) {
+        worker_threads_ = std::make_shared<WorkerThreads>();
+        WorkerThreads* worker_threads = worker_threads_.get();
+        for (Counter worker_pos = 1;
+                worker_pos < (Counter)workers_.size();
+                ++worker_pos) {
+            Separator* worker = workers_[worker_pos].get();
+            worker_threads->threads.push_back(std::thread(
+                        [worker_threads, worker]()
+                        {
+                            worker_threads->run(*worker);
+                        }));
+        }
     }
-    for (std::thread& thread: threads)
-        thread.join();
+
+    for (const std::shared_ptr<Separator>& worker: workers_)
+        worker->copy_state(*this);
+    {
+        std::lock_guard<std::mutex> lock(worker_threads_->mutex);
+        worker_threads_->timer = &timer;
+        worker_threads_->number_of_running_threads = worker_threads_->threads.size();
+        worker_threads_->round++;
+    }
+    worker_threads_->start_condition.notify_all();
+    workers_[0]->move_items(timer);
+    {
+        std::unique_lock<std::mutex> lock(worker_threads_->mutex);
+        worker_threads_->done_condition.wait(
+                lock,
+                [this]()
+                {
+                    return worker_threads_->number_of_running_threads == 0;
+                });
+    }
 
     // Keep the layout of the worker with the smallest weighted loss.
     Counter best_worker_pos = 0;
