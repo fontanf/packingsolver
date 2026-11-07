@@ -691,6 +691,38 @@ bool packingsolver::irregular::intersect(
     return false;
 }
 
+bool packingsolver::irregular::intersect(
+        const Pole& circle,
+        const Point& circle_translation,
+        const Polygon& polygon,
+        const Point& polygon_translation)
+{
+    if (circle.radius <= tolerance)
+        return false;
+    // Work in the frame of 'polygon'.
+    Point center = {
+        circle.center.x + circle_translation.x - polygon_translation.x,
+        circle.center.y + circle_translation.y - polygon_translation.y};
+    if (center.x - circle.radius >= polygon.aabb.x_max - tolerance
+            || center.x + circle.radius <= polygon.aabb.x_min + tolerance
+            || center.y - circle.radius >= polygon.aabb.y_max - tolerance
+            || center.y + circle.radius <= polygon.aabb.y_min + tolerance) {
+        return false;
+    }
+    if (locate_point(center, polygon) != PointLocation::Outside)
+        return true;
+    // The center is outside the polygon: the interiors intersect iff the
+    // boundary of the polygon enters the circle.
+    ElementPos number_of_vertices = polygon.vertices.size();
+    for (ElementPos vertex_pos = 0; vertex_pos < number_of_vertices; ++vertex_pos) {
+        const Point& edge_start = polygon.vertices[vertex_pos];
+        const Point& edge_end = polygon.vertices[(vertex_pos + 1) % number_of_vertices];
+        if (distance_to_segment(edge_start, edge_end, center) < circle.radius - tolerance)
+            return true;
+    }
+    return false;
+}
+
 std::vector<Pole> packingsolver::irregular::compute_poles(
         const Polygon& polygon,
         Counter maximum_number_of_poles)

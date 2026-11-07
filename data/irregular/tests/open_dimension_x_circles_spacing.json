@@ -1,0 +1,76 @@
+{
+    "objective": "open-dimension-x",
+    "parameters": {
+        "item_item_minimum_spacing": 0.2
+    },
+    "bin_types": [
+        {
+            "type": "rectangle",
+            "width": 40,
+            "height": 10,
+            "copies": 1,
+            "item_bin_minimum_spacing": 0.5,
+            "defects": [
+                {
+                    "type": "rectangle",
+                    "x": 12,
+                    "y": 3,
+                    "width": 2,
+                    "height": 4,
+                    "item_defect_minimum_spacing": 0.3
+                }
+            ],
+            "fixed_items": [
+                {
+                    "item_type_id": 0,
+                    "angle": 0,
+                    "mirror": false,
+                    "bl_corner": {
+                        "x": 6,
+                        "y": 5
+                    }
+                }
+            ]
+        }
+    ],
+    "item_types": [
+        {
+            "type": "circle",
+            "radius": 1.5,
+            "copies": 5
+        },
+        {
+            "type": "circle",
+            "radius": 0.8,
+            "copies": 6
+        },
+        {
+            "type": "rectangle",
+            "width": 2,
+            "height": 1,
+            "copies": 3
+        },
+        {
+            "type": "circle",
+            "x": 2,
+            "y": 1,
+            "radius": 1,
+            "copies": 2,
+            "allowed_rotations": [
+                {
+                    "start": 0.0,
+                    "end": 0.0
+                },
+                {
+                    "start": 90.0,
+                    "end": 90.0
+                },
+                {
+                    "start": 180.0,
+                    "end": 180.0,
+                    "mirror": true
+                }
+            ]
+        }
+    ]
+}

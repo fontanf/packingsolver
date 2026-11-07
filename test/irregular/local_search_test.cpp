@@ -414,6 +414,9 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "irregular" / "tests" / "circle.json",
                 fs::path("data") / "irregular" / "tests" / "circle_solution.json"
             }, {
+                fs::path("data") / "irregular" / "tests" / "open_dimension_x_circles_spacing.json",
+                fs::path("data") / "irregular" / "tests" / "open_dimension_x_circles_spacing_solution.json"
+            }, {
                 fs::path("data") / "irregular" / "tests" / "mirror_only_rotation.json",
                 fs::path("data") / "irregular" / "tests" / "mirror_only_rotation_solution.json"
             }, {
