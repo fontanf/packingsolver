@@ -1,5 +1,6 @@
 #include "irregular/linear_programming/anchor.hpp"
 
+#include "irregular/linear_programming/separation_model.hpp"
 #include "irregular/utils.hpp"
 #include "irregular/solution_builder.hpp"
 
@@ -19,7 +20,125 @@ using namespace packingsolver::irregular;
 namespace
 {
 
-Solution linear_programming_anchor(
+/** Maximum move of an item at each step, relatively to its size. */
+const double anchor_movement_ratio = 0.5;
+
+/**
+ * Anchor of a bin with the separation model of the local search (see
+ * 'separation_model.hpp'), which enforces the minimum spacings.
+ *
+ * Return false if the separation model doesn't support the shapes of the bin.
+ */
+bool separation_model_anchor(
+        const Instance& instance,
+        const Solution& initial_solution,
+        double x_weight,
+        double y_weight,
+        const LinearProgrammingAnchorParameters& parameters,
+        const InstanceBasicShapeDecomposition& decomposition,
+        Solution& solution)
+{
+    const BinPos bin_pos = 0;
+    const SolutionBin& solution_bin = initial_solution.bin(bin_pos);
+    const BinTypeId bin_type_id = solution_bin.bin_type_id;
+    const BinType& bin_type = instance.bin_type(bin_type_id);
+    const LengthDbl scale_value = instance.parameters().scale_value;
+
+    std::vector<SeparationModelItem> items;
+    for (const SolutionItem& solution_item: solution_bin.items) {
+        SeparationModelItem item;
+        item.item_type_id = solution_item.item_type_id;
+        item.angle = solution_item.angle;
+        item.mirror = solution_item.mirror;
+        item.is_fixed = solution_item.is_fixed;
+        item.position = {
+            scale_value * solution_item.bl_corner.x,
+            scale_value * solution_item.bl_corner.y};
+        items.push_back(item);
+    }
+    BinSeparationModel model(instance, decomposition, bin_type_id, items);
+    if (!model.supported())
+        return false;
+
+    // The items stay in the bin and, on the sides opposite to the anchor
+    // corner, in the current extent of the solution.
+    const LengthDbl bin_spacing = instance.bin_spacing_scaled(bin_type_id);
+    AxisAlignedBoundingBox container;
+    container.x_min = (x_weight < 0)?
+        scale_value * initial_solution.x_min():
+        bin_type.aabb_scaled.x_min + bin_spacing;
+    container.x_max = (x_weight > 0)?
+        scale_value * initial_solution.x_max():
+        bin_type.aabb_scaled.x_max - bin_spacing;
+    container.y_min = (y_weight < 0)?
+        scale_value * initial_solution.y_min():
+        bin_type.aabb_scaled.y_min + bin_spacing;
+    container.y_max = (y_weight > 0)?
+        scale_value * initial_solution.y_max():
+        bin_type.aabb_scaled.y_max - bin_spacing;
+
+    auto objective_value = [x_weight, y_weight](
+            const std::vector<SeparationModelItem>& items)
+    {
+        double value = 0.0;
+        for (const SeparationModelItem& item: items) {
+            if (item.is_fixed)
+                continue;
+            value += x_weight * item.position.x + y_weight * item.position.y;
+        }
+        return value;
+    };
+
+    BinSeparationModel::StepParameters step_parameters;
+    step_parameters.movement_ratio = anchor_movement_ratio;
+    double current_value = objective_value(items);
+    for (;;) {
+        std::vector<SeparationModelItem> new_items = items;
+        if (!model.anchor_step(
+                    new_items,
+                    x_weight,
+                    y_weight,
+                    container,
+                    step_parameters,
+                    parameters.timer)) {
+            // If the time limit is reached, keep the current solution.
+            if (parameters.timer.needs_to_end())
+                break;
+            throw std::runtime_error(
+                    FUNC_SIGNATURE + ": LP not solved to optimality.");
+        }
+
+        // If the solution of the linear program is not better, stop.
+        double new_value = objective_value(new_items);
+        if (!shape::strictly_greater(current_value, new_value))
+            break;
+        current_value = new_value;
+        items = new_items;
+    }
+
+    // Retrieve solution.
+    SolutionBuilder solution_builder(instance);
+    solution_builder.add_bin(bin_type_id, 1);
+    for (const SeparationModelItem& item: items) {
+        solution_builder.add_item(
+                0,
+                item.item_type_id,
+                {item.position.x / scale_value, item.position.y / scale_value},
+                item.angle,
+                item.mirror,
+                item.is_fixed);
+    }
+    solution = solution_builder.build();
+    return true;
+}
+
+/**
+ * Anchor of a bin with the edge separators of 'utils.hpp'.
+ *
+ * Used for the shapes which the separation model doesn't support (circular
+ * arcs). The minimum spacings are not enforced.
+ */
+Solution edge_separator_anchor(
         const Instance& instance,
         const Solution& initial_solution,
         double x_weight,
@@ -456,13 +575,23 @@ LinearProgrammingAnchorOutput packingsolver::irregular::linear_programming_ancho
         const SolutionBin& solution_bin = initial_solution.bin(bin_pos);
         Solution initial_solution_cur(instance);
         initial_solution_cur.append_bin(initial_solution, bin_pos, 1);
-        Solution new_solution_cur = ::linear_programming_anchor(
-                instance,
-                initial_solution_cur,
-                x_weight,
-                y_weight,
-                parameters,
-                icd);
+        Solution new_solution_cur(instance);
+        if (!separation_model_anchor(
+                    instance,
+                    initial_solution_cur,
+                    x_weight,
+                    y_weight,
+                    parameters,
+                    icd,
+                    new_solution_cur)) {
+            new_solution_cur = edge_separator_anchor(
+                    instance,
+                    initial_solution_cur,
+                    x_weight,
+                    y_weight,
+                    parameters,
+                    icd);
+        }
         solution.append_bin(
                 new_solution_cur,
                 0,
