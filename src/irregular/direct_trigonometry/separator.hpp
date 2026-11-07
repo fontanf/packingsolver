@@ -116,6 +116,20 @@ public:
 
         /** Bounding box of the inflated polygons. */
         AxisAlignedBoundingBox aabb_inflated;
+
+        /**
+         * True iff the item is a circle. Its collisions are then detected
+         * with 'circle' and 'circle_inflated', and its polygons, which
+         * contain the circle, are only used for the disruptions; its bounding
+         * boxes and its pole are the ones of the circle.
+         */
+        bool is_circle = false;
+
+        /** If 'is_circle', the circle. */
+        Pole circle;
+
+        /** If 'is_circle', the circle inflated by the item spacing. */
+        Pole circle_inflated;
     };
 
     struct SeparatorItemType

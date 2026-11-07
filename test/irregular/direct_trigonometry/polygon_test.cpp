@@ -151,6 +151,73 @@ TEST(IrregularPolygon, IntersectNotch)
     EXPECT_TRUE(intersect(l_shape, origin, square, {0.9, 0.9}));
 }
 
+TEST(IrregularPolygon, IntersectCircleDisjoint)
+{
+    Polygon square = build_rectangle_polygon(0, 2, 0, 2);
+    Pole circle = {{0, 0}, 1};
+    EXPECT_FALSE(intersect(circle, {4, 1}, square, origin));
+    // Outside the square, but inside its bounding box enlarged by the radius.
+    EXPECT_FALSE(intersect(circle, {2.8, 2.8}, square, origin));
+}
+
+TEST(IrregularPolygon, IntersectCircleTouchingEdge)
+{
+    Polygon square = build_rectangle_polygon(0, 2, 0, 2);
+    Pole circle = {{0, 0}, 1};
+    EXPECT_FALSE(intersect(circle, {3, 1}, square, origin));
+    EXPECT_FALSE(intersect(circle, {1, -1}, square, origin));
+}
+
+TEST(IrregularPolygon, IntersectCircleTouchingCorner)
+{
+    Polygon square = build_rectangle_polygon(0, 2, 0, 2);
+    Pole circle = {{0, 0}, 1};
+    EXPECT_FALSE(intersect(circle, {2 + std::sqrt(0.5), 2 + std::sqrt(0.5)}, square, origin));
+    EXPECT_TRUE(intersect(circle, {2.7, 2.7}, square, origin));
+}
+
+TEST(IrregularPolygon, IntersectCircleOverlappingEdge)
+{
+    // The center is outside the square.
+    Polygon square = build_rectangle_polygon(0, 2, 0, 2);
+    Pole circle = {{0, 0}, 1};
+    EXPECT_TRUE(intersect(circle, {2.9, 1}, square, origin));
+}
+
+TEST(IrregularPolygon, IntersectCircleCenterInside)
+{
+    Polygon square = build_rectangle_polygon(0, 2, 0, 2);
+    Pole circle = {{0, 0}, 0.5};
+    EXPECT_TRUE(intersect(circle, {1, 1}, square, origin));
+}
+
+TEST(IrregularPolygon, IntersectCircleContainingPolygon)
+{
+    // The center is outside the triangle, which is inside the circle.
+    Polygon triangle = build_polygon_from_points({{1, 0}, {2, 0}, {1, 1}});
+    Pole circle = {{0, 0}, 5};
+    EXPECT_TRUE(intersect(circle, origin, triangle, origin));
+}
+
+TEST(IrregularPolygon, IntersectCircleNotch)
+{
+    // A circle in the notch of an L-shape, touching both of its sides.
+    Polygon l_shape = build_polygon_from_points({
+            {0, 0}, {2, 0}, {2, 1}, {1, 1}, {1, 2}, {0, 2}});
+    Pole circle = {{0, 0}, 0.5};
+    EXPECT_FALSE(intersect(circle, {1.5, 1.5}, l_shape, origin));
+    EXPECT_TRUE(intersect(circle, {1.4, 1.5}, l_shape, origin));
+}
+
+TEST(IrregularPolygon, IntersectCircleTranslations)
+{
+    // Both shapes translated: only the relative translation matters.
+    Polygon square = build_rectangle_polygon(0, 2, 0, 2);
+    Pole circle = {{1, 1}, 1};
+    EXPECT_FALSE(intersect(circle, {12, 10}, square, {10, 10}));
+    EXPECT_TRUE(intersect(circle, {11.9, 10}, square, {10, 10}));
+}
+
 TEST(IrregularPolygon, Poles)
 {
     Polygon square = build_rectangle_polygon(0, 2, 0, 2);

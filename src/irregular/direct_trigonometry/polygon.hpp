@@ -16,7 +16,11 @@ namespace packingsolver
 namespace irregular
 {
 
-/** A circle inscribed in a polygon. */
+/**
+ * A circle inscribed in a polygon.
+ *
+ * It also describes the items which are circles (see 'intersect').
+ */
 struct Pole
 {
     /** Center. */
@@ -78,6 +82,19 @@ bool intersect(
         const Point& translation_1,
         const Polygon& polygon_2,
         const Point& translation_2);
+
+/**
+ * Return true iff the interiors of the circle 'circle' translated by
+ * 'circle_translation' and of 'polygon' translated by 'polygon_translation'
+ * intersect.
+ *
+ * A circle and a polygon which only touch don't intersect.
+ */
+bool intersect(
+        const Pole& circle,
+        const Point& circle_translation,
+        const Polygon& polygon,
+        const Point& polygon_translation);
 
 /**
  * Compute the poles of a polygon: disjoint circles inscribed in it, the first

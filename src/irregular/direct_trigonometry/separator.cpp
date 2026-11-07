@@ -223,6 +223,25 @@ bool poles_overlap(
 }
 
 /**
+ * Return true iff the interiors of the circle 'circle_1' translated by
+ * 'translation_1' and of the circle 'circle_2' translated by 'translation_2'
+ * intersect.
+ */
+bool circles_intersect(
+        const Pole& circle_1,
+        const Point& translation_1,
+        const Pole& circle_2,
+        const Point& translation_2)
+{
+    LengthDbl penetration_distance = circle_1.radius + circle_2.radius - tolerance;
+    if (penetration_distance <= 0)
+        return false;
+    LengthDbl delta_x = circle_2.center.x + translation_2.x - circle_1.center.x - translation_1.x;
+    LengthDbl delta_y = circle_2.center.y + translation_2.y - circle_1.center.y - translation_1.y;
+    return delta_x * delta_x + delta_y * delta_y < penetration_distance * penetration_distance;
+}
+
+/**
  * Proxy of the overlap area of two sets of poles.
  *
  * Algorithm 3 of the Sparrow paper: the sum, over all the pairs of poles, of
@@ -353,28 +372,50 @@ std::shared_ptr<const Separator::ItemTypes> Separator::build_item_types(
     auto build_item_type = [&instance, &simplified_instance, &rotations, &item_types, item_spacing](
             ItemTypeId item_type_id)
     {
+        const ItemType& item_type = instance.item_type(item_type_id);
         const SimplifiedItemType& simplified_item_type = simplified_instance.item_types[item_type_id];
         SeparatorItemType& separator_item_type = item_types[item_type_id];
+
+        // The items which are circles are handled exactly.
+        bool is_circle = (item_type.shapes.size() == 1
+                && item_type.shapes.front().shape_scaled.holes.empty()
+                && item_type.shapes.front().shape_scaled.shape.is_circle());
+        Pole circle;
+        if (is_circle) {
+            const ShapeElement& element = item_type.shapes.front().shape_scaled.shape.elements.front();
+            circle.center = element.center;
+            circle.radius = shape::distance(element.center, element.start);
+        }
 
         // Poles of the shapes, not transformed.
         std::vector<Polygon> polygons;
         std::vector<Pole> poles;
         for (const SimplifiedShape& simplified_shape: simplified_item_type.shapes) {
             polygons.push_back(build_polygon(simplified_shape.shape.shape));
-            std::vector<Pole> shape_poles = compute_poles(polygons.back());
-            poles.insert(poles.end(), shape_poles.begin(), shape_poles.end());
+            if (!is_circle) {
+                std::vector<Pole> shape_poles = compute_poles(polygons.back());
+                poles.insert(poles.end(), shape_poles.begin(), shape_poles.end());
+            }
         }
-        compute_convex_hull_area_and_diameter(
-                polygons,
-                separator_item_type.convex_hull_area,
-                separator_item_type.diameter);
-        AxisAlignedBoundingBox aabb;
-        for (const Polygon& polygon: polygons)
-            aabb = merge(aabb, polygon.aabb);
-        separator_item_type.minimum_dimension = (std::min)(
-                aabb.x_max - aabb.x_min,
-                aabb.y_max - aabb.y_min);
-        separator_item_type.number_of_fail_fast_poles = compute_number_of_fail_fast_poles(poles, polygons);
+        if (is_circle) {
+            poles.push_back(circle);
+            separator_item_type.convex_hull_area = M_PI * circle.radius * circle.radius;
+            separator_item_type.diameter = 2 * circle.radius;
+            separator_item_type.minimum_dimension = 2 * circle.radius;
+            separator_item_type.number_of_fail_fast_poles = 1;
+        } else {
+            compute_convex_hull_area_and_diameter(
+                    polygons,
+                    separator_item_type.convex_hull_area,
+                    separator_item_type.diameter);
+            AxisAlignedBoundingBox aabb;
+            for (const Polygon& polygon: polygons)
+                aabb = merge(aabb, polygon.aabb);
+            separator_item_type.minimum_dimension = (std::min)(
+                    aabb.x_max - aabb.x_min,
+                    aabb.y_max - aabb.y_min);
+            separator_item_type.number_of_fail_fast_poles = compute_number_of_fail_fast_poles(poles, polygons);
+        }
 
         // Orientations.
         separator_item_type.bin_types_orientation_ids.resize(instance.number_of_bin_types());
@@ -422,6 +463,23 @@ std::shared_ptr<const Separator::ItemTypes> Separator::build_item_types(
                         Pole pole_new = pole;
                         pole_new.center = transform(pole.center, rotation.angle, rotation.mirror);
                         orientation.poles.push_back(pole_new);
+                    }
+                    if (is_circle) {
+                        orientation.is_circle = true;
+                        orientation.circle = orientation.poles.front();
+                        orientation.circle_inflated = orientation.circle;
+                        orientation.circle_inflated.radius += instance.item_spacing_scaled();
+                        auto circle_aabb = [](const Pole& circle)
+                        {
+                            AxisAlignedBoundingBox aabb;
+                            aabb.x_min = circle.center.x - circle.radius;
+                            aabb.x_max = circle.center.x + circle.radius;
+                            aabb.y_min = circle.center.y - circle.radius;
+                            aabb.y_max = circle.center.y + circle.radius;
+                            return aabb;
+                        };
+                        orientation.aabb = circle_aabb(orientation.circle);
+                        orientation.aabb_inflated = circle_aabb(orientation.circle_inflated);
                     }
                     separator_item_type.orientations.push_back(orientation);
                 }
@@ -671,6 +729,25 @@ bool Separator::collide(
                 item_state_2.position)) {
         return true;
     }
+    if (orientation_1.is_circle && orientation_2.is_circle) {
+        return circles_intersect(
+                orientation_1.circle_inflated,
+                item_state_1.position,
+                orientation_2.circle,
+                item_state_2.position);
+    }
+    if (orientation_1.is_circle) {
+        for (const Polygon& polygon_2: orientation_2.polygons)
+            if (intersect(orientation_1.circle_inflated, item_state_1.position, polygon_2, item_state_2.position))
+                return true;
+        return false;
+    }
+    if (orientation_2.is_circle) {
+        for (const Polygon& polygon_1: orientation_1.polygons_inflated)
+            if (intersect(orientation_2.circle, item_state_2.position, polygon_1, item_state_1.position))
+                return true;
+        return false;
+    }
     for (const Polygon& polygon_1: orientation_1.polygons_inflated) {
         for (const Polygon& polygon_2: orientation_2.polygons) {
             if (intersect(polygon_1, item_state_1.position, polygon_2, item_state_2.position))
@@ -704,6 +781,15 @@ bool Separator::collide(
                 hazard.number_of_fail_fast_poles,
                 origin)) {
         return true;
+    }
+    if (orientation.is_circle) {
+        const Pole& circle = (hazard.against_inflated)?
+            orientation.circle_inflated:
+            orientation.circle;
+        for (const Polygon& hazard_polygon: hazard.polygons)
+            if (intersect(circle, item_state.position, hazard_polygon, origin))
+                return true;
+        return false;
     }
     for (const Polygon& polygon: polygons) {
         for (const Polygon& hazard_polygon: hazard.polygons) {
