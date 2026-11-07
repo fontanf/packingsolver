@@ -15,6 +15,33 @@
 using namespace packingsolver;
 using namespace packingsolver::irregular;
 
+namespace
+{
+
+/** Largest angle between two consecutive points sampled on an arc. */
+const Angle approximation_maximum_angle = 2 * M_PI / 64;
+
+/**
+ * Return true iff the direction 'direction' is in the angle 'angle' measured
+ * anticlockwise from 'start_direction'.
+ */
+bool in_angle(
+        const Point& start_direction,
+        Angle angle,
+        const Point& direction)
+{
+    if (angle >= 2 * M_PI)
+        return true;
+    Angle direction_angle = std::atan2(
+            start_direction.x * direction.y - start_direction.y * direction.x,
+            start_direction.x * direction.x + start_direction.y * direction.y);
+    if (direction_angle < 0)
+        direction_angle += 2 * M_PI;
+    return direction_angle <= angle;
+}
+
+}
+
 BinSeparationModel::BinSeparationModel(
         const Instance& instance,
         const InstanceBasicShapeDecomposition& decomposition,
@@ -29,6 +56,7 @@ BinSeparationModel::BinSeparationModel(
     bin_spacing_ = instance.bin_spacing_scaled(bin_type_id);
     maximum_spacing_ = (std::max)(item_spacing_, bin_spacing_);
 
+    // Return false if the shape isn't convex from the material's side.
     auto add_part = [this](
             ItemPos item_pos,
             const Shape& shape,
@@ -39,21 +67,70 @@ BinSeparationModel::BinSeparationModel(
         part.item_pos = item_pos;
         part.spacing = spacing;
         for (const ShapeElement& element: shape.elements) {
-            Point vertex = {element.start.x + shift.x, element.start.y + shift.y};
-            part.vertices.push_back(vertex);
-            part.aabb.x_min = (std::min)(part.aabb.x_min, vertex.x);
-            part.aabb.x_max = (std::max)(part.aabb.x_max, vertex.x);
-            part.aabb.y_min = (std::min)(part.aabb.y_min, vertex.y);
-            part.aabb.y_max = (std::max)(part.aabb.y_max, vertex.y);
+            Point start = {element.start.x + shift.x, element.start.y + shift.y};
+            Point end = {element.end.x + shift.x, element.end.y + shift.y};
+            part.vertices.push_back(start);
+            part.aabb.x_min = (std::min)(part.aabb.x_min, start.x);
+            part.aabb.x_max = (std::max)(part.aabb.x_max, start.x);
+            part.aabb.y_min = (std::min)(part.aabb.y_min, start.y);
+            part.aabb.y_max = (std::max)(part.aabb.y_max, start.y);
+            part.approximation.push_back(start);
+            if (element.type == ShapeElementType::LineSegment) {
+                part.edges.push_back({start, end});
+                continue;
+            }
+            if (element.orientation == ShapeElementOrientation::Clockwise)
+                return false;
+            Arc arc;
+            arc.center = {element.center.x + shift.x, element.center.y + shift.y};
+            arc.radius = distance(element.start, element.center);
+            if (arc.radius == 0.0)
+                continue;
+            arc.start_direction = {
+                (start.x - arc.center.x) / arc.radius,
+                (start.y - arc.center.y) / arc.radius};
+            if (element.orientation == ShapeElementOrientation::Full) {
+                arc.angle = 2 * M_PI;
+            } else {
+                Point end_direction = {
+                    (end.x - arc.center.x) / arc.radius,
+                    (end.y - arc.center.y) / arc.radius};
+                arc.angle = std::atan2(
+                        arc.start_direction.x * end_direction.y
+                        - arc.start_direction.y * end_direction.x,
+                        arc.start_direction.x * end_direction.x
+                        + arc.start_direction.y * end_direction.y);
+                if (arc.angle <= 0)
+                    arc.angle += 2 * M_PI;
+            }
+            part.arcs.push_back(arc);
+            // Extreme points of the arc in the directions of the axes.
+            if (in_angle(arc.start_direction, arc.angle, {1, 0}))
+                part.aabb.x_max = (std::max)(part.aabb.x_max, arc.center.x + arc.radius);
+            if (in_angle(arc.start_direction, arc.angle, {-1, 0}))
+                part.aabb.x_min = (std::min)(part.aabb.x_min, arc.center.x - arc.radius);
+            if (in_angle(arc.start_direction, arc.angle, {0, 1}))
+                part.aabb.y_max = (std::max)(part.aabb.y_max, arc.center.y + arc.radius);
+            if (in_angle(arc.start_direction, arc.angle, {0, -1}))
+                part.aabb.y_min = (std::min)(part.aabb.y_min, arc.center.y - arc.radius);
+            // Points sampled on the arc, its end excluded.
+            Counter number_of_pieces = (Counter)std::ceil(arc.angle / approximation_maximum_angle);
+            Angle start_angle = std::atan2(arc.start_direction.y, arc.start_direction.x);
+            for (Counter piece_pos = 1; piece_pos < number_of_pieces; ++piece_pos) {
+                Angle angle = start_angle + arc.angle * piece_pos / number_of_pieces;
+                part.approximation.push_back({
+                        arc.center.x + arc.radius * std::cos(angle),
+                        arc.center.y + arc.radius * std::sin(angle)});
+            }
         }
         if (item_pos != -1) {
-            for (const Point& vertex: part.vertices) {
-                part.center.x += vertex.x / part.vertices.size();
-                part.center.y += vertex.y / part.vertices.size();
+            for (const Point& vertex: part.approximation) {
+                part.center.x += vertex.x / part.approximation.size();
+                part.center.y += vertex.y / part.approximation.size();
             }
         }
         parts_.push_back(part);
-        return part.aabb;
+        return true;
     };
 
     const Point origin = {0.0, 0.0};
@@ -66,18 +143,18 @@ BinSeparationModel::BinSeparationModel(
                 item_shape_pos < (ItemShapePos)item_type.shapes.size();
                 ++item_shape_pos) {
             for (const BasicShape& basic_shape: decomposition.item_types[item.item_type_id][item_shape_pos]) {
-                if (basic_shape.type != BasicShapeType::ConvexPolygon
-                        || !basic_shape.shape.is_polygon()) {
-                    supported_ = false;
-                    return;
-                }
                 BasicShape placed_shape = apply_placement(basic_shape, item.mirror, item.angle);
                 if (item.is_fixed) {
-                    add_part(-1, placed_shape.shape, item.position, item_spacing_);
+                    if (!add_part(-1, placed_shape.shape, item.position, item_spacing_)) {
+                        supported_ = false;
+                        return;
+                    }
                 } else {
-                    items_aabbs_[item_pos] = merge(
-                            items_aabbs_[item_pos],
-                            add_part(item_pos, placed_shape.shape, origin, 0.0));
+                    if (!add_part(item_pos, placed_shape.shape, origin, 0.0)) {
+                        supported_ = false;
+                        return;
+                    }
+                    items_aabbs_[item_pos] = merge(items_aabbs_[item_pos], parts_.back().aabb);
                     const Point& center = parts_.back().center;
                     AxisAlignedBoundingBox& centers_aabb = items_centers_aabbs_[item_pos];
                     centers_aabb.x_min = (std::min)(centers_aabb.x_min, center.x);
@@ -102,12 +179,68 @@ BinSeparationModel::BinSeparationModel(
         defect_spacing = (std::max)(defect_spacing, scale_value * defect.item_defect_minimum_spacing);
     maximum_spacing_ = (std::max)(maximum_spacing_, defect_spacing);
     for (const BasicShape& basic_shape: decomposition.bin_types_defects[bin_type_id]) {
-        if (!basic_shape.shape.is_polygon()) {
+        if (!add_part(-1, basic_shape.shape, origin, defect_spacing)) {
             supported_ = false;
             return;
         }
-        add_part(-1, basic_shape.shape, origin, defect_spacing);
     }
+}
+
+LengthDbl BinSeparationModel::support_value(
+        const Part& part,
+        const Point& normal)
+{
+    LengthDbl value = -std::numeric_limits<LengthDbl>::infinity();
+    for (const Point& vertex: part.vertices)
+        value = (std::max)(value, normal.x * vertex.x + normal.y * vertex.y);
+    for (const Arc& arc: part.arcs) {
+        if (in_angle(arc.start_direction, arc.angle, normal)) {
+            value = (std::max)(
+                    value,
+                    normal.x * arc.center.x + normal.y * arc.center.y + arc.radius);
+        }
+    }
+    return value;
+}
+
+BinSeparationModel::Constraint BinSeparationModel::build_constraint(
+        Counter edge_part_pos,
+        Counter support_part_pos,
+        const Point& normal,
+        LengthDbl edge_support_value) const
+{
+    const Part& edge_part = parts_[edge_part_pos];
+    const Part& support_part = parts_[support_part_pos];
+    Constraint constraint;
+    constraint.edge_part_pos = edge_part_pos;
+    constraint.support_part_pos = support_part_pos;
+    constraint.normal = normal;
+    constraint.edge_constant = normal.x * edge_part.center.x
+        + normal.y * edge_part.center.y;
+    constraint.edge_coefficient = edge_support_value - constraint.edge_constant;
+    constraint.support_constant = normal.x * support_part.center.x
+        + normal.y * support_part.center.y;
+    constraint.support_coefficient = -support_value(support_part, {-normal.x, -normal.y})
+        - constraint.support_constant;
+    constraint.spacing = (edge_part.item_pos == -1)? edge_part.spacing:
+        (support_part.item_pos == -1)? support_part.spacing: item_spacing_;
+    return constraint;
+}
+
+std::vector<Point> BinSeparationModel::state_approximation(
+        const std::vector<SeparationModelItem>& items,
+        const Part& part) const
+{
+    if (part.item_pos == -1)
+        return part.approximation;
+    const SeparationModelItem& item = items[part.item_pos];
+    std::vector<Point> vertices;
+    for (const Point& vertex: part.approximation) {
+        vertices.push_back({
+                item.position.x + part.center.x + item.lambda * (vertex.x - part.center.x),
+                item.position.y + part.center.y + item.lambda * (vertex.y - part.center.y)});
+    }
+    return vertices;
 }
 
 AxisAlignedBoundingBox BinSeparationModel::part_aabb(
@@ -188,113 +321,132 @@ BinSeparationModel::Constraint BinSeparationModel::best_constraint(
     const Part& part_1 = parts_[part_pos_1];
     const Part& part_2 = parts_[part_pos_2];
 
-    // Best separating edge, among the edges of both parts whose constraints
-    // are satisfied with null scales, and among all the edges of both parts.
+    // Best separating direction, among the candidates whose constraints are
+    // satisfied with null scales, and among all the candidates.
     Constraint best_constraint;
     best_value = -infinity;
     Constraint best_feasible_constraint;
     LengthDbl best_feasible_value = -infinity;
     bool feasible_constraint_found = false;
+    auto consider = [&](const Constraint& constraint)
+    {
+        LengthDbl value_cur = value(items, constraint);
+        if (value_cur > best_value) {
+            best_value = value_cur;
+            best_constraint = constraint;
+        }
+        if (null_scales_value(items, constraint) >= 0.0
+                && value_cur > best_feasible_value) {
+            best_feasible_value = value_cur;
+            best_feasible_constraint = constraint;
+            feasible_constraint_found = true;
+        }
+    };
+
+    // Outward normals of the edges.
     for (int side = 0; side < 2; ++side) {
         Counter edge_part_pos = (side == 0)? part_pos_1: part_pos_2;
         Counter support_part_pos = (side == 0)? part_pos_2: part_pos_1;
         const Part& edge_part = parts_[edge_part_pos];
-        const Part& support_part = parts_[support_part_pos];
-        ElementPos number_of_vertices = edge_part.vertices.size();
-        for (ElementPos vertex_pos = 0; vertex_pos < number_of_vertices; ++vertex_pos) {
-            const Point& edge_start = edge_part.vertices[vertex_pos];
-            const Point& edge_end = edge_part.vertices[(vertex_pos + 1) % number_of_vertices];
+        for (const auto& edge: edge_part.edges) {
+            const Point& edge_start = edge.first;
+            const Point& edge_end = edge.second;
             LengthDbl delta_x = edge_end.x - edge_start.x;
             LengthDbl delta_y = edge_end.y - edge_start.y;
             LengthDbl length = std::sqrt(delta_x * delta_x + delta_y * delta_y);
             if (length == 0.0)
                 continue;
-            Constraint constraint;
-            constraint.edge_part_pos = edge_part_pos;
-            constraint.support_part_pos = support_part_pos;
             // The parts are anticlockwise: the outward normal is on the right
             // of the edge.
-            constraint.normal = {delta_y / length, -delta_x / length};
-            constraint.edge_constant = constraint.normal.x * edge_part.center.x
-                + constraint.normal.y * edge_part.center.y;
-            constraint.edge_coefficient = constraint.normal.x * edge_start.x
-                + constraint.normal.y * edge_start.y
-                - constraint.edge_constant;
-            constraint.support_constant = constraint.normal.x * support_part.center.x
-                + constraint.normal.y * support_part.center.y;
-            constraint.support_coefficient = infinity;
-            for (const Point& vertex: support_part.vertices) {
-                constraint.support_coefficient = (std::min)(
-                        constraint.support_coefficient,
-                        constraint.normal.x * vertex.x + constraint.normal.y * vertex.y);
-            }
-            constraint.support_coefficient -= constraint.support_constant;
-            constraint.spacing = (part_1.item_pos == -1)? part_1.spacing:
-                (part_2.item_pos == -1)? part_2.spacing: item_spacing_;
-            LengthDbl value_cur = value(items, constraint);
-            if (value_cur > best_value) {
-                best_value = value_cur;
-                best_constraint = constraint;
-            }
-            if (null_scales_value(items, constraint) >= 0.0
-                    && value_cur > best_feasible_value) {
-                best_feasible_value = value_cur;
-                best_feasible_constraint = constraint;
-                feasible_constraint_found = true;
-            }
+            Point normal = {delta_y / length, -delta_x / length};
+            consider(build_constraint(
+                        edge_part_pos,
+                        support_part_pos,
+                        normal,
+                        normal.x * edge_start.x + normal.y * edge_start.y));
         }
     }
 
-    if (fixed_scales) {
-        // The separating line maximizing the gap between the parts. It isn't
-        // an edge normal when the closest points of the parts are two
-        // vertices, for example two corners facing each other diagonally:
-        // then the gap along each edge normal may be smaller than the
-        // spacing although the distance between the parts isn't.
-        auto state_vertices = [&items](const Part& part)
-        {
-            if (part.item_pos == -1)
-                return part.vertices;
-            const SeparationModelItem& item = items[part.item_pos];
-            std::vector<Point> vertices;
-            for (const Point& vertex: part.vertices) {
-                vertices.push_back({
-                        item.position.x + part.center.x + item.lambda * (vertex.x - part.center.x),
-                        item.position.y + part.center.y + item.lambda * (vertex.y - part.center.y)});
-            }
-            return vertices;
-        };
+    bool has_arcs = !part_1.arcs.empty() || !part_2.arcs.empty();
+
+    if (has_arcs) {
+        // Direction between the centers of the parts; for two circles, the
+        // direction which separates them the best.
+        Point center_1 = part_1.center;
+        Point center_2 = part_2.center;
+        if (part_1.item_pos != -1) {
+            center_1.x += items[part_1.item_pos].position.x;
+            center_1.y += items[part_1.item_pos].position.y;
+        }
+        if (part_2.item_pos != -1) {
+            center_2.x += items[part_2.item_pos].position.x;
+            center_2.y += items[part_2.item_pos].position.y;
+        }
+        LengthDbl delta_x = center_2.x - center_1.x;
+        LengthDbl delta_y = center_2.y - center_1.y;
+        LengthDbl length = std::sqrt(delta_x * delta_x + delta_y * delta_y);
+        if (length > 0.0) {
+            Point normal = {delta_x / length, delta_y / length};
+            consider(build_constraint(
+                        part_pos_1,
+                        part_pos_2,
+                        normal,
+                        support_value(part_1, normal)));
+        }
+    }
+
+    if (fixed_scales || has_arcs) {
+        // The separating line maximizing the gap between the approximations
+        // of the parts. It isn't an edge normal when the closest points of
+        // the parts are two vertices, for example two corners facing each
+        // other diagonally: then the gap along each edge normal may be
+        // smaller than the spacing although the distance between the parts
+        // isn't.
         const SeparatingLine separating_line = compute_separating_line(
-                state_vertices(part_1),
-                state_vertices(part_2));
-        Constraint constraint;
-        constraint.edge_part_pos = part_pos_1;
-        constraint.support_part_pos = part_pos_2;
-        constraint.normal = separating_line.normal;
-        constraint.edge_constant = constraint.normal.x * part_1.center.x
-            + constraint.normal.y * part_1.center.y;
-        constraint.edge_coefficient = -infinity;
-        for (const Point& vertex: part_1.vertices) {
-            constraint.edge_coefficient = (std::max)(
-                    constraint.edge_coefficient,
-                    constraint.normal.x * vertex.x + constraint.normal.y * vertex.y);
-        }
-        constraint.edge_coefficient -= constraint.edge_constant;
-        constraint.support_constant = constraint.normal.x * part_2.center.x
-            + constraint.normal.y * part_2.center.y;
-        constraint.support_coefficient = infinity;
-        for (const Point& vertex: part_2.vertices) {
-            constraint.support_coefficient = (std::min)(
-                    constraint.support_coefficient,
-                    constraint.normal.x * vertex.x + constraint.normal.y * vertex.y);
-        }
-        constraint.support_coefficient -= constraint.support_constant;
-        constraint.spacing = (part_1.item_pos == -1)? part_1.spacing:
-            (part_2.item_pos == -1)? part_2.spacing: item_spacing_;
-        LengthDbl value_cur = value(items, constraint);
-        if (value_cur > best_value) {
-            best_value = value_cur;
-            best_constraint = constraint;
+                state_approximation(items, part_1),
+                state_approximation(items, part_2));
+        // The approximation of a part with a null scale is a point.
+        if (std::isfinite(separating_line.normal.x)
+                && std::isfinite(separating_line.normal.y)) {
+            Point normal = separating_line.normal;
+            if (has_arcs) {
+                // The approximations of the arcs are inscribed polygons, so
+                // the direction may be off by up to the angle between two
+                // consecutive points of the approximations: refine it by
+                // maximizing the gap between the parts themselves.
+                auto direction_value = [&](Angle angle)
+                {
+                    Point direction = {std::cos(angle), std::sin(angle)};
+                    return value(items, build_constraint(
+                                part_pos_1,
+                                part_pos_2,
+                                direction,
+                                support_value(part_1, direction)));
+                };
+                Angle normal_angle = std::atan2(normal.y, normal.x);
+                Angle angle_min = normal_angle - approximation_maximum_angle;
+                Angle angle_max = normal_angle + approximation_maximum_angle;
+                for (Counter iteration = 0; iteration < 40; ++iteration) {
+                    Angle angle_1 = (2 * angle_min + angle_max) / 3;
+                    Angle angle_2 = (angle_min + 2 * angle_max) / 3;
+                    if (direction_value(angle_1) < direction_value(angle_2)) {
+                        angle_min = angle_1;
+                    } else {
+                        angle_max = angle_2;
+                    }
+                }
+                Angle refined_angle = (angle_min + angle_max) / 2;
+                consider(build_constraint(
+                            part_pos_1,
+                            part_pos_2,
+                            {std::cos(refined_angle), std::sin(refined_angle)},
+                            support_value(part_1, {std::cos(refined_angle), std::sin(refined_angle)})));
+            }
+            consider(build_constraint(
+                        part_pos_1,
+                        part_pos_2,
+                        normal,
+                        support_value(part_1, normal)));
         }
     }
 

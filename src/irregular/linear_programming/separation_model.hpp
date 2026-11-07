@@ -1,20 +1,30 @@
 /**
  * Separation model of the items of a bin, solved by linear programming.
  *
- * The items are decomposed into convex parts, and may be shrunk: in an item
- * with scale 'lambda', each convex part is scaled by 'lambda' around its
- * center (the average of its vertices). A scaled part is in the part, so a
- * shrunk item is in the item.
+ * The items are decomposed into convex parts (convex polygons, circular
+ * segments and circles), and may be shrunk: in an item with scale 'lambda',
+ * each convex part is scaled by 'lambda' around its center (the average of
+ * the vertices of its approximation, see 'Part'). A scaled part is in the
+ * part, so a shrunk item is in the item.
  *
- * For each pair of convex parts close to each other, an edge of one of them
- * is selected; the constraint is that the signed distance from the line
- * through this edge to the vertex of the other part the closest to it is at
- * least the minimum spacing. For a fixed edge, this vertex doesn't depend on
- * the translations and the scales of the parts, so the constraint is linear
- * in the positions and the scales, and it proves that the two parts don't
- * overlap. This is the separating line of the nonlinear separation model
- * (see 'nonlinear_programming/separation_model.hpp') with its direction fixed
+ * For each pair of convex parts close to each other, the direction 'normal'
+ * of a separating line is selected; the constraint is that the gap between
+ * the two parts along 'normal' is at least the minimum spacing. The gap is
+ * the smallest value of 'normal . point' over the points of one part minus
+ * the largest value over the points of the other part; these extreme points
+ * are vertices, or points of circular arcs whose outward normal is 'normal'.
+ * For a fixed direction, they don't depend on the translations and the
+ * scales of the parts, so the constraint is linear in the positions and the
+ * scales, and it proves that the two parts don't overlap. This is the
+ * separating line of the nonlinear separation model (see
+ * 'nonlinear_programming/separation_model.hpp') with its direction fixed
  * during a step.
+ *
+ * The candidate directions are the outward normals of the edges (line
+ * segments) of the two parts and, if one of the parts has circular arcs, the
+ * direction between the centers of the parts and the direction of the
+ * separating line of the approximations of the parts which maximizes the gap
+ * between them.
  *
  * A step solves the linear program maximizing the weighted sum of the scales,
  * the items staying in a small box around their current positions.
@@ -99,8 +109,8 @@ public:
             const std::vector<SeparationModelItem>& items);
 
     /**
-     * Return true iff the model supports the items: their shapes, the shapes
-     * of the borders and of the defects are made of line segments.
+     * Return true iff the model supports the items: the shapes of the borders
+     * are made of line segments.
      */
     bool supported() const { return supported_; }
 
@@ -148,6 +158,25 @@ public:
 
 private:
 
+    /** Convex circular arc of a part, anticlockwise. */
+    struct Arc
+    {
+        /** Center. */
+        Point center = {0, 0};
+
+        /** Radius. */
+        LengthDbl radius = 0.0;
+
+        /** Direction from the center to the start of the arc. */
+        Point start_direction = {1, 0};
+
+        /**
+         * Angle of the arc, anticlockwise from its start; 2 * pi for a full
+         * circle.
+         */
+        Angle angle = 0.0;
+    };
+
     /** Convex part of an item or of an obstacle. */
     struct Part
     {
@@ -158,18 +187,31 @@ private:
         ItemPos item_pos = -1;
 
         /**
-         * Vertices, anticlockwise: relatively to the reference point of the
-         * item, at full scale, for the parts of the items; in the frame of
-         * the bin for the parts of the obstacles.
+         * Vertices (starts of the elements), anticlockwise: relatively to the
+         * reference point of the item, at full scale, for the parts of the
+         * items; in the frame of the bin for the parts of the obstacles.
          */
         std::vector<Point> vertices;
+
+        /** Edges (line segments): start and end, in the same frame. */
+        std::vector<std::pair<Point, Point>> edges;
+
+        /** Circular arcs, in the same frame. */
+        std::vector<Arc> arcs;
+
+        /**
+         * Vertices of a convex polygon inscribed in the part, anticlockwise,
+         * in the same frame: the vertices and points sampled on the arcs.
+         */
+        std::vector<Point> approximation;
 
         /** Bounding box, in the same frame as the vertices. */
         AxisAlignedBoundingBox aabb;
 
         /**
-         * Center of the scaling of the part (average of its vertices), in the
-         * same frame as the vertices; {0, 0} for the parts of the obstacles.
+         * Center of the scaling of the part (average of the vertices of its
+         * approximation), in the same frame as the vertices; {0, 0} for the
+         * parts of the obstacles.
          */
         Point center = {0, 0};
 
@@ -205,6 +247,31 @@ private:
 
         LengthDbl spacing = 0.0;
     };
+
+    /**
+     * Largest value of 'normal . point' over the points of a part, in the
+     * frame of the part, at full scale.
+     */
+    static LengthDbl support_value(
+            const Part& part,
+            const Point& normal);
+
+    /**
+     * Build the constraint of two parts for a unit direction, oriented from
+     * the edge part to the support part.
+     *
+     * 'edge_support_value' is 'support_value(edge_part, normal)'.
+     */
+    Constraint build_constraint(
+            Counter edge_part_pos,
+            Counter support_part_pos,
+            const Point& normal,
+            LengthDbl edge_support_value) const;
+
+    /** Vertices of the approximation of a part in a state. */
+    std::vector<Point> state_approximation(
+            const std::vector<SeparationModelItem>& items,
+            const Part& part) const;
 
     /** Bounding box of a part in a state. */
     AxisAlignedBoundingBox part_aabb(

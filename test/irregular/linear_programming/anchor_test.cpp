@@ -217,6 +217,29 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "irregular" / "tests" / "linear_programming_anchor/lp_two_items_spacing_top_right_initial.json",
                 -1.0, -1.0,
                 fs::path("data") / "irregular" / "tests" / "linear_programming_anchor/lp_two_items_spacing_top_right_expected.json"
+            }, {
+                // Two circles with an item-item spacing and an item-bin
+                // spacing, in a bin with room for a single row.
+                fs::path("data") / "irregular" / "tests" / "linear_programming_anchor/lp_two_circles_spacing.json",
+                fs::path("data") / "irregular" / "tests" / "linear_programming_anchor/lp_two_circles_spacing_initial.json",
+                1.0, 1.0,
+                fs::path("data") / "irregular" / "tests" / "linear_programming_anchor/lp_two_circles_spacing_expected.json"
+            }, {
+                // A square sliding under a circular defect with an
+                // item-defect spacing: its top-left corner ends against the
+                // inflated defect.
+                fs::path("data") / "irregular" / "tests" / "linear_programming_anchor/lp_square_circular_defect.json",
+                fs::path("data") / "irregular" / "tests" / "linear_programming_anchor/lp_square_circular_defect_initial.json",
+                1.0, 1.0,
+                fs::path("data") / "irregular" / "tests" / "linear_programming_anchor/lp_square_circular_defect_expected.json"
+            }, {
+                // Two half disks (decomposed into circular segments) with an
+                // item-item spacing and an item-bin spacing, in a bin with
+                // room for a single row.
+                fs::path("data") / "irregular" / "tests" / "linear_programming_anchor/lp_two_half_disks_spacing.json",
+                fs::path("data") / "irregular" / "tests" / "linear_programming_anchor/lp_two_half_disks_spacing_initial.json",
+                1.0, 1.0,
+                fs::path("data") / "irregular" / "tests" / "linear_programming_anchor/lp_two_half_disks_spacing_expected.json"
             }}));
 
 TEST(IrregularLinearProgrammingAnchor, DiagonalSpacing)
