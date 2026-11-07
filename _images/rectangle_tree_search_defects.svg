@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="596.0" height="190.4" viewBox="-34.0 -154 596.0 190.4">
+<defs><pattern id="hatch0" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" stroke="#333333" stroke-width="2"/></pattern><marker id="arrow1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#b85450"/></marker></defs>
+<rect x="-34.0" y="-154" width="596.0" height="190.4" fill="#ffffff"/>
+<rect x="72" y="-48" width="48" height="48" fill="#999999"/>
+<rect x="72" y="-48" width="48" height="48" fill="url(#hatch0)" stroke="#333333" stroke-width="1"/>
+<rect x="77.08" y="-31.2" width="37.84" height="14.4" fill="#ffffff"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="96.0" y="-19.8">defect</tspan></text>
+<rect x="0" y="-48" width="96" height="48" fill="#f8cecc" stroke="#b85450" stroke-width="1" stroke-dasharray="3 3" opacity="0.6"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="48.0" y="-19.8">G</tspan></text>
+<polyline points="60.0,-16.8 156.0,-16.8" fill="none" stroke="#b85450" stroke-width="2" marker-end="url(#arrow1)"/>
+<rect x="120" y="-48" width="96" height="48" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="168.0" y="-19.8">G</tspan></text>
+<rect x="0" y="-144" width="240" height="144" fill="none" stroke="#000000" stroke-width="2"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="120.0" y="23.4">on the floor: shifted to x = 5</tspan></text>
+<rect x="360" y="-48" width="48" height="48" fill="#999999"/>
+<rect x="360" y="-48" width="48" height="48" fill="url(#hatch0)" stroke="#333333" stroke-width="1"/>
+<rect x="365.08" y="-31.2" width="37.84" height="14.4" fill="#ffffff"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="384.0" y="-19.8">defect</tspan></text>
+<rect x="288" y="-96" width="96" height="48" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="336.0" y="-67.8">G</tspan></text>
+<rect x="288" y="-144" width="240" height="144" fill="none" stroke="#000000" stroke-width="2"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="408.0" y="23.4">above the defect: x = 0, y = 2</tspan></text>
+</svg>

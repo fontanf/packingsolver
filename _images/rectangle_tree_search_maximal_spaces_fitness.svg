@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980.0" height="182.6" viewBox="-30.0 -130 980.0 182.6">
+<defs><pattern id="hatch0" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" stroke="#b85450" stroke-width="2"/></pattern></defs>
+<rect x="-30.0" y="-130" width="980.0" height="182.6" fill="#ffffff"/>
+<rect x="0" y="-60" width="80" height="60" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="40.0" y="-25.8">A</tspan></text>
+<rect x="80" y="-120" width="120" height="120" fill="#fff2cc" stroke="none" stroke-width="1" opacity="0.5"/>
+<rect x="80" y="-40" width="40" height="40" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="100.0" y="-15.8">B</tspan></text>
+<rect x="120" y="-40" width="40" height="40" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="140.0" y="-15.8">B</tspan></text>
+<rect x="160" y="-40" width="40" height="40" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="180.0" y="-15.8">B</tspan></text>
+<rect x="80" y="-60" width="60" height="20" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="110.0" y="-45.8">C</tspan></text>
+<rect x="140" y="-60" width="60" height="20" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="170.0" y="-45.8">C</tspan></text>
+<rect x="80" y="-60" width="120" height="60" fill="none" stroke="#000000" stroke-width="2"/>
+<rect x="0" y="-120" width="200" height="120" fill="none" stroke="#000000" stroke-width="2"/>
+<polyline points="200,0 200,-60" fill="none" stroke="#b85450" stroke-width="4"/>
+<polyline points="80,0 200,0" fill="none" stroke="#b85450" stroke-width="4"/>
+<polyline points="80,0 80,-60" fill="none" stroke="#b85450" stroke-width="4"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#000000" text-anchor="middle"><tspan x="100.0" y="21.85">V = 18, C = 0.67, L = 1.00, N = 5</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#000000" text-anchor="middle"><tspan x="100.0" y="39.85">fitness = 2.12</tspan></text>
+<rect x="240" y="-60" width="80" height="60" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="280.0" y="-25.8">A</tspan></text>
+<rect x="320" y="-120" width="120" height="120" fill="#fff2cc" stroke="none" stroke-width="1" opacity="0.5"/>
+<rect x="320" y="-40" width="40" height="40" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="340.0" y="-15.8">B</tspan></text>
+<rect x="360" y="-40" width="40" height="40" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="380.0" y="-15.8">B</tspan></text>
+<rect x="400" y="-40" width="40" height="40" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="420.0" y="-15.8">B</tspan></text>
+<rect x="320" y="-40" width="120" height="40" fill="none" stroke="#000000" stroke-width="2"/>
+<rect x="240" y="-120" width="200" height="120" fill="none" stroke="#000000" stroke-width="2"/>
+<polyline points="440,0 440,-40" fill="none" stroke="#b85450" stroke-width="4"/>
+<polyline points="320,0 440,0" fill="none" stroke="#b85450" stroke-width="4"/>
+<polyline points="320,0 320,-40" fill="none" stroke="#b85450" stroke-width="4"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#000000" text-anchor="middle"><tspan x="340.0" y="21.85">V = 12, C = 0.62, L = 1.00, N = 3</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#000000" text-anchor="middle"><tspan x="340.0" y="39.85">fitness = 1.36</tspan></text>
+<rect x="480" y="-60" width="80" height="60" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="520.0" y="-25.8">A</tspan></text>
+<rect x="560" y="-120" width="120" height="120" fill="#fff2cc" stroke="none" stroke-width="1" opacity="0.5"/>
+<rect x="600" y="-40" width="40" height="40" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="620.0" y="-15.8">B</tspan></text>
+<rect x="640" y="-40" width="40" height="40" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="660.0" y="-15.8">B</tspan></text>
+<rect x="600" y="-100" width="80" height="60" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="640.0" y="-65.8">A</tspan></text>
+<rect x="600" y="-100" width="80" height="100" fill="none" stroke="#000000" stroke-width="2"/>
+<rect x="480" y="-120" width="200" height="120" fill="none" stroke="#000000" stroke-width="2"/>
+<polyline points="680,0 680,-100" fill="none" stroke="#b85450" stroke-width="4"/>
+<polyline points="600,0 680,0" fill="none" stroke="#b85450" stroke-width="4"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#000000" text-anchor="middle"><tspan x="580.0" y="21.85">V = 20, C = 0.50, L = 1.00, N = 3</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#000000" text-anchor="middle"><tspan x="580.0" y="39.85">fitness = 0.99</tspan></text>
+<rect x="720" y="-60" width="80" height="60" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="760.0" y="-25.8">A</tspan></text>
+<rect x="800" y="-120" width="120" height="120" fill="#fff2cc" stroke="none" stroke-width="1" opacity="0.5"/>
+<rect x="820" y="-20" width="60" height="20" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="850.0" y="-5.8">C</tspan></text>
+<rect x="820" y="-40" width="60" height="20" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="850.0" y="-25.8">C</tspan></text>
+<rect x="880" y="-40" width="40" height="40" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="900.0" y="-15.8">B</tspan></text>
+<rect x="820" y="-40" width="100" height="40" fill="none" stroke="#000000" stroke-width="2"/>
+<rect x="800" y="-120" width="20" height="120" fill="#f8cecc" opacity="0.6"/>
+<rect x="800" y="-120" width="20" height="120" fill="url(#hatch0)" stroke="#b85450" stroke-width="1" opacity="0.6"/>
+<rect x="720" y="-120" width="200" height="120" fill="none" stroke="#000000" stroke-width="2"/>
+<polyline points="920,0 920,-40" fill="none" stroke="#b85450" stroke-width="4"/>
+<polyline points="820,0 920,0" fill="none" stroke="#b85450" stroke-width="4"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#000000" text-anchor="middle"><tspan x="820.0" y="21.85">V = 10, C = 0.50, L = 0.83, N = 3</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#000000" text-anchor="middle"><tspan x="820.0" y="39.85">fitness = 0.31</tspan></text>
+</svg>

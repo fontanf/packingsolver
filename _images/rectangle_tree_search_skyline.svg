@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="605.0" height="200" viewBox="-10 -190 605.0 200">
+<rect x="-10" y="-190" width="605.0" height="200" fill="#ffffff"/>
+<rect x="0" y="-90" width="120" height="90" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="60.0" y="-40.8">A</tspan></text>
+<rect x="0" y="-150" width="90" height="60" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="45.0" y="-115.8">B</tspan></text>
+<rect x="120" y="-120" width="60" height="120" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="150.0" y="-55.8">C</tspan></text>
+<rect x="0" y="-180" width="60" height="30" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="30.0" y="-160.8">D</tspan></text>
+<rect x="0" y="-180" width="300" height="180" fill="none" stroke="#000000" stroke-width="2"/>
+<polyline points="180,0 180,-120 90,-120 90,-150 60,-150 60,-180" fill="none" stroke="#b85450" stroke-width="3"/>
+<polyline points="180,-120 309.0,-120" fill="none" stroke="#999999" stroke-width="1" stroke-dasharray="3 3"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start"><tspan x="315.0" y="-55.8">y from 0 to 4: item C, right side at x = 6</tspan></text>
+<polyline points="90,-150 309.0,-150" fill="none" stroke="#999999" stroke-width="1" stroke-dasharray="3 3"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start"><tspan x="315.0" y="-130.8">y from 4 to 5: item B, right side at x = 3</tspan></text>
+<polyline points="60,-180 309.0,-180" fill="none" stroke="#999999" stroke-width="1" stroke-dasharray="3 3"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start"><tspan x="315.0" y="-160.8">y from 5 to 6: item D, right side at x = 2</tspan></text>
+<polyline points="0,0 309.0,0" fill="none" stroke="#999999" stroke-width="1" stroke-dasharray="3 3"/>
+</svg>

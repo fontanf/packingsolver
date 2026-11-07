@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="948" height="276" viewBox="-10 -106 948 276">
+<rect x="-10" y="-106" width="948" height="276" fill="#ffffff"/>
+<rect x="384.0" y="-48" width="64" height="48" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="416.0" y="-19.8">A</tspan></text>
+<rect x="384.0" y="-80" width="48" height="32" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="408.0" y="-59.8">B</tspan></text>
+<rect x="448.0" y="-64" width="32" height="64" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="464.0" y="-27.8">C</tspan></text>
+<rect x="384.0" y="-96" width="32" height="16" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="400.0" y="-83.8">D</tspan></text>
+<rect x="384.0" y="-96" width="160" height="96" fill="none" stroke="#000000" stroke-width="2"/>
+<polygon points="459.0,8.0 469.0,8.0 469.0,34.0 475.0,34.0 464.0,48.0 453.0,34.0 459.0,34.0" fill="#ffffff" stroke="#000000"/>
+<rect x="0" y="112" width="64" height="48" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="32.0" y="140.2">A</tspan></text>
+<rect x="0" y="80" width="48" height="32" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="24.0" y="100.2">B</tspan></text>
+<rect x="64" y="96" width="32" height="64" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="80.0" y="132.2">C</tspan></text>
+<rect x="0" y="64" width="32" height="16" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="16.0" y="76.2">D</tspan></text>
+<rect x="96" y="128" width="48" height="32" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="120.0" y="148.2">E</tspan></text>
+<rect x="0" y="64" width="160" height="96" fill="none" stroke="#000000" stroke-width="2"/>
+<rect x="192" y="112" width="64" height="48" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="224.0" y="140.2">A</tspan></text>
+<rect x="192" y="80" width="48" height="32" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="216.0" y="100.2">B</tspan></text>
+<rect x="256" y="96" width="32" height="64" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="272.0" y="132.2">C</tspan></text>
+<rect x="192" y="64" width="32" height="16" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="208.0" y="76.2">D</tspan></text>
+<rect x="240" y="64" width="48" height="32" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="264.0" y="84.2">E</tspan></text>
+<rect x="192" y="64" width="160" height="96" fill="none" stroke="#000000" stroke-width="2"/>
+<rect x="384" y="112" width="64" height="48" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="416.0" y="140.2">A</tspan></text>
+<rect x="384" y="80" width="48" height="32" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="408.0" y="100.2">B</tspan></text>
+<rect x="448" y="96" width="32" height="64" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="464.0" y="132.2">C</tspan></text>
+<rect x="384" y="64" width="32" height="16" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="400.0" y="76.2">D</tspan></text>
+<rect x="480" y="112" width="32" height="48" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="496.0" y="140.2">E</tspan></text>
+<rect x="384" y="64" width="160" height="96" fill="none" stroke="#000000" stroke-width="2"/>
+<rect x="576" y="112" width="64" height="48" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="608.0" y="140.2">A</tspan></text>
+<rect x="576" y="80" width="48" height="32" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="600.0" y="100.2">B</tspan></text>
+<rect x="640" y="96" width="32" height="64" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="656.0" y="132.2">C</tspan></text>
+<rect x="576" y="64" width="32" height="16" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="592.0" y="76.2">D</tspan></text>
+<rect x="672" y="144" width="16" height="16" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="680.0" y="156.2">F</tspan></text>
+<rect x="576" y="64" width="160" height="96" fill="none" stroke="#000000" stroke-width="2"/>
+<rect x="768" y="112" width="64" height="48" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="800.0" y="140.2">A</tspan></text>
+<rect x="768" y="80" width="48" height="32" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="792.0" y="100.2">B</tspan></text>
+<rect x="832" y="96" width="32" height="64" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="848.0" y="132.2">C</tspan></text>
+<rect x="768" y="64" width="32" height="16" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="784.0" y="76.2">D</tspan></text>
+<rect x="800" y="64" width="16" height="16" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="808.0" y="76.2">F</tspan></text>
+<rect x="768" y="64" width="160" height="96" fill="none" stroke="#000000" stroke-width="2"/>
+</svg>

@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="263.2" height="186.4" viewBox="-13.2 -173.2 263.2 186.4">
+<rect x="-13.2" y="-173.2" width="263.2" height="186.4" fill="#ffffff"/>
+<polygon points="0,0 240,0 240,-56.0 104.0,-76.0 88.0,-160 0,-160" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<ellipse cx="53.6" cy="-53.6" rx="53.6" ry="53.6" fill="#f8cecc" stroke="#b85450" stroke-width="1" opacity="0.8"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#000000" text-anchor="middle"><tspan x="53.6" y="-50.1">1</tspan></text>
+<ellipse cx="140.0" cy="-34.4" rx="34.4" ry="34.4" fill="#f8cecc" stroke="#b85450" stroke-width="1" opacity="0.8"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#000000" text-anchor="middle"><tspan x="140.0" y="-30.9">2</tspan></text>
+<ellipse cx="204.0" cy="-31.2" rx="29.68" ry="29.68" fill="#f8cecc" stroke="#b85450" stroke-width="1" opacity="0.8"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#000000" text-anchor="middle"><tspan x="204.0" y="-27.7">3</tspan></text>
+<ellipse cx="28.0" cy="-132.0" rx="28.0" ry="28.0" fill="#f8cecc" stroke="#b85450" stroke-width="1" opacity="0.8"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#000000" text-anchor="middle"><tspan x="28.0" y="-128.5">4</tspan></text>
+<ellipse cx="74.41" cy="-124.0" rx="19.09" ry="19.09" fill="#f8cecc" stroke="#b85450" stroke-width="1" opacity="0.8"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#000000" text-anchor="middle"><tspan x="74.4" y="-120.5">5</tspan></text>
+<ellipse cx="101.6" cy="-10.4" rx="10.4" ry="10.4" fill="#f8cecc" stroke="#b85450" stroke-width="1" opacity="0.8"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#000000" text-anchor="middle"><tspan x="101.6" y="-6.9">6</tspan></text>
+<ellipse cx="61.59" cy="-149.6" rx="9.54" ry="9.54" fill="#f8cecc" stroke="#b85450" stroke-width="1" opacity="0.8"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#000000" text-anchor="middle"><tspan x="61.6" y="-146.1">7</tspan></text>
+<ellipse cx="8.8" cy="-8.8" rx="8.8" ry="8.8" fill="#f8cecc" stroke="#b85450" stroke-width="1" opacity="0.8"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#000000" text-anchor="middle"><tspan x="8.8" y="-5.3">8</tspan></text>
+<ellipse cx="8.8" cy="-98.4" rx="8.8" ry="8.8" fill="#f8cecc" stroke="#b85450" stroke-width="1" opacity="0.8"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#000000" text-anchor="middle"><tspan x="8.8" y="-94.9">9</tspan></text>
+<ellipse cx="80.8" cy="-151.2" rx="8.72" ry="8.72" fill="#f8cecc" stroke="#b85450" stroke-width="1" opacity="0.8"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#000000" text-anchor="middle"><tspan x="80.8" y="-147.7">10</tspan></text>
+</svg>

@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Tree search on packing classes &#8212; PackingSolver</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../_static/classic.css?v=14e077c0" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=a00afc7f" />
+    
+    <script src="../../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Dual feasible functions" href="dual_feasible_functions.html" />
+    <link rel="prev" title="Benders decomposition with contiguity" href="benders_decomposition_contiguity.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="dual_feasible_functions.html" title="Dual feasible functions"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="benders_decomposition_contiguity.html" title="Benders decomposition with contiguity"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../overview.html" >Solver internals</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../rectangle.html" accesskey="U"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> algorithms</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Tree search on packing classes</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="tree-search-on-packing-classes">
+<span id="internals-rectangle-tree-search-packing-classes"></span><h1>Tree search on packing classes<a class="headerlink" href="#tree-search-on-packing-classes" title="Link to this heading">¶</a></h1>
+<section id="objectives">
+<h2>Objectives<a class="headerlink" href="#objectives" title="Link to this heading">¶</a></h2>
+<p>This algorithm solves the <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code> objective, for a single bin (one bin type with one copy). It supports the rotations of the items and the eligibilities, but not the defects, the fixed items, the unloading constraints, the maximum weight and the resources.</p>
+<p>It is an exact method: it either finds a packing of all the items, or proves that there is none. It is mainly useful to prove infeasibility: its running time doesn’t depend on the size of the bin.</p>
+</section>
+<section id="principle">
+<h2>Principle<a class="headerlink" href="#principle" title="Link to this heading">¶</a></h2>
+<p>It follows the exact algorithm of Fekete, Schepers and van der Veen (2007), based on the characterization of the packings by <em>packing classes</em> (Fekete and Schepers, 2004).</p>
+<p>For each axis, the <em>packing class</em> of a packing is described by the pairs of items whose projections on the axis overlap. Two items don’t overlap iff their projections are disjoint along at least one axis. The search decides, for each axis and each pair of items, whether their projections overlap or are disjoint, but not which item comes first: a packing class represents many packings, and the positions are only computed at the end.</p>
+<p>In the figure below, a packing and, for each axis, the graph of the pairs of items whose projections are disjoint along it. Each edge is oriented from the item which comes first along the axis. Every pair is an edge of at least one of the two graphs; B and D are disjoint along both axes.</p>
+<a class="reference internal image-reference" href="../../_images/rectangle_tree_search_packing_classes_packing_class.svg"><img alt="../../_images/rectangle_tree_search_packing_classes_packing_class.svg" class="align-center" height="196" src="../../_images/rectangle_tree_search_packing_classes_packing_class.svg" width="596" />
+</a>
+<p><strong>Characterization.</strong> Fekete and Schepers (2004) show that the items fit in the bin iff there are, for each axis, a set of pairs of items <em>disjoint</em> along it, such that:</p>
+<ul class="simple">
+<li><p>every pair of items is disjoint along at least one axis;</p></li>
+<li><p>for each axis, the graph of the pairs disjoint along it is a <em>comparability graph</em>: its edges can be oriented transitively (if <span class="math notranslate nohighlight">\(a \to b\)</span> and <span class="math notranslate nohighlight">\(b \to c\)</span>, then <span class="math notranslate nohighlight">\(a \to c\)</span>);</p></li>
+<li><p>for each axis, the items of each clique of the graph of the pairs disjoint along it fit side by side in the length of the bin along the axis: the sum of their lengths along the axis is at most the length of the bin.</p></li>
+</ul>
+<p>Given a transitive orientation, the position of an item along the axis is the total length of the longest chain of items before it. Two items disjoint along the axis are ordered by the orientation, so their projections don’t overlap; the chains of the orientation are cliques of the graph, so the items fit in the bin.</p>
+<p>Conversely, the pairs disjoint along an axis in a packing satisfy these conditions, and the graph of the pairs which overlap along it is then an <em>interval graph</em> (the graph of the intersections of the projections of the items). The search only has to consider such packing classes, which allows stronger propagation (see the induced cycles below).</p>
+</section>
+<section id="tree-search">
+<h2>Tree search<a class="headerlink" href="#tree-search" title="Link to this heading">¶</a></h2>
+<p><strong>Nodes.</strong> A node stores, for each axis and each pair of items, the state of the pair: <em>overlap</em>, <em>disjoint</em> or <em>unknown</em>; and the rotation of each item, possibly not fixed yet. The root node has all the pairs unknown. The search is a depth-first search.</p>
+<p><strong>Rotations.</strong> The rotations are fixed first, one item at a time, the largest items first: a node with an item whose rotation is not fixed yet has two children, one for each rotation. Until its rotation is fixed, the length of an item along an axis is its smallest length along it over its rotations.</p>
+<p><strong>Propagation.</strong> At each node, the following rules are applied until none of them changes the states of the pairs:</p>
+<ul class="simple">
+<li><p>two items whose lengths along an axis sum to more than the length of the bin overlap along it;</p></li>
+<li><p>two items overlapping along an axis are disjoint along the other one; if they overlap along both axes, the node is infeasible;</p></li>
+<li><p><em>cliques</em>: for each axis and each pair not known to overlap along it, a clique of items pairwise disjoint along the axis and containing the pair is built greedily, from the items disjoint from both items of the pair, the longest ones first. If the items of the clique don’t fit side by side in the bin, the pair overlaps along the axis (the node is infeasible if it is known to be disjoint);</p></li>
+<li><p><em>induced cycles</em>: the graph of the pairs overlapping along an axis is an interval graph, so it contains no induced cycle of length 4. For four items <span class="math notranslate nohighlight">\(a, b, c, d\)</span>: if <span class="math notranslate nohighlight">\(a\text{–}b\)</span>, <span class="math notranslate nohighlight">\(b\text{–}c\)</span> and <span class="math notranslate nohighlight">\(c\text{–}d\)</span> overlap and both chords <span class="math notranslate nohighlight">\(a\text{–}c\)</span> and <span class="math notranslate nohighlight">\(b\text{–}d\)</span> are disjoint, then <span class="math notranslate nohighlight">\(d\text{–}a\)</span> is disjoint; if the four sides overlap and a chord is disjoint, the other chord overlaps.</p></li>
+</ul>
+<p><strong>Obstructions.</strong> Once the rotations are fixed, the pairs not known to overlap along an axis are considered disjoint along it, and the algorithm looks for an <em>obstruction</em>: a set of these pairs which can’t all be disjoint along the axis, so that at least one of them overlaps:</p>
+<ul class="simple">
+<li><p>the graph of these pairs is not a comparability graph: an <em>implication class</em> of the graph contains an edge in both directions (Golumbic, 1980). The edges p → q and p → w are in the same class if q and w are not adjacent, and the edges p → q and w → q too if p and w are not adjacent. The obstruction is the set of pairs from which the contradiction is derived;</p></li>
+<li><p>otherwise, the graph is oriented transitively (Golumbic, 1980) and the longest chain of the orientation doesn’t fit in the length of the bin. The obstruction is the set of pairs of the items of the chain.</p></li>
+</ul>
+<p>In the figure below, A, B and C are pairwise not known to overlap along x, but their widths sum to more than the width of the bin: one of the pairs A–B, A–C and B–C overlaps along x.</p>
+<a class="reference internal image-reference" href="../../_images/rectangle_tree_search_packing_classes_obstruction.svg"><img alt="../../_images/rectangle_tree_search_packing_classes_obstruction.svg" class="align-center" height="88" src="../../_images/rectangle_tree_search_packing_classes_obstruction.svg" width="380" />
+</a>
+<p>The x-axis is checked first. If no axis has an obstruction, the pairs considered disjoint form a valid packing class: the positions of the items are given by the longest chains of the orientations, and the packing is the solution.</p>
+<p><strong>Branching.</strong> If every pair of the obstruction is already known to be disjoint, the node is infeasible. If only one of its pairs is unknown, it overlaps, and the node is processed again without branching. Otherwise, the unknown pair of the obstruction whose lengths along the other axis take the largest fraction of the bin is chosen (along the other axis, the pair is then disjoint, so this is the most constrained choice), and the node has two children: one where the pair overlaps along the axis (explored first), and one where it is disjoint.</p>
+<p><strong>Symmetries.</strong> Two items are <em>indistinguishable</em> in a node if they have the same lengths and the same states with all the other items. In the child where the chosen pair is disjoint, the pairs made of items indistinguishable from the items of the chosen pair are disjoint too: a packing class where one of them overlaps is isomorphic to one where the chosen pair overlaps, which is explored in the other child (Fekete, Schepers and van der Veen, 2007, Lemma 8).</p>
+</section>
+<section id="strengths-and-weaknesses">
+<h2>Strengths and weaknesses<a class="headerlink" href="#strengths-and-weaknesses" title="Link to this heading">¶</a></h2>
+<p>The search reasons on the relative positions of the items, not on their coordinates, so its size doesn’t depend on the size of the bin. It is efficient when the infeasibility comes from the interactions between the items in two dimensions.</p>
+<p>It has no reasoning on the coordinates of the items until the packing class is complete. When the infeasibility comes from the lengths of the items, which can’t be combined to fill the bin along an axis, it may explore many nodes. The <a class="reference internal" href="benders_decomposition_contiguity.html#internals-rectangle-benders-decomposition-contiguity"><span class="std std-ref">Benders decomposition with contiguity</span></a>, whose master problem decides the x-positions of the items, is then often faster; both algorithms are run in parallel in the <code class="code docutils literal notranslate"><span class="pre">exact</span></code> mode.</p>
+</section>
+<section id="automatic-selection">
+<h2>Automatic selection<a class="headerlink" href="#automatic-selection" title="Link to this heading">¶</a></h2>
+<p>In the <code class="code docutils literal notranslate"><span class="pre">exact</span></code> mode, it is run for the <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code> objective with a single bin, alongside the other algorithms. It can be selected with <code class="code docutils literal notranslate"><span class="pre">--use-tree-search-packing-classes</span> <span class="pre">1</span></code> (CLI) or <code class="code docutils literal notranslate"><span class="pre">use_tree_search_packing_classes</span></code> (Python).</p>
+<p>It can also be used to solve the subproblems of the <a class="reference internal" href="benders_decomposition.html#internals-rectangle-benders-decomposition"><span class="std std-ref">Benders decomposition</span></a>, with <code class="code docutils literal notranslate"><span class="pre">--benders-decomposition-subproblem-use-tree-search-packing-classes</span> <span class="pre">1</span></code> (CLI) or <code class="code docutils literal notranslate"><span class="pre">benders_decomposition_subproblem_use_tree_search_packing_classes</span></code> (Python).</p>
+</section>
+<section id="source-files">
+<h2>Source files<a class="headerlink" href="#source-files" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">src/rectangle/tree_search_packing_classes.hpp</span></code>, <code class="code docutils literal notranslate"><span class="pre">src/rectangle/tree_search_packing_classes.cpp</span></code>: the algorithm</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">scripts/doc_figures/rectangle_tree_search_packing_classes.py</span></code>: the figures of this page</p></li>
+</ul>
+<p>References:</p>
+<ul class="simple">
+<li><p>“A Combinatorial Characterization of Higher-Dimensional Orthogonal Packing” (Fekete and Schepers, 2004)</p>
+<ul>
+<li><p><a class="reference external" href="https://doi.org/10.1287/moor.1030.0079">https://doi.org/10.1287/moor.1030.0079</a></p></li>
+</ul>
+</li>
+<li><p>“An Exact Algorithm for Higher-Dimensional Orthogonal Packing” (Fekete, Schepers and van der Veen, 2007)</p>
+<ul>
+<li><p><a class="reference external" href="https://doi.org/10.1287/opre.1060.0369">https://doi.org/10.1287/opre.1060.0369</a></p></li>
+</ul>
+</li>
+<li><p>“Algorithmic Graph Theory and Perfect Graphs” (Golumbic, 1980)</p></li>
+</ul>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+<h3><a href="../../index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">PackingSolver’s documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../objectives.html">Objectives</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../optimization_modes.html">Optimization modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> solver</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../overview.html">Solver internals</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../tree_search.html">Tree search</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> algorithms</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> algorithms</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="tree_search.html">Tree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tree_search_maximal_spaces.html">Tree search with maximal spaces</a></li>
+<li class="toctree-l3"><a class="reference internal" href="benders_decomposition.html">Benders decomposition</a></li>
+<li class="toctree-l3"><a class="reference internal" href="benders_decomposition_contiguity.html">Benders decomposition with contiguity</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Tree search on packing classes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="dual_feasible_functions.html">Dual feasible functions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="conservative_scales.html">Conservative scales</a></li>
+<li class="toctree-l3"><a class="reference internal" href="bar_relaxation.html">Bar relaxation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generic_algorithms.html">Generic algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../algorithm_selection.html">Algorithm selection</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="dual_feasible_functions.html" title="Dual feasible functions"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="benders_decomposition_contiguity.html" title="Benders decomposition with contiguity"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../overview.html" >Solver internals</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../rectangle.html" ><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> algorithms</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Tree search on packing classes</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2019-2024, Florian Fontan.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.2.0.
+    </div>
+  </body>
+</html>
