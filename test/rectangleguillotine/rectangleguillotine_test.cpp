@@ -331,6 +331,48 @@ TEST(RectangleGuillotine, SolutionItemInSoftTrim)
     EXPECT_TRUE(solution_2.feasible());
 }
 
+TEST(RectangleGuillotine, SolutionRoadef2018ExtraCut)
+{
+    // With the 'Roadef2018' cut type, the extra cut of the last stage
+    // separates at most two items (and a waste).
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(packingsolver::Objective::Knapsack);
+    instance_builder.set_number_of_stages(2);
+    instance_builder.set_cut_type(CutType::Roadef2018);
+    packingsolver::ItemTypeId item_type_id = instance_builder.add_item_type(10, 10);
+    instance_builder.set_item_type_copies(item_type_id, 3);
+    instance_builder.add_bin_type(30, 20);
+    Instance instance = instance_builder.build();
+
+    // Two items in a second-level sub-plate.
+    SolutionBuilder solution_builder_1(instance);
+    solution_builder_1.add_bin(0, 1, CutOrientation::Vertical);
+    solution_builder_1.add_node(1, 30);
+    solution_builder_1.add_node(2, 10);
+    solution_builder_1.add_node(3, 10);
+    solution_builder_1.set_last_node_item(0);
+    solution_builder_1.add_node(3, 20);
+    solution_builder_1.set_last_node_item(0);
+    Solution solution_1 = solution_builder_1.build();
+    EXPECT_TRUE(solution_1.number_of_stages_feasible());
+    EXPECT_TRUE(solution_1.feasible());
+
+    // Three items in a second-level sub-plate.
+    SolutionBuilder solution_builder_2(instance);
+    solution_builder_2.add_bin(0, 1, CutOrientation::Vertical);
+    solution_builder_2.add_node(1, 30);
+    solution_builder_2.add_node(2, 10);
+    solution_builder_2.add_node(3, 10);
+    solution_builder_2.set_last_node_item(0);
+    solution_builder_2.add_node(3, 20);
+    solution_builder_2.set_last_node_item(0);
+    solution_builder_2.add_node(3, 30);
+    solution_builder_2.set_last_node_item(0);
+    Solution solution_2 = solution_builder_2.build();
+    EXPECT_FALSE(solution_2.number_of_stages_feasible());
+    EXPECT_FALSE(solution_2.feasible());
+}
+
 TEST(RectangleGuillotine, AddTrimsAcceptsValidRightTrim)
 {
     // Bin 50x100 (width < height, so a bug comparing right_trim against the
