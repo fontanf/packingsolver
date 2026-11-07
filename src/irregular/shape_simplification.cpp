@@ -258,16 +258,28 @@ const SimplifiedInstance* Instance::get_simplified_instance(
         double maximum_approximation_ratio,
         const bool& end) const
 {
-    std::lock_guard<std::mutex> lock(simplified_instances_cache_->mutex);
-    std::map<double, SimplifiedInstance>& simplified_instances
-        = simplified_instances_cache_->simplified_instances;
-    auto it = simplified_instances.find(maximum_approximation_ratio);
-    if (it != simplified_instances.end())
-        return &it->second;
+    typedef std::map<double, std::shared_ptr<const SimplifiedInstance>> SimplifiedInstances;
+    std::shared_ptr<const SimplifiedInstances> simplified_instances
+        = std::atomic_load(&simplified_instances_cache_->simplified_instances);
+    auto it = simplified_instances->find(maximum_approximation_ratio);
+    if (it != simplified_instances->end())
+        return it->second.get();
     if (end)
         return nullptr;
-    it = simplified_instances.insert({
-            maximum_approximation_ratio,
-            shape_simplification(*this, maximum_approximation_ratio)}).first;
-    return &it->second;
+    // Only one thread computes simplified shapes; the other ones wait for it.
+    std::lock_guard<std::mutex> lock(simplified_instances_cache_->mutex);
+    simplified_instances = std::atomic_load(&simplified_instances_cache_->simplified_instances);
+    it = simplified_instances->find(maximum_approximation_ratio);
+    if (it != simplified_instances->end())
+        return it->second.get();
+    std::shared_ptr<const SimplifiedInstance> simplified_instance
+        = std::make_shared<const SimplifiedInstance>(
+                shape_simplification(*this, maximum_approximation_ratio));
+    std::shared_ptr<SimplifiedInstances> new_simplified_instances
+        = std::make_shared<SimplifiedInstances>(*simplified_instances);
+    new_simplified_instances->insert({maximum_approximation_ratio, simplified_instance});
+    std::atomic_store(
+            &simplified_instances_cache_->simplified_instances,
+            std::shared_ptr<const SimplifiedInstances>(new_simplified_instances));
+    return simplified_instance.get();
 }

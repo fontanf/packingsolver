@@ -1307,11 +1307,10 @@ void InstanceBuilder::copy_cache_from_original_instance()
 
     // Only the simplified shapes already computed are copied, without
     // waiting for a computation in progress in another thread.
-    std::unique_lock<std::mutex> original_lock(
-            original_instance.simplified_instances_cache_->mutex,
-            std::try_to_lock);
-    if (original_lock.owns_lock()
-            && !original_instance.simplified_instances_cache_->simplified_instances.empty()) {
+    typedef std::map<double, std::shared_ptr<const SimplifiedInstance>> SimplifiedInstances;
+    std::shared_ptr<const SimplifiedInstances> original_simplified_instances
+        = std::atomic_load(&original_instance.simplified_instances_cache_->simplified_instances);
+    if (!original_simplified_instances->empty()) {
         // The simplified shapes are only valid if all the item types and bin
         // types come from the original instance, with the same scale and the
         // same spacings, since the inflated shapes depend on them, and if the
@@ -1376,9 +1375,10 @@ void InstanceBuilder::copy_cache_from_original_instance()
         }
 
         if (valid) {
-            for (const auto& original_entry:
-                    original_instance.simplified_instances_cache_->simplified_instances) {
-                const SimplifiedInstance& original_simplified_instance = original_entry.second;
+            std::shared_ptr<SimplifiedInstances> simplified_instances
+                = std::make_shared<SimplifiedInstances>();
+            for (const auto& original_entry: *original_simplified_instances) {
+                const SimplifiedInstance& original_simplified_instance = *original_entry.second;
                 SimplifiedInstance simplified_instance;
                 for (ItemTypeId item_type_id = 0;
                         item_type_id < instance_.number_of_item_types();
@@ -1392,10 +1392,11 @@ void InstanceBuilder::copy_cache_from_original_instance()
                     simplified_instance.bin_types.push_back(
                             original_simplified_instance.bin_types[sub_to_orig_bin_type_ids[bin_type_id]]);
                 }
-                instance_.simplified_instances_cache_->simplified_instances.insert({
+                simplified_instances->insert({
                         original_entry.first,
-                        std::move(simplified_instance)});
+                        std::make_shared<const SimplifiedInstance>(std::move(simplified_instance))});
             }
+            instance_.simplified_instances_cache_->simplified_instances = simplified_instances;
         }
     }
 }
@@ -1404,15 +1405,11 @@ void InstanceBuilder::copy_periodic_packings_from_original_instance()
 {
     const Instance& original_instance = *original_instance_;
 
-    // Only the periodic packings already computed are copied, without
-    // waiting for a computation in progress in another thread.
-    std::unique_lock<std::mutex> original_lock(
-            original_instance.periodic_packings_cache_->mutex,
-            std::try_to_lock);
-    if (!original_lock.owns_lock())
-        return;
+    // Only the periodic packings of an original instance whose periodic
+    // packings have all been computed are copied, without waiting for a
+    // computation in progress in another thread.
     const PeriodicPackingsCache& original_cache = *original_instance.periodic_packings_cache_;
-    if (original_cache.item_type_periodic_packings_computed.empty())
+    if (!original_cache.computed.load(std::memory_order_acquire))
         return;
     // The periodic packings are in scaled coordinates and include the
     // item-item minimum spacing.

@@ -2,7 +2,9 @@
 
 #include "irregular/shape_simplification.hpp"
 
+#include <atomic>
 #include <map>
+#include <memory>
 #include <mutex>
 
 namespace packingsolver
@@ -46,11 +48,20 @@ struct PeriodicItemPacking
  */
 struct SimplifiedInstancesCache
 {
-    /** Mutex protecting the other members. */
+    /** Mutex held while computing simplified shapes. */
     std::mutex mutex;
 
-    /** Simplified shapes, for each maximum approximation ratio. */
-    std::map<double, SimplifiedInstance> simplified_instances;
+    /**
+     * Simplified shapes, for each maximum approximation ratio.
+     *
+     * The map is never modified: an insertion replaces it by a new one, so
+     * that it can be read without the mutex. It is accessed with
+     * 'std::atomic_load' and 'std::atomic_store'. The simplified shapes are
+     * never removed, so a pointer to them stays valid while the cache
+     * exists.
+     */
+    std::shared_ptr<const std::map<double, std::shared_ptr<const SimplifiedInstance>>> simplified_instances
+        = std::make_shared<const std::map<double, std::shared_ptr<const SimplifiedInstance>>>();
 };
 
 /**
@@ -59,17 +70,22 @@ struct SimplifiedInstancesCache
  */
 struct PeriodicPackingsCache
 {
-    /** Mutex protecting the other members. */
+    /** Mutex held while computing periodic packings. */
     std::mutex mutex;
 
     /**
      * For each item type, true iff its periodic packings have been computed.
-     * Empty if none has been computed.
+     * Empty if none has been computed. Only accessed under the mutex until
+     * 'computed' is true.
      */
     std::vector<bool> item_type_periodic_packings_computed;
 
-    /** True iff the periodic packings of all the item types have been computed. */
-    bool computed = false;
+    /**
+     * True iff the periodic packings of all the item types have been
+     * computed. The cache is not modified once computed, so it can then be
+     * read without the mutex.
+     */
+    std::atomic<bool> computed{false};
 
     /**
      * Periodic packings of the instance. The item types of a periodic

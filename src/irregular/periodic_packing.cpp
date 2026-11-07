@@ -2341,11 +2341,15 @@ void packingsolver::irregular::complete_periodic_packings(
 const std::vector<PeriodicItemPacking>* Instance::get_periodic_packings(
         const bool& end) const
 {
-    std::lock_guard<std::mutex> lock(periodic_packings_cache_->mutex);
-    if (periodic_packings_cache_->computed)
+    if (periodic_packings_cache_->computed.load(std::memory_order_acquire))
         return &periodic_packings_cache_->periodic_packings;
     if (end)
         return nullptr;
+    // Only one thread computes the periodic packings; the other ones wait
+    // for it.
+    std::lock_guard<std::mutex> lock(periodic_packings_cache_->mutex);
+    if (periodic_packings_cache_->computed.load(std::memory_order_acquire))
+        return &periodic_packings_cache_->periodic_packings;
     // The periodic packings computed before an interruption are kept: the
     // next call only computes the remaining ones.
     complete_periodic_packings(
@@ -2355,6 +2359,6 @@ const std::vector<PeriodicItemPacking>* Instance::get_periodic_packings(
             end);
     if (end)
         return nullptr;
-    periodic_packings_cache_->computed = true;
+    periodic_packings_cache_->computed.store(true, std::memory_order_release);
     return &periodic_packings_cache_->periodic_packings;
 }

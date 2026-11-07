@@ -572,16 +572,19 @@ std::vector<Block> packingsolver::rectangle::copy_blocks(
 const std::vector<std::vector<Block>>* Instance::get_blocks(
         const bool& end) const
 {
-    std::lock_guard<std::mutex> lock(blocks_cache_->mutex);
-    if (blocks_cache_->computed)
+    if (blocks_cache_->computed.load(std::memory_order_acquire))
         return &blocks_cache_->blocks;
     if (end)
         return nullptr;
+    // Only one thread computes the blocks; the other ones wait for it.
+    std::lock_guard<std::mutex> lock(blocks_cache_->mutex);
+    if (blocks_cache_->computed.load(std::memory_order_acquire))
+        return &blocks_cache_->blocks;
     std::vector<std::vector<Block>> blocks = compute_blocks(*this, BlockParameters(), &end);
     if (end)
         return nullptr;
     blocks_cache_->blocks = std::move(blocks);
-    blocks_cache_->computed = true;
+    blocks_cache_->computed.store(true, std::memory_order_release);
     return &blocks_cache_->blocks;
 }
 
