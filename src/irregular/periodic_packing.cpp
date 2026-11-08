@@ -126,12 +126,206 @@ namespace
 {
 
 /**
+ * No-fit polygon of two shapes, inflated by the item-item minimum spacing:
+ * the translations of the second shape for which it is too close to the
+ * first one.
+ *
+ * 'shapes' is the union of these translations. 'feasible_elements' and
+ * 'feasible_points' are translations strictly inside 'shapes' which are not
+ * too close (see shape::NoFitPolygonOutput), e.g. when the second shape fits
+ * exactly the width of a slot of the first one. With a spacing, there is
+ * none: these translations make the shapes touch.
+ */
+struct PeriodicNoFitPolygon
+{
+    std::vector<ShapeWithHoles> shapes;
+
+    std::vector<ShapeElement> feasible_elements;
+
+    std::vector<Point> feasible_points;
+
+    PeriodicNoFitPolygon& shift(const Point& vector)
+    {
+        for (ShapeWithHoles& shape: shapes)
+            shape.shift(vector);
+        for (ShapeElement& element: feasible_elements)
+            element.shift(vector);
+        for (Point& point: feasible_points)
+            point.shift(vector);
+        return *this;
+    }
+
+    PeriodicNoFitPolygon rotate(Angle angle) const
+    {
+        PeriodicNoFitPolygon nfp;
+        for (const ShapeWithHoles& shape: shapes)
+            nfp.shapes.push_back(shape.rotate(angle));
+        for (const ShapeElement& element: feasible_elements)
+            nfp.feasible_elements.push_back(element.rotate(angle));
+        for (const Point& point: feasible_points)
+            nfp.feasible_points.push_back(point.rotate(angle));
+        return nfp;
+    }
+};
+
+/**
+ * Return true iff some of a set of no-fit polygons have feasible elements or
+ * points.
+ */
+bool has_feasible_elements_or_points(
+        const std::vector<PeriodicNoFitPolygon>& nfps)
+{
+    for (const PeriodicNoFitPolygon& nfp: nfps)
+        if (!nfp.feasible_elements.empty() || !nfp.feasible_points.empty())
+            return true;
+    return false;
+}
+
+/**
+ * Return true iff a translation is too close for one of a set of no-fit
+ * polygons: strictly inside its shapes, and not on its feasible elements and
+ * points.
+ */
+bool is_forbidden(
+        const std::vector<PeriodicNoFitPolygon>& nfps,
+        const Point& point)
+{
+    for (const PeriodicNoFitPolygon& nfp: nfps) {
+        bool inside = false;
+        for (const ShapeWithHoles& shape: nfp.shapes) {
+            if (shape.contains(point, true)) {
+                inside = true;
+                break;
+            }
+        }
+        if (!inside)
+            continue;
+        bool feasible = false;
+        for (const ShapeElement& element: nfp.feasible_elements) {
+            if (element.contains(point)) {
+                feasible = true;
+                break;
+            }
+        }
+        for (const Point& feasible_point: nfp.feasible_points) {
+            if (feasible)
+                break;
+            if (shape::equal(feasible_point, point))
+                feasible = true;
+        }
+        if (!feasible)
+            return true;
+    }
+    return false;
+}
+
+/**
+ * Return true iff a translation is strictly inside the union 'nfp_union' of
+ * a set of no-fit polygons 'nfps' and is too close for one of them.
+ *
+ * Without feasible elements and points, it is the same as being strictly
+ * inside 'nfp_union'. Otherwise, a translation strictly inside 'nfp_union'
+ * may be on feasible elements or points of these no-fit polygons, or between
+ * two of them.
+ */
+bool is_forbidden(
+        const std::vector<ShapeWithHoles>& nfp_union,
+        const std::vector<PeriodicNoFitPolygon>& nfps,
+        bool feasible_elements_or_points,
+        const Point& point)
+{
+    bool inside = false;
+    for (const ShapeWithHoles& shape: nfp_union) {
+        if (shape.contains(point, true)) {
+            inside = true;
+            break;
+        }
+    }
+    if (!inside)
+        return false;
+    if (!feasible_elements_or_points)
+        return true;
+    return is_forbidden(nfps, point);
+}
+
+/**
+ * Add to 'candidates' the points of the feasible elements and points of a
+ * set of no-fit polygons on a line segment 'ray'.
+ */
+void collect_feasible_candidates(
+        const std::vector<PeriodicNoFitPolygon>& nfps,
+        const ShapeElement& ray,
+        std::vector<Point>& candidates)
+{
+    for (const PeriodicNoFitPolygon& nfp: nfps) {
+        for (const ShapeElement& element: nfp.feasible_elements) {
+            ShapeElementIntersectionsOutput intersections
+                = shape::compute_intersections(ray, element);
+            for (const ShapeElement& part: intersections.overlapping_parts) {
+                candidates.push_back(part.start);
+                candidates.push_back(part.end);
+            }
+            for (const Point& point: intersections.proper_intersections)
+                candidates.push_back(point);
+            for (const Point& point: intersections.improper_intersections)
+                candidates.push_back(point);
+        }
+        for (const Point& point: nfp.feasible_points)
+            if (ray.contains(point))
+                candidates.push_back(point);
+    }
+}
+
+/**
+ * Add to 'candidates' the ends of the feasible elements and the feasible
+ * points of a set of no-fit polygons.
+ */
+void collect_feasible_ends(
+        const std::vector<PeriodicNoFitPolygon>& nfps,
+        std::vector<Point>& candidates)
+{
+    for (const PeriodicNoFitPolygon& nfp: nfps) {
+        for (const ShapeElement& element: nfp.feasible_elements) {
+            candidates.push_back(element.start);
+            candidates.push_back(element.end);
+        }
+        for (const Point& point: nfp.feasible_points)
+            candidates.push_back(point);
+    }
+}
+
+/**
+ * Add to 'candidates' the points of the feasible elements and points of a
+ * set of no-fit polygons on a line segment 'ray' (and their ends if 'ends'
+ * is true) which are not too close for any of them.
+ */
+void collect_valid_feasible_candidates(
+        const std::vector<PeriodicNoFitPolygon>& nfps,
+        const ShapeElement* ray,
+        bool ends,
+        std::vector<Point>& candidates)
+{
+    std::vector<Point> feasible_candidates;
+    if (ray != nullptr)
+        collect_feasible_candidates(nfps, *ray, feasible_candidates);
+    if (ends)
+        collect_feasible_ends(nfps, feasible_candidates);
+    for (const Point& point: feasible_candidates)
+        if (!is_forbidden(nfps, point))
+            candidates.push_back(point);
+}
+
+/**
  * Collect candidate points (with y = 0) from boundary elements of a set of
  * ShapeWithHoles components, using shape::compute_intersections with a
  * horizontal ray at y = 0 as done in Shape::contains.
+ *
+ * The points with y = 0 of the feasible elements and points of the no-fit
+ * polygons 'nfps', whose union is 'nfp', are collected too.
  */
 void collect_y0_candidates(
         const std::vector<ShapeWithHoles>& nfp,
+        const std::vector<PeriodicNoFitPolygon>& nfps,
         std::vector<Point>& candidates)
 {
     // Compute the combined AABB to set the ray x range.
@@ -158,11 +352,14 @@ void collect_y0_candidates(
                 candidates.push_back(p);
         }
     }
+    collect_valid_feasible_candidates(nfps, &ray, false, candidates);
 }
 
 /**
  * Find the leftmost point on the boundary of the NFP (union of all
- * components) with y = 0 and x satisfying the given lower bound.
+ * components) with y = 0 and x satisfying the given lower bound, or on the
+ * feasible elements and points of the no-fit polygons 'nfps' whose union is
+ * the NFP.
  *
  * When allow_zero is false (default), requires x > 0, which gives the minimum
  * positive horizontal spacing for same-rotation rows.
@@ -173,10 +370,11 @@ void collect_y0_candidates(
  */
 Point find_leftmost_y0_point(
         const std::vector<ShapeWithHoles>& nfp,
+        const std::vector<PeriodicNoFitPolygon>& nfps,
         bool allow_zero = false)
 {
     std::vector<Point> candidates;
-    collect_y0_candidates(nfp, candidates);
+    collect_y0_candidates(nfp, nfps, candidates);
 
     Point best = {std::numeric_limits<double>::infinity(), 0.0};
     for (const Point& p: candidates) {
@@ -192,9 +390,13 @@ Point find_leftmost_y0_point(
 /**
  * Collect candidate points (with x = 0) from boundary elements of a set of
  * ShapeWithHoles components, using a vertical ray at x = 0.
+ *
+ * The points with x = 0 of the feasible elements and points of the no-fit
+ * polygons 'nfps', whose union is 'nfp', are collected too.
  */
 void collect_x0_candidates(
         const std::vector<ShapeWithHoles>& nfp,
+        const std::vector<PeriodicNoFitPolygon>& nfps,
         std::vector<Point>& candidates)
 {
     AxisAlignedBoundingBox aabb;
@@ -220,10 +422,13 @@ void collect_x0_candidates(
                 candidates.push_back(p);
         }
     }
+    collect_valid_feasible_candidates(nfps, &ray, false, candidates);
 }
 
 /**
- * Find the bottommost point on the boundary of the NFP with x = 0 and y > 0.
+ * Find the bottommost point on the boundary of the NFP with x = 0 and y > 0,
+ * or on the feasible elements and points of the no-fit polygons 'nfps' whose
+ * union is the NFP.
  *
  * This gives the minimum positive vertical spacing when items are stacked in
  * the same column, i.e. when the first lattice vector is vertical.
@@ -231,10 +436,11 @@ void collect_x0_candidates(
  * Returns {0, +infinity} if no such point exists.
  */
 Point find_bottommost_x0_point(
-        const std::vector<ShapeWithHoles>& nfp)
+        const std::vector<ShapeWithHoles>& nfp,
+        const std::vector<PeriodicNoFitPolygon>& nfps)
 {
     std::vector<Point> candidates;
-    collect_x0_candidates(nfp, candidates);
+    collect_x0_candidates(nfp, nfps, candidates);
 
     Point best = {0.0, std::numeric_limits<double>::infinity()};
     for (const Point& p: candidates) {
@@ -247,10 +453,13 @@ Point find_bottommost_x0_point(
 /**
  * Collect candidate points for find_bottommost_constrained_point:
  * all element endpoints plus intersections with the vertical rays at x = 0
- * and x = x_bound, using shape::compute_intersections.
+ * and x = x_bound, using shape::compute_intersections, for the boundary of
+ * 'nfp' and for the feasible elements and points of the no-fit polygons
+ * 'nfps' whose union is 'nfp'.
  */
 void collect_constrained_x_candidates(
         const std::vector<ShapeWithHoles>& nfp,
+        const std::vector<PeriodicNoFitPolygon>& nfps,
         double x_bound,
         std::vector<Point>& candidates)
 {
@@ -263,6 +472,7 @@ void collect_constrained_x_candidates(
         ray.type = ShapeElementType::LineSegment;
         ray.start = {x, aabb.y_min};
         ray.end   = {x, aabb.y_max};
+        collect_valid_feasible_candidates(nfps, &ray, false, candidates);
         for (const ShapeWithHoles& swh: nfp) {
             for (const ShapeElement& elem: swh.shape.elements) {
                 ShapeElementIntersectionsOutput inter =
@@ -284,22 +494,25 @@ void collect_constrained_x_candidates(
             candidates.push_back(elem.start);
             candidates.push_back(elem.end);
         }
+    collect_valid_feasible_candidates(nfps, nullptr, true, candidates);
     add_ray_intersections(0.0);
     add_ray_intersections(x_bound);
 }
 
 /**
  * Find the bottommost point on the boundary of the given NFP union with
- * y > 0 and 0 ≤ x < x_max.
+ * y > 0 and 0 ≤ x < x_max, or on the feasible elements and points of the
+ * no-fit polygons 'nfps' whose union is the NFP.
  *
  * Returns {0, +infinity} if no such point exists.
  */
 Point find_bottommost_constrained_point(
         const std::vector<ShapeWithHoles>& nfp,
+        const std::vector<PeriodicNoFitPolygon>& nfps,
         double x_max)
 {
     std::vector<Point> candidates;
-    collect_constrained_x_candidates(nfp, x_max, candidates);
+    collect_constrained_x_candidates(nfp, nfps, x_max, candidates);
 
     Point best = {0.0, std::numeric_limits<double>::infinity()};
     for (const Point& p: candidates) {
@@ -317,10 +530,13 @@ Point find_bottommost_constrained_point(
 /**
  * Collect candidate points for find_leftmost_constrained_point:
  * all element endpoints plus intersections with the horizontal rays at y = 0
- * and y = y_bound, using shape::compute_intersections.
+ * and y = y_bound, using shape::compute_intersections, for the boundary of
+ * 'nfp' and for the feasible elements and points of the no-fit polygons
+ * 'nfps' whose union is 'nfp'.
  */
 void collect_constrained_y_candidates(
         const std::vector<ShapeWithHoles>& nfp,
+        const std::vector<PeriodicNoFitPolygon>& nfps,
         double y_bound,
         std::vector<Point>& candidates)
 {
@@ -333,6 +549,7 @@ void collect_constrained_y_candidates(
         ray.type = ShapeElementType::LineSegment;
         ray.start = {aabb.x_min, y};
         ray.end   = {aabb.x_max, y};
+        collect_valid_feasible_candidates(nfps, &ray, false, candidates);
         for (const ShapeWithHoles& swh: nfp) {
             for (const ShapeElement& elem: swh.shape.elements) {
                 ShapeElementIntersectionsOutput inter =
@@ -354,22 +571,25 @@ void collect_constrained_y_candidates(
             candidates.push_back(elem.start);
             candidates.push_back(elem.end);
         }
+    collect_valid_feasible_candidates(nfps, nullptr, true, candidates);
     add_ray_intersections(0.0);
     add_ray_intersections(y_bound);
 }
 
 /**
  * Find the leftmost point on the boundary of the given NFP union with
- * x > 0 and 0 ≤ y < y_max.
+ * x > 0 and 0 ≤ y < y_max, or on the feasible elements and points of the
+ * no-fit polygons 'nfps' whose union is the NFP.
  *
  * Returns {+infinity, 0} if no such point exists.
  */
 Point find_leftmost_constrained_point(
         const std::vector<ShapeWithHoles>& nfp,
+        const std::vector<PeriodicNoFitPolygon>& nfps,
         double y_max)
 {
     std::vector<Point> candidates;
-    collect_constrained_y_candidates(nfp, y_max, candidates);
+    collect_constrained_y_candidates(nfp, nfps, y_max, candidates);
 
     Point best = {std::numeric_limits<double>::infinity(), 0.0};
     for (const Point& p: candidates) {
@@ -385,6 +605,22 @@ Point find_leftmost_constrained_point(
 }
 
 /**
+ * Inflate a shape by slightly less than the item-item minimum spacing, for
+ * check_periodic_packing.
+ *
+ * The shapes of the periodic packings are only shifted between the checks,
+ * and inflating commutes with shifting, so each shape is only inflated once.
+ */
+ShapeWithHoles inflate_for_check(
+        const ShapeWithHoles& shape,
+        LengthDbl item_item_minimum_spacing)
+{
+    if (!(item_item_minimum_spacing > 0.0))
+        return shape;
+    return shape::inflate(shape, item_item_minimum_spacing * (1.0 - 1e-4));
+}
+
+/**
  * Check that no two items in the periodic tiling strictly overlap.
  *
  * item_shapes[i] is the ShapeWithHoles of the i-th base item (at natural
@@ -395,18 +631,21 @@ Point find_leftmost_constrained_point(
  * Only checks copies with |n|, |m| <= check_range, which is sufficient when
  * the lattice vectors are at least item-diameter wide.
  *
- * Two items closer than 'item_item_minimum_spacing' are considered as
+ * Two items closer than the item-item minimum spacing are considered as
  * overlapping: the copies are checked against the base items inflated by the
- * spacing. The lattice vectors come from the no-fit polygons inflated by the
- * spacing, but these only constrain some of the copies.
+ * spacing, inflated_item_shapes[i] being item_shapes[i] inflated by slightly
+ * less than the spacing (see inflate_for_check), so that items exactly at the
+ * spacing are not rejected because of rounding errors. The lattice vectors
+ * come from the no-fit polygons inflated by the spacing, but these only
+ * constrain some of the copies.
  */
 bool check_periodic_packing(
         const std::vector<ShapeWithHoles>& item_shapes,
+        const std::vector<ShapeWithHoles>& inflated_item_shapes,
         const std::vector<Point>& item_positions,
         Point vector_1,
         Point vector_2,
-        int check_range,
-        LengthDbl item_item_minimum_spacing)
+        int check_range)
 {
     int n_items = (int)item_shapes.size();
 
@@ -437,18 +676,13 @@ bool check_periodic_packing(
     // items within the cell are checked too, with a strict intersection
     // test, so that items exactly touching are not rejected.
 
-    // Build the base items (each shape shifted by its position in the cell)
-    // and their bounding boxes.
-    // The base items are inflated by slightly less than the spacing, so that
-    // items exactly at the spacing are not rejected because of rounding
-    // errors.
+    // Build the base items (each inflated shape shifted by its position in
+    // the cell) and their bounding boxes.
     std::vector<ShapeWithHoles> base_items;
     std::vector<AxisAlignedBoundingBox> base_aabbs;
     for (int item_idx = 0; item_idx < n_items; ++item_idx) {
-        ShapeWithHoles s = item_shapes[item_idx];
+        ShapeWithHoles s = inflated_item_shapes[item_idx];
         s.shift(item_positions[item_idx].x, item_positions[item_idx].y);
-        if (item_item_minimum_spacing > 0.0)
-            s = shape::inflate(s, item_item_minimum_spacing * (1.0 - 1e-4));
         base_aabbs.push_back(s.compute_min_max());
         base_items.push_back(std::move(s));
     }
@@ -539,13 +773,18 @@ bool check_periodic_packing(
  * along vector_1 and gives the densest lattice, this one gives a rectangular
  * lattice: its rows (or columns) are aligned, which may fit a bin better.
  *
+ * 'nfps' are the no-fit polygons whose union is 'nfp_union', with their
+ * feasible elements and points, and 'inflated_shapes' are the shapes
+ * inflated for check_periodic_packing.
+ *
  * Returns a null vector if no such vector is found.
  */
 Point find_perpendicular_vector(
         const std::vector<ShapeWithHoles>& shapes,
+        const std::vector<ShapeWithHoles>& inflated_shapes,
         const std::vector<ShapeWithHoles>& nfp_union,
-        const Point& vector_1,
-        LengthDbl item_item_minimum_spacing)
+        const std::vector<PeriodicNoFitPolygon>& nfps,
+        const Point& vector_1)
 {
     bool horizontal = (vector_1.y == 0.0);
     LengthDbl step = (horizontal)? vector_1.x: vector_1.y;
@@ -563,18 +802,25 @@ Point find_perpendicular_vector(
     // complex shapes: the candidates are the intersections of the boundary
     // of each copy with the perpendicular line, and a candidate is rejected
     // if it is strictly inside one of the copies.
+    bool feasible_elements_or_points = has_feasible_elements_or_points(nfps);
     std::vector<ShapeWithHoles> ext_nfp;
+    std::vector<PeriodicNoFitPolygon> ext_nfps;
     for (int k = -number_of_repetitions; k <= number_of_repetitions; ++k) {
+        Point shift = {k * vector_1.x, k * vector_1.y};
         for (ShapeWithHoles swh: nfp_union) {
-            swh.shift(k * vector_1.x, k * vector_1.y);
+            swh.shift(shift);
             ext_nfp.push_back(std::move(swh));
+        }
+        if (feasible_elements_or_points) {
+            for (PeriodicNoFitPolygon nfp: nfps)
+                ext_nfps.push_back(std::move(nfp.shift(shift)));
         }
     }
     std::vector<Point> candidates;
     if (horizontal) {
-        collect_x0_candidates(ext_nfp, candidates);
+        collect_x0_candidates(ext_nfp, ext_nfps, candidates);
     } else {
-        collect_y0_candidates(ext_nfp, candidates);
+        collect_y0_candidates(ext_nfp, ext_nfps, candidates);
     }
     std::vector<LengthDbl> lengths;
     for (const Point& point: candidates) {
@@ -586,22 +832,15 @@ Point find_perpendicular_vector(
     std::vector<Point> zero_positions(shapes.size(), {0.0, 0.0});
     for (LengthDbl length: lengths) {
         Point vector_2 = (horizontal)? Point{0.0, length}: Point{length, 0.0};
-        bool inside = false;
-        for (const ShapeWithHoles& swh: ext_nfp) {
-            if (swh.contains(vector_2, true)) {
-                inside = true;
-                break;
-            }
-        }
-        if (inside)
+        if (is_forbidden(ext_nfp, ext_nfps, feasible_elements_or_points, vector_2))
             continue;
         if (check_periodic_packing(
                     shapes,
+                    inflated_shapes,
                     zero_positions,
                     vector_1,
                     vector_2,
-                    (std::max)(3, number_of_repetitions + 1),
-                    item_item_minimum_spacing)) {
+                    (std::max)(3, number_of_repetitions + 1))) {
             return vector_2;
         }
     }
@@ -629,43 +868,72 @@ Point find_perpendicular_vector(
  * single shape's self-NFP, or find_periodic_packing_lattice_two_shapes_cached,
  * which derives it cheaply from precomputed NFPs), search the two strategies
  * and validate each candidate against the actual shapes.
+ *
+ * The combined forbidden region is given as the no-fit polygons 'combined_nfp'
+ * whose union it is, with their feasible elements and points, which give
+ * candidate lattice vectors strictly inside this union. 'inflated_shapes' are
+ * the shapes inflated for check_periodic_packing.
  */
 std::vector<PeriodicPacking> find_periodic_packing_lattice_from_combined_nfp(
         const std::vector<ShapeWithHoles>& shapes,
-        const std::vector<ShapeWithHoles>& combined_nfp,
-        LengthDbl item_item_minimum_spacing)
+        const std::vector<ShapeWithHoles>& inflated_shapes,
+        const std::vector<PeriodicNoFitPolygon>& combined_nfp)
 {
     int n = (int)shapes.size();
     std::vector<Point> zero_positions(n, {0.0, 0.0});
 
-    if (combined_nfp.empty())
+    std::vector<ShapeWithHoles> combined_nfp_shapes;
+    for (const PeriodicNoFitPolygon& nfp: combined_nfp)
+        for (const ShapeWithHoles& swh: nfp.shapes)
+            combined_nfp_shapes.push_back(swh);
+    if (combined_nfp_shapes.empty())
         return {};
-    MultiShapeWithHoles combined_nfp_union = shape::compute_union(combined_nfp);
+    MultiShapeWithHoles combined_nfp_union = shape::compute_union(combined_nfp_shapes);
+    bool feasible_elements_or_points = has_feasible_elements_or_points(combined_nfp);
+
+    // The combined NFP and its copy shifted by vector_1, for vector_2.
+    auto compute_extended_nfp = [&combined_nfp_union, &combined_nfp, feasible_elements_or_points](
+            const Point& vector_1,
+            std::vector<ShapeWithHoles>& ext_nfp_union,
+            std::vector<PeriodicNoFitPolygon>& ext_nfps)
+    {
+        std::vector<ShapeWithHoles> ext_nfp = combined_nfp_union.shapes_with_holes;
+        std::vector<ShapeWithHoles> shifted = combined_nfp_union.shapes_with_holes;
+        for (ShapeWithHoles& swh: shifted)
+            swh.shift(vector_1.x, vector_1.y);
+        ext_nfp.insert(ext_nfp.end(), shifted.begin(), shifted.end());
+        ext_nfp_union = shape::compute_union(ext_nfp).shapes_with_holes;
+        if (feasible_elements_or_points) {
+            ext_nfps = combined_nfp;
+            for (PeriodicNoFitPolygon nfp: combined_nfp)
+                ext_nfps.push_back(std::move(nfp.shift(vector_1)));
+        }
+    };
 
     std::vector<PeriodicPacking> result;
 
     // Horizontal strategy: v1 = (w, 0).
     {
-        Point vector_1 = find_leftmost_y0_point(combined_nfp_union.shapes_with_holes);
+        Point vector_1 = find_leftmost_y0_point(
+                combined_nfp_union.shapes_with_holes,
+                combined_nfp);
         if (shape::strictly_greater(vector_1.x, 0.0)
                 && vector_1.x != std::numeric_limits<double>::infinity()) {
-            std::vector<ShapeWithHoles> ext_nfp = combined_nfp_union.shapes_with_holes;
-            std::vector<ShapeWithHoles> shifted = combined_nfp_union.shapes_with_holes;
-            for (ShapeWithHoles& swh: shifted)
-                swh.shift(vector_1.x, vector_1.y);
-            ext_nfp.insert(ext_nfp.end(), shifted.begin(), shifted.end());
-            std::vector<ShapeWithHoles> ext_nfp_union = shape::compute_union(ext_nfp).shapes_with_holes;
-            Point vector_2 = find_bottommost_constrained_point(ext_nfp_union, vector_1.x);
+            std::vector<ShapeWithHoles> ext_nfp_union;
+            std::vector<PeriodicNoFitPolygon> ext_nfps;
+            compute_extended_nfp(vector_1, ext_nfp_union, ext_nfps);
+            Point vector_2 = find_bottommost_constrained_point(ext_nfp_union, ext_nfps, vector_1.x);
             if (shape::strictly_greater(vector_2.y, 0.0)
-                    && check_periodic_packing(shapes, zero_positions, vector_1, vector_2, 3, item_item_minimum_spacing)) {
+                    && check_periodic_packing(shapes, inflated_shapes, zero_positions, vector_1, vector_2, 3)) {
                 result.push_back({zero_positions, vector_1, vector_2});
             }
             // Rectangular lattice.
             Point vector_2_perpendicular = find_perpendicular_vector(
                     shapes,
+                    inflated_shapes,
                     combined_nfp_union.shapes_with_holes,
-                    vector_1,
-                    item_item_minimum_spacing);
+                    combined_nfp,
+                    vector_1);
             if (shape::strictly_greater(vector_2_perpendicular.y, 0.0)
                     && !shape::equal(vector_2_perpendicular, vector_2)) {
                 result.push_back({zero_positions, vector_1, vector_2_perpendicular});
@@ -675,26 +943,26 @@ std::vector<PeriodicPacking> find_periodic_packing_lattice_from_combined_nfp(
 
     // Vertical strategy: v1 = (0, h).
     {
-        Point vector_1 = find_bottommost_x0_point(combined_nfp_union.shapes_with_holes);
+        Point vector_1 = find_bottommost_x0_point(
+                combined_nfp_union.shapes_with_holes,
+                combined_nfp);
         if (shape::strictly_greater(vector_1.y, 0.0)
                 && vector_1.y != std::numeric_limits<double>::infinity()) {
-            std::vector<ShapeWithHoles> ext_nfp = combined_nfp_union.shapes_with_holes;
-            std::vector<ShapeWithHoles> shifted = combined_nfp_union.shapes_with_holes;
-            for (ShapeWithHoles& swh: shifted)
-                swh.shift(vector_1.x, vector_1.y);
-            ext_nfp.insert(ext_nfp.end(), shifted.begin(), shifted.end());
-            std::vector<ShapeWithHoles> ext_nfp_union = shape::compute_union(ext_nfp).shapes_with_holes;
-            Point vector_2 = find_leftmost_constrained_point(ext_nfp_union, vector_1.y);
+            std::vector<ShapeWithHoles> ext_nfp_union;
+            std::vector<PeriodicNoFitPolygon> ext_nfps;
+            compute_extended_nfp(vector_1, ext_nfp_union, ext_nfps);
+            Point vector_2 = find_leftmost_constrained_point(ext_nfp_union, ext_nfps, vector_1.y);
             if (shape::strictly_greater(vector_2.x, 0.0)
-                    && check_periodic_packing(shapes, zero_positions, vector_1, vector_2, 3, item_item_minimum_spacing)) {
+                    && check_periodic_packing(shapes, inflated_shapes, zero_positions, vector_1, vector_2, 3)) {
                 result.push_back({zero_positions, vector_1, vector_2});
             }
             // Rectangular lattice.
             Point vector_2_perpendicular = find_perpendicular_vector(
                     shapes,
+                    inflated_shapes,
                     combined_nfp_union.shapes_with_holes,
-                    vector_1,
-                    item_item_minimum_spacing);
+                    combined_nfp,
+                    vector_1);
             if (shape::strictly_greater(vector_2_perpendicular.x, 0.0)
                     && !shape::equal(vector_2_perpendicular, vector_2)) {
                 result.push_back({zero_positions, vector_1, vector_2_perpendicular});
@@ -719,43 +987,35 @@ std::vector<PeriodicPacking> find_periodic_packing_lattice_from_combined_nfp(
  * candidates for a complex shape), the four NFPs need only be computed once
  * by the caller and reused here via cheap shifts, instead of recomputing
  * shape::no_fit_polygon (the dominant cost) on every call.
+ *
+ * Similarly, 'inflated_shape_0' and 'inflated_shape_1' are the shapes,
+ * inflated for check_periodic_packing, in their natural frame.
  */
 std::vector<PeriodicPacking> find_periodic_packing_lattice_two_shapes_cached(
         const ShapeWithHoles& shape_0,
+        const ShapeWithHoles& inflated_shape_0,
         const ShapeWithHoles& shape_1,
+        const ShapeWithHoles& inflated_shape_1,
         Point position_0,
         Point position_1,
-        const std::vector<ShapeWithHoles>& nfp_00_union,
-        const std::vector<ShapeWithHoles>& nfp_01_union,
-        const std::vector<ShapeWithHoles>& nfp_10_union,
-        const std::vector<ShapeWithHoles>& nfp_11_union,
-        LengthDbl item_item_minimum_spacing)
+        const PeriodicNoFitPolygon& nfp_00,
+        const PeriodicNoFitPolygon& nfp_01,
+        const PeriodicNoFitPolygon& nfp_10,
+        const PeriodicNoFitPolygon& nfp_11)
 {
-    std::vector<ShapeWithHoles> combined_nfp;
-    combined_nfp.reserve(
-            nfp_00_union.size() + nfp_01_union.size()
-            + nfp_10_union.size() + nfp_11_union.size());
+    std::vector<PeriodicNoFitPolygon> combined_nfp = {nfp_00, nfp_01, nfp_10, nfp_11};
+    combined_nfp[1].shift(position_0 - position_1);
+    combined_nfp[2].shift(position_1 - position_0);
 
-    for (const ShapeWithHoles& swh: nfp_00_union)
-        combined_nfp.push_back(swh);
-    for (ShapeWithHoles swh: nfp_01_union) {
-        swh.shift(position_0.x - position_1.x, position_0.y - position_1.y);
-        combined_nfp.push_back(std::move(swh));
-    }
-    for (ShapeWithHoles swh: nfp_10_union) {
-        swh.shift(position_1.x - position_0.x, position_1.y - position_0.y);
-        combined_nfp.push_back(std::move(swh));
-    }
-    for (const ShapeWithHoles& swh: nfp_11_union)
-        combined_nfp.push_back(swh);
-
-    ShapeWithHoles placed_0 = shape_0;
-    placed_0.shift(position_0.x, position_0.y);
-    ShapeWithHoles placed_1 = shape_1;
-    placed_1.shift(position_1.x, position_1.y);
+    std::vector<ShapeWithHoles> placed_shapes = {shape_0, shape_1};
+    placed_shapes[0].shift(position_0);
+    placed_shapes[1].shift(position_1);
+    std::vector<ShapeWithHoles> placed_inflated_shapes = {inflated_shape_0, inflated_shape_1};
+    placed_inflated_shapes[0].shift(position_0);
+    placed_inflated_shapes[1].shift(position_1);
 
     return find_periodic_packing_lattice_from_combined_nfp(
-            {placed_0, placed_1}, combined_nfp, item_item_minimum_spacing);
+            placed_shapes, placed_inflated_shapes, combined_nfp);
 }
 
 void add_if_unique(
@@ -769,49 +1029,62 @@ void add_if_unique(
 }
 
 /**
- * Union of the no-fit polygon of two shapes, in their natural frame, inflated
- * by the item-item minimum spacing.
+ * No-fit polygon of two shapes, in their natural frame, inflated by the
+ * item-item minimum spacing.
  *
  * NFP(A, B) inflated by d == NFP(A inflated by d', B inflated by d'') for any
  * split d' + d'' = d (Minkowski sum is associative and a disk is symmetric
  * under negation), so it is equivalent -- and exact, no polygon approximation
  * needed -- to compute the raw NFP and inflate its result by the full spacing
  * amount instead of inflating the shapes beforehand.
+ *
+ * Its feasible elements and points are only kept without spacing (see
+ * PeriodicNoFitPolygon).
  */
-std::vector<ShapeWithHoles> compute_inflated_nfp_union(
+PeriodicNoFitPolygon compute_periodic_no_fit_polygon(
         const ShapeWithHoles& shape_1,
         const ShapeWithHoles& shape_2,
         LengthDbl item_item_minimum_spacing)
 {
-    std::vector<ShapeWithHoles> result;
-    MultiShapeWithHoles nfp = shape::no_fit_polygon(shape_1, shape_2).nfp;
-    for (const ShapeWithHoles& swh: shape::compute_union(nfp.shapes_with_holes).shapes_with_holes) {
-        result.push_back(item_item_minimum_spacing > 0.0?
+    PeriodicNoFitPolygon result;
+    shape::NoFitPolygonOutput nfp = shape::no_fit_polygon(shape_1, shape_2);
+    for (const ShapeWithHoles& swh: shape::compute_union(nfp.nfp.shapes_with_holes).shapes_with_holes) {
+        result.shapes.push_back(item_item_minimum_spacing > 0.0?
                 shape::inflate(swh, item_item_minimum_spacing):
                 swh);
+    }
+    if (!(item_item_minimum_spacing > 0.0)) {
+        result.feasible_elements = nfp.feasible_elements;
+        result.feasible_points = nfp.feasible_points;
     }
     return result;
 }
 
 /**
- * Same as compute_periodic_packings(shape, ...), given the union of the
- * self-NFP of the shape (see compute_inflated_nfp_union).
+ * Same as compute_periodic_packings(shape, ...), given the self-NFP of the
+ * shape (see compute_periodic_no_fit_polygon) and the shape inflated for
+ * check_periodic_packing.
  */
 std::vector<PeriodicPacking> compute_periodic_packings_from_nfp(
         const ShapeWithHoles& shape,
-        const std::vector<ShapeWithHoles>& nfp_union,
-        LengthDbl item_item_minimum_spacing)
+        const ShapeWithHoles& inflated_shape,
+        const PeriodicNoFitPolygon& nfp)
 {
     AxisAlignedBoundingBox aabb = shape.compute_min_max();
     Point position = {-aabb.x_min, -aabb.y_min};
     ShapeWithHoles shifted = shape;
     shifted.shift(position.x, position.y);
+    ShapeWithHoles inflated_shifted = inflated_shape;
+    inflated_shifted.shift(position.x, position.y);
 
     // The forbidden region for tiling a single shape against copies of
     // itself is exactly its self-NFP, which doesn't depend on the position of
     // the shape.
     std::vector<PeriodicPacking> result;
-    for (PeriodicPacking pp: find_periodic_packing_lattice_from_combined_nfp({shifted}, nfp_union, item_item_minimum_spacing)) {
+    for (PeriodicPacking pp: find_periodic_packing_lattice_from_combined_nfp(
+                {shifted},
+                {inflated_shifted},
+                {nfp})) {
         pp.positions = {position};
         add_if_unique(result, std::move(pp));
     }
@@ -819,18 +1092,20 @@ std::vector<PeriodicPacking> compute_periodic_packings_from_nfp(
 }
 
 /**
- * Same as compute_periodic_packings(shape_0, shape_r, ...), given the unions
- * of the four pairwise NFPs of the shapes, in their natural frame (see
- * compute_inflated_nfp_union).
+ * Same as compute_periodic_packings(shape_0, shape_r, ...), given the four
+ * pairwise NFPs of the shapes, in their natural frame (see
+ * compute_periodic_no_fit_polygon), and the shapes inflated for
+ * check_periodic_packing.
  */
 std::vector<PeriodicPacking> compute_periodic_packings_from_nfps(
         const ShapeWithHoles& shape_0,
+        const ShapeWithHoles& inflated_shape_0,
         const ShapeWithHoles& shape_r,
-        const std::vector<ShapeWithHoles>& nfp_00_union,
-        const std::vector<ShapeWithHoles>& nfp_0r_union_natural,
-        const std::vector<ShapeWithHoles>& nfp_r0_union,
-        const std::vector<ShapeWithHoles>& nfp_rr_union,
-        LengthDbl item_item_minimum_spacing);
+        const ShapeWithHoles& inflated_shape_r,
+        const PeriodicNoFitPolygon& nfp_00,
+        const PeriodicNoFitPolygon& nfp_0r_natural,
+        const PeriodicNoFitPolygon& nfp_r0,
+        const PeriodicNoFitPolygon& nfp_rr);
 
 }  // namespace
 
@@ -840,8 +1115,8 @@ std::vector<PeriodicPacking> packingsolver::irregular::compute_periodic_packings
 {
     return compute_periodic_packings_from_nfp(
             shape,
-            compute_inflated_nfp_union(shape, shape, item_item_minimum_spacing),
-            item_item_minimum_spacing);
+            inflate_for_check(shape, item_item_minimum_spacing),
+            compute_periodic_no_fit_polygon(shape, shape, item_item_minimum_spacing));
 }
 
 /**
@@ -867,12 +1142,13 @@ std::vector<PeriodicPacking> packingsolver::irregular::compute_periodic_packings
 {
     return compute_periodic_packings_from_nfps(
             shape_0,
+            inflate_for_check(shape_0, item_item_minimum_spacing),
             shape_r,
-            compute_inflated_nfp_union(shape_0, shape_0, item_item_minimum_spacing),
-            compute_inflated_nfp_union(shape_0, shape_r, item_item_minimum_spacing),
-            compute_inflated_nfp_union(shape_r, shape_0, item_item_minimum_spacing),
-            compute_inflated_nfp_union(shape_r, shape_r, item_item_minimum_spacing),
-            item_item_minimum_spacing);
+            inflate_for_check(shape_r, item_item_minimum_spacing),
+            compute_periodic_no_fit_polygon(shape_0, shape_0, item_item_minimum_spacing),
+            compute_periodic_no_fit_polygon(shape_0, shape_r, item_item_minimum_spacing),
+            compute_periodic_no_fit_polygon(shape_r, shape_0, item_item_minimum_spacing),
+            compute_periodic_no_fit_polygon(shape_r, shape_r, item_item_minimum_spacing));
 }
 
 namespace
@@ -880,12 +1156,13 @@ namespace
 
 std::vector<PeriodicPacking> compute_periodic_packings_from_nfps(
         const ShapeWithHoles& shape_0,
+        const ShapeWithHoles& inflated_shape_0,
         const ShapeWithHoles& shape_r,
-        const std::vector<ShapeWithHoles>& nfp_00_union,
-        const std::vector<ShapeWithHoles>& nfp_0r_union_natural,
-        const std::vector<ShapeWithHoles>& nfp_r0_union,
-        const std::vector<ShapeWithHoles>& nfp_rr_union,
-        LengthDbl item_item_minimum_spacing)
+        const ShapeWithHoles& inflated_shape_r,
+        const PeriodicNoFitPolygon& nfp_00,
+        const PeriodicNoFitPolygon& nfp_0r_natural,
+        const PeriodicNoFitPolygon& nfp_r0,
+        const PeriodicNoFitPolygon& nfp_rr)
 {
     AxisAlignedBoundingBox aabb_0 = shape_0.compute_min_max();
     Point position_0 = {-aabb_0.x_min, -aabb_0.y_min};
@@ -893,16 +1170,19 @@ std::vector<PeriodicPacking> compute_periodic_packings_from_nfps(
     AxisAlignedBoundingBox aabb_r = shape_r.compute_min_max();
     Point min_position_r = {-aabb_r.x_min, -aabb_r.y_min};
 
-    if (nfp_0r_union_natural.empty())
+    if (nfp_0r_natural.shapes.empty())
         return {};
     // NFP(shape_0, shape_r) shifted by position_0 gives translations t_r such
     // that (shape_r + t_r) just touches (shape_0 shifted by position_0):
     // NFP(A + a, B + b) = NFP(A, B) + (a - b), so only the relative offset
     // changes, never the NFP shape itself.
-    std::vector<ShapeWithHoles> nfp_0r_union = nfp_0r_union_natural;
-    for (ShapeWithHoles& swh: nfp_0r_union) swh.shift(position_0.x, position_0.y);
+    std::vector<PeriodicNoFitPolygon> nfp_0r = {nfp_0r_natural};
+    nfp_0r[0].shift(position_0);
+    const std::vector<ShapeWithHoles>& nfp_0r_union = nfp_0r[0].shapes;
 
-    // Collect all boundary vertices as candidate placements for shape_r.
+    // Collect all boundary vertices as candidate placements for shape_r, and
+    // the ends of the feasible elements and the feasible points, e.g. when
+    // shape_r fits exactly the width of a slot of shape_0.
     std::vector<Point> candidates;
     for (const ShapeWithHoles& swh: nfp_0r_union) {
         for (const ShapeElement& elem: swh.shape.elements) {
@@ -910,6 +1190,7 @@ std::vector<PeriodicPacking> compute_periodic_packings_from_nfps(
             candidates.push_back(elem.end);
         }
     }
+    collect_valid_feasible_candidates(nfp_0r, nullptr, true, candidates);
 
     // Also collect intersections of the NFP boundary with the two constraint
     // lines (x = min_position_r.x and y = min_position_r.y) so that boundary
@@ -934,6 +1215,7 @@ std::vector<PeriodicPacking> compute_periodic_packings_from_nfps(
                     candidates.push_back(p);
             }
         }
+        collect_valid_feasible_candidates(nfp_0r, &ray, false, candidates);
     };
 
     ShapeElement h_ray;  // horizontal ray at y = min_position_r.y
@@ -1080,9 +1362,9 @@ std::vector<PeriodicPacking> compute_periodic_packings_from_nfps(
     for (int candidate_idx: selected_candidates) {
         const Point& t_r = valid_candidates[candidate_idx].t_r;
         for (PeriodicPacking pp: find_periodic_packing_lattice_two_shapes_cached(
-                shape_0, shape_r, position_0, t_r,
-                nfp_00_union, nfp_0r_union_natural, nfp_r0_union, nfp_rr_union,
-                item_item_minimum_spacing)) {
+                shape_0, inflated_shape_0, shape_r, inflated_shape_r,
+                position_0, t_r,
+                nfp_00, nfp_0r_natural, nfp_r0, nfp_rr)) {
             pp.positions = {position_0, t_r};
             add_if_unique(result, std::move(pp));
         }
@@ -1113,10 +1395,10 @@ std::vector<PeriodicItemPacking> packingsolver::irregular::compute_periodic_pack
         bool mirror_1;
         bool mirror_2;
         Angle angle;
-        std::vector<ShapeWithHoles> nfp_union;
+        PeriodicNoFitPolygon nfp;
     };
     std::vector<CachedNfp> cached_nfps;
-    auto nfp_union = [&item_shapes, item_item_minimum_spacing, &cached_nfps](
+    auto nfp = [&item_shapes, item_item_minimum_spacing, &cached_nfps](
             const ItemTypeRotation& rotation_1,
             const ItemTypeRotation& rotation_2)
     {
@@ -1139,7 +1421,7 @@ std::vector<PeriodicItemPacking> packingsolver::irregular::compute_periodic_pack
             cached_nfp_new.mirror_1 = rotation_1.mirror;
             cached_nfp_new.mirror_2 = rotation_2.mirror;
             cached_nfp_new.angle = angle;
-            cached_nfp_new.nfp_union = compute_inflated_nfp_union(
+            cached_nfp_new.nfp = compute_periodic_no_fit_polygon(
                     compute_combined_shape(item_shapes, {0.0, rotation_1.mirror}),
                     compute_combined_shape(item_shapes, {angle, rotation_2.mirror}),
                     item_item_minimum_spacing);
@@ -1147,11 +1429,27 @@ std::vector<PeriodicItemPacking> packingsolver::irregular::compute_periodic_pack
             cached_nfp = &cached_nfps.back();
         }
         if (rotation_1.angle == 0.0)
-            return cached_nfp->nfp_union;
-        std::vector<ShapeWithHoles> result;
-        for (const ShapeWithHoles& swh: cached_nfp->nfp_union)
-            result.push_back(swh.rotate(rotation_1.angle));
-        return result;
+            return cached_nfp->nfp;
+        return cached_nfp->nfp.rotate(rotation_1.angle);
+    };
+
+    // The combined shape of each rotation inflated for
+    // check_periodic_packing, only computed once. A deque, since references
+    // to its elements are kept while adding new ones.
+    std::deque<std::pair<ItemTypeRotation, ShapeWithHoles>> inflated_shapes;
+    auto inflated_shape = [&item_shapes, item_item_minimum_spacing, &inflated_shapes](
+            const ItemTypeRotation& rotation,
+            const ShapeWithHoles& shape)
+            -> const ShapeWithHoles&
+    {
+        for (const auto& inflated_shape_cur: inflated_shapes) {
+            if (inflated_shape_cur.first.mirror == rotation.mirror
+                    && shape::equal(inflated_shape_cur.first.angle, rotation.angle)) {
+                return inflated_shape_cur.second;
+            }
+        }
+        inflated_shapes.push_back({rotation, inflate_for_check(shape, item_item_minimum_spacing)});
+        return inflated_shapes.back().second;
     };
 
     for (int rot_0_pos = 0;
@@ -1162,8 +1460,8 @@ std::vector<PeriodicItemPacking> packingsolver::irregular::compute_periodic_pack
 
         for (const PeriodicPacking& pp_same: compute_periodic_packings_from_nfp(
                     shape_0,
-                    nfp_union(rot_0, rot_0),
-                    item_item_minimum_spacing)) {
+                    inflated_shape(rot_0, shape_0),
+                    nfp(rot_0, rot_0))) {
             PeriodicItemPacking item_packing;
             item_packing.vector_1 = pp_same.vector_1;
             item_packing.vector_2 = pp_same.vector_2;
@@ -1209,12 +1507,13 @@ std::vector<PeriodicItemPacking> packingsolver::irregular::compute_periodic_pack
             {
                 for (const PeriodicPacking& pp_two: compute_periodic_packings_from_nfps(
                             shape_first,
+                            inflated_shape(rotation_first, shape_first),
                             shape_second,
-                            nfp_union(rotation_first, rotation_first),
-                            nfp_union(rotation_first, rotation_second),
-                            nfp_union(rotation_second, rotation_first),
-                            nfp_union(rotation_second, rotation_second),
-                            item_item_minimum_spacing)) {
+                            inflated_shape(rotation_second, shape_second),
+                            nfp(rotation_first, rotation_first),
+                            nfp(rotation_first, rotation_second),
+                            nfp(rotation_second, rotation_first),
+                            nfp(rotation_second, rotation_second))) {
                     PeriodicItemPacking item_packing;
                     item_packing.vector_1 = pp_two.vector_1;
                     item_packing.vector_2 = pp_two.vector_2;
@@ -1439,6 +1738,9 @@ struct OrientedShape
     ItemTypeRotation rotation;
 
     ShapeWithHoles shape;
+
+    /** Shape inflated for check_periodic_packing. */
+    ShapeWithHoles inflated_shape;
 };
 
 /**
@@ -1490,6 +1792,9 @@ public:
         oriented_shape.shape = compute_combined_shape(
                 item_types_[item_type_pos].shapes,
                 rotation);
+        oriented_shape.inflated_shape = inflate_for_check(
+                oriented_shape.shape,
+                item_item_minimum_spacing_);
         shapes_.push_back(oriented_shape);
         return (int)shapes_.size() - 1;
     }
@@ -1501,7 +1806,7 @@ public:
      * two oriented shapes in their natural frame: the translations of the
      * second one for which it is too close to the first one.
      */
-    const std::vector<ShapeWithHoles>& no_fit_polygon(
+    const PeriodicNoFitPolygon& no_fit_polygon(
             int shape_id_1,
             int shape_id_2)
     {
@@ -1531,7 +1836,7 @@ public:
             relative_nfp_new.item_type_pos_2 = oriented_shape_2.item_type_pos;
             relative_nfp_new.mirror_2 = oriented_shape_2.rotation.mirror;
             relative_nfp_new.angle = angle;
-            relative_nfp_new.nfp_union = compute_inflated_nfp_union(
+            relative_nfp_new.nfp = compute_periodic_no_fit_polygon(
                     compute_combined_shape(
                         item_types_[oriented_shape_1.item_type_pos].shapes,
                         {0.0, oriented_shape_1.rotation.mirror}),
@@ -1542,13 +1847,10 @@ public:
             relative_no_fit_polygons_.push_back(std::move(relative_nfp_new));
             relative_nfp = &relative_no_fit_polygons_.back();
         }
-        std::vector<ShapeWithHoles> result;
-        for (const ShapeWithHoles& swh: relative_nfp->nfp_union) {
-            result.push_back((oriented_shape_1.rotation.angle == 0.0)?
-                    swh:
-                    swh.rotate(oriented_shape_1.rotation.angle));
-        }
-        return no_fit_polygons_[{shape_id_1, shape_id_2}] = result;
+        return no_fit_polygons_[{shape_id_1, shape_id_2}]
+            = (oriented_shape_1.rotation.angle == 0.0)?
+            relative_nfp->nfp:
+            relative_nfp->nfp.rotate(oriented_shape_1.rotation.angle);
     }
 
 private:
@@ -1568,7 +1870,7 @@ private:
         ItemTypeId item_type_pos_2;
         bool mirror_2;
         Angle angle;
-        std::vector<ShapeWithHoles> nfp_union;
+        PeriodicNoFitPolygon nfp;
     };
 
     std::vector<OrientedShape> shapes_;
@@ -1579,7 +1881,7 @@ private:
      */
     std::deque<RelativeNoFitPolygon> relative_no_fit_polygons_;
 
-    std::map<std::pair<int, int>, std::vector<ShapeWithHoles>> no_fit_polygons_;
+    std::map<std::pair<int, int>, PeriodicNoFitPolygon> no_fit_polygons_;
 
 };
 
@@ -1680,31 +1982,19 @@ bool place_wrapper(
 }
 
 /**
- * Return true iff a point is strictly inside one of a set of shapes.
- */
-bool strictly_inside(
-        const std::vector<ShapeWithHoles>& shapes,
-        const Point& point)
-{
-    for (const ShapeWithHoles& shape: shapes)
-        if (shape.contains(point, true))
-            return true;
-    return false;
-}
-
-/**
  * Find the smallest distance along 'direction' (a unit vector) from 'point'
- * to a point which is not strictly inside 'shapes'.
+ * to a point which is not too close for any of the no-fit polygons 'nfps'
+ * (see is_forbidden).
  *
  * Return +inf if there is none within 'maximum_distance'.
  */
 LengthDbl distance_to_outside(
-        const std::vector<ShapeWithHoles>& shapes,
+        const std::vector<PeriodicNoFitPolygon>& nfps,
         const Point& point,
         const Point& direction,
         LengthDbl maximum_distance)
 {
-    if (!strictly_inside(shapes, point))
+    if (!is_forbidden(nfps, point))
         return 0.0;
     ShapeElement ray = shape::build_line_segment(
             point,
@@ -1717,25 +2007,31 @@ LengthDbl distance_to_outside(
                 (intersection.x - point.x) * direction.x
                 + (intersection.y - point.y) * direction.y);
     };
-    for (const ShapeWithHoles& shape: shapes) {
-        std::vector<const Shape*> boundaries = {&shape.shape};
-        for (const Shape& hole: shape.holes)
-            boundaries.push_back(&hole);
-        for (const Shape* boundary: boundaries) {
-            for (const ShapeElement& element: boundary->elements) {
-                ShapeElementIntersectionsOutput intersections
-                    = shape::compute_intersections(ray, element);
-                for (const ShapeElement& part: intersections.overlapping_parts) {
-                    add_point(part.start);
-                    add_point(part.end);
+    for (const PeriodicNoFitPolygon& nfp: nfps) {
+        for (const ShapeWithHoles& shape: nfp.shapes) {
+            std::vector<const Shape*> boundaries = {&shape.shape};
+            for (const Shape& hole: shape.holes)
+                boundaries.push_back(&hole);
+            for (const Shape* boundary: boundaries) {
+                for (const ShapeElement& element: boundary->elements) {
+                    ShapeElementIntersectionsOutput intersections
+                        = shape::compute_intersections(ray, element);
+                    for (const ShapeElement& part: intersections.overlapping_parts) {
+                        add_point(part.start);
+                        add_point(part.end);
+                    }
+                    for (const Point& intersection: intersections.improper_intersections)
+                        add_point(intersection);
+                    for (const Point& intersection: intersections.proper_intersections)
+                        add_point(intersection);
                 }
-                for (const Point& intersection: intersections.improper_intersections)
-                    add_point(intersection);
-                for (const Point& intersection: intersections.proper_intersections)
-                    add_point(intersection);
             }
         }
     }
+    std::vector<Point> feasible_candidates;
+    collect_feasible_candidates(nfps, ray, feasible_candidates);
+    for (const Point& feasible_candidate: feasible_candidates)
+        add_point(feasible_candidate);
     std::sort(distances.begin(), distances.end());
     for (LengthDbl distance: distances) {
         if (!shape::strictly_greater(distance, 0.0))
@@ -1743,7 +2039,7 @@ LengthDbl distance_to_outside(
         Point candidate = {
             point.x + distance * direction.x,
             point.y + distance * direction.y};
-        if (!strictly_inside(shapes, candidate))
+        if (!is_forbidden(nfps, candidate))
             return distance;
     }
     return std::numeric_limits<LengthDbl>::infinity();
@@ -1987,15 +2283,13 @@ std::vector<PeriodicItemPacking> packingsolver::irregular::compute_wrapping_peri
                     // Translations of the second wrapper for which it is
                     // too close to the first wrapper or to an item of the
                     // base.
-                    std::vector<ShapeWithHoles> forbidden_positions_2
-                        = oriented_shapes.no_fit_polygon(wrapper_1_id, wrapper_2_id);
-                    for (ShapeWithHoles& swh: forbidden_positions_2)
-                        swh.shift(position_1.x, position_1.y);
+                    std::vector<PeriodicNoFitPolygon> forbidden_positions_2
+                        = {oriented_shapes.no_fit_polygon(wrapper_1_id, wrapper_2_id)};
+                    forbidden_positions_2[0].shift(position_1);
                     for (const CellItem& base_item: base.items) {
-                        for (ShapeWithHoles swh: oriented_shapes.no_fit_polygon(base_item.shape_id, wrapper_2_id)) {
-                            swh.shift(base_item.position.x, base_item.position.y);
-                            forbidden_positions_2.push_back(std::move(swh));
-                        }
+                        PeriodicNoFitPolygon nfp = oriented_shapes.no_fit_polygon(base_item.shape_id, wrapper_2_id);
+                        nfp.shift(base_item.position);
+                        forbidden_positions_2.push_back(std::move(nfp));
                     }
 
                     // Move the second wrapper away from the base, along the
@@ -2023,7 +2317,7 @@ std::vector<PeriodicItemPacking> packingsolver::irregular::compute_wrapping_peri
                                     return;
                             positions_2.push_back(position_new);
                         };
-                        if (!strictly_inside(forbidden_positions_2, position)) {
+                        if (!is_forbidden(forbidden_positions_2, position)) {
                             add(position);
                             return;
                         }
@@ -2066,25 +2360,30 @@ std::vector<PeriodicItemPacking> packingsolver::irregular::compute_wrapping_peri
                         cell_items.push_back({wrapper_2_id, position_2_moved});
 
                         std::vector<ShapeWithHoles> placed_shapes;
+                        std::vector<ShapeWithHoles> placed_inflated_shapes;
                         for (const CellItem& item: cell_items) {
-                            ShapeWithHoles shape = oriented_shapes.shape(item.shape_id).shape;
+                            const OrientedShape& oriented_shape = oriented_shapes.shape(item.shape_id);
+                            ShapeWithHoles shape = oriented_shape.shape;
                             shape.shift(item.position.x, item.position.y);
                             placed_shapes.push_back(std::move(shape));
+                            ShapeWithHoles inflated_shape = oriented_shape.inflated_shape;
+                            inflated_shape.shift(item.position.x, item.position.y);
+                            placed_inflated_shapes.push_back(std::move(inflated_shape));
                         }
-                        std::vector<ShapeWithHoles> combined_nfp;
+                        std::vector<PeriodicNoFitPolygon> combined_nfp;
                         for (const CellItem& item_1: cell_items) {
                             for (const CellItem& item_2: cell_items) {
-                                for (ShapeWithHoles swh: oriented_shapes.no_fit_polygon(item_1.shape_id, item_2.shape_id)) {
-                                    swh.shift(
-                                            item_1.position.x - item_2.position.x,
-                                            item_1.position.y - item_2.position.y);
-                                    combined_nfp.push_back(std::move(swh));
-                                }
+                                PeriodicNoFitPolygon nfp = oriented_shapes.no_fit_polygon(item_1.shape_id, item_2.shape_id);
+                                nfp.shift(item_1.position - item_2.position);
+                                combined_nfp.push_back(std::move(nfp));
                             }
                         }
 
                         for (const PeriodicPacking& periodic_packing:
-                                find_periodic_packing_lattice_from_combined_nfp(placed_shapes, combined_nfp, item_item_minimum_spacing)) {
+                                find_periodic_packing_lattice_from_combined_nfp(
+                                    placed_shapes,
+                                    placed_inflated_shapes,
+                                    combined_nfp)) {
                             PeriodicItemPacking item_packing;
                             item_packing.vector_1 = periodic_packing.vector_1;
                             item_packing.vector_2 = periodic_packing.vector_2;

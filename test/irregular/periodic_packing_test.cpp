@@ -134,6 +134,20 @@ INSTANTIATE_TEST_SUITE_P(
                 {
                     {{{0, 0}}, {2, 0}, {0, 3}},
                 }
+            },
+            // The tab on the right fits exactly the width of the slot on the
+            // left: a copy shifted by (x, 0) with 5 < x < 6 doesn't overlap,
+            // but these translations are strictly inside the union of the
+            // no-fit polygon. They are feasible elements of the no-fit
+            // polygon, giving vector_1 = (5, 0) instead of (6, 0).
+            ComputePeriodicPackingsSingleShapeTestParams{
+                "TabAndSlot",
+                {shape::build_shape({
+                        {0, 0}, {4, 0}, {4, 1}, {6, 1}, {6, 3}, {4, 3},
+                        {4, 4}, {0, 4}, {0, 3}, {1, 3}, {1, 1}, {0, 1}})},
+                {
+                    {{{0, 0}}, {5, 0}, {0, 4}},
+                }
             }
         ),
         testing::PrintToStringParamName()
