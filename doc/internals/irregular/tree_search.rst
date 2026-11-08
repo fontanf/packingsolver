@@ -109,7 +109,7 @@ The items are packed along a front, each against the items already packed. This 
 Automatic selection
 -------------------
 
-With a single bin, the tree search is run unless the instance is dominated by item types with many copies, in which case the :ref:`tree search with periodic packings <internals_irregular_tree_search_periodic_packing>` is run instead (and the tree search too if few items fit in the bin). With several bins, it is run when the item types have few copies compared to the number of items fitting in a bin, alongside the generic algorithms using it to solve their sub-problems. See :ref:`algorithm selection <internals_algorithm_selection>`.
+With a single bin, the tree search is run unless the instance is dominated by item types with many copies, in which case the :ref:`tree search with periodic packings <internals_irregular_tree_search_periodic_packing>` is run instead (and the tree search too if few items fit in the bin). For the :code:`knapsack` and :code:`feasibility` objectives, the :ref:`tree search with maximal spaces <internals_irregular_tree_search_maximal_spaces>` is run instead when many items fit in a section of the bin in both directions. With several bins, it is run when the item types have few copies compared to the number of items fitting in a bin, alongside the generic algorithms using it to solve their sub-problems. See :ref:`algorithm selection <internals_algorithm_selection>`.
 
 It can be forced with :code:`--use-tree-search 1` (CLI) or :code:`use_tree_search` (Python).
 

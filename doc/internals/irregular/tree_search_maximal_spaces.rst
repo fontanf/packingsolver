@@ -190,7 +190,9 @@ Limitations
 Automatic selection
 -------------------
 
-The algorithm is never selected automatically. It can be forced with :code:`--use-tree-search-maximal-spaces 1` (CLI) or :code:`use_tree_search_maximal_spaces` (Python).
+With a single bin and the :code:`knapsack` or :code:`feasibility` objective, the algorithm is run instead of the :ref:`tree search <internals_irregular_tree_search>` when many items fit in a section of the bin in both directions: the height (resp. width) of the bin divided by the mean height (resp. width) of the bounding boxes of the items is larger than :code:`many_items_in_section_threshold` (4 by default). The number of insertions of a node of the tree search may then be large, and its search may stay shallow. The instances dominated by item types with many copies are not concerned when the :ref:`tree search with periodic packings <internals_irregular_tree_search_periodic_packing>` is run alone. This also applies to the knapsack sub-problems of the algorithms for several bins. See :ref:`algorithm selection <internals_algorithm_selection>`.
+
+It can be forced with :code:`--use-tree-search-maximal-spaces 1` (CLI) or :code:`use_tree_search_maximal_spaces` (Python).
 
 Source files
 ------------

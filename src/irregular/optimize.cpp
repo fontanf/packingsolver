@@ -1047,6 +1047,44 @@ ItemPos max_number_of_items_in_bin(const Instance& instance)
 }
 
 /**
+ * Compute the mean number of items in an x (resp. y) section of the (single)
+ * bin of the instance: a full-height (resp. full-width) strip as wide (resp.
+ * as tall) as the mean item, that is, the height (resp. width) of the bin
+ * divided by the mean height (resp. width) of the bounding boxes of the
+ * items. Only the copies which are not fixed are counted.
+ */
+void compute_mean_numbers_of_items_in_sections(
+        const Instance& instance,
+        double& mean_number_of_items_in_x_section,
+        double& mean_number_of_items_in_y_section)
+{
+    double total_item_width = 0.0;
+    double total_item_height = 0.0;
+    ItemPos number_of_items = 0;
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance.number_of_item_types();
+            ++item_type_id) {
+        const ItemType& item_type = instance.item_type(item_type_id);
+        ItemPos copies = item_type.copies - item_type.copies_fixed;
+        if (copies <= 0)
+            continue;
+        AxisAlignedBoundingBox aabb = item_type.compute_min_max();
+        total_item_width += copies * (aabb.x_max - aabb.x_min);
+        total_item_height += copies * (aabb.y_max - aabb.y_min);
+        number_of_items += copies;
+    }
+    mean_number_of_items_in_x_section = 0.0;
+    mean_number_of_items_in_y_section = 0.0;
+    if (number_of_items == 0)
+        return;
+    const AxisAlignedBoundingBox& bin_aabb = instance.bin_type(0).aabb_orig;
+    mean_number_of_items_in_x_section = (bin_aabb.y_max - bin_aabb.y_min)
+        / (total_item_height / number_of_items);
+    mean_number_of_items_in_y_section = (bin_aabb.x_max - bin_aabb.x_min)
+        / (total_item_width / number_of_items);
+}
+
+/**
  * Prove the instance infeasible if an item type doesn't fit in any bin type:
  * with every objective but 'Knapsack', every item must be packed. The
  * infeasible subset is a single copy of this item type.
@@ -1264,6 +1302,25 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
                 = !periodic_packing_runnable
                 || max_number_of_items_in_bin(instance)
                     < parameters.periodic_packing_max_items_threshold;
+            // When many items fit in both an x section and a y section of
+            // the bin, the number of insertions of a node of
+            // 'tree_search' may be large, and its search may then stay
+            // shallow: run 'tree_search_maximal_spaces' instead.
+            if (use_tree_search
+                    && (instance.objective() == Objective::Knapsack
+                        || instance.objective() == Objective::Feasibility)) {
+                double mean_number_of_items_in_x_section = 0;
+                double mean_number_of_items_in_y_section = 0;
+                compute_mean_numbers_of_items_in_sections(
+                        instance,
+                        mean_number_of_items_in_x_section,
+                        mean_number_of_items_in_y_section);
+                if (mean_number_of_items_in_x_section > parameters.many_items_in_section_threshold
+                        && mean_number_of_items_in_y_section > parameters.many_items_in_section_threshold) {
+                    use_tree_search = false;
+                    use_tree_search_maximal_spaces = true;
+                }
+            }
             if (instance.objective() != Objective::Knapsack)
                 use_local_search_direct_trigonometry = true;
             // In 'Exact' mode, also run the algorithms which can prove
