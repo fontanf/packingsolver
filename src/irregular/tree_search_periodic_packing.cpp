@@ -956,6 +956,195 @@ static bool slide_frame_item(
 }
 
 /**
+ * Maximum number of copies of a block which can be packed, given the numbers
+ * of copies of its item types.
+ */
+static ItemPos maximum_number_of_copies(
+        const Instance& instance,
+        const PeriodicBlock& block)
+{
+    ItemPos number_of_copies = std::numeric_limits<ItemPos>::max();
+    for (const std::pair<ItemTypeId, ItemPos>& copies: block.item_copies) {
+        number_of_copies = (std::min)(
+                number_of_copies,
+                instance.item_type(copies.first).copies / copies.second);
+    }
+    return number_of_copies;
+}
+
+/**
+ * Block framed by frame items, without its items (see 'frame_block').
+ */
+struct FramedBlock
+{
+    /** Framed block, without its items. */
+    PeriodicBlock block;
+
+    /** Positions of the frame items. */
+    std::vector<Point> positions;
+
+    /** Bounding box of the content and of the frame items. */
+    AxisAlignedBoundingBox aabb;
+
+    /**
+     * Space saved by the framed block, compared to the block and the frame
+     * items packed separately.
+     */
+    AreaDbl saving = 0.0;
+};
+
+/**
+ * Frame 'block' with the frame items of 'configuration'.
+ *
+ * 'separate_frame_area' is the space taken by the frame items packed alone.
+ *
+ * Return false if the frame items can't be placed, if the framed block
+ * doesn't fit in the bin, or if it takes more space than the block and the
+ * frame items packed separately.
+ */
+static bool frame_block(
+        const Instance& instance,
+        const PeriodicBlock& block,
+        const std::vector<const FrameItem*>& configuration,
+        AreaDbl separate_frame_area,
+        FramedBlock& framed_block)
+{
+    BinTypeId bin_type_id = instance.bin_type_id(0);
+    LengthDbl spacing = instance.item_spacing_scaled();
+    LengthDbl bin_bx = usable_bin_bx(instance, bin_type_id);
+    LengthDbl bin_by = usable_bin_by(instance, bin_type_id);
+    ItemTypeId frame_item_type_id = configuration[0]->item_type_id;
+    const ItemType& frame_item_type = instance.item_type(frame_item_type_id);
+    AxisAlignedBoundingBox content = {0.0, block.bx - spacing, 0.0, block.by - spacing};
+
+    // Place the frame items one after the other. For each one, the candidate
+    // positions are its position against the content, and the positions
+    // aligning its bounding box with the bounding box of the previous frame
+    // items; each one moved away from the content if needed. The one giving
+    // the smallest bounding box is kept.
+    std::vector<AxisAlignedBoundingBox> obstacles = {content};
+    AxisAlignedBoundingBox framed_aabb = content;
+    std::vector<Point> positions;
+    for (const FrameItem* frame_item: configuration) {
+        Point anchor;
+        if (!frame_item_position(*frame_item, content, spacing, anchor))
+            return false;
+        std::vector<Point> candidates = {anchor};
+        if (!positions.empty()) {
+            candidates.push_back({anchor.x, framed_aabb.y_min - frame_item->aabb.y_min});
+            candidates.push_back({anchor.x, framed_aabb.y_max - frame_item->aabb.y_max});
+            candidates.push_back({framed_aabb.x_min - frame_item->aabb.x_min, anchor.y});
+            candidates.push_back({framed_aabb.x_max - frame_item->aabb.x_max, anchor.y});
+        }
+        std::vector<Point> directions;
+        if (frame_item->left)
+            directions.push_back({-1.0, 0.0});
+        if (frame_item->right)
+            directions.push_back({1.0, 0.0});
+        if (frame_item->bottom)
+            directions.push_back({0.0, -1.0});
+        if (frame_item->top)
+            directions.push_back({0.0, 1.0});
+        bool found = false;
+        Point best_position;
+        AreaDbl best_area = std::numeric_limits<AreaDbl>::infinity();
+        for (const Point& candidate: candidates) {
+            std::vector<Point> moved_candidates;
+            bool valid = true;
+            for (const AxisAlignedBoundingBox& occupied: frame_item->occupied)
+                for (const AxisAlignedBoundingBox& obstacle: obstacles)
+                    if (rectangles_too_close(shifted(occupied, candidate), obstacle, spacing))
+                        valid = false;
+            if (valid) {
+                moved_candidates.push_back(candidate);
+            } else {
+                for (const Point& direction: directions) {
+                    Point moved = candidate;
+                    if (slide_frame_item(*frame_item, obstacles, spacing, direction, moved))
+                        moved_candidates.push_back(moved);
+                }
+            }
+            for (const Point& moved: moved_candidates) {
+                AxisAlignedBoundingBox aabb = shape::merge(
+                        framed_aabb,
+                        shifted(frame_item->aabb, moved));
+                AreaDbl area = (aabb.x_max - aabb.x_min) * (aabb.y_max - aabb.y_min);
+                if (area < best_area) {
+                    best_area = area;
+                    best_position = moved;
+                    found = true;
+                }
+            }
+        }
+        if (!found)
+            return false;
+        positions.push_back(best_position);
+        framed_aabb = shape::merge(framed_aabb, shifted(frame_item->aabb, best_position));
+        for (const AxisAlignedBoundingBox& occupied: frame_item->occupied)
+            obstacles.push_back(shifted(occupied, best_position));
+    }
+
+    LengthDbl bx = framed_aabb.x_max - framed_aabb.x_min + spacing;
+    LengthDbl by = framed_aabb.y_max - framed_aabb.y_min + spacing;
+    if (shape::strictly_greater(bx, bin_bx) || shape::strictly_greater(by, bin_by))
+        return false;
+    // Acceptance: no more space than the block and the frame items packed
+    // alone.
+    AreaDbl saving = block.bx * block.by + separate_frame_area - bx * by;
+    if (shape::strictly_lesser(saving, 0.0))
+        return false;
+
+    framed_block.positions = positions;
+    framed_block.aabb = framed_aabb;
+    framed_block.saving = saving;
+    framed_block.block = PeriodicBlock();
+    framed_block.block.bx = bx;
+    framed_block.block.by = by;
+    framed_block.block.number_of_items = block.number_of_items + configuration.size();
+    framed_block.block.item_area = block.item_area + configuration.size() * frame_item_type.area_scaled;
+    framed_block.block.item_profit = block.item_profit + configuration.size() * frame_item_type.profit;
+    framed_block.block.item_copies = block.item_copies;
+    bool found_type = false;
+    for (auto& kv: framed_block.block.item_copies) {
+        if (kv.first == frame_item_type_id) {
+            kv.second += configuration.size();
+            found_type = true;
+        }
+    }
+    if (!found_type)
+        framed_block.block.item_copies.push_back({frame_item_type_id, (ItemPos)configuration.size()});
+    return true;
+}
+
+/**
+ * Add the items of 'block' and of the frame items of 'configuration' to
+ * 'framed_block'.
+ */
+static void add_framed_block_items(
+        const PeriodicBlock& block,
+        const std::vector<const FrameItem*>& configuration,
+        FramedBlock& framed_block)
+{
+    const AxisAlignedBoundingBox& framed_aabb = framed_block.aabb;
+    framed_block.block.items.reserve(framed_block.block.number_of_items);
+    for (const SolutionItem& item: block.items) {
+        SolutionItem placed_item = item;
+        placed_item.bl_corner.x -= framed_aabb.x_min;
+        placed_item.bl_corner.y -= framed_aabb.y_min;
+        framed_block.block.items.push_back(placed_item);
+    }
+    for (int pos = 0; pos < (int)configuration.size(); ++pos) {
+        SolutionItem placed_item;
+        placed_item.item_type_id = configuration[pos]->item_type_id;
+        placed_item.angle = configuration[pos]->rotation.angle;
+        placed_item.mirror = configuration[pos]->rotation.mirror;
+        placed_item.bl_corner.x = framed_block.positions[pos].x - framed_aabb.x_min;
+        placed_item.bl_corner.y = framed_block.positions[pos].y - framed_aabb.y_min;
+        framed_block.block.items.push_back(placed_item);
+    }
+}
+
+/**
  * Add the blocks obtained by framing the blocks of 'blocks' with frame
  * items (see 'FrameItem'): with 1 frame item in a rotation r, 2 frame items
  * in rotations r and r + 180, or 4 frame items in rotations r, r + 90,
@@ -968,6 +1157,15 @@ static bool slide_frame_item(
  * the frame items packed alone, at the best density of the blocks made of
  * this item type only. The framed blocks are framed again, up to a depth of
  * 2.
+ *
+ * The number of framed blocks of a frame item type is limited: the sum, over
+ * its framed blocks, of the maximum number of copies of the block times the
+ * number of copies of the frame item type in the block, can't exceed
+ * 'maximum_frame_copies_factor' times the number of copies of the frame item
+ * type. The framed blocks saving the most space are kept. They are found
+ * without framing all the blocks: the blocks are framed by decreasing upper
+ * bound of their saving, until this bound is below the saving of the framed
+ * blocks kept.
  */
 static void add_framed_blocks(
         const Instance& instance,
@@ -975,6 +1173,7 @@ static void add_framed_blocks(
         std::vector<PeriodicBlock>& blocks)
 {
     const int maximum_depth = 2;
+    const ItemPos maximum_frame_copies_factor = 4;
 
     if (instance.number_of_bin_types() == 0)
         return;
@@ -982,10 +1181,7 @@ static void add_framed_blocks(
     if (frame_items.empty())
         return;
 
-    BinTypeId bin_type_id = instance.bin_type_id(0);
     LengthDbl spacing = instance.item_spacing_scaled();
-    LengthDbl bin_bx = usable_bin_bx(instance, bin_type_id);
-    LengthDbl bin_by = usable_bin_by(instance, bin_type_id);
 
     // Best density of the blocks made of a single item type, for each item
     // type.
@@ -1016,16 +1212,23 @@ static void add_framed_blocks(
         return nullptr;
     };
 
-    // Configurations: lists of frame items, the first one in rotation r.
-    std::vector<std::vector<const FrameItem*>> configurations;
+    // Configurations: lists of frame items, the first one in rotation r,
+    // grouped by frame item type.
+    std::vector<std::vector<std::vector<const FrameItem*>>> configurations;
     for (const FrameItem& frame_item: frame_items) {
-        configurations.push_back({&frame_item});
+        if (configurations.empty()
+                || configurations.back()[0][0]->item_type_id != frame_item.item_type_id) {
+            configurations.push_back({});
+        }
+        std::vector<std::vector<const FrameItem*>>& item_type_configurations
+            = configurations.back();
+        item_type_configurations.push_back({&frame_item});
         const FrameItem* frame_item_180 = rotation_of(
                 frame_item.item_type_id,
                 frame_item.rotation.angle + 180,
                 frame_item.rotation.mirror);
         if (frame_item_180 != nullptr)
-            configurations.push_back({&frame_item, frame_item_180});
+            item_type_configurations.push_back({&frame_item, frame_item_180});
         const FrameItem* frame_item_90 = rotation_of(
                 frame_item.item_type_id,
                 frame_item.rotation.angle + 90,
@@ -1035,155 +1238,147 @@ static void add_framed_blocks(
                 frame_item.rotation.angle + 270,
                 frame_item.rotation.mirror);
         if (frame_item_90 != nullptr && frame_item_180 != nullptr && frame_item_270 != nullptr)
-            configurations.push_back({&frame_item, frame_item_90, frame_item_180, frame_item_270});
+            item_type_configurations.push_back({&frame_item, frame_item_90, frame_item_180, frame_item_270});
     }
+
+    // For each frame item type, the sum, over its framed blocks, of the
+    // maximum number of copies of the block times the number of copies of
+    // the frame item type in the block.
+    std::vector<ItemPos> frame_copies_sums(instance.number_of_item_types(), 0);
+    auto frame_copies = [&instance](
+            const PeriodicBlock& block,
+            ItemTypeId frame_item_type_id)
+    {
+        for (const auto& kv: block.item_copies)
+            if (kv.first == frame_item_type_id)
+                return maximum_number_of_copies(instance, block) * kv.second;
+        return (ItemPos)0;
+    };
 
     std::vector<PeriodicBlock> blocks_to_frame = blocks;
     for (int depth = 0; depth < maximum_depth && !blocks_to_frame.empty(); ++depth) {
         std::vector<PeriodicBlock> framed_blocks;
-        for (const PeriodicBlock& block: blocks_to_frame) {
-            AxisAlignedBoundingBox content = {0.0, block.bx - spacing, 0.0, block.by - spacing};
-            for (const std::vector<const FrameItem*>& configuration: configurations) {
-                ItemTypeId frame_item_type_id = configuration[0]->item_type_id;
-                const ItemType& frame_item_type = instance.item_type(frame_item_type_id);
-                // Copies.
-                ItemPos frame_copies = configuration.size();
-                for (const auto& kv: block.item_copies)
-                    if (kv.first == frame_item_type_id)
-                        frame_copies += kv.second;
-                if (frame_copies > frame_item_type.copies)
-                    continue;
+        for (const std::vector<std::vector<const FrameItem*>>& item_type_configurations: configurations) {
+            ItemTypeId frame_item_type_id = item_type_configurations[0][0]->item_type_id;
+            const ItemType& frame_item_type = instance.item_type(frame_item_type_id);
+            ItemPos maximum_frame_copies_sum = maximum_frame_copies_factor * frame_item_type.copies;
+            ItemPos& frame_copies_sum = frame_copies_sums[frame_item_type_id];
+            if (frame_copies_sum > maximum_frame_copies_sum)
+                continue;
 
-                // Place the frame items one after the other. For each one,
-                // the candidate positions are its position against the
-                // content, and the positions aligning its bounding box with
-                // the bounding box of the previous frame items; each one
-                // moved away from the content if needed. The one giving the
-                // smallest bounding box is kept.
-                std::vector<AxisAlignedBoundingBox> obstacles = {content};
-                AxisAlignedBoundingBox framed_aabb = content;
-                std::vector<Point> positions;
-                bool ok = true;
-                for (const FrameItem* frame_item: configuration) {
-                    Point anchor;
-                    if (!frame_item_position(*frame_item, content, spacing, anchor)) {
-                        ok = false;
+            // Upper bound of the saving of each pair (block, configuration).
+            // The framed block contains the block and the frame items, so
+            // it is at least as large as the largest of them in both
+            // dimensions.
+            struct Candidate
+            {
+                ItemPos block_pos;
+                ItemPos configuration_pos;
+                AreaDbl separate_frame_area;
+                AreaDbl saving_bound;
+            };
+            std::vector<Candidate> candidates;
+            for (ItemPos block_pos = 0;
+                    block_pos < (ItemPos)blocks_to_frame.size();
+                    ++block_pos) {
+                const PeriodicBlock& block = blocks_to_frame[block_pos];
+                for (ItemPos configuration_pos = 0;
+                        configuration_pos < (ItemPos)item_type_configurations.size();
+                        ++configuration_pos) {
+                    const std::vector<const FrameItem*>& configuration
+                        = item_type_configurations[configuration_pos];
+                    // Copies.
+                    ItemPos number_of_frame_copies = configuration.size();
+                    for (const auto& kv: block.item_copies)
+                        if (kv.first == frame_item_type_id)
+                            number_of_frame_copies += kv.second;
+                    if (number_of_frame_copies > frame_item_type.copies)
+                        continue;
+
+                    AreaDbl frame_items_area = configuration.size() * frame_item_type.area_scaled;
+                    double alone_density = alone_densities[frame_item_type_id];
+                    if (alone_density <= 0.0) {
+                        alone_density = frame_item_type.area_scaled / (
+                                (configuration[0]->aabb.x_max - configuration[0]->aabb.x_min)
+                                * (configuration[0]->aabb.y_max - configuration[0]->aabb.y_min));
+                    }
+                    AreaDbl separate_frame_area = frame_items_area / alone_density;
+                    LengthDbl bx = block.bx;
+                    LengthDbl by = block.by;
+                    for (const FrameItem* frame_item: configuration) {
+                        bx = (std::max)(bx, frame_item->aabb.x_max - frame_item->aabb.x_min + spacing);
+                        by = (std::max)(by, frame_item->aabb.y_max - frame_item->aabb.y_min + spacing);
+                    }
+                    AreaDbl saving_bound = block.bx * block.by + separate_frame_area - bx * by;
+                    if (shape::strictly_lesser(saving_bound, 0.0))
+                        continue;
+                    candidates.push_back({block_pos, configuration_pos, separate_frame_area, saving_bound});
+                }
+            }
+            std::stable_sort(
+                    candidates.begin(),
+                    candidates.end(),
+                    [](const Candidate& candidate_1, const Candidate& candidate_2)
+                    {
+                        return candidate_1.saving_bound > candidate_2.saving_bound;
+                    });
+
+            // Frame the blocks by decreasing bound. 'kept' contains the
+            // framed blocks, by decreasing saving. Once the framed blocks
+            // saving at least 'minimum_saving' fill the limit, the next
+            // blocks can't save more.
+            std::vector<std::pair<ItemPos, FramedBlock>> kept;
+            bool full = false;
+            AreaDbl minimum_saving = 0.0;
+            for (const Candidate& candidate: candidates) {
+                if (full && shape::strictly_lesser(candidate.saving_bound, minimum_saving))
+                    break;
+                const PeriodicBlock& block = blocks_to_frame[candidate.block_pos];
+                FramedBlock framed_block;
+                if (!frame_block(
+                            instance,
+                            block,
+                            item_type_configurations[candidate.configuration_pos],
+                            candidate.separate_frame_area,
+                            framed_block)) {
+                    continue;
+                }
+                auto it = std::upper_bound(
+                        kept.begin(),
+                        kept.end(),
+                        framed_block.saving,
+                        [](AreaDbl saving, const std::pair<ItemPos, FramedBlock>& kept_block)
+                        {
+                            return saving > kept_block.second.saving;
+                        });
+                kept.insert(it, {(ItemPos)(&candidate - candidates.data()), std::move(framed_block)});
+                ItemPos sum = frame_copies_sum;
+                for (const auto& kept_block: kept) {
+                    sum += frame_copies(kept_block.second.block, frame_item_type_id);
+                    if (sum > maximum_frame_copies_sum) {
+                        full = true;
+                        minimum_saving = kept_block.second.saving;
                         break;
                     }
-                    std::vector<Point> candidates = {anchor};
-                    if (!positions.empty()) {
-                        candidates.push_back({anchor.x, framed_aabb.y_min - frame_item->aabb.y_min});
-                        candidates.push_back({anchor.x, framed_aabb.y_max - frame_item->aabb.y_max});
-                        candidates.push_back({framed_aabb.x_min - frame_item->aabb.x_min, anchor.y});
-                        candidates.push_back({framed_aabb.x_max - frame_item->aabb.x_max, anchor.y});
-                    }
-                    std::vector<Point> directions;
-                    if (frame_item->left)
-                        directions.push_back({-1.0, 0.0});
-                    if (frame_item->right)
-                        directions.push_back({1.0, 0.0});
-                    if (frame_item->bottom)
-                        directions.push_back({0.0, -1.0});
-                    if (frame_item->top)
-                        directions.push_back({0.0, 1.0});
-                    bool found = false;
-                    Point best_position;
-                    AreaDbl best_area = std::numeric_limits<AreaDbl>::infinity();
-                    for (const Point& candidate: candidates) {
-                        std::vector<Point> moved_candidates;
-                        bool valid = true;
-                        for (const AxisAlignedBoundingBox& occupied: frame_item->occupied)
-                            for (const AxisAlignedBoundingBox& obstacle: obstacles)
-                                if (rectangles_too_close(shifted(occupied, candidate), obstacle, spacing))
-                                    valid = false;
-                        if (valid) {
-                            moved_candidates.push_back(candidate);
-                        } else {
-                            for (const Point& direction: directions) {
-                                Point moved = candidate;
-                                if (slide_frame_item(*frame_item, obstacles, spacing, direction, moved))
-                                    moved_candidates.push_back(moved);
-                            }
-                        }
-                        for (const Point& moved: moved_candidates) {
-                            AxisAlignedBoundingBox aabb = shape::merge(
-                                    framed_aabb,
-                                    shifted(frame_item->aabb, moved));
-                            AreaDbl area = (aabb.x_max - aabb.x_min) * (aabb.y_max - aabb.y_min);
-                            if (area < best_area) {
-                                best_area = area;
-                                best_position = moved;
-                                found = true;
-                            }
-                        }
-                    }
-                    if (!found) {
-                        ok = false;
-                        break;
-                    }
-                    positions.push_back(best_position);
-                    framed_aabb = shape::merge(framed_aabb, shifted(frame_item->aabb, best_position));
-                    for (const AxisAlignedBoundingBox& occupied: frame_item->occupied)
-                        obstacles.push_back(shifted(occupied, best_position));
                 }
-                if (!ok)
-                    continue;
+            }
 
-                LengthDbl bx = framed_aabb.x_max - framed_aabb.x_min + spacing;
-                LengthDbl by = framed_aabb.y_max - framed_aabb.y_min + spacing;
-                if (shape::strictly_greater(bx, bin_bx) || shape::strictly_greater(by, bin_by))
+            // Add the framed blocks kept which are not dominated, until the
+            // limit is exceeded.
+            for (auto& kept_block: kept) {
+                if (frame_copies_sum > maximum_frame_copies_sum)
+                    break;
+                FramedBlock& framed_block = kept_block.second;
+                if (is_dominated(blocks, framed_block.block))
                     continue;
-                // Acceptance: no more space than the block and the frame
-                // items packed alone.
-                AreaDbl frame_items_area = configuration.size() * frame_item_type.area_scaled;
-                double alone_density = alone_densities[frame_item_type_id];
-                if (alone_density <= 0.0) {
-                    alone_density = frame_item_type.area_scaled / (
-                            (configuration[0]->aabb.x_max - configuration[0]->aabb.x_min)
-                            * (configuration[0]->aabb.y_max - configuration[0]->aabb.y_min));
-                }
-                if (shape::strictly_greater(
-                            bx * by,
-                            block.bx * block.by + frame_items_area / alone_density)) {
-                    continue;
-                }
-
-                PeriodicBlock framed_block;
-                framed_block.bx = bx;
-                framed_block.by = by;
-                framed_block.number_of_items = block.number_of_items + configuration.size();
-                framed_block.item_area = block.item_area + frame_items_area;
-                framed_block.item_profit = block.item_profit + configuration.size() * frame_item_type.profit;
-                framed_block.item_copies = block.item_copies;
-                bool found_type = false;
-                for (auto& kv: framed_block.item_copies) {
-                    if (kv.first == frame_item_type_id) {
-                        kv.second += configuration.size();
-                        found_type = true;
-                    }
-                }
-                if (!found_type)
-                    framed_block.item_copies.push_back({frame_item_type_id, (ItemPos)configuration.size()});
-                if (is_dominated(blocks, framed_block))
-                    continue;
-                framed_block.items.reserve(framed_block.number_of_items);
-                for (const SolutionItem& item: block.items) {
-                    SolutionItem placed_item = item;
-                    placed_item.bl_corner.x -= framed_aabb.x_min;
-                    placed_item.bl_corner.y -= framed_aabb.y_min;
-                    framed_block.items.push_back(placed_item);
-                }
-                for (int pos = 0; pos < (int)configuration.size(); ++pos) {
-                    SolutionItem placed_item;
-                    placed_item.item_type_id = frame_item_type_id;
-                    placed_item.angle = configuration[pos]->rotation.angle;
-                    placed_item.mirror = configuration[pos]->rotation.mirror;
-                    placed_item.bl_corner.x = positions[pos].x - framed_aabb.x_min;
-                    placed_item.bl_corner.y = positions[pos].y - framed_aabb.y_min;
-                    framed_block.items.push_back(placed_item);
-                }
-                framed_blocks.push_back(framed_block);
-                add_block_if_not_dominated(blocks, std::move(framed_block));
+                const Candidate& candidate = candidates[kept_block.first];
+                add_framed_block_items(
+                        blocks_to_frame[candidate.block_pos],
+                        item_type_configurations[candidate.configuration_pos],
+                        framed_block);
+                frame_copies_sum += frame_copies(framed_block.block, frame_item_type_id);
+                framed_blocks.push_back(framed_block.block);
+                add_block_if_not_dominated(blocks, std::move(framed_block.block));
             }
         }
         blocks_to_frame.swap(framed_blocks);

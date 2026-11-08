@@ -46,6 +46,7 @@ See :doc:`the detailed description <irregular/tree_search_periodic_packing>`.
    :hidden:
 
    irregular/tree_search_periodic_packing
+   irregular/blocks
 
 Tree search with maximal spaces
 ----------------------------------

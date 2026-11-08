@@ -46,16 +46,7 @@ The periodic packings only depend on the item types, so they are computed once, 
 Blocks
 ------
 
-The blocks are built from the periodic packings, for the bin of the instance:
-
-* the tilings of :math:`n_x \times n_y` unit cells, as long as they fit in the bin and don't use more copies than available;
-* the *clipped lattice* blocks: the bin is filled with the lattice, for several positions of the lattice, and a block is made of the items whose top and right are below given thresholds. Unlike the tilings, these blocks may contain partial unit cells, which is often denser along the sides of the bin;
-* the grid blocks: the items aligned on a grid of their bounding boxes, for the orientations without periodic packing;
-* the *framed* blocks: a block surrounded by one, two or four copies of a wrapper item, in rotations :math:`r`, :math:`r + 180°`, and :math:`r + 90°` and :math:`r + 270°`. A framed block is only kept if it takes no more space than the block and the frame items packed separately. Framed blocks can be framed again once.
-
-A block dominates another one if it contains the same item types, at least as many copies of each, and takes no more space in both dimensions. Dominated blocks are discarded as they are generated, except the blocks of a single item, which are always kept: they may be the only way to pack the last copy of an item type.
-
-The resource consumption of a block is the consumption of each resource of the bin by its items alone in the bin, the consumption of the copies of an item type starting at the first entry of its consumption schedule. The blocks which exceed the capacity of a resource which is not *penalize* are discarded. The consumption of a node is the sum of the consumptions of its blocks: it is exact for the uniform consumption schedules, and overestimates the consumption for a non-increasing schedule when the copies of an item type are in several blocks.
+The blocks are built from the periodic packings, for the bin of the instance: tilings of unit cells, clipped lattices, grids of bounding boxes, and blocks framed by L-shaped or U-shaped items. Their generation, their dominance and their resource consumption are described in :ref:`blocks <internals_irregular_blocks>`. This algorithm uses all of them, described by their bounding boxes.
 
 Branching scheme
 ----------------
