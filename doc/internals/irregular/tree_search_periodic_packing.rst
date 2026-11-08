@@ -23,7 +23,7 @@ A periodic packing is a lattice packing: a *unit cell* of one or two items, repe
 For each item type and each of its orientations, the following unit cells are considered:
 
 * a single item;
-* two items: the item in orientation :math:`r` and the item in orientation :math:`r + 180°`, when it is allowed. The candidate positions of the second item are the vertices of the no-fit polygon of the two items, where the second item touches the first one without overlapping it.
+* two items: the item in orientation :math:`r` and the item in orientation :math:`r + 180°`, when it is allowed. The candidate positions of the second item are the vertices of the no-fit polygon of the two items, where the second item touches the first one without overlapping it, and its feasible elements and points (see below).
 
 Given a unit cell, the region forbidden to the translations of the cell is the union of the no-fit polygons of its items with each other. The lattice vectors are then computed in two ways:
 
@@ -31,6 +31,8 @@ Given a unit cell, the region forbidden to the translations of the cell is the u
 * vertical: the same with the roles of the x and y axes exchanged.
 
 A rectangular lattice, where :math:`v_2` is perpendicular to :math:`v_1`, is also considered in each case. Each candidate lattice is checked on the actual shapes.
+
+A no-fit polygon may contain translations of null area where the items don't overlap, for example when an item fits exactly the width of a slot of the other item: it can slide along a line segment in the slot, while all the translations around this segment make the items overlap. The union of the no-fit polygons can't represent them, so the shape library returns them separately, as the *feasible elements and points* of the no-fit polygon. They are candidate translations too, unless they are strictly inside another no-fit polygon of the forbidden region. With an item-item minimum spacing, the no-fit polygons are inflated by the spacing, and there is no such translation: the items would touch.
 
 Periodic packings mixing item types are also built, for the items shaped like an L or a U: such a *wrapper* item has a large empty rectangle touching a side of its bounding box. A *base*, a single item of another item type or the unit cell of one of its periodic packings, is put in this empty rectangle, and a second copy of the wrapper, rotated by 180°, is put on the other side of the base.
 
