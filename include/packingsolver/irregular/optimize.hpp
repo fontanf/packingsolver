@@ -338,6 +338,16 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
     /** Threshold to consider that a bin contains "many" items. */
     Counter many_items_in_bins_threshold = 16;
 
+    /**
+     * Threshold to consider that a bin x (resp. y) section - a full-height
+     * (resp. full-width) strip as wide (resp. as tall) as the mean item -
+     * contains "many" items, i.e. bin height (resp. width) / mean item
+     * height (resp. width). With a single bin, when both sections contain
+     * many items, the tree search maximal spaces algorithm is run instead of
+     * the tree search for the 'Knapsack' and 'Feasibility' objectives.
+     */
+    Counter many_items_in_section_threshold = 4;
+
     /** Factor to consider that the number of copies of items is "high". */
     Counter many_item_type_copies_factor = 1;
 
