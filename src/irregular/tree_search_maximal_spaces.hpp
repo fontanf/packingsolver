@@ -96,6 +96,12 @@ public:
         std::vector<Support> supporting_parts;
 
         /**
+         * Bounding box of the supporting parts, which are computed on the
+         * inflated shapes of the items, relative to the block.
+         */
+        AxisAlignedBoundingBox supporting_parts_aabb;
+
+        /**
          * Supported parts with which the block rests on a supporting part,
          * relative to the block.
          */
