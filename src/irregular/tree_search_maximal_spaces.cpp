@@ -530,6 +530,42 @@ void BranchingSchemeMaximalSpaces::select_empty_space(
     generator.insertions.clear();
     const EmptySpace& space = node.empty_spaces[generator.space_pos];
 
+    // Supporting parts touching the bottom side of the empty space.
+    auto touches_bottom = [&space](const AxisAlignedBoundingBox& aabb)
+    {
+        return shape::strictly_lesser(aabb.x_min, space.xe())
+            && shape::strictly_greater(aabb.x_max, space.xs())
+            && !shape::strictly_greater(aabb.y_min, space.ys())
+            && !shape::strictly_lesser(aabb.y_max, space.ys());
+    };
+    for (ShapePos supporting_part_pos: bin_type_.bin_supporting_part_ids) {
+        const Support& support = bin_type_.supporting_parts[supporting_part_pos];
+        if (touches_bottom(support.aabb))
+            generator.supporting_shapes.push_back(support.shape);
+    }
+    for (const Node::PlacedBlock& placed_block: node.placed_blocks) {
+        const Block& block = blocks_[placed_block.block_id];
+        AxisAlignedBoundingBox block_aabb;
+        block_aabb.x_min = placed_block.x + block.trapezoid_set.x_min;
+        block_aabb.x_max = placed_block.x + block.trapezoid_set.x_max;
+        block_aabb.y_min = placed_block.y + block.trapezoid_set.y_min;
+        block_aabb.y_max = placed_block.y + block.trapezoid_set.y_max;
+        if (!touches_bottom(block_aabb))
+            continue;
+        for (const Support& support: block.supporting_parts) {
+            AxisAlignedBoundingBox support_aabb = support.aabb;
+            support_aabb.shift(placed_block.x, placed_block.y);
+            if (!touches_bottom(support_aabb))
+                continue;
+            generator.supporting_shapes.push_back(support.shape);
+            generator.supporting_shapes.back().shift(placed_block.x, placed_block.y);
+        }
+    }
+
+    // Without supporting part, no block can be inserted in the empty space.
+    if (generator.supporting_shapes.empty())
+        return;
+
     // Blocks which may fit in the empty space.
     LengthDbl blocks_width = 0.0;
     LengthDbl blocks_height = 0.0;
@@ -582,38 +618,6 @@ void BranchingSchemeMaximalSpaces::select_empty_space(
             });
     if (generator.candidates.empty())
         return;
-
-    // Supporting parts touching the bottom side of the empty space.
-    auto touches_bottom = [&space](const AxisAlignedBoundingBox& aabb)
-    {
-        return shape::strictly_lesser(aabb.x_min, space.xe())
-            && shape::strictly_greater(aabb.x_max, space.xs())
-            && !shape::strictly_greater(aabb.y_min, space.ys())
-            && !shape::strictly_lesser(aabb.y_max, space.ys());
-    };
-    for (ShapePos supporting_part_pos: bin_type_.bin_supporting_part_ids) {
-        const Support& support = bin_type_.supporting_parts[supporting_part_pos];
-        if (touches_bottom(support.aabb))
-            generator.supporting_shapes.push_back(support.shape);
-    }
-    for (const Node::PlacedBlock& placed_block: node.placed_blocks) {
-        const Block& block = blocks_[placed_block.block_id];
-        AxisAlignedBoundingBox block_aabb;
-        block_aabb.x_min = placed_block.x + block.trapezoid_set.x_min;
-        block_aabb.x_max = placed_block.x + block.trapezoid_set.x_max;
-        block_aabb.y_min = placed_block.y + block.trapezoid_set.y_min;
-        block_aabb.y_max = placed_block.y + block.trapezoid_set.y_max;
-        if (!touches_bottom(block_aabb))
-            continue;
-        for (const Support& support: block.supporting_parts) {
-            AxisAlignedBoundingBox support_aabb = support.aabb;
-            support_aabb.shift(placed_block.x, placed_block.y);
-            if (!touches_bottom(support_aabb))
-                continue;
-            generator.supporting_shapes.push_back(support.shape);
-            generator.supporting_shapes.back().shift(placed_block.x, placed_block.y);
-        }
-    }
 
     // For each supporting part, the trapezoids a block resting on it
     // may overlap.
