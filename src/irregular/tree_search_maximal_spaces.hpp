@@ -142,6 +142,74 @@ public:
     };
 
     /**
+     * Insertions of a node in its selected empty space, computed lazily, by
+     * decreasing upper bound of the score of the blocks (see
+     * 'InsertionGenerator::Candidate::score_bound'): the insertion of rank k
+     * is known once the bound of the remaining blocks is below its score.
+     */
+    struct InsertionGenerator
+    {
+        /** Block which may be inserted in the empty space. */
+        struct Candidate
+        {
+            /** Block. */
+            ItemPos block_id = -1;
+
+            /**
+             * Position of the block in the valid blocks of the node, used to
+             * break the ties between insertions of equal scores.
+             */
+            ItemPos valid_block_pos = -1;
+
+            /**
+             * Upper bound of the score of the insertions of the block: its
+             * score with the density replaced by the area of its items
+             * divided by the area of its bounding box.
+             */
+            double score_bound = 0.0;
+        };
+
+        /** Insertion found, with the position of its block. */
+        struct FoundInsertion
+        {
+            Insertion insertion;
+
+            ItemPos valid_block_pos = -1;
+        };
+
+        /** 'true' iff an empty space is selected. */
+        bool space_selected = false;
+
+        /** Position of the selected empty space in the node. */
+        ItemPos space_pos = -1;
+
+        /** Supporting parts touching the bottom side of the empty space. */
+        std::vector<Shape> supporting_shapes;
+
+        /**
+         * For each supporting part, the trapezoids a block resting on it may
+         * overlap.
+         */
+        std::vector<std::vector<GeneralizedTrapezoid>> supporting_shapes_obstacles;
+
+        /** Left limit of the walls of the slides. */
+        LengthDbl x_wall_min = 0.0;
+
+        /** Candidate blocks, by decreasing score bound. */
+        std::vector<Candidate> candidates;
+
+        /** Position of the next candidate block to slide. */
+        ItemPos next_candidate_pos = 0;
+
+        /**
+         * Insertions of the candidates slid so far, at most one per block,
+         * by decreasing score, then by increasing position of their block in
+         * the valid blocks.
+         */
+        std::vector<FoundInsertion> insertions;
+    };
+
+    /**
      * Node structure of the branching scheme.
      */
     struct Node
@@ -205,10 +273,13 @@ public:
         /** Profit of the greedy completion of the node. */
         Profit greedy_value = 0;
 
-        /** Insertions of the node, computed when its first child is. */
-        std::vector<Insertion> cached_insertions;
+        /**
+         * Insertions of the node, created when its first child is, and reset
+         * once they are all generated.
+         */
+        std::shared_ptr<InsertionGenerator> insertion_generator;
 
-        /** Position of the next child in 'cached_insertions'. */
+        /** Rank of the insertion of the next child. */
         NodeId next_child_pos = 0;
     };
 
@@ -280,7 +351,7 @@ public:
     inline bool infertile(const std::shared_ptr<Node>& node) const
     {
         return node->next_child_pos > 0
-            && node->next_child_pos >= (NodeId)node->cached_insertions.size();
+            && node->insertion_generator == nullptr;
     }
 
     inline bool leaf(const std::shared_ptr<Node>& node) const
@@ -440,16 +511,35 @@ private:
             const EmptySpace& space) const;
 
     /**
-     * Compute the insertions of the node in its selected empty space; the
-     * empty spaces in which no block can be inserted are removed from the
-     * node.
+     * Compute the insertion of rank 'rank' (0 for the best one) of the node
+     * in its selected empty space; the empty spaces in which no block can be
+     * inserted are removed from the node.
      *
-     * If 'only_best' is 'true', only the insertion with the best score is
-     * returned.
+     * Return 'false' if the node has at most 'rank' insertions.
      */
-    std::vector<Insertion> insertions(
+    bool insertion(
             Node& node,
-            bool only_best) const;
+            InsertionGenerator& generator,
+            NodeId rank,
+            Insertion& insertion) const;
+
+    /**
+     * Select the empty space of the node and compute its candidate blocks
+     * and its supporting parts.
+     */
+    void select_empty_space(
+            const Node& node,
+            InsertionGenerator& generator) const;
+
+    /**
+     * Compute the best insertion of a block in the selected empty space;
+     * 'block_id' is -1 in the returned insertion if the block can't be
+     * inserted there.
+     */
+    Insertion best_insertion(
+            const Node& node,
+            const InsertionGenerator& generator,
+            ItemPos block_id) const;
 
     /**
      * Return true iff a block may be packed in a node: it doesn't use more
