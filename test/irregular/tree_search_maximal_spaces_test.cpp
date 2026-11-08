@@ -143,4 +143,11 @@ INSTANTIATE_TEST_SUITE_P(
                 // worse than packing item types 0 and 2 (150).
                 fs::path("data") / "irregular" / "tests" / "knapsack_penalized_resource.json",
                 fs::path("data") / "irregular" / "tests" / "knapsack_penalized_resource_solution.json"
+            }, {
+                // With the item-item spacing, the empty spaces above the items
+                // start above the bounding boxes of their non-inflated shapes,
+                // at the top of their inflated shapes, where their supporting
+                // parts are: the second row of items rests on them.
+                fs::path("data") / "irregular" / "tests" / "knapsack_item_item_minimum_spacing.json",
+                fs::path("data") / "irregular" / "tests" / "knapsack_item_item_minimum_spacing_solution.json"
             }}));

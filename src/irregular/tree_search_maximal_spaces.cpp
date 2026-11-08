@@ -315,6 +315,7 @@ BranchingSchemeMaximalSpaces::Block BranchingSchemeMaximalSpaces::build_block(
             if (covered(item_pos, support.aabb, true))
                 continue;
             block_trapezoid_set.supporting_parts.push_back(block.supporting_parts.size());
+            block.supporting_parts_aabb = shape::merge(block.supporting_parts_aabb, support.aabb);
             block.supporting_parts.push_back(support);
         }
     }
@@ -545,11 +546,8 @@ void BranchingSchemeMaximalSpaces::select_empty_space(
     }
     for (const Node::PlacedBlock& placed_block: node.placed_blocks) {
         const Block& block = blocks_[placed_block.block_id];
-        AxisAlignedBoundingBox block_aabb;
-        block_aabb.x_min = placed_block.x + block.trapezoid_set.x_min;
-        block_aabb.x_max = placed_block.x + block.trapezoid_set.x_max;
-        block_aabb.y_min = placed_block.y + block.trapezoid_set.y_min;
-        block_aabb.y_max = placed_block.y + block.trapezoid_set.y_max;
+        AxisAlignedBoundingBox block_aabb = block.supporting_parts_aabb;
+        block_aabb.shift(placed_block.x, placed_block.y);
         if (!touches_bottom(block_aabb))
             continue;
         for (const Support& support: block.supporting_parts) {
