@@ -517,175 +517,260 @@ bool BranchingSchemeMaximalSpaces::may_fit(
             bin_aabb_.y_max - bin_aabb_.y_min);
 }
 
-std::vector<BranchingSchemeMaximalSpaces::Insertion> BranchingSchemeMaximalSpaces::insertions(
-        Node& node,
-        bool only_best) const
+void BranchingSchemeMaximalSpaces::select_empty_space(
+        const Node& node,
+        InsertionGenerator& generator) const
 {
-    std::vector<Insertion> insertions;
-    while (insertions.empty() && !node.empty_spaces.empty()) {
-        ItemPos space_pos = select_empty_space(node);
-        EmptySpace space = node.empty_spaces[space_pos];
+    generator.space_selected = true;
+    generator.space_pos = select_empty_space(node);
+    generator.supporting_shapes.clear();
+    generator.supporting_shapes_obstacles.clear();
+    generator.candidates.clear();
+    generator.next_candidate_pos = 0;
+    generator.insertions.clear();
+    const EmptySpace& space = node.empty_spaces[generator.space_pos];
 
-        // Blocks which may fit in the empty space.
-        std::vector<ItemPos> block_ids;
-        LengthDbl blocks_width = 0.0;
-        LengthDbl blocks_height = 0.0;
-        for (ItemPos block_id: node.valid_block_ids) {
-            const Block& block = blocks_[block_id];
-            if (!may_fit(block, space))
+    // Blocks which may fit in the empty space.
+    LengthDbl blocks_width = 0.0;
+    LengthDbl blocks_height = 0.0;
+    for (ItemPos valid_block_pos = 0;
+            valid_block_pos < (ItemPos)node.valid_block_ids.size();
+            ++valid_block_pos) {
+        ItemPos block_id = node.valid_block_ids[valid_block_pos];
+        const Block& block = blocks_[block_id];
+        if (!may_fit(block, space))
+            continue;
+        LengthDbl block_width = block.trapezoid_set.x_max - block.trapezoid_set.x_min;
+        LengthDbl block_height = block.trapezoid_set.y_max - block.trapezoid_set.y_min;
+        blocks_width = (std::max)(blocks_width, block_width);
+        blocks_height = (std::max)(blocks_height, block_height);
+
+        // The rectangle of the density of an insertion (see
+        // 'best_insertion') contains the bounding box of the block, so the
+        // density is at most the area of the items divided by the area of
+        // the bounding box. Since the density is at most 1, the score is
+        // at most 0 if the profit is negative. The bound is slightly
+        // increased to cover the rounding errors of the score.
+        Profit profit = insertion_profit(node, block);
+        double score_bound = 0.0;
+        if (parameters_.beta < 0) {
+            score_bound = std::numeric_limits<double>::infinity();
+        } else if (profit > 0) {
+            double density_bound = (std::min)(
+                    1.0,
+                    block.item_area / (block_width * block_height));
+            score_bound = profit
+                * std::pow(density_bound, parameters_.beta)
+                * std::pow(block.number_of_items, -parameters_.gamma);
+            score_bound *= 1 + 1e-9;
+        }
+
+        InsertionGenerator::Candidate candidate;
+        candidate.block_id = block_id;
+        candidate.valid_block_pos = valid_block_pos;
+        candidate.score_bound = score_bound;
+        generator.candidates.push_back(candidate);
+    }
+    std::stable_sort(
+            generator.candidates.begin(),
+            generator.candidates.end(),
+            [](
+                const InsertionGenerator::Candidate& candidate_1,
+                const InsertionGenerator::Candidate& candidate_2)
+            {
+                return candidate_1.score_bound > candidate_2.score_bound;
+            });
+    if (generator.candidates.empty())
+        return;
+
+    // Supporting parts touching the bottom side of the empty space.
+    auto touches_bottom = [&space](const AxisAlignedBoundingBox& aabb)
+    {
+        return shape::strictly_lesser(aabb.x_min, space.xe())
+            && shape::strictly_greater(aabb.x_max, space.xs())
+            && !shape::strictly_greater(aabb.y_min, space.ys())
+            && !shape::strictly_lesser(aabb.y_max, space.ys());
+    };
+    for (ShapePos supporting_part_pos: bin_type_.bin_supporting_part_ids) {
+        const Support& support = bin_type_.supporting_parts[supporting_part_pos];
+        if (touches_bottom(support.aabb))
+            generator.supporting_shapes.push_back(support.shape);
+    }
+    for (const Node::PlacedBlock& placed_block: node.placed_blocks) {
+        const Block& block = blocks_[placed_block.block_id];
+        AxisAlignedBoundingBox block_aabb;
+        block_aabb.x_min = placed_block.x + block.trapezoid_set.x_min;
+        block_aabb.x_max = placed_block.x + block.trapezoid_set.x_max;
+        block_aabb.y_min = placed_block.y + block.trapezoid_set.y_min;
+        block_aabb.y_max = placed_block.y + block.trapezoid_set.y_max;
+        if (!touches_bottom(block_aabb))
+            continue;
+        for (const Support& support: block.supporting_parts) {
+            AxisAlignedBoundingBox support_aabb = support.aabb;
+            support_aabb.shift(placed_block.x, placed_block.y);
+            if (!touches_bottom(support_aabb))
                 continue;
-            block_ids.push_back(block_id);
-            blocks_width = (std::max)(blocks_width, block.trapezoid_set.x_max - block.trapezoid_set.x_min);
-            blocks_height = (std::max)(blocks_height, block.trapezoid_set.y_max - block.trapezoid_set.y_min);
-        }
-
-        // Supporting parts touching the bottom side of the empty space.
-        std::vector<Shape> supporting_shapes;
-        auto touches_bottom = [&space](const AxisAlignedBoundingBox& aabb)
-        {
-            return shape::strictly_lesser(aabb.x_min, space.xe())
-                && shape::strictly_greater(aabb.x_max, space.xs())
-                && !shape::strictly_greater(aabb.y_min, space.ys())
-                && !shape::strictly_lesser(aabb.y_max, space.ys());
-        };
-        if (!block_ids.empty()) {
-            for (ShapePos supporting_part_pos: bin_type_.bin_supporting_part_ids) {
-                const Support& support = bin_type_.supporting_parts[supporting_part_pos];
-                if (touches_bottom(support.aabb))
-                    supporting_shapes.push_back(support.shape);
-            }
-            for (const Node::PlacedBlock& placed_block: node.placed_blocks) {
-                const Block& block = blocks_[placed_block.block_id];
-                AxisAlignedBoundingBox block_aabb;
-                block_aabb.x_min = placed_block.x + block.trapezoid_set.x_min;
-                block_aabb.x_max = placed_block.x + block.trapezoid_set.x_max;
-                block_aabb.y_min = placed_block.y + block.trapezoid_set.y_min;
-                block_aabb.y_max = placed_block.y + block.trapezoid_set.y_max;
-                if (!touches_bottom(block_aabb))
-                    continue;
-                for (const Support& support: block.supporting_parts) {
-                    AxisAlignedBoundingBox support_aabb = support.aabb;
-                    support_aabb.shift(placed_block.x, placed_block.y);
-                    if (!touches_bottom(support_aabb))
-                        continue;
-                    supporting_shapes.push_back(support.shape);
-                    supporting_shapes.back().shift(placed_block.x, placed_block.y);
-                }
-            }
-        }
-
-        // For each supporting part, the trapezoids a block resting on it
-        // may overlap.
-        LengthDbl x_wall_min = (std::max)(bin_aabb_.x_min, space.xs() - blocks_width);
-        std::vector<std::vector<GeneralizedTrapezoid>> supporting_shapes_obstacles;
-        for (const Shape& supporting_shape: supporting_shapes) {
-            AxisAlignedBoundingBox aabb = supporting_shape.compute_min_max();
-            supporting_shapes_obstacles.push_back({});
-            for (const GeneralizedTrapezoid& trapezoid: node.trapezoids) {
-                if (!shape::strictly_greater(trapezoid.x_max(), x_wall_min))
-                    continue;
-                if (!shape::strictly_greater(trapezoid.y_top(), aabb.y_min - blocks_height))
-                    continue;
-                if (!shape::strictly_lesser(trapezoid.y_bottom(), aabb.y_max + blocks_height))
-                    continue;
-                supporting_shapes_obstacles.back().push_back(trapezoid);
-            }
-        }
-
-        LengthDbl bin_width = bin_type_.x_max - bin_type_.x_min;
-        for (ItemPos block_id: block_ids) {
-            if (parameters_.timer.needs_to_end())
-                break;
-            const Block& block = blocks_[block_id];
-            const TrapezoidSet& block_trapezoid_set = block.trapezoid_set;
-            LengthDbl block_width = block_trapezoid_set.x_max - block_trapezoid_set.x_min;
-            LengthDbl block_height = block_trapezoid_set.y_max - block_trapezoid_set.y_min;
-            LengthDbl x_wall = (std::max)(bin_aabb_.x_min, space.xs() - block_width);
-
-            Insertion best_insertion;
-            for (ShapePos supporting_shape_pos = 0;
-                    supporting_shape_pos < (ShapePos)supporting_shapes.size();
-                    ++supporting_shape_pos) {
-                const Shape& supporting_shape = supporting_shapes[supporting_shape_pos];
-                for (const Support& supported_part: block.supported_parts) {
-                    TrapezoidSetSlider slider(
-                            block_trapezoid_set,
-                            supporting_shape,
-                            supported_part.shape,
-                            bin_aabb_.x_max);
-                    SlidePosition position = slider.initial_position();
-                    if (slider.out_of_bounds(position))
-                        continue;
-                    if (!slider.slide_right_of(
-                                position,
-                                x_wall,
-                                x_wall - bin_width,
-                                bin_type_.y_min,
-                                bin_type_.y_max)) {
-                        continue;
-                    }
-                    if (!slider.slide(
-                                position,
-                                supporting_shapes_obstacles[supporting_shape_pos])) {
-                        continue;
-                    }
-                    if (slider.out_of_bounds(position))
-                        continue;
-
-                    // The block must overlap the empty space.
-                    Point bl_corner = {
-                        position.x + block_trapezoid_set.x_min,
-                        position.y + block_trapezoid_set.y_min};
-                    if (!overlaps(space, bl_corner, block_width, block_height))
-                        continue;
-
-                    // Score.
-                    LengthDbl x_min = (std::min)(space.xs(), bl_corner.x);
-                    LengthDbl y_min = (std::min)(space.ys(), bl_corner.y);
-                    AreaDbl area = (bl_corner.x + block_width - x_min)
-                        * (bl_corner.y + block_height - y_min);
-                    double density = (std::min)(1.0, block.item_area / area);
-                    double guide = insertion_profit(node, block)
-                        * std::pow(density, parameters_.beta)
-                        * std::pow(block.number_of_items, -parameters_.gamma);
-                    if (best_insertion.block_id == -1
-                            || guide > best_insertion.guide) {
-                        best_insertion.block_id = block_id;
-                        best_insertion.x = position.x;
-                        best_insertion.y = position.y;
-                        best_insertion.guide = guide;
-                    }
-                }
-            }
-            if (best_insertion.block_id == -1)
-                continue;
-            if (only_best && !insertions.empty()) {
-                if (best_insertion.guide > insertions.front().guide)
-                    insertions.front() = best_insertion;
-            } else {
-                insertions.push_back(best_insertion);
-            }
-        }
-
-        if (parameters_.timer.needs_to_end())
-            break;
-
-        // No block can be inserted in this empty space now, so none can be
-        // later either: remove it.
-        if (insertions.empty()) {
-            node.empty_spaces[space_pos] = node.empty_spaces.back();
-            node.empty_spaces.pop_back();
+            generator.supporting_shapes.push_back(support.shape);
+            generator.supporting_shapes.back().shift(placed_block.x, placed_block.y);
         }
     }
 
-    std::stable_sort(
-            insertions.begin(),
-            insertions.end(),
-            [](const Insertion& insertion_1, const Insertion& insertion_2)
-            {
-                return insertion_1.guide > insertion_2.guide;
-            });
-    return insertions;
+    // For each supporting part, the trapezoids a block resting on it
+    // may overlap.
+    generator.x_wall_min = (std::max)(bin_aabb_.x_min, space.xs() - blocks_width);
+    for (const Shape& supporting_shape: generator.supporting_shapes) {
+        AxisAlignedBoundingBox aabb = supporting_shape.compute_min_max();
+        generator.supporting_shapes_obstacles.push_back({});
+        for (const GeneralizedTrapezoid& trapezoid: node.trapezoids) {
+            if (!shape::strictly_greater(trapezoid.x_max(), generator.x_wall_min))
+                continue;
+            if (!shape::strictly_greater(trapezoid.y_top(), aabb.y_min - blocks_height))
+                continue;
+            if (!shape::strictly_lesser(trapezoid.y_bottom(), aabb.y_max + blocks_height))
+                continue;
+            generator.supporting_shapes_obstacles.back().push_back(trapezoid);
+        }
+    }
+}
+
+BranchingSchemeMaximalSpaces::Insertion BranchingSchemeMaximalSpaces::best_insertion(
+        const Node& node,
+        const InsertionGenerator& generator,
+        ItemPos block_id) const
+{
+    const EmptySpace& space = node.empty_spaces[generator.space_pos];
+    LengthDbl bin_width = bin_type_.x_max - bin_type_.x_min;
+    const Block& block = blocks_[block_id];
+    const TrapezoidSet& block_trapezoid_set = block.trapezoid_set;
+    LengthDbl block_width = block_trapezoid_set.x_max - block_trapezoid_set.x_min;
+    LengthDbl block_height = block_trapezoid_set.y_max - block_trapezoid_set.y_min;
+    LengthDbl x_wall = (std::max)(bin_aabb_.x_min, space.xs() - block_width);
+
+    Insertion best_insertion;
+    for (ShapePos supporting_shape_pos = 0;
+            supporting_shape_pos < (ShapePos)generator.supporting_shapes.size();
+            ++supporting_shape_pos) {
+        const Shape& supporting_shape = generator.supporting_shapes[supporting_shape_pos];
+        for (const Support& supported_part: block.supported_parts) {
+            TrapezoidSetSlider slider(
+                    block_trapezoid_set,
+                    supporting_shape,
+                    supported_part.shape,
+                    bin_aabb_.x_max);
+            SlidePosition position = slider.initial_position();
+            if (slider.out_of_bounds(position))
+                continue;
+            if (!slider.slide_right_of(
+                        position,
+                        x_wall,
+                        x_wall - bin_width,
+                        bin_type_.y_min,
+                        bin_type_.y_max)) {
+                continue;
+            }
+            if (!slider.slide(
+                        position,
+                        generator.supporting_shapes_obstacles[supporting_shape_pos])) {
+                continue;
+            }
+            if (slider.out_of_bounds(position))
+                continue;
+
+            // The block must overlap the empty space.
+            Point bl_corner = {
+                position.x + block_trapezoid_set.x_min,
+                position.y + block_trapezoid_set.y_min};
+            if (!overlaps(space, bl_corner, block_width, block_height))
+                continue;
+
+            // Score.
+            LengthDbl x_min = (std::min)(space.xs(), bl_corner.x);
+            LengthDbl y_min = (std::min)(space.ys(), bl_corner.y);
+            AreaDbl area = (bl_corner.x + block_width - x_min)
+                * (bl_corner.y + block_height - y_min);
+            double density = (std::min)(1.0, block.item_area / area);
+            double guide = insertion_profit(node, block)
+                * std::pow(density, parameters_.beta)
+                * std::pow(block.number_of_items, -parameters_.gamma);
+            if (best_insertion.block_id == -1
+                    || guide > best_insertion.guide) {
+                best_insertion.block_id = block_id;
+                best_insertion.x = position.x;
+                best_insertion.y = position.y;
+                best_insertion.guide = guide;
+            }
+        }
+    }
+    return best_insertion;
+}
+
+bool BranchingSchemeMaximalSpaces::insertion(
+        Node& node,
+        InsertionGenerator& generator,
+        NodeId rank,
+        Insertion& insertion) const
+{
+    for (;;) {
+        if (!generator.space_selected) {
+            if (node.empty_spaces.empty())
+                return false;
+            select_empty_space(node, generator);
+        }
+
+        // Slide the candidate blocks until the bound of the next one is
+        // below the score of the insertion of rank 'rank'. A block whose
+        // bound is equal to this score is slid: it might be ranked before,
+        // the ties being broken by the position of the blocks.
+        while (generator.next_candidate_pos < (ItemPos)generator.candidates.size()) {
+            const InsertionGenerator::Candidate& candidate
+                = generator.candidates[generator.next_candidate_pos];
+            if ((NodeId)generator.insertions.size() > rank
+                    && candidate.score_bound
+                    < generator.insertions[rank].insertion.guide) {
+                break;
+            }
+            if (parameters_.timer.needs_to_end())
+                break;
+            generator.next_candidate_pos++;
+            InsertionGenerator::FoundInsertion found_insertion;
+            found_insertion.insertion = best_insertion(node, generator, candidate.block_id);
+            if (found_insertion.insertion.block_id == -1)
+                continue;
+            found_insertion.valid_block_pos = candidate.valid_block_pos;
+            auto it = std::upper_bound(
+                    generator.insertions.begin(),
+                    generator.insertions.end(),
+                    found_insertion,
+                    [](
+                        const InsertionGenerator::FoundInsertion& found_insertion_1,
+                        const InsertionGenerator::FoundInsertion& found_insertion_2)
+                    {
+                        if (found_insertion_1.insertion.guide
+                                != found_insertion_2.insertion.guide) {
+                            return found_insertion_1.insertion.guide
+                                > found_insertion_2.insertion.guide;
+                        }
+                        return found_insertion_1.valid_block_pos
+                            < found_insertion_2.valid_block_pos;
+                    });
+            generator.insertions.insert(it, found_insertion);
+        }
+
+        if ((NodeId)generator.insertions.size() > rank) {
+            insertion = generator.insertions[rank].insertion;
+            return true;
+        }
+        if (!generator.insertions.empty()
+                || parameters_.timer.needs_to_end()) {
+            return false;
+        }
+
+        // No block can be inserted in this empty space now, so none can be
+        // later either: remove it.
+        node.empty_spaces[generator.space_pos] = node.empty_spaces.back();
+        node.empty_spaces.pop_back();
+        generator.space_selected = false;
+    }
 }
 
 bool BranchingSchemeMaximalSpaces::block_valid(
@@ -723,7 +808,7 @@ void BranchingSchemeMaximalSpaces::apply_insertion(
         const Insertion& insertion) const
 {
     node.id = node_id_++;
-    node.cached_insertions.clear();
+    node.insertion_generator = nullptr;
     node.next_child_pos = 0;
 
     const Block& block = blocks_[insertion.block_id];
@@ -807,10 +892,11 @@ void BranchingSchemeMaximalSpaces::complete_greedily(Node& node) const
     for (;;) {
         if (parameters_.timer.needs_to_end())
             break;
-        std::vector<Insertion> best_insertions = insertions(node, true);
-        if (best_insertions.empty())
+        InsertionGenerator generator;
+        Insertion insertion;
+        if (!this->insertion(node, generator, 0, insertion))
             break;
-        apply_insertion(node, best_insertions.front());
+        apply_insertion(node, insertion);
     }
 }
 
@@ -818,19 +904,16 @@ std::shared_ptr<BranchingSchemeMaximalSpaces::Node> BranchingSchemeMaximalSpaces
         const std::shared_ptr<Node>& parent) const
 {
     if (parent->next_child_pos == 0)
-        parent->cached_insertions = insertions(*parent, false);
-    NodeId pos = parent->next_child_pos;
+        parent->insertion_generator = std::make_shared<InsertionGenerator>();
+    NodeId rank = parent->next_child_pos;
     parent->next_child_pos++;
-    if (pos >= (NodeId)parent->cached_insertions.size())
+    Insertion insertion;
+    if (!this->insertion(*parent, *parent->insertion_generator, rank, insertion)) {
+        parent->insertion_generator = nullptr;
         return nullptr;
-    Insertion insertion = parent->cached_insertions[pos];
+    }
 
-    // Don't copy the insertions of the parent.
-    std::vector<Insertion> saved_insertions;
-    std::swap(parent->cached_insertions, saved_insertions);
     auto node = std::make_shared<Node>(*parent);
-    std::swap(parent->cached_insertions, saved_insertions);
-
     apply_insertion(*node, insertion);
     Node greedy_node = *node;
     complete_greedily(greedy_node);

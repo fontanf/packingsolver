@@ -136,7 +136,9 @@ where:
 
 By default, :math:`\beta = 2` and :math:`\gamma = 0.4`. A larger :math:`\beta` favors the dense positions, a larger :math:`\gamma` the blocks of few items.
 
-For each block, only its best position is kept. The insertions of the node are these positions, sorted by decreasing score.
+For each block, only its best position is kept. The insertions of the node are these positions, sorted by decreasing score, then by the order of the blocks.
+
+**Score bounds.** The rectangle of the density contains the bounding box of the block, so the density is at most the area of the items of the block divided by the area of its bounding box. Replacing the density by this ratio (capped at 1) gives an upper bound of the score of the block which doesn't require any slide. The insertions are therefore computed lazily: the candidate blocks are sorted by decreasing bound, and to get the insertion of rank :math:`k`, the blocks are slid in this order until :math:`k + 1` insertions are found and the bound of the next block is below the score of the insertion of rank :math:`k`. The blocks left can't be ranked before, so the insertions are the same as if all the blocks were slid. With items of very different sizes, this skips most of the slides: once a large item has a position, the small items, whose bounds are low, are not slid.
 
 **7. Failed empty spaces.** If no block has a valid position in the selected empty space, the empty space is removed from the node and the next one is selected, until an insertion is found or no empty space is left. This is valid since a block which can't be inserted in an empty space can't be inserted there later either: later, there are more items packed and fewer valid blocks.
 
@@ -154,9 +156,9 @@ If the top of the horizontal arm was sloped down to the right, the triangle woul
 Search
 ------
 
-**Greedy completion.** A node is completed greedily by applying, at each stage, its insertion of best score, until it has no insertion left. Only the best insertion is computed at each stage, but this still requires sliding all the candidate blocks, so a greedy completion costs about as many slides as the number of stages times the number of candidate blocks. The greedy completion checks the time limit at each stage, and stops early when it is reached.
+**Greedy completion.** A node is completed greedily by applying, at each stage, its insertion of best score, until it has no insertion left. Only the best insertion is computed at each stage: the candidate blocks are slid until the bound of the next one is below the best score found (see the score bounds above). The greedy completion checks the time limit at each stage, and stops early when it is reached.
 
-**Children.** The children of a node are generated one by one, in the order of the scores of its insertions. Each child is evaluated by its greedy completion: its *greedy value* is the profit of the greedy completion. The solution of a node is its greedy completion, converted back into the original frame.
+**Children.** The children of a node are generated one by one, in the order of the scores of its insertions; the insertion of each child is computed when the child is generated, so the blocks which can't be ranked among the children generated are not slid. Each child is evaluated by its greedy completion: its *greedy value* is the profit of the greedy completion. The solution of a node is its greedy completion, converted back into the original frame.
 
 **Beam search.** The tree is explored by an iterative beam search (:code:`treesearchsolver::iterative_beam_search`). At each depth, the beam keeps the nodes with the largest greedy values (then the largest profits); at most as many children as the size of the beam are generated for each node. The best solution found is the one of the node with the largest greedy value.
 
@@ -183,7 +185,7 @@ Limitations
 * The empty spaces are approximations of the free space: a block which only fits across several empty spaces, or whose core rectangle is too large for the empty spaces of a concavity, may be missed.
 * Only the bottom-left corner of the bin is used as anchor (in each direction), unlike in the tree search with periodic packings, where the empty space closest to any corner of the bin is selected.
 * Summing the consumptions of the blocks is exact for the uniform consumption schedules. For a non-increasing schedule, such as the ones of the cuts of the Benders decomposition, it overestimates the consumption when the copies of an item type are in several blocks: this is conservative for the resources which are not *penalize*, and may charge a penalty which the solution doesn't.
-* The greedy completions dominate the running time: since each child is evaluated by a greedy completion, which slides all the candidate blocks at each stage, the algorithm gets slow on instances with many different item types.
+* The greedy completions dominate the running time: each child is evaluated by a greedy completion, which slides at each stage the candidate blocks whose score bound isn't below the best score. When the bounds don't discriminate the blocks, for example with many different item types of similar sizes and fill rates, most of them are slid, and the algorithm gets slow.
 
 Automatic selection
 -------------------
