@@ -235,6 +235,15 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
      */
     Megabytes memory_limit_megabytes = 0;
 
+    /**
+     * Initial solution.
+     *
+     * It is reported first, and the local search starts from it. It must be
+     * a feasible solution of the instance which outlives the call. The
+     * instance is not reduced.
+     */
+    const Solution* initial_solution = nullptr;
+
     /** Linear programming solver. */
     columngenerationsolver::SolverName linear_programming_solver_name
         = columngenerationsolver::SolverName::CLP;
