@@ -576,6 +576,10 @@ Solution Reduction::unreduce_solution(
                 }
                 BinPos new_bin_pos = solution_builder.add_bin(reduced_to_original_bin_type_id_[solution_bin.bin_type_id], batch);
                 for (const SolutionItem& solution_item: solution_bin.items) {
+                    if (solution_item.is_fixed()) {
+                        solution_builder.add_fixed_item(new_bin_pos, solution_item.fixed_item_pos);
+                        continue;
+                    }
                     ItemTypeId original_item_type_id
                         = remaining_runs[solution_item.item_type_id].back().item_type_id;
                     solution_builder.add_item(
@@ -583,8 +587,7 @@ Solution Reduction::unreduce_solution(
                             original_item_type_id,
                             solution_item.bl_corner,
                             solution_item.angle,
-                            solution_item.mirror,
-                            solution_item.is_fixed);
+                            solution_item.mirror);
                 }
                 for (ItemTypeId reduced_item_type_id: touched_types) {
                     OriginRun& run = remaining_runs[reduced_item_type_id].back();
@@ -602,13 +605,16 @@ Solution Reduction::unreduce_solution(
                 for (const SolutionItem& solution_item: solution_bin.items) {
                     ItemTypeId original_item_type_id
                         = consume_one_origin(remaining_runs[solution_item.item_type_id]);
+                    if (solution_item.is_fixed()) {
+                        solution_builder.add_fixed_item(new_bin_pos, solution_item.fixed_item_pos);
+                        continue;
+                    }
                     solution_builder.add_item(
                             new_bin_pos,
                             original_item_type_id,
                             solution_item.bl_corner,
                             solution_item.angle,
-                            solution_item.mirror,
-                            solution_item.is_fixed);
+                            solution_item.mirror);
                 }
                 remaining_bin_copies--;
             }

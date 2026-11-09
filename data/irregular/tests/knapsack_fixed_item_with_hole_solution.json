@@ -1318,6 +1318,7 @@
                 },
                 {
                     "angle": 0.0,
+                    "fixed_item_pos": 0,
                     "id": 1,
                     "item_shapes": [
                         {

@@ -317,7 +317,7 @@ TEST(IrregularSequentialFeasibility, StopsWhenAFixedItemWouldBeOutOfTheBin)
             return solution_pool;
         SolutionBuilder solution_builder(sub_instance);
         BinPos bin_pos = solution_builder.add_bin(0, 1);
-        solution_builder.add_item(bin_pos, 1, {40, 0}, 0, false, true);
+        solution_builder.add_fixed_item(bin_pos, 0);
         for (LengthDbl x: {0.0, 10.0, 20.0})
             solution_builder.add_item(bin_pos, 0, {x, 0}, 0, false);
         solution_pool.add(solution_builder.build(), "mock");

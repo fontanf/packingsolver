@@ -133,7 +133,7 @@ The solution is written (command-line option ``--certificate``, ``Solution.write
 
 * ``id``: its bin type, and ``copies``: the number of identical bins it stands for;
 * ``shape``: its shape;
-* ``items``: its items, each with ``id``, its item type; ``x``, ``y``, the position of its reference point; ``angle``, its rotation angle in degrees; ``mirror``, whether it is mirrored; and ``item_shapes``, its shapes once placed.
+* ``items``: its items, each with ``id``, its item type; ``x``, ``y``, the position of its reference point; ``angle``, its rotation angle in degrees; ``mirror``, whether it is mirrored; ``item_shapes``, its shapes once placed; and, for a fixed item of the bin type, ``fixed_item_pos``, its position in the ``fixed_items`` of the bin type. When a certificate is read, an item with a ``fixed_item_pos`` is placed at the position of that fixed item.
 
 To visualize a solution, open it in the `solution viewer <https://packingsolver.pages.dev/viewer.html>`_, or run:
 

@@ -47,6 +47,7 @@
                 },
                 {
                     "angle": 0.0,
+                    "fixed_item_pos": 0,
                     "id": 1,
                     "item_shapes": [
                         {
@@ -81,6 +82,7 @@
                 },
                 {
                     "angle": 0.0,
+                    "fixed_item_pos": 1,
                     "id": 2,
                     "item_shapes": [
                         {

@@ -50,7 +50,7 @@ bool separation_model_anchor(
         item.item_type_id = solution_item.item_type_id;
         item.angle = solution_item.angle;
         item.mirror = solution_item.mirror;
-        item.is_fixed = solution_item.is_fixed;
+        item.fixed_item_pos = solution_item.fixed_item_pos;
         item.position = {
             scale_value * solution_item.bl_corner.x,
             scale_value * solution_item.bl_corner.y};
@@ -82,7 +82,7 @@ bool separation_model_anchor(
     {
         double value = 0.0;
         for (const SeparationModelItem& item: items) {
-            if (item.is_fixed)
+            if (item.is_fixed())
                 continue;
             value += x_weight * item.position.x + y_weight * item.position.y;
         }
@@ -120,13 +120,16 @@ bool separation_model_anchor(
     SolutionBuilder solution_builder(instance);
     solution_builder.add_bin(bin_type_id, 1);
     for (const SeparationModelItem& item: items) {
+        if (item.is_fixed()) {
+            solution_builder.add_fixed_item(0, item.fixed_item_pos);
+            continue;
+        }
         solution_builder.add_item(
                 0,
                 item.item_type_id,
                 {item.position.x / scale_value, item.position.y / scale_value},
                 item.angle,
-                item.mirror,
-                item.is_fixed);
+                item.mirror);
     }
     solution = solution_builder.build();
     return true;
@@ -164,7 +167,7 @@ Solution edge_separator_anchor(
             item_pos < (ItemPos)initial_solution.bin(bin_pos).items.size();
             ++item_pos) {
         const SolutionItem& solution_item = initial_solution.bin(bin_pos).items[item_pos];
-        if (solution_item.is_fixed) {
+        if (solution_item.is_fixed()) {
             fixed_items.push_back(item_pos);
         } else {
             unfixed_items.push_back(item_pos);
@@ -197,7 +200,7 @@ Solution edge_separator_anchor(
             item_pos < (ItemPos)initial_solution.bin(bin_pos).items.size();
             ++item_pos) {
         const SolutionItem& solution_item = initial_solution.bin(bin_pos).items[item_pos];
-        if (!solution_item.is_fixed)
+        if (!solution_item.is_fixed())
             continue;
         const LengthDbl cx = solution_item.bl_corner.x * instance.parameters().scale_value;
         const LengthDbl cy = solution_item.bl_corner.y * instance.parameters().scale_value;
@@ -531,14 +534,8 @@ Solution edge_separator_anchor(
         new_solution_builder.add_bin(solution_bin.bin_type_id, 1);
         for (ItemPos pos = 0; pos < (ItemPos)solution_bin.items.size(); ++pos) {
             const SolutionItem& solution_item = solution_bin.items[pos];
-            if (solution_item.is_fixed) {
-                new_solution_builder.add_item(
-                        0,
-                        solution_item.item_type_id,
-                        solution_item.bl_corner,
-                        solution_item.angle,
-                        solution_item.mirror,
-                        true);
+            if (solution_item.is_fixed()) {
+                new_solution_builder.add_fixed_item(0, solution_item.fixed_item_pos);
             } else {
                 new_solution_builder.add_item(
                         0,

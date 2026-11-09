@@ -202,14 +202,11 @@ ColumnPacking pack_columns(const Instance& instance)
                     to_uv(defect.shape_inflated.shape.compute_min_max()),
                     &defect.shape_inflated});
         }
-        for (const FixedItem& fixed_item: bin_type.fixed_items) {
-            solution_builder.add_item(
-                    bin_pos,
-                    fixed_item.item_type_id,
-                    fixed_item.bl_corner,
-                    fixed_item.angle,
-                    fixed_item.mirror,
-                    true);
+        for (ItemPos fixed_item_pos = 0;
+                fixed_item_pos < (ItemPos)bin_type.fixed_items.size();
+                ++fixed_item_pos) {
+            solution_builder.add_fixed_item(bin_pos, fixed_item_pos);
+            const FixedItem& fixed_item = bin_type.fixed_items[fixed_item_pos];
             const ItemType& item_type = instance.item_type(fixed_item.item_type_id);
             AxisAlignedBoundingBox aabb = item_type.compute_min_max(
                     fixed_item.angle,

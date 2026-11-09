@@ -27,8 +27,7 @@ void SolutionBuilder::add_item(
         ItemTypeId item_type_id,
         Point bl_corner,
         Angle angle,
-        bool mirror,
-        bool is_fixed)
+        bool mirror)
 {
     const Instance& instance = this->solution_.instance();
 
@@ -56,8 +55,44 @@ void SolutionBuilder::add_item(
     item.bl_corner = bl_corner;
     item.angle = angle;
     item.mirror = mirror;
-    item.is_fixed = is_fixed;
     this->solution_.bins_[bin_pos].items.push_back(item);
+}
+
+void SolutionBuilder::add_fixed_item(
+        BinPos bin_pos,
+        ItemPos fixed_item_pos)
+{
+    const Instance& instance = this->solution_.instance();
+    SolutionBin& bin = this->solution_.bins_[bin_pos];
+    const BinType& bin_type = instance.bin_type(bin.bin_type_id);
+
+    if (fixed_item_pos < 0
+            || fixed_item_pos >= (ItemPos)bin_type.fixed_items.size()) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "invalid 'fixed_item_pos'; "
+                "fixed_item_pos: " + std::to_string(fixed_item_pos) + "; "
+                "bin_type_id: " + std::to_string(bin.bin_type_id) + "; "
+                "number of fixed items: " + std::to_string(bin_type.fixed_items.size()) + ".");
+    }
+    for (const SolutionItem& item: bin.items) {
+        if (item.fixed_item_pos == fixed_item_pos) {
+            throw std::invalid_argument(
+                    FUNC_SIGNATURE + ": "
+                    "fixed item already added to the bin; "
+                    "bin_pos: " + std::to_string(bin_pos) + "; "
+                    "fixed_item_pos: " + std::to_string(fixed_item_pos) + ".");
+        }
+    }
+
+    const FixedItem& fixed_item = bin_type.fixed_items[fixed_item_pos];
+    SolutionItem item;
+    item.item_type_id = fixed_item.item_type_id;
+    item.bl_corner = fixed_item.bl_corner;
+    item.angle = fixed_item.angle;
+    item.mirror = fixed_item.mirror;
+    item.fixed_item_pos = fixed_item_pos;
+    bin.items.push_back(item);
 }
 
 void SolutionBuilder::read(
@@ -76,6 +111,10 @@ void SolutionBuilder::read(
     for (const auto& json_bin: j["bins"]) {
         BinPos bin_pos = add_bin(json_bin["id"], json_bin["copies"]);
         for (const auto& json_item: json_bin["items"]) {
+            if (json_item.contains("fixed_item_pos")) {
+                add_fixed_item(bin_pos, json_item["fixed_item_pos"]);
+                continue;
+            }
             bool mirror = false;
             if (json_item.contains("mirror"))
                 mirror = json_item["mirror"];

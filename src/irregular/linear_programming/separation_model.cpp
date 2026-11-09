@@ -144,7 +144,7 @@ BinSeparationModel::BinSeparationModel(
                 ++item_shape_pos) {
             for (const BasicShape& basic_shape: decomposition.item_types[item.item_type_id][item_shape_pos]) {
                 BasicShape placed_shape = apply_placement(basic_shape, item.mirror, item.angle);
-                if (item.is_fixed) {
+                if (item.is_fixed()) {
                     if (!add_part(-1, placed_shape.shape, item.position, item_spacing_)) {
                         supported_ = false;
                         return;
@@ -585,7 +585,7 @@ bool BinSeparationModel::solve_step(
     // Maximum move of each item.
     std::vector<LengthDbl> movements(number_of_items, 0.0);
     for (ItemPos item_pos = 0; item_pos < number_of_items; ++item_pos) {
-        if (items[item_pos].is_fixed)
+        if (items[item_pos].is_fixed())
             continue;
         const AxisAlignedBoundingBox& aabb = items_aabbs_[item_pos];
         movements[item_pos] = parameters.movement_ratio
@@ -617,7 +617,7 @@ bool BinSeparationModel::solve_step(
     std::vector<int> lambda(number_of_items, -1);
     for (ItemPos item_pos = 0; item_pos < number_of_items; ++item_pos) {
         const SeparationModelItem& item = items[item_pos];
-        if (item.is_fixed)
+        if (item.is_fixed())
             continue;
         if (fixed_scales) {
             // The containment of the parts is enforced by the constraints.
@@ -787,7 +787,7 @@ bool BinSeparationModel::solve_step(
     // New positions and scales, clamped to their bounds.
     for (ItemPos item_pos = 0; item_pos < number_of_items; ++item_pos) {
         SeparationModelItem& item = items[item_pos];
-        if (item.is_fixed)
+        if (item.is_fixed())
             continue;
         item.position.x = (std::max)(item.position.x - movements[item_pos],
                 (std::min)(item.position.x + movements[item_pos], solution[x[item_pos]]));

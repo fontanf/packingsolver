@@ -149,7 +149,7 @@ BinNonlinearSeparationModel::BinNonlinearSeparationModel(
                     return;
                 }
                 BasicShape placed_shape = apply_placement(basic_shape, item.mirror, item.angle);
-                if (item.is_fixed) {
+                if (item.is_fixed()) {
                     add_part(-1, placed_shape.shape, item.position, item_spacing_);
                 } else {
                     add_part(item_pos, placed_shape.shape, origin, 0.0);
@@ -164,7 +164,7 @@ BinNonlinearSeparationModel::BinNonlinearSeparationModel(
                 }
             }
         }
-        if (!item.is_fixed)
+        if (!item.is_fixed())
             items_hulls_[item_pos] = convex_hull_of_points(item_vertices);
     }
     for (const BasicShape& basic_shape: decomposition.bin_types_borders[bin_type_id]) {
@@ -318,7 +318,7 @@ bool BinNonlinearSeparationModel::step(
     std::vector<LengthDbl> reaches(number_of_items, 0.0);
     for (ItemPos item_pos = 0; item_pos < number_of_items; ++item_pos) {
         const NonlinearSeparationModelItem& item = items[item_pos];
-        if (item.is_fixed)
+        if (item.is_fixed())
             continue;
         AxisAlignedBoundingBox aabb;
         LengthDbl radius = 0.0;
@@ -389,7 +389,7 @@ bool BinNonlinearSeparationModel::step(
     std::vector<int> lambda_variables(number_of_items, -1);
     for (ItemPos item_pos = 0; item_pos < number_of_items; ++item_pos) {
         const NonlinearSeparationModelItem& item = items[item_pos];
-        if (item.is_fixed)
+        if (item.is_fixed())
             continue;
         // The centers of the parts stay in the bin, so that a null scale is
         // always feasible.
@@ -553,7 +553,7 @@ bool BinNonlinearSeparationModel::step(
     // New positions, angles and scales, clamped to their bounds.
     for (ItemPos item_pos = 0; item_pos < number_of_items; ++item_pos) {
         NonlinearSeparationModelItem& item = items[item_pos];
-        if (item.is_fixed)
+        if (item.is_fixed())
             continue;
         item.position.x = (std::max)(model.variables_lower_bounds[x_variables[item_pos]],
                 (std::min)(model.variables_upper_bounds[x_variables[item_pos]], solution[x_variables[item_pos]]));

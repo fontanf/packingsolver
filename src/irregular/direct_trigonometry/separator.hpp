@@ -438,9 +438,6 @@ private:
 
         /** Fixed hazards. */
         std::vector<Hazard> hazards;
-
-        /** Fixed items. */
-        std::vector<SolutionItem> fixed_items;
     };
 
     /*

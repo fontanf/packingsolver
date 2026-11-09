@@ -587,6 +587,8 @@ void Solution::write(
             json["bins"][bin_pos]["items"][item_pos]["y"] = item.bl_corner.y;
             json["bins"][bin_pos]["items"][item_pos]["angle"] = item.angle;
             json["bins"][bin_pos]["items"][item_pos]["mirror"] = item.mirror;
+            if (item.is_fixed())
+                json["bins"][bin_pos]["items"][item_pos]["fixed_item_pos"] = item.fixed_item_pos;
             for (Counter item_shape_pos = 0;
                     item_shape_pos < (Counter)item_type.shapes.size();
                     ++item_shape_pos) {
