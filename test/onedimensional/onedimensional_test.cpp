@@ -524,3 +524,33 @@ TEST(OneDimensional, VariableSizedBinPackingGoalUnreachable)
     EXPECT_EQ(output.variable_sized_bin_packing_bound, 10);
     EXPECT_TRUE(output.is_proven_optimal());
 }
+
+TEST(OneDimensional, DynamicProgrammingKnapsackBoundWithPenalties)
+{
+    // Items A and B (length 5, profit 10) together exceed a 'penalize'
+    // resource of penalty 15, item C (length 5, profit 9) doesn't consume
+    // it. The dynamic programming ignores the resources and selects A and B,
+    // whose profit with the penalty is 5, while A and C reach 19: the bound
+    // must be the profit of the relaxation, 20, not 5.
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(packingsolver::Objective::Knapsack);
+    packingsolver::BinTypeId bin_type_id = instance_builder.add_bin_type(10);
+    packingsolver::ResourceId resource_id = instance_builder.add_bin_type_resource(
+            bin_type_id, 1, true, 15);
+    packingsolver::ItemTypeId item_type_id_a = instance_builder.add_item_type(5);
+    instance_builder.set_item_type_profit(item_type_id_a, 10);
+    packingsolver::ItemTypeId item_type_id_b = instance_builder.add_item_type(5);
+    instance_builder.set_item_type_profit(item_type_id_b, 10);
+    packingsolver::ItemTypeId item_type_id_c = instance_builder.add_item_type(5);
+    instance_builder.set_item_type_profit(item_type_id_c, 9);
+    instance_builder.add_resource_consumption(bin_type_id, resource_id, item_type_id_a, {1.0});
+    instance_builder.add_resource_consumption(bin_type_id, resource_id, item_type_id_b, {1.0});
+    const Instance instance = instance_builder.build();
+
+    OptimizeParameters optimize_parameters;
+    optimize_parameters.verbosity_level = 0;
+    optimize_parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytimeSequential;
+    Output output = optimize(instance, optimize_parameters);
+    EXPECT_DOUBLE_EQ(output.solution_pool.best().profit(), 19);
+    EXPECT_GE(output.knapsack_bound, 19);
+}

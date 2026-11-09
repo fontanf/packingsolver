@@ -139,7 +139,11 @@ void dynamic_programming_impl(
             Solution solution = build_solution(kp_selected);
             if (solution.feasible())
                 algorithm_formatter.update_solution(solution, "subset sum");
-            algorithm_formatter.update_knapsack_bound(sss_output.solution.weight());
+            // The weight of the selection is the optimal value of the
+            // relaxation without resources (see below).
+            algorithm_formatter.update_knapsack_bound(
+                    sss_output.solution.weight()
+                    + negative_penalty_sum(instance));
             return;
         }
     }
@@ -177,8 +181,26 @@ void dynamic_programming_impl(
         algorithm_formatter.update_solution(solution, "primal-dual");
     // When interrupted, the dynamic programming returns its current best
     // solution, which is not a bound.
-    if (kp_output.solution.profit() == kp_output.bound)
-        algorithm_formatter.update_knapsack_bound(solution.profit());
+    if (kp_output.solution.profit() == kp_output.bound) {
+        // The dynamic programming ignores the resources: the profit of its
+        // selection, without the penalties of the 'penalize' resources, is
+        // the optimal value of the relaxation without resources, hence a
+        // bound. 'solution.profit()' is not: it subtracts the penalties of
+        // this selection, which another selection may avoid. A 'penalize'
+        // resource with a negative penalty may increase the profit, so the
+        // worst case is added back (see 'negative_penalty_sum').
+        Profit relaxation_profit = 0.0;
+        for (knapsacksolver::ItemId kp_item_id = 0;
+                kp_item_id < (knapsacksolver::ItemId)kp2ps.size();
+                ++kp_item_id) {
+            if (kp_selected[kp_item_id]) {
+                relaxation_profit += kp2ps[kp_item_id].second
+                    * instance.item_type(kp2ps[kp_item_id].first).profit;
+            }
+        }
+        algorithm_formatter.update_knapsack_bound(
+                relaxation_profit + negative_penalty_sum(instance));
+    }
 }
 
 }
