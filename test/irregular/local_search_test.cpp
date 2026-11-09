@@ -439,7 +439,7 @@ TEST_P(IrregularLocalSearchTest, IrregularLocalSearch)
     for (BinPos bin_pos = 0; bin_pos < solution.number_of_different_bins(); ++bin_pos) {
         const SolutionBin& solution_bin = solution.bin(bin_pos);
         for (const SolutionItem& item: solution_bin.items)
-            if (!item.is_fixed)
+            if (!item.is_fixed())
                 item_types_free_copies[item.item_type_id] += solution_bin.copies;
     }
     for (ItemTypeId item_type_id = 0;

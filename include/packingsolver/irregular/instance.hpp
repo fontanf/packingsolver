@@ -243,8 +243,14 @@ struct SolutionItem
     /** Mirror the item. */
     bool mirror;
 
-    /** True if this item is a fixed item of the instance. */
-    bool is_fixed = false;
+    /**
+     * Position of the item in the fixed items of the bin type if it is a
+     * fixed item, -1 otherwise.
+     */
+    ItemPos fixed_item_pos = -1;
+
+    /** Return true iff this item is a fixed item of the bin type. */
+    inline bool is_fixed() const { return fixed_item_pos != -1; }
 };
 
 bool operator==(const SolutionItem& solution_item_1, const SolutionItem& solution_item_2);

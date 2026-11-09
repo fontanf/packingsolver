@@ -2159,14 +2159,10 @@ Solution BranchingSchemePeriodicPacking::to_solution(
     }
 
     // Fixed items.
-    for (const FixedItem& fixed_item: bin_type().fixed_items) {
-        solution_builder.add_item(
-                bin_pos,
-                fixed_item.item_type_id,
-                fixed_item.bl_corner,
-                fixed_item.angle,
-                fixed_item.mirror,
-                true);
+    for (ItemPos fixed_item_pos = 0;
+            fixed_item_pos < (ItemPos)bin_type().fixed_items.size();
+            ++fixed_item_pos) {
+        solution_builder.add_fixed_item(bin_pos, fixed_item_pos);
     }
 
     return solution_builder.build();

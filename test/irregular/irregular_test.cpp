@@ -182,6 +182,77 @@ TEST(Irregular, AddFixedItemInvalidIds)
     EXPECT_THROW(instance_builder.build(), std::invalid_argument);
 }
 
+TEST(Irregular, SolutionBuilderAddFixedItem)
+{
+    ItemShape item_shape;
+    item_shape.shape_orig.shape = build_rectangle(0, 5, 0, 5);
+
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(packingsolver::Objective::Knapsack);
+    packingsolver::ItemTypeId item_type_id = instance_builder.add_item_type({item_shape});
+    packingsolver::BinTypeId bin_type_id = instance_builder.add_bin_type(build_rectangle(0, 10, 0, 10));
+    instance_builder.add_fixed_item(bin_type_id, item_type_id, {5, 5}, 90, false);
+    Instance instance = instance_builder.build();
+
+    SolutionBuilder solution_builder(instance);
+    packingsolver::BinPos bin_pos = solution_builder.add_bin(bin_type_id, 1);
+    EXPECT_THROW(solution_builder.add_fixed_item(bin_pos, 1), std::invalid_argument);
+    EXPECT_THROW(solution_builder.add_fixed_item(bin_pos, -1), std::invalid_argument);
+    solution_builder.add_fixed_item(bin_pos, 0);
+    // A fixed item is added at most once to a bin.
+    EXPECT_THROW(solution_builder.add_fixed_item(bin_pos, 0), std::invalid_argument);
+    Solution solution = solution_builder.build();
+
+    // The position, angle and mirror come from the fixed item of the bin
+    // type.
+    const SolutionItem& solution_item = solution.bin(0).items[0];
+    EXPECT_EQ(solution_item.item_type_id, item_type_id);
+    EXPECT_EQ(solution_item.bl_corner.x, 5);
+    EXPECT_EQ(solution_item.bl_corner.y, 5);
+    EXPECT_EQ(solution_item.angle, 90);
+    EXPECT_EQ(solution_item.fixed_item_pos, 0);
+    EXPECT_TRUE(solution_item.is_fixed());
+}
+
+TEST(Irregular, SolutionWriteReadFixedItems)
+{
+    // The fixed items of a certificate are still fixed once it is written
+    // and read again.
+    InstanceBuilder instance_builder;
+    instance_builder.read((fs::path("data") / "irregular" / "tests" / "fixed_items_several_bins.json").string());
+    const Instance instance = instance_builder.build();
+    SolutionBuilder solution_builder(instance);
+    solution_builder.read((fs::path("data") / "irregular" / "tests" / "fixed_items_several_bins_solution.json").string());
+    Solution solution = solution_builder.build();
+
+    fs::path certificate_path = fs::temp_directory_path() / fs::unique_path("%%%%-%%%%-%%%%.json");
+    solution.write(certificate_path.string());
+    SolutionBuilder solution_builder_2(instance);
+    solution_builder_2.read(certificate_path.string());
+    Solution solution_2 = solution_builder_2.build();
+    fs::remove(certificate_path);
+
+    packingsolver::ItemPos number_of_fixed_items = 0;
+    ASSERT_EQ(solution_2.number_of_different_bins(), solution.number_of_different_bins());
+    for (packingsolver::BinPos bin_pos = 0;
+            bin_pos < solution.number_of_different_bins();
+            ++bin_pos) {
+        const SolutionBin& solution_bin = solution.bin(bin_pos);
+        const SolutionBin& solution_bin_2 = solution_2.bin(bin_pos);
+        ASSERT_EQ(solution_bin_2.items.size(), solution_bin.items.size());
+        for (packingsolver::ItemPos item_pos = 0;
+                item_pos < (packingsolver::ItemPos)solution_bin.items.size();
+                ++item_pos) {
+            EXPECT_EQ(
+                    solution_bin_2.items[item_pos].fixed_item_pos,
+                    solution_bin.items[item_pos].fixed_item_pos);
+            if (solution_bin.items[item_pos].is_fixed())
+                number_of_fixed_items += solution_bin.copies;
+        }
+    }
+    EXPECT_EQ(number_of_fixed_items, instance.number_of_fixed_items());
+}
+
 TEST(Irregular, ReadUnknownLeftoverMode)
 {
     // An unrecognized value is rejected instead of being ignored.

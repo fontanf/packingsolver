@@ -29,8 +29,15 @@ public:
             ItemTypeId item_type_id,
             Point bl_corner,
             Angle angle,
-            bool mirror,
-            bool is_fixed = false);
+            bool mirror);
+
+    /**
+     * Add the fixed item at position 'fixed_item_pos' of the bin type of bin
+     * 'bin_pos' to the solution.
+     */
+    void add_fixed_item(
+            BinPos bin_pos,
+            ItemPos fixed_item_pos);
 
     /*
      * Build

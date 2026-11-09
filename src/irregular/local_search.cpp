@@ -323,13 +323,16 @@ Solution packingsolver::irregular::convert_initial_solution(
                 continue;
             BinPos bin_pos_new = solution_builder.add_bin(bin_type_id, 1);
             for (const SolutionItem& item: bin.items) {
+                if (item.is_fixed()) {
+                    solution_builder.add_fixed_item(bin_pos_new, item.fixed_item_pos);
+                    continue;
+                }
                 solution_builder.add_item(
                         bin_pos_new,
                         item.item_type_id,
                         item.bl_corner,
                         item.angle,
-                        item.mirror,
-                        item.is_fixed);
+                        item.mirror);
             }
         }
     }

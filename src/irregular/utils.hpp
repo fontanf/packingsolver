@@ -202,7 +202,7 @@ inline std::vector<ItemAxisAlignedBoundingBoxes> compute_unfixed_item_aabbs(
     std::vector<ItemAxisAlignedBoundingBoxes> item_aabbs;
     for (ItemPos item_pos = 0; item_pos < (ItemPos)solution_bin.items.size(); ++item_pos) {
         const SolutionItem& solution_item = solution_bin.items[item_pos];
-        if (solution_item.is_fixed)
+        if (solution_item.is_fixed())
             continue;
         const LengthDbl cx = solution_bin.items[item_pos].bl_corner.x * instance.parameters().scale_value;
         const LengthDbl cy = solution_bin.items[item_pos].bl_corner.y * instance.parameters().scale_value;

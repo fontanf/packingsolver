@@ -37,6 +37,12 @@ static Solution compute_shifted_solution(
         const SolutionBin& solution_bin = solution.bin(bin_pos);
         const BinType& bin_type = instance.bin_type(solution_bin.bin_type_id);
 
+        // The fixed items don't move, so the bins with fixed items are kept.
+        if (!bin_type.fixed_items.empty()) {
+            result.append_bin(solution, bin_pos, solution_bin.copies);
+            continue;
+        }
+
         // Compute the shift that pushes items against the target border.
         LengthDbl dx = 0.0;
         LengthDbl dy = 0.0;

@@ -111,7 +111,7 @@ void LinearProgrammingSeparator::set_solution(
             BinPos bin_pos = bins.back();
             bins.pop_back();
             for (const SolutionItem& solution_item: solution_bin.items) {
-                if (solution_item.is_fixed)
+                if (solution_item.is_fixed())
                     continue;
                 std::vector<ItemPos>& items = item_types_items[solution_item.item_type_id];
                 if (items.empty())
@@ -211,12 +211,15 @@ std::vector<SeparationModelItem> LinearProgrammingSeparator::bin_items(
         item_positions.push_back(item_pos);
     }
     const BinType& bin_type = instance_.bin_type(instance_.bin_type_id(bin_pos));
-    for (const auto& fixed_item: bin_type.fixed_items) {
+    for (ItemPos fixed_item_pos = 0;
+            fixed_item_pos < (ItemPos)bin_type.fixed_items.size();
+            ++fixed_item_pos) {
+        const auto& fixed_item = bin_type.fixed_items[fixed_item_pos];
         SeparationModelItem item;
         item.item_type_id = fixed_item.item_type_id;
         item.angle = fixed_item.angle;
         item.mirror = fixed_item.mirror;
-        item.is_fixed = true;
+        item.fixed_item_pos = fixed_item_pos;
         item.position = {scale_value * fixed_item.bl_corner.x, scale_value * fixed_item.bl_corner.y};
         items.push_back(item);
         item_positions.push_back(-1);
@@ -252,7 +255,7 @@ bool LinearProgrammingSeparator::step(
         std::vector<SeparationModelItem> items = bin_items(bin_pos, item_positions);
         bool movable = false;
         for (const SeparationModelItem& item: items)
-            if (!item.is_fixed)
+            if (!item.is_fixed())
                 movable = true;
         if (!movable)
             continue;
@@ -425,14 +428,10 @@ Solution LinearProgrammingSeparator::solution() const
         if (empty)
             continue;
         BinPos solution_bin_pos = solution_builder.add_bin(instance_.bin_type_id(bin_pos), 1);
-        for (const auto& fixed_item: bin_type.fixed_items) {
-            solution_builder.add_item(
-                    solution_bin_pos,
-                    fixed_item.item_type_id,
-                    fixed_item.bl_corner,
-                    fixed_item.angle,
-                    fixed_item.mirror,
-                    true);
+        for (ItemPos fixed_item_pos = 0;
+                fixed_item_pos < (ItemPos)bin_type.fixed_items.size();
+                ++fixed_item_pos) {
+            solution_builder.add_fixed_item(solution_bin_pos, fixed_item_pos);
         }
         for (ItemPos item_pos = 0; item_pos < (ItemPos)items_state_.size(); ++item_pos) {
             const ItemState& item_state = items_state_[item_pos];

@@ -561,7 +561,8 @@ void bind_irregular(nb::module_& m)
         .def_ro("bl_corner", &SolutionItem::bl_corner)
         .def_ro("angle", &SolutionItem::angle)
         .def_ro("mirror", &SolutionItem::mirror)
-        .def_ro("is_fixed", &SolutionItem::is_fixed);
+        .def_ro("fixed_item_pos", &SolutionItem::fixed_item_pos)
+        .def_prop_ro("is_fixed", &SolutionItem::is_fixed);
 
     nb::class_<SolutionBin>(m, "SolutionBin")
         .def_ro("bin_type_id", &SolutionBin::bin_type_id)

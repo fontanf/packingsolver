@@ -159,7 +159,7 @@ LargeItemFirstOutput packingsolver::irregular::large_item_first(
             ++bin_pos) {
         const SolutionBin& solution_bin = phase1_solution.bin(bin_pos);
         for (const SolutionItem& solution_item: solution_bin.items) {
-            if (!solution_item.is_fixed) {
+            if (!solution_item.is_fixed()) {
                 ItemTypeId orig_item_type_id
                     = phase1_sub_to_orig_item_type_ids[solution_item.item_type_id];
                 large_item_placed_copies[orig_item_type_id] += solution_bin.copies;
@@ -192,7 +192,7 @@ LargeItemFirstOutput packingsolver::irregular::large_item_first(
         // Fix the non-fixed large items at their phase 1 positions.
         // solution_item.item_type_id is a phase1 sub-ID; convert to original.
         for (const SolutionItem& solution_item: solution_bin.items) {
-            if (!solution_item.is_fixed) {
+            if (!solution_item.is_fixed()) {
                 ItemTypeId orig_item_type_id
                     = phase1_sub_to_orig_item_type_ids[solution_item.item_type_id];
                 phase2_instance_builder.add_fixed_item(

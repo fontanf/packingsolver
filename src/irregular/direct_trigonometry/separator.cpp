@@ -647,13 +647,6 @@ Separator::Separator(
                     hazard.convex_hull_area,
                     hazard.diameter);
             separator_bin_type.hazards.push_back(hazard);
-            SolutionItem solution_item;
-            solution_item.item_type_id = fixed_item.item_type_id;
-            solution_item.bl_corner = fixed_item.bl_corner;
-            solution_item.angle = fixed_item.angle;
-            solution_item.mirror = fixed_item.mirror;
-            solution_item.is_fixed = true;
-            separator_bin_type.fixed_items.push_back(solution_item);
         }
 
         number_of_hazards_ = (std::max)(
@@ -1105,7 +1098,7 @@ void Separator::set_solution(
             BinPos bin_pos = bins.back();
             bins.pop_back();
             for (const SolutionItem& solution_item: solution_bin.items) {
-                if (solution_item.is_fixed)
+                if (solution_item.is_fixed())
                     continue;
                 std::vector<ItemPos>& items = item_types_items[solution_item.item_type_id];
                 if (items.empty())
@@ -1223,20 +1216,16 @@ Solution Separator::solution() const
     SolutionBuilder solution_builder(instance_);
     for (BinPos bin_pos = 0; bin_pos < instance_.number_of_bins(); ++bin_pos) {
         BinTypeId bin_type_id = instance_.bin_type_id(bin_pos);
-        const SeparatorBinType& bin_type = bin_types_[bin_type_id];
+        const BinType& bin_type = instance_.bin_type(bin_type_id);
         // The bins with fixed items are always used, since the copies of
         // their fixed items are counted.
         if (bins_items_[bin_pos].empty() && bin_type.fixed_items.empty())
             continue;
         BinPos solution_bin_pos = solution_builder.add_bin(bin_type_id, 1);
-        for (const SolutionItem& fixed_item: bin_type.fixed_items) {
-            solution_builder.add_item(
-                    solution_bin_pos,
-                    fixed_item.item_type_id,
-                    fixed_item.bl_corner,
-                    fixed_item.angle,
-                    fixed_item.mirror,
-                    true);
+        for (ItemPos fixed_item_pos = 0;
+                fixed_item_pos < (ItemPos)bin_type.fixed_items.size();
+                ++fixed_item_pos) {
+            solution_builder.add_fixed_item(solution_bin_pos, fixed_item_pos);
         }
         std::vector<ItemPos> bin_items = bins_items_[bin_pos];
         std::sort(bin_items.begin(), bin_items.end());

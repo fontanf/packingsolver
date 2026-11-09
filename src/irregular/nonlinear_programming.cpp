@@ -165,7 +165,7 @@ NonlinearProgrammingMinimizeShrinkageOutput packingsolver::irregular::nonlinear_
     for (ItemPos item_pos = 0;
             item_pos < (ItemPos)solution.bin(0).items.size();
             ++item_pos) {
-        if (solution.bin(0).items[item_pos].is_fixed) {
+        if (solution.bin(0).items[item_pos].is_fixed()) {
             fixed_items.push_back(item_pos);
         } else {
             unfixed_items.push_back(item_pos);
@@ -210,7 +210,7 @@ NonlinearProgrammingMinimizeShrinkageOutput packingsolver::irregular::nonlinear_
             item_pos < (ItemPos)solution.bin(0).items.size();
             ++item_pos) {
         const SolutionItem& solution_item = solution.bin(0).items[item_pos];
-        if (!solution_item.is_fixed)
+        if (!solution_item.is_fixed())
             continue;
         const LengthDbl cx = solution_item.bl_corner.x * sv;
         const LengthDbl cy = solution_item.bl_corner.y * sv;
@@ -842,14 +842,8 @@ NonlinearProgrammingMinimizeShrinkageOutput packingsolver::irregular::nonlinear_
                 item_pos < (ItemPos)solution_bin.items.size();
                 ++item_pos) {
             const SolutionItem& solution_item = solution_bin.items[item_pos];
-            if (solution_item.is_fixed) {
-                new_solution.add_item(
-                        0,
-                        solution_item.item_type_id,
-                        solution_item.bl_corner,
-                        solution_item.angle,
-                        solution_item.mirror,
-                        true);
+            if (solution_item.is_fixed()) {
+                new_solution.add_fixed_item(0, solution_item.fixed_item_pos);
             } else {
                 const ItemPos item_var_pos = item_to_var_pos[item_pos];
                 const double new_x = solution_values[x_vars[item_var_pos]] / sv;

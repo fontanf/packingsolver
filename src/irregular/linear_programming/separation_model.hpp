@@ -67,8 +67,14 @@ struct SeparationModelItem
     /** Mirror. */
     bool mirror = false;
 
-    /** True iff the item is fixed: it doesn't move and isn't shrunk. */
-    bool is_fixed = false;
+    /**
+     * Position of the item in the fixed items of the bin type if it is a
+     * fixed item, -1 otherwise. A fixed item doesn't move and isn't shrunk.
+     */
+    ItemPos fixed_item_pos = -1;
+
+    /** Return true iff the item is a fixed item of the bin type. */
+    inline bool is_fixed() const { return fixed_item_pos != -1; }
 
     /** Position of the reference point, in scaled coordinates. */
     Point position = {0.0, 0.0};
