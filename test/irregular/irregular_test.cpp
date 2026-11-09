@@ -395,3 +395,24 @@ TEST(Irregular, InstanceCacheSubInstance)
     Instance sub_instance_4 = sub_instance_builder_4.build();
     EXPECT_EQ(sub_instance_4.get_simplified_instance(0.2, end_true), nullptr);
 }
+
+TEST(Irregular, SolutionReadFixedItems)
+{
+    // The fixed items of a certificate are written as the other items; they
+    // are fixed again when it is read.
+    InstanceBuilder instance_builder;
+    instance_builder.read((fs::path("data") / "irregular" / "tests" / "fixed_items_several_bins.json").string());
+    const Instance instance = instance_builder.build();
+    SolutionBuilder solution_builder(instance);
+    solution_builder.read((fs::path("data") / "irregular" / "tests" / "fixed_items_several_bins_solution.json").string());
+    Solution solution = solution_builder.build();
+    packingsolver::ItemPos number_of_fixed_items = 0;
+    for (packingsolver::BinPos bin_pos = 0;
+            bin_pos < solution.number_of_different_bins();
+            ++bin_pos) {
+        for (const SolutionItem& solution_item: solution.bin(bin_pos).items)
+            if (solution_item.is_fixed)
+                number_of_fixed_items += solution.bin(bin_pos).copies;
+    }
+    EXPECT_EQ(number_of_fixed_items, solution.number_of_bins());
+}

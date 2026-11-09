@@ -73,18 +73,43 @@ void SolutionBuilder::read(
     nlohmann::json j;
     file >> j;
 
+    const Instance& instance = this->solution_.instance();
     for (const auto& json_bin: j["bins"]) {
         BinPos bin_pos = add_bin(json_bin["id"], json_bin["copies"]);
+        // The fixed items are written as the other items: an item is fixed
+        // if it is at the position of a fixed item of the bin type.
+        const BinType& bin_type = instance.bin_type(json_bin["id"]);
+        std::vector<bool> fixed_items_found(bin_type.fixed_items.size(), false);
         for (const auto& json_item: json_bin["items"]) {
+            ItemTypeId item_type_id = json_item["id"];
+            Point bl_corner = {json_item["x"], json_item["y"]};
+            Angle angle = json_item["angle"];
             bool mirror = false;
             if (json_item.contains("mirror"))
                 mirror = json_item["mirror"];
+            bool is_fixed = false;
+            for (ItemPos fixed_item_pos = 0;
+                    fixed_item_pos < (ItemPos)bin_type.fixed_items.size();
+                    ++fixed_item_pos) {
+                const FixedItem& fixed_item = bin_type.fixed_items[fixed_item_pos];
+                if (!fixed_items_found[fixed_item_pos]
+                        && fixed_item.item_type_id == item_type_id
+                        && equal(fixed_item.bl_corner.x, bl_corner.x)
+                        && equal(fixed_item.bl_corner.y, bl_corner.y)
+                        && equal(fixed_item.angle, angle)
+                        && fixed_item.mirror == mirror) {
+                    fixed_items_found[fixed_item_pos] = true;
+                    is_fixed = true;
+                    break;
+                }
+            }
             add_item(
                     bin_pos,
-                    json_item["id"],
-                    {json_item["x"], json_item["y"]},
-                    json_item["angle"],
-                    mirror);
+                    item_type_id,
+                    bl_corner,
+                    angle,
+                    mirror,
+                    is_fixed);
         }
     }
 }
