@@ -6,6 +6,7 @@
 
 #include "packingsolver/irregular/instance_builder.hpp"
 #include "packingsolver/irregular/optimize.hpp"
+#include "irregular/solution_builder.hpp"
 
 using namespace packingsolver;
 using namespace packingsolver::python;
@@ -588,6 +589,17 @@ void bind_irregular(nb::module_& m)
         .def_ro("resource_consumption", &SolutionBin::resource_consumption);
 
     nb::class_<Solution>(m, "Solution")
+        .def_static(
+                "read",
+                [](std::shared_ptr<Instance> instance, const std::string& certificate_path)
+                {
+                    SolutionBuilder solution_builder(*instance);
+                    solution_builder.read(certificate_path);
+                    return solution_builder.build();
+                },
+                nb::arg("instance"), nb::arg("certificate_path"),
+                nb::keep_alive<0, 1>(),
+                "Read a solution of 'instance' from a certificate (the format 'Solution.write' writes).")
         .def("feasible", &Solution::feasible)
         .def("resource_feasible", &Solution::resource_feasible)
         .def("full", &Solution::full)
@@ -673,6 +685,18 @@ void bind_irregular(nb::module_& m)
         .def_rw("optimization_mode", &OptimizeParameters::optimization_mode)
         .def_rw("memory_limit_megabytes", &OptimizeParameters::memory_limit_megabytes)
         .def_rw("linear_programming_solver_name", &OptimizeParameters::linear_programming_solver_name)
+        .def_prop_rw(
+                "initial_solution",
+                [](const OptimizeParameters& parameters) { return parameters.initial_solution; },
+                [](OptimizeParameters& parameters, const Solution* initial_solution)
+                {
+                    parameters.initial_solution = initial_solution;
+                },
+                nb::for_getter(nb::rv_policy::reference_internal),
+                nb::for_setter(nb::arg("initial_solution").none()),
+                nb::for_setter(nb::keep_alive<1, 2>()),
+                "Initial solution (or None): reported first, and the local search starts from it. It must be "
+                "feasible; the instance is not reduced.")
         .def_rw("use_tree_search", &OptimizeParameters::use_tree_search)
         .def_rw("use_tree_search_periodic_packing", &OptimizeParameters::use_tree_search_periodic_packing)
         .def_rw("use_tree_search_maximal_spaces", &OptimizeParameters::use_tree_search_maximal_spaces)

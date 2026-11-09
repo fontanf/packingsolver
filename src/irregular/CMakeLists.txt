@@ -83,6 +83,8 @@ if(PACKINGSOLVER_BUILD_MAIN)
     add_executable(PackingSolver_irregular_main)
     target_sources(PackingSolver_irregular_main PRIVATE
         main.cpp)
+    target_include_directories(PackingSolver_irregular_main PRIVATE
+        ${PROJECT_SOURCE_DIR}/src)
     target_link_libraries(PackingSolver_irregular_main PUBLIC
         PackingSolver_irregular
         Boost::program_options)
