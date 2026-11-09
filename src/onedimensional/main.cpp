@@ -73,6 +73,7 @@ int main(int argc, char *argv[])
             ("no-item-rotation", "")
 
             ("objective,f", po::value<Objective>(), "Objective")
+            ("bin-packing-goal,", po::value<BinPos>(), "goal of the bin-packing objective: stop as soon as a solution with at most this number of bins is found")
 
             ("output,o", po::value<std::string>(), "Output path")
             ("certificate,c", po::value<std::string>(), "Certificate path")
@@ -176,6 +177,8 @@ int main(int argc, char *argv[])
 
         if (vm.count("objective"))
             instance_builder.set_objective(vm["objective"].as<Objective>());
+        if (vm.count("bin-packing-goal"))
+            instance_builder.set_bin_packing_goal(vm["bin-packing-goal"].as<BinPos>());
 
         Instance instance = instance_builder.build();
 

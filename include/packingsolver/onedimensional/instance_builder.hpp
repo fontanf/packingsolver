@@ -18,6 +18,12 @@ public:
     /** Set the objective. */
     void set_objective(Objective objective) { instance_.objective_ = objective; }
 
+    /**
+     * Set the goal of the 'BinPacking' objective (see
+     * 'Instance::bin_packing_goal').
+     */
+    void set_bin_packing_goal(BinPos bin_packing_goal) { instance_.bin_packing_goal_ = bin_packing_goal; }
+
     /*
      * Read from files
      */

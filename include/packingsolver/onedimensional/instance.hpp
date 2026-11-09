@@ -242,6 +242,15 @@ public:
     /** Get the objective of the problem. */
     inline Objective objective() const { return objective_; }
 
+    /**
+     * Get the goal of the 'BinPacking' objective, 0 if none: the search stops
+     * as soon as a solution with at most this number of bins is found. It
+     * doesn't stop when the goal is proven unreachable, since the optimal
+     * solution is then still needed (e.g., by the Benders decomposition of
+     * irregular, whose master problems use it).
+     */
+    inline BinPos bin_packing_goal() const { return bin_packing_goal_; }
+
     /*
      * Getters: parameters
      */
@@ -385,6 +394,9 @@ private:
 
     /** Objective. */
     Objective objective_ = Objective::BinPacking;
+
+    /** Goal of the 'BinPacking' objective (see 'bin_packing_goal'). */
+    BinPos bin_packing_goal_ = 0;
 
     /** Parameters. */
     Parameters parameters_;

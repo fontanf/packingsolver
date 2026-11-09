@@ -377,3 +377,56 @@ TEST(Onedimensional, InstanceBuilderCropBinType)
 
     EXPECT_EQ(instance.bin_type(bin_type_id).length, 60);
 }
+
+TEST(OneDimensional, BinPackingGoal)
+{
+    // 6 items of length 1 in bins of length 10, at most 2 items per bin (a
+    // resource): the optimal number of bins is 3, while the length bound is
+    // 1. With a goal of 3, the MILP starts its search at 3 bins, and stops
+    // with a solution reaching the goal.
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(packingsolver::Objective::BinPacking);
+    packingsolver::BinTypeId bin_type_id = instance_builder.add_bin_type(10);
+    instance_builder.set_bin_type_copies(bin_type_id, 6);
+    packingsolver::ResourceId resource_id = instance_builder.add_bin_type_resource(bin_type_id, 2);
+    packingsolver::ItemTypeId item_type_id = instance_builder.add_item_type(1);
+    instance_builder.set_item_type_copies(item_type_id, 6);
+    instance_builder.add_resource_consumption(bin_type_id, resource_id, item_type_id, {1.0});
+    instance_builder.set_bin_packing_goal(3);
+    const Instance instance = instance_builder.build();
+    EXPECT_EQ(instance.bin_packing_goal(), 3);
+
+    OptimizeParameters optimize_parameters;
+    optimize_parameters.verbosity_level = 0;
+    optimize_parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytimeSequential;
+    optimize_parameters.use_milp_assignment = true;
+    Output output = optimize(instance, optimize_parameters);
+    EXPECT_EQ(output.solution_pool.best().number_of_bins(), 3);
+    EXPECT_TRUE(output.is_proven_optimal());
+}
+
+TEST(OneDimensional, BinPackingGoalUnreachable)
+{
+    // Same instance with a goal of 2, which can't be reached: the MILP proves
+    // that 2 bins are infeasible, and the search continues to the optimal
+    // solution with 3 bins.
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(packingsolver::Objective::BinPacking);
+    packingsolver::BinTypeId bin_type_id = instance_builder.add_bin_type(10);
+    instance_builder.set_bin_type_copies(bin_type_id, 6);
+    packingsolver::ResourceId resource_id = instance_builder.add_bin_type_resource(bin_type_id, 2);
+    packingsolver::ItemTypeId item_type_id = instance_builder.add_item_type(1);
+    instance_builder.set_item_type_copies(item_type_id, 6);
+    instance_builder.add_resource_consumption(bin_type_id, resource_id, item_type_id, {1.0});
+    instance_builder.set_bin_packing_goal(2);
+    const Instance instance = instance_builder.build();
+
+    OptimizeParameters optimize_parameters;
+    optimize_parameters.verbosity_level = 0;
+    optimize_parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytimeSequential;
+    optimize_parameters.use_milp_assignment = true;
+    Output output = optimize(instance, optimize_parameters);
+    EXPECT_EQ(output.bin_packing_bound, 3);
+    EXPECT_EQ(output.solution_pool.best().number_of_bins(), 3);
+    EXPECT_TRUE(output.is_proven_optimal());
+}
