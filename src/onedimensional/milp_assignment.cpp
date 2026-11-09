@@ -1475,9 +1475,15 @@ MilpAssignmentOutput packingsolver::onedimensional::milp_assignment(
     // too, not skipped), each as a 'Feasibility' MILP (solved by a recursive
     // call to 'milp_assignment' itself, which already fully supports that
     // objective), stopping as soon as one is feasible or the timer ends.
+    // With a goal (see 'Instance::bin_packing_goal'), the sequence starts at
+    // the goal if it is larger: a solution reaching the goal ends the
+    // search, and a proof that the goal is infeasible is a valid bound on
+    // its own, so nothing is skipped without a proof.
     if (instance.objective() == Objective::BinPacking
             && parameters.use_sequential_feasibility) {
-        BinPos sequential_feasibility_lower_bound = std::max(output.bin_packing_bound, lower_bound);
+        BinPos sequential_feasibility_lower_bound = (std::max)(
+                (std::max)(output.bin_packing_bound, lower_bound),
+                instance.bin_packing_goal());
         // No candidate bin count can ever exceed the total number of bins
         // the instance actually offers: past that point,
         // 'build_sequential_feasibility_sub_instance' would just keep

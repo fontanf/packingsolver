@@ -44,9 +44,12 @@ struct Output: packingsolver::Output<Instance, Solution>
         case Objective::Knapsack:
             return solution_pool.best().feasible()
                 && equal_profit(knapsack_bound, solution_pool.best().profit());
-        case Objective::BinPacking:
+        case Objective::BinPacking: {
+            BinPos bin_packing_goal = solution_pool.best().instance().bin_packing_goal();
             return solution_pool.best().feasible()
-                && bin_packing_bound == solution_pool.best().number_of_bins();
+                && (bin_packing_bound == solution_pool.best().number_of_bins()
+                        || solution_pool.best().number_of_bins() <= bin_packing_goal);
+        }
         case Objective::VariableSizedBinPacking:
             return solution_pool.best().feasible()
                 && equal_cost(variable_sized_bin_packing_bound, solution_pool.best().cost());
