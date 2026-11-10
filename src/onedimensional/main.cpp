@@ -74,6 +74,8 @@ int main(int argc, char *argv[])
 
             ("objective,f", po::value<Objective>(), "Objective")
             ("bin-packing-goal,", po::value<BinPos>(), "goal of the bin-packing objective: stop as soon as a solution with at most this number of bins is found")
+            ("knapsack-goal,", po::value<Profit>(), "goal of the knapsack objective: stop as soon as a solution with at least this profit is found")
+            ("variable-sized-bin-packing-goal,", po::value<Profit>(), "goal of the variable-sized-bin-packing objective: stop as soon as a solution with at most this cost is found")
 
             ("output,o", po::value<std::string>(), "Output path")
             ("certificate,c", po::value<std::string>(), "Certificate path")
@@ -179,6 +181,10 @@ int main(int argc, char *argv[])
             instance_builder.set_objective(vm["objective"].as<Objective>());
         if (vm.count("bin-packing-goal"))
             instance_builder.set_bin_packing_goal(vm["bin-packing-goal"].as<BinPos>());
+        if (vm.count("knapsack-goal"))
+            instance_builder.set_knapsack_goal(vm["knapsack-goal"].as<Profit>());
+        if (vm.count("variable-sized-bin-packing-goal"))
+            instance_builder.set_variable_sized_bin_packing_goal(vm["variable-sized-bin-packing-goal"].as<Profit>());
 
         Instance instance = instance_builder.build();
 

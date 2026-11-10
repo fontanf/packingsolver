@@ -483,10 +483,16 @@ onedimensional::Instance build_master_instance(
         const std::vector<std::pair<ItemTypeId, ItemTypeId>>& item_type_precedences,
         const std::vector<std::vector<ResourceCut>>& dff_cuts_by_bin_type,
         const std::vector<std::vector<ResourceCut>>& triplet_cuts_by_bin_type,
-        const std::vector<std::vector<ResourceCut>>& no_good_cuts_by_bin_type)
+        const std::vector<std::vector<ResourceCut>>& no_good_cuts_by_bin_type,
+        BinPos bin_packing_goal,
+        Profit knapsack_goal,
+        Profit variable_sized_bin_packing_goal)
 {
     onedimensional::InstanceBuilder master_instance_builder;
     master_instance_builder.set_objective(instance.objective());
+    master_instance_builder.set_bin_packing_goal(bin_packing_goal);
+    master_instance_builder.set_knapsack_goal(knapsack_goal);
+    master_instance_builder.set_variable_sized_bin_packing_goal(variable_sized_bin_packing_goal);
 
     for (BinTypeId bin_type_id = 0;
             bin_type_id < instance.number_of_bin_types();
@@ -849,6 +855,14 @@ BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
     // 'BendersDecompositionParameters::not_anytime_maximum_number_of_subproblem_solves'.
     Counter number_of_subproblem_solves = 0;
 
+    // Goals of the master problems: the cuts are only ever added, so the
+    // bound of a master problem is a bound for the next ones, even if it
+    // isn't proven optimal. The best bound of the master problems solved so
+    // far is their goal: a solution reaching it is optimal.
+    BinPos master_bin_packing_goal = 0;
+    Profit master_knapsack_goal = std::numeric_limits<Profit>::infinity();
+    Profit master_variable_sized_bin_packing_goal = 0;
+
     for (output.number_of_iterations = 0;
             ;
             ++output.number_of_iterations) {
@@ -870,7 +884,10 @@ BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
                 item_type_precedences,
                 dff_cuts_by_bin_type,
                 triplet_cuts_by_bin_type,
-                no_good_cuts_by_bin_type);
+                no_good_cuts_by_bin_type,
+                master_bin_packing_goal,
+                master_knapsack_goal,
+                master_variable_sized_bin_packing_goal);
         onedimensional::OptimizeParameters master_parameters;
         master_parameters.verbosity_level = 0;
         master_parameters.timer = parameters.timer;
@@ -914,6 +931,19 @@ BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
             break;
 
         const onedimensional::Solution& master_solution = master_output.solution_pool.best();
+        if (instance.objective() == Objective::BinPacking) {
+            master_bin_packing_goal = (std::max)(
+                    master_bin_packing_goal,
+                    master_output.bin_packing_bound);
+        } else if (instance.objective() == Objective::Knapsack) {
+            master_knapsack_goal = (std::min)(
+                    master_knapsack_goal,
+                    master_output.knapsack_bound);
+        } else if (instance.objective() == Objective::VariableSizedBinPacking) {
+            master_variable_sized_bin_packing_goal = (std::max)(
+                    master_variable_sized_bin_packing_goal,
+                    master_output.variable_sized_bin_packing_bound);
+        }
 
         // For 'Knapsack', the master's demand constraint is '<=', so the
         // empty selection is always feasible: the master can never itself

@@ -430,3 +430,97 @@ TEST(OneDimensional, BinPackingGoalUnreachable)
     EXPECT_EQ(output.solution_pool.best().number_of_bins(), 3);
     EXPECT_TRUE(output.is_proven_optimal());
 }
+
+namespace
+{
+
+/**
+ * Knapsack instance: a bin of length 10, items of lengths 6, 5 and 5 (profit
+ * equal to the length). The optimal profit is 10 (the two items of length
+ * 5).
+ */
+Instance knapsack_goal_instance(packingsolver::Profit knapsack_goal)
+{
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(packingsolver::Objective::Knapsack);
+    instance_builder.add_bin_type(10);
+    instance_builder.add_item_type(6);
+    packingsolver::ItemTypeId item_type_id = instance_builder.add_item_type(5);
+    instance_builder.set_item_type_copies(item_type_id, 2);
+    instance_builder.set_knapsack_goal(knapsack_goal);
+    return instance_builder.build();
+}
+
+/**
+ * Variable-sized bin packing instance: items of lengths 6 and 4, a bin type
+ * of length 10 and cost 10, and a bin type of length 6 and cost 7. The
+ * optimal cost is 10 (both items in a bin of length 10).
+ */
+Instance variable_sized_bin_packing_goal_instance(packingsolver::Profit goal)
+{
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(packingsolver::Objective::VariableSizedBinPacking);
+    packingsolver::BinTypeId bin_type_id_1 = instance_builder.add_bin_type(10);
+    instance_builder.set_bin_type_cost(bin_type_id_1, 10);
+    instance_builder.set_bin_type_copies(bin_type_id_1, 2);
+    packingsolver::BinTypeId bin_type_id_2 = instance_builder.add_bin_type(6);
+    instance_builder.set_bin_type_cost(bin_type_id_2, 7);
+    instance_builder.set_bin_type_copies(bin_type_id_2, 2);
+    instance_builder.add_item_type(6);
+    instance_builder.add_item_type(4);
+    instance_builder.set_variable_sized_bin_packing_goal(goal);
+    return instance_builder.build();
+}
+
+OptimizeParameters goal_optimize_parameters()
+{
+    OptimizeParameters optimize_parameters;
+    optimize_parameters.verbosity_level = 0;
+    optimize_parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytimeSequential;
+    optimize_parameters.use_milp_assignment = true;
+    return optimize_parameters;
+}
+
+}
+
+TEST(OneDimensional, KnapsackGoal)
+{
+    // The goal is reached: the search stops with a solution reaching it.
+    const Instance instance = knapsack_goal_instance(10);
+    EXPECT_EQ(instance.knapsack_goal(), 10);
+    Output output = optimize(instance, goal_optimize_parameters());
+    EXPECT_EQ(output.solution_pool.best().profit(), 10);
+    EXPECT_TRUE(output.is_proven_optimal());
+}
+
+TEST(OneDimensional, KnapsackGoalUnreachable)
+{
+    // The goal can't be reached: the search continues to the optimal
+    // solution.
+    const Instance instance = knapsack_goal_instance(11);
+    Output output = optimize(instance, goal_optimize_parameters());
+    EXPECT_EQ(output.solution_pool.best().profit(), 10);
+    EXPECT_EQ(output.knapsack_bound, 10);
+    EXPECT_TRUE(output.is_proven_optimal());
+}
+
+TEST(OneDimensional, VariableSizedBinPackingGoal)
+{
+    // The goal is reached: the search stops with a solution reaching it.
+    const Instance instance = variable_sized_bin_packing_goal_instance(10);
+    EXPECT_EQ(instance.variable_sized_bin_packing_goal(), 10);
+    Output output = optimize(instance, goal_optimize_parameters());
+    EXPECT_EQ(output.solution_pool.best().cost(), 10);
+    EXPECT_TRUE(output.is_proven_optimal());
+}
+
+TEST(OneDimensional, VariableSizedBinPackingGoalUnreachable)
+{
+    // The goal can't be reached: the search continues to the optimal
+    // solution.
+    const Instance instance = variable_sized_bin_packing_goal_instance(9);
+    Output output = optimize(instance, goal_optimize_parameters());
+    EXPECT_EQ(output.solution_pool.best().cost(), 10);
+    EXPECT_EQ(output.variable_sized_bin_packing_bound, 10);
+    EXPECT_TRUE(output.is_proven_optimal());
+}

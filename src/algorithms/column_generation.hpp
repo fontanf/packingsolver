@@ -143,11 +143,13 @@ public:
             const Instance& instance,
             const Output& output,
             const ColumnGenerationPricingFunction<Instance, InstanceBuilder, Solution, Output>& pricing_function,
-            bool has_pricing_bound = false):
+            bool has_pricing_bound = false,
+            bool use_pricing_knapsack_goal = true):
         instance_(instance),
         output_(output),
         pricing_function_(pricing_function),
-        has_pricing_bound_(has_pricing_bound)
+        has_pricing_bound_(has_pricing_bound),
+        use_pricing_knapsack_goal_(use_pricing_knapsack_goal)
     { }
 
     virtual PricingOutput solve_pricing(
@@ -227,6 +229,9 @@ private:
     /** See 'has_pricing_bound' above. */
     bool has_pricing_bound_ = false;
 
+    /** See 'ColumnGenerationParameters::use_pricing_knapsack_goal'. */
+    bool use_pricing_knapsack_goal_ = true;
+
     /**
      * Cache for the 'VariableSizedBinPacking' 'maximum_number_of_bins'
      * computation below: 'true' once it has been computed at least once,
@@ -286,7 +291,8 @@ columngenerationsolver::Model get_model(
         const Instance& instance,
         const Output& output,
         const ColumnGenerationPricingFunction<Instance, InstanceBuilder, Solution, Output>& pricing_function,
-        bool pricing_function_has_dual_bound = false)
+        bool pricing_function_has_dual_bound = false,
+        bool use_pricing_knapsack_goal = true)
 {
     columngenerationsolver::Model model;
 
@@ -328,7 +334,8 @@ columngenerationsolver::Model get_model(
     // Pricing solver.
     model.pricing_solver = std::unique_ptr<columngenerationsolver::PricingSolver>(
             new ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution, Output>(
-                instance, output, pricing_function, pricing_function_has_dual_bound));
+                instance, output, pricing_function, pricing_function_has_dual_bound,
+                use_pricing_knapsack_goal));
     return model;
 }
 
@@ -693,9 +700,11 @@ PricingOutput ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution,
             } else if (instance_.objective() == Objective::Knapsack) {
                 threshold = duals[bin_type_id] * multiplier_profit;
             }
-            KnapsackGoalSetter<InstanceBuilder>::set(
-                    kp_instance_builder,
-                    threshold + 1e-6 * (std::max)(1.0, std::abs(threshold)));
+            if (use_pricing_knapsack_goal_) {
+                KnapsackGoalSetter<InstanceBuilder>::set(
+                        kp_instance_builder,
+                        threshold + 1e-6 * (std::max)(1.0, std::abs(threshold)));
+            }
         }
 
         Instance kp_instance = kp_instance_builder.build();
@@ -1541,6 +1550,17 @@ struct ColumnGenerationParameters: packingsolver::Parameters<Instance, Solution,
      * redo its regular search.
      */
     bool pricing_function_has_dual_bound = false;
+
+    /**
+     * Give the pricing knapsack problems a knapsack goal (if their instance
+     * builder has a 'set_knapsack_goal' method): the pricing solver then
+     * stops as soon as it finds a column with a negative reduced cost,
+     * instead of searching for the best one. Useful when the pricing
+     * problems are expensive; disabled by 'onedimensional', whose pricing
+     * problems are cheap and whose best columns make the column generation
+     * converge faster.
+     */
+    bool use_pricing_knapsack_goal = true;
 };
 
 /**
@@ -1703,6 +1723,7 @@ Output column_generation(
             sub_parameters.use_cutting_planes = parameters.use_cutting_planes;
             sub_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
             sub_parameters.pricing_function_has_dual_bound = parameters.pricing_function_has_dual_bound;
+            sub_parameters.use_pricing_knapsack_goal = parameters.use_pricing_knapsack_goal;
             Output sub_output = column_generation<Instance, InstanceBuilder, Solution, AlgorithmFormatter, Output>(
                     sub_instance, pricing_function, sub_parameters, 0,
                     &sequential_feasibility_column_pool,
@@ -1746,7 +1767,8 @@ Output column_generation(
 
     columngenerationsolver::Model cgs_model
         = get_model<Instance, InstanceBuilder, Solution, Output>(
-                instance, output, pricing_function, parameters.pricing_function_has_dual_bound);
+                instance, output, pricing_function, parameters.pricing_function_has_dual_bound,
+                parameters.use_pricing_knapsack_goal);
     columngenerationsolver::LimitedDiscrepancySearchParameters cgslds_parameters;
     cgslds_parameters.verbosity_level = 0;
     cgslds_parameters.timer = parameters.timer;
