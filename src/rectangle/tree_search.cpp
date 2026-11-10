@@ -48,6 +48,7 @@ BranchingScheme::BranchingScheme(
     predecessors_1_(instance.number_of_item_types()),
     predecessors_2_(instance.number_of_item_types())
 {
+    copy_dependent_resource_consumptions_ = copy_dependent_resource_consumptions(instance_);
     // Compute bin_type_ids_ and previous_bins_area_.
     //
     // For the Knapsack objective, bins are considered by increasing space,
@@ -100,6 +101,10 @@ BranchingScheme::BranchingScheme(
                     && dominates(item_type_id, item_type_id_2)) {
                 continue;
             }
+            // Packing one before the other may matter if they don't
+            // consume the resources in the same way.
+            if (!same_resource_consumptions(instance_, item_type_id, item_type_id_2))
+                continue;
 
             if ((item_type.rect.x == item_type_2.rect.x
                         && item_type.rect.y == item_type_2.rect.y

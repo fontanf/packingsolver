@@ -1,6 +1,7 @@
 #include "packingsolver/onedimensional/instance_builder.hpp"
 #include "packingsolver/onedimensional/optimize.hpp"
 #include "onedimensional/solution_builder.hpp"
+#include "onedimensional/tree_search.hpp"
 
 #include <gtest/gtest.h>
 #include <boost/filesystem.hpp>
@@ -126,3 +127,64 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "onedimensional" / "users" / "2024-04-06_t3_parameters.csv",
                 fs::path("data") / "onedimensional" / "users" / "2024-04-06_t3_solution.csv",
             }}));
+
+TEST(OneDimensionalTreeSearch, DominanceCopyDependentResourceConsumption)
+{
+    // A resource of capacity 2: the first two copies of item type A in a bin
+    // consume 1 each, the next ones nothing; item type B consumes 1.
+    // Node 1: bins [A, A] and [B, A]; node 2: bins [B, A] and [A, A]. Both
+    // last bins consume 2, but another copy of A fits in the last bin of
+    // node 2 (its third copy consumes nothing), not in the one of node 1
+    // (its second copy consumes 1): node 1 doesn't dominate node 2.
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(packingsolver::Objective::BinPacking);
+    packingsolver::BinTypeId bin_type_id = instance_builder.add_bin_type(100);
+    instance_builder.set_bin_type_copies(bin_type_id, 3);
+    packingsolver::ResourceId resource_id = instance_builder.add_bin_type_resource(bin_type_id, 2);
+    packingsolver::ItemTypeId item_type_id_a = instance_builder.add_item_type(1);
+    instance_builder.set_item_type_copies(item_type_id_a, 5);
+    packingsolver::ItemTypeId item_type_id_b = instance_builder.add_item_type(1);
+    instance_builder.add_resource_consumption(bin_type_id, resource_id, item_type_id_a, {1.0, 1.0, 0.0});
+    instance_builder.add_resource_consumption(bin_type_id, resource_id, item_type_id_b, {1.0});
+    const Instance instance = instance_builder.build();
+
+    BranchingScheme branching_scheme(instance, BranchingScheme::Parameters());
+    auto insert = [&branching_scheme](
+            const std::shared_ptr<BranchingScheme::Node>& parent,
+            packingsolver::ItemTypeId item_type_id,
+            bool new_bin)
+    {
+        BranchingScheme::Insertion insertion;
+        insertion.item_type_id = item_type_id;
+        insertion.new_bin = new_bin;
+        insertion.new_bin_pos = (new_bin)? parent->number_of_bins: -1;
+        return branching_scheme.child(parent, insertion);
+    };
+    auto root = branching_scheme.root();
+    auto node_1 = insert(insert(insert(insert(root,
+                        item_type_id_a, true),
+                    item_type_id_a, false),
+                item_type_id_b, true),
+            item_type_id_a, false);
+    auto node_2 = insert(insert(insert(insert(root,
+                        item_type_id_b, true),
+                    item_type_id_a, false),
+                item_type_id_a, true),
+            item_type_id_a, false);
+    EXPECT_EQ(node_1->last_bin_resource_consumption[resource_id], 2);
+    EXPECT_EQ(node_2->last_bin_resource_consumption[resource_id], 2);
+
+    // Another copy of A fits in the last bin of node 2 only.
+    auto fits_in_last_bin = [&branching_scheme, item_type_id_a](
+            const std::shared_ptr<BranchingScheme::Node>& node)
+    {
+        for (const BranchingScheme::Insertion& insertion: branching_scheme.insertions(node))
+            if (insertion.item_type_id == item_type_id_a && !insertion.new_bin)
+                return true;
+        return false;
+    };
+    EXPECT_FALSE(fits_in_last_bin(node_1));
+    EXPECT_TRUE(fits_in_last_bin(node_2));
+
+    EXPECT_FALSE(branching_scheme.dominates(node_1, node_2));
+}

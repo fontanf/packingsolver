@@ -1,6 +1,7 @@
 #pragma once
 
 #include "packingsolver/algorithms/common.hpp"
+#include "packingsolver/algorithms/resource.hpp"
 #include "packingsolver/algorithms/truck.hpp"
 #include "packingsolver/rectangle/instance.hpp"
 

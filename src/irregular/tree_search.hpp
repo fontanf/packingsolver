@@ -360,6 +360,32 @@ public:
         if (node_1->number_of_bins > node_2->number_of_bins)
             return false;
 
+        // Same number of bins, so both nodes' last bin is of the same type
+        // and their 'last_bin_resource_consumption' vectors line up 1:1.
+        // 'node_1' can only dominate 'node_2' if it never consumes more of
+        // any resource in that bin (a 'penalize' resource already crossed on
+        // 'node_1' is not worse than one not yet crossed on 'node_2', so
+        // this treats hard and 'penalize' resources alike).
+        for (ResourceId resource_id = 0;
+                resource_id < (ResourceId)node_1->last_bin_resource_consumption.size();
+                ++resource_id) {
+            if (node_1->last_bin_resource_consumption[resource_id]
+                    > node_2->last_bin_resource_consumption[resource_id]) {
+                return false;
+            }
+        }
+        // The future insertions consume the same quantities in both nodes
+        // only if the item types whose consumption depends on their number
+        // of copies in the bin have the same number of copies in it.
+        if (node_1->number_of_bins > 0
+                && !same_copy_dependent_last_bin_copies(
+                    copy_dependent_resource_consumptions_,
+                    bin_type_ids_[node_1->number_of_bins - 1],
+                    node_1->last_bin_item_number_of_copies,
+                    node_2->last_bin_item_number_of_copies)) {
+            return false;
+        }
+
         // Check leftover values.
         if (instance().objective() == Objective::BinPackingWithLeftovers) {
             if (shape::strictly_greater(
@@ -484,6 +510,13 @@ private:
      * Otherwise, this matches 'instance_.bin_type_id(bin_pos)'.
      */
     std::vector<BinTypeId> bin_type_ids_;
+
+    /**
+     * For each bin type and item type, 'true' iff the resource consumption
+     * of the item type depends on its number of copies in the bin (see
+     * 'copy_dependent_resource_consumptions').
+     */
+    std::vector<std::vector<bool>> copy_dependent_resource_consumptions_;
 
     /** Total area of the bins preceding each position, in the same order as 'bin_type_ids_'. */
     std::vector<AreaDbl> previous_bins_area_;

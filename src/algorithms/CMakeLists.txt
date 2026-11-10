@@ -1,6 +1,7 @@
 add_library(PackingSolver_common)
 target_sources(PackingSolver_common PRIVATE
-    common.cpp)
+    common.cpp
+    resource.cpp)
 target_include_directories(PackingSolver_common PUBLIC
     ${PROJECT_SOURCE_DIR}/include)
 target_link_libraries(PackingSolver_common PUBLIC
