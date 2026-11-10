@@ -229,3 +229,63 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "irregular" / "tests" / "circular_bin.json",
                 fs::path("data") / "irregular" / "tests" / "circular_bin_solution.json"
             }}));
+
+#include "irregular/tree_search.hpp"
+
+TEST(IrregularBranchingScheme, DominanceCopyDependentResourceConsumption)
+{
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(packingsolver::Objective::BinPacking);
+    packingsolver::BinTypeId bin_type_id = instance_builder.add_bin_type(shape::build_rectangle(100, 100));
+    instance_builder.set_bin_type_copies(bin_type_id, 3);
+    ItemShape item_shape;
+    item_shape.shape_orig.shape = shape::build_rectangle(1, 1);
+    packingsolver::ItemTypeId item_type_id_a = instance_builder.add_item_type({item_shape});
+    instance_builder.set_item_type_copies(item_type_id_a, 5);
+    packingsolver::ItemTypeId item_type_id_b = instance_builder.add_item_type({item_shape});
+    packingsolver::ResourceId resource_id = instance_builder.add_bin_type_resource(bin_type_id, 2);
+    instance_builder.add_resource_consumption(bin_type_id, resource_id, item_type_id_a, {1.0, 1.0, 0.0});
+    instance_builder.add_resource_consumption(bin_type_id, resource_id, item_type_id_b, {1.0});
+    const Instance instance = instance_builder.build();
+    BranchingScheme branching_scheme(instance, BranchingScheme::Parameters());
+    // Child of 'parent' with one more copy of 'item_type_id', in a new bin
+    // or in the current one; 'nullptr' if there is none.
+    auto insert = [&branching_scheme](
+            const std::shared_ptr<BranchingScheme::Node>& parent,
+            packingsolver::ItemTypeId item_type_id,
+            bool new_bin) -> std::shared_ptr<BranchingScheme::Node>
+    {
+        if (parent == nullptr)
+            return nullptr;
+        for (const auto& child: branching_scheme.children(parent)) {
+            if (child->number_of_bins == parent->number_of_bins + (new_bin? 1: 0)
+                    && child->item_number_of_copies[item_type_id]
+                    == parent->item_number_of_copies[item_type_id] + 1) {
+                return child;
+            }
+        }
+        return nullptr;
+    };
+    // A resource of capacity 2: the first two copies of item type A in a bin
+    // consume 1 each, the next ones nothing; item type B consumes 1. Two
+    // nodes with the same geometry, whose last bins both consume 2: one with
+    // a copy of A and a copy of B, the other with two copies of A. Another
+    // copy of A fits in the second one (its third copy consumes nothing),
+    // not in the first one (its second copy consumes 1), so the first one
+    // doesn't dominate the second one, although it doesn't consume more.
+    auto root = branching_scheme.root();
+    auto node = insert(insert(root, item_type_id_a, true), item_type_id_a, false);
+    ASSERT_NE(node, nullptr);
+    auto node_1 = std::make_shared<BranchingScheme::Node>(*node);
+    node_1->last_bin_resource_consumption = {2};
+    node_1->last_bin_item_number_of_copies = {1, 1};
+    auto node_2 = std::make_shared<BranchingScheme::Node>(*node);
+    node_2->last_bin_resource_consumption = {2};
+    node_2->last_bin_item_number_of_copies = {2, 0};
+    EXPECT_FALSE(branching_scheme.dominates(node_1, node_2));
+    EXPECT_FALSE(branching_scheme.dominates(node_2, node_1));
+    // With the same copies, the consumptions decide.
+    node_1->last_bin_item_number_of_copies = {2, 0};
+    node_1->last_bin_resource_consumption = {1};
+    EXPECT_TRUE(branching_scheme.dominates(node_1, node_2));
+}

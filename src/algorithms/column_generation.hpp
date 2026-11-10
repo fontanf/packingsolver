@@ -44,6 +44,7 @@
 #pragma once
 
 #include "packingsolver/algorithms/common.hpp"
+#include "packingsolver/algorithms/resource.hpp"
 
 #include "optimizationtools/utils/utils.hpp"
 

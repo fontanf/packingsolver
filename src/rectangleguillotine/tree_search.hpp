@@ -405,6 +405,17 @@ public:
                     return false;
                 }
             }
+            // The future insertions consume the same quantities in both nodes
+            // only if the item types whose consumption depends on their number
+            // of copies in the bin have the same number of copies in it.
+            if (node_1->number_of_bins > 0
+                    && !same_copy_dependent_last_bin_copies(
+                        copy_dependent_resource_consumptions_,
+                        bin_type_ids_[node_1->number_of_bins - 1],
+                        node_1->last_bin_item_number_of_copies,
+                        node_2->last_bin_item_number_of_copies)) {
+                return false;
+            }
         }
         return dominates(front(*node_1), front(*node_2));
     }
@@ -454,6 +465,13 @@ private:
      * Otherwise, this matches 'instance_.bin_type_id(bin_pos)'.
      */
     std::vector<BinTypeId> bin_type_ids_;
+
+    /**
+     * For each bin type and item type, 'true' iff the resource consumption
+     * of the item type depends on its number of copies in the bin (see
+     * 'copy_dependent_resource_consumptions').
+     */
+    std::vector<std::vector<bool>> copy_dependent_resource_consumptions_;
 
     /** Total area of the bins preceding each position, in the same order as 'bin_type_ids_'. */
     std::vector<Area> previous_bins_area_;

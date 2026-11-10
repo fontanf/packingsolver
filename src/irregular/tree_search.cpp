@@ -120,6 +120,7 @@ BranchingScheme::BranchingScheme(
                 parameters.maximum_approximation_ratio)),
     parameters_(parameters)
 {
+    copy_dependent_resource_consumptions_ = copy_dependent_resource_consumptions(instance_);
     // Compute bin_type_ids_ and previous_bins_area_.
     //
     // For the Knapsack objective, bins are considered by increasing space,

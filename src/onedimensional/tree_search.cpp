@@ -22,6 +22,7 @@ BranchingScheme::BranchingScheme(
     instance_(instance),
     parameters_(parameters)
 {
+    copy_dependent_resource_consumptions_ = copy_dependent_resource_consumptions(instance_);
     // Compute bin_type_ids_ and previous_bins_length_.
     //
     // For the Knapsack objective, bins are considered by increasing space,
@@ -360,6 +361,17 @@ bool BranchingScheme::dominates(
                 > node_2->last_bin_resource_consumption[resource_id]) {
             return false;
         }
+    }
+    // The future insertions consume the same quantities in both nodes
+    // only if the item types whose consumption depends on their number
+    // of copies in the bin have the same number of copies in it.
+    if (node_1->number_of_bins > 0
+            && !same_copy_dependent_last_bin_copies(
+                copy_dependent_resource_consumptions_,
+                bin_type_ids_[node_1->number_of_bins - 1],
+                node_1->last_bin_item_number_of_copies,
+                node_2->last_bin_item_number_of_copies)) {
+        return false;
     }
     return true;
 }

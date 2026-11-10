@@ -267,6 +267,13 @@ private:
      */
     std::vector<BinTypeId> bin_type_ids_;
 
+    /**
+     * For each bin type and item type, 'true' iff the resource consumption
+     * of the item type depends on its number of copies in the bin (see
+     * 'copy_dependent_resource_consumptions').
+     */
+    std::vector<std::vector<bool>> copy_dependent_resource_consumptions_;
+
     /** Total length of the bins preceding each position, in the same order as 'bin_type_ids_'. */
     std::vector<Length> previous_bins_length_;
 
