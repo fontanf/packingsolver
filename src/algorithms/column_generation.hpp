@@ -159,7 +159,8 @@ public:
             const std::unordered_set<std::shared_ptr<const columngenerationsolver::Column>>& tabu,
             const std::vector<columngenerationsolver::Value>& duals,
             const std::vector<std::pair<std::shared_ptr<const columngenerationsolver::Cut>, columngenerationsolver::Value>>& cut_duals,
-            PricingType pricing_type) override;
+            PricingType pricing_type,
+            columngenerationsolver::Value overcost_goal) override;
 
     /**
      * Whether 'pricing_function_' has something genuinely useful to offer
@@ -398,7 +399,8 @@ PricingOutput ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution,
         const std::unordered_set<std::shared_ptr<const columngenerationsolver::Column>>& tabu,
         const std::vector<Value>& duals,
         const std::vector<std::pair<std::shared_ptr<const columngenerationsolver::Cut>, Value>>& cut_duals,
-        PricingType pricing_type)
+        PricingType pricing_type,
+        Value overcost_goal)
 {
     double multiplier_cost = largest_power_of_two_lesser_or_equal(instance_.largest_bin_cost());
     double multiplier_profit = largest_power_of_two_lesser_or_equal(instance_.largest_item_profit());
@@ -433,6 +435,28 @@ PricingOutput ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution,
     //std::cout << "solve_pricing" << std::endl;
     PricingOutput output;
     Value reduced_cost_bound = 0.0;
+
+    // 'reduced_cost_bound' is a per-bin bound on the reduced cost, so the
+    // Lagrangian overcost is that times the largest number of bins any
+    // solution could ever use. If a feasible BinPacking solution has
+    // already been found, its own number of bins is a tighter such cap
+    // than the generic 'min(number_of_items, number_of_bins)' one (no
+    // solution using more bins than the best one found so far could ever
+    // be optimal). For VariableSizedBinPacking, the incumbent's own bin
+    // count isn't directly comparable this way (bins have different
+    // costs), but its total cost still bounds how many bins any
+    // at-least-as-good solution could afford - see
+    // 'maximum_number_of_bins_for_variable_sized_bin_packing'.
+    BinPos maximum_number_of_bins = (std::min)((BinPos)instance_.number_of_items(), instance_.number_of_bins());
+    if (instance_.objective() == Objective::BinPacking
+            && output_.solution_pool.best().feasible()) {
+        maximum_number_of_bins = output_.solution_pool.best().number_of_bins();
+    } else if (instance_.objective() == Objective::VariableSizedBinPacking
+            && output_.solution_pool.best().feasible()) {
+        maximum_number_of_bins = (std::min)(
+                maximum_number_of_bins,
+                maximum_number_of_bins_for_variable_sized_bin_packing());
+    }
 
     std::vector<ItemPos> bin_fixed_copies(instance_.number_of_item_types(), 0);
     for (BinTypeId bin_type_id = 0;
@@ -700,11 +724,37 @@ PricingOutput ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution,
             } else if (instance_.objective() == Objective::Knapsack) {
                 threshold = duals[bin_type_id] * multiplier_profit;
             }
-            if (use_pricing_knapsack_goal_) {
-                KnapsackGoalSetter<InstanceBuilder>::set(
-                        kp_instance_builder,
-                        threshold + 1e-6 * (std::max)(1.0, std::abs(threshold)));
+            Profit goal = threshold + 1e-6 * (std::max)(1.0, std::abs(threshold));
+
+            // 'overcost_goal': the overcost ('maximum_number_of_bins' times
+            // the reduced cost bound, see below) above (minimization) /
+            // below (maximization, 'Knapsack') which the node is cut. Any
+            // knapsack bound below 'overcost_target' proves such an
+            // overcost for this bin type, even if columns of negative
+            // reduced cost remain. Since the knapsack goal stops the search
+            // as soon as a solution reaches it or the bound drops below it,
+            // raising it to 'overcost_target' stops a dual pricing call as
+            // soon as it proves that the node is cut, without solving the
+            // pricing problem to optimality.
+            if (std::isfinite(overcost_goal) && maximum_number_of_bins > 0) {
+                Profit overcost_target = -std::numeric_limits<Profit>::infinity();
+                if (instance_.objective() == Objective::VariableSizedBinPacking
+                        || instance_.objective() == Objective::BinPacking
+                        || instance_.objective() == Objective::Feasibility) {
+                    // The reduced cost bound is at most 0.
+                    if (overcost_goal < 0)
+                        overcost_target = threshold - overcost_goal / maximum_number_of_bins;
+                } else if (instance_.objective() == Objective::Knapsack) {
+                    // The reduced cost bound is at least 0.
+                    if (overcost_goal > 0)
+                        overcost_target = threshold + overcost_goal / maximum_number_of_bins * multiplier_profit;
+                }
+                overcost_target -= 1e-6 * (std::max)(1.0, std::abs(overcost_target));
+                goal = (std::max)(goal, overcost_target);
             }
+
+            if (use_pricing_knapsack_goal_)
+                KnapsackGoalSetter<InstanceBuilder>::set(kp_instance_builder, goal);
         }
 
         Instance kp_instance = kp_instance_builder.build();
@@ -803,27 +853,6 @@ PricingOutput ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution,
             bin_fixed_copies[fixed_item.item_type_id]--;
     }
 
-    // 'reduced_cost_bound' is a per-bin bound on the reduced cost, so the
-    // Lagrangian overcost is that times the largest number of bins any
-    // solution could ever use. If a feasible BinPacking solution has
-    // already been found, its own number of bins is a tighter such cap
-    // than the generic 'min(number_of_items, number_of_bins)' one (no
-    // solution using more bins than the best one found so far could ever
-    // be optimal). For VariableSizedBinPacking, the incumbent's own bin
-    // count isn't directly comparable this way (bins have different
-    // costs), but its total cost still bounds how many bins any
-    // at-least-as-good solution could afford - see
-    // 'maximum_number_of_bins_for_variable_sized_bin_packing'.
-    BinPos maximum_number_of_bins = (std::min)((BinPos)instance_.number_of_items(), instance_.number_of_bins());
-    if (instance_.objective() == Objective::BinPacking
-            && output_.solution_pool.best().feasible()) {
-        maximum_number_of_bins = output_.solution_pool.best().number_of_bins();
-    } else if (instance_.objective() == Objective::VariableSizedBinPacking
-            && output_.solution_pool.best().feasible()) {
-        maximum_number_of_bins = (std::min)(
-                maximum_number_of_bins,
-                maximum_number_of_bins_for_variable_sized_bin_packing());
-    }
     output.overcost
         = maximum_number_of_bins * reduced_cost_bound;
 

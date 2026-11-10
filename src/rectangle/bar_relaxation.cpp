@@ -68,7 +68,8 @@ public:
             const std::unordered_set<std::shared_ptr<const columngenerationsolver::Column>>&,
             const std::vector<columngenerationsolver::Value>& duals,
             const std::vector<std::pair<std::shared_ptr<const columngenerationsolver::Cut>, columngenerationsolver::Value>>&,
-            columngenerationsolver::PricingSolver::PricingType) override;
+            columngenerationsolver::PricingSolver::PricingType,
+            columngenerationsolver::Value) override;
 
 private:
 
@@ -243,7 +244,8 @@ columngenerationsolver::PricingSolver::PricingOutput BarRelaxationPricingSolver:
         const std::unordered_set<std::shared_ptr<const columngenerationsolver::Column>>&,
         const std::vector<columngenerationsolver::Value>& duals,
         const std::vector<std::pair<std::shared_ptr<const columngenerationsolver::Cut>, columngenerationsolver::Value>>&,
-        columngenerationsolver::PricingSolver::PricingType)
+        columngenerationsolver::PricingSolver::PricingType,
+        columngenerationsolver::Value)
 {
     columngenerationsolver::PricingSolver::PricingOutput output;
     double overcost = 0.0;
