@@ -705,26 +705,29 @@ Solution BranchingSchemeMaximalSpaces::to_solution(
         urs_list.push_back({root_space, 0});
     }
 
-    // Mirror apply_insertion's valid-block pruning so that the replay's
-    // min-area selection is identical to the search's find_best_space.
-    std::vector<ItemPos> replay_item_copies(instance_.number_of_item_types(), 0);
-    std::vector<ItemPos> replay_valid_block_ids((ItemPos)blocks_[bin_type_id].size());
-    std::iota(replay_valid_block_ids.begin(), replay_valid_block_ids.end(), 0);
-
-    // Replay each placed block in placement order (same min-area selection
-    // as the search) and build the cut tree in cut_nodes.
+    // Replay each placed block in placement order and build the cut tree in
+    // cut_nodes.
     for (const Node::PlacedBlock& pb: greedy_node.placed_blocks) {
-        // Select min-area URS (mirrors find_best_space).
+        // Select the URS of the block: the one whose bottom-left corner is
+        // the one of the block, since the URSs don't overlap. Selecting it
+        // again as the search does would require replaying the removal of
+        // the URSs in which no valid block fits, which depends on the
+        // resources.
         ItemPos best_idx = -1;
-        Area best_area = std::numeric_limits<Area>::max();
-        Length best_dist = std::numeric_limits<Length>::max();
         for (ItemPos idx = 0; idx < (ItemPos)urs_list.size(); ++idx) {
             const EmptySpace& space = urs_list[idx].space;
-            Area area  = space.area();
-            Length dist = space.bl_corner.x + space.bl_corner.y;
-            bool is_better = (area < best_area)
-                || (area == best_area && dist < best_dist);
-            if (is_better) { best_idx = idx; best_area = area; best_dist = dist; }
+            if (space.bl_corner.x == pb.bl_corner.x
+                    && space.bl_corner.y == pb.bl_corner.y) {
+                best_idx = idx;
+                break;
+            }
+        }
+        if (best_idx == -1) {
+            throw std::logic_error(
+                    FUNC_SIGNATURE + ": "
+                    "no empty space at the position of a placed block; "
+                    "x: " + std::to_string(pb.bl_corner.x) + "; "
+                    "y: " + std::to_string(pb.bl_corner.y) + ".");
         }
 
         const EmptySpace& urs = urs_list[best_idx].space;
@@ -808,45 +811,6 @@ Solution BranchingSchemeMaximalSpaces::to_solution(
         urs_list.erase(urs_list.begin() + best_idx);
         for (UrsEntry& new_entry: new_urs)
             urs_list.push_back(new_entry);
-
-        // Mirror apply_insertion: update valid blocks then prune dead URSs.
-        for (const std::pair<ItemTypeId, ItemPos>& item_copy: block.item_copies)
-            replay_item_copies[item_copy.first] += item_copy.second;
-        std::vector<ItemPos> new_valid;
-        new_valid.reserve(replay_valid_block_ids.size());
-        for (ItemPos block_id: replay_valid_block_ids) {
-            const Block& candidate = blocks_[bin_type_id][block_id];
-            bool valid = true;
-            for (const std::pair<ItemTypeId, ItemPos>& item_copy: candidate.item_copies) {
-                if (replay_item_copies[item_copy.first] + item_copy.second
-                        > instance_.item_type(item_copy.first).copies) {
-                    valid = false;
-                    break;
-                }
-            }
-            if (valid)
-                new_valid.push_back(block_id);
-        }
-        replay_valid_block_ids = std::move(new_valid);
-
-        ItemPos prune_idx = 0;
-        while (prune_idx < (ItemPos)urs_list.size()) {
-            bool has_fitting_block = false;
-            for (ItemPos block_id: replay_valid_block_ids) {
-                const Block& candidate = blocks_[bin_type_id][block_id];
-                if (candidate.rect.w <= urs_list[prune_idx].space.width
-                        && candidate.rect.h <= urs_list[prune_idx].space.height) {
-                    has_fitting_block = true;
-                    break;
-                }
-            }
-            if (!has_fitting_block) {
-                urs_list[prune_idx] = urs_list.back();
-                urs_list.pop_back();
-            } else {
-                ++prune_idx;
-            }
-        }
     }
 
     // DFS traversal of cut_nodes feeding SolutionBuilder.

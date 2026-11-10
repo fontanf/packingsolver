@@ -375,3 +375,66 @@ TEST(RectangleGuillotineTreeSearchMaximalSpaces, InstanceCacheBlocksDropped)
     Instance sub_instance = sub_instance_builder.build();
     EXPECT_EQ(computed_blocks(sub_instance), nullptr);
 }
+
+TEST(RectangleGuillotineTreeSearchMaximalSpaces, ToSolutionSpacePrunedByResource)
+{
+    // Item type 0 (10 x 6) is placed first in the bottom-left corner of the
+    // bin, with vertical first cuts: the empty spaces are the one to its
+    // right (10 x 10) and the one above it (10 x 4). Only item type 1 (4 x 3)
+    // fits above it, but a resource which is not penalized forbids packing
+    // item types 0 and 1 together: the space above is removed, and item type
+    // 2 (8 x 10) is placed to the right, although the space above is
+    // smaller.
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(Objective::Knapsack);
+    instance_builder.set_number_of_stages_unlimited();
+    BinTypeId bin_type_id = instance_builder.add_bin_type(20, 10);
+    ItemTypeId item_type_id_0 = instance_builder.add_item_type(10, 6, true);
+    ItemTypeId item_type_id_1 = instance_builder.add_item_type(4, 3, true);
+    ItemTypeId item_type_id_2 = instance_builder.add_item_type(8, 10, true);
+    ResourceId resource_id = instance_builder.add_bin_type_resource(bin_type_id, 1.0);
+    instance_builder.add_resource_consumption(bin_type_id, resource_id, item_type_id_0, {1.0});
+    instance_builder.add_resource_consumption(bin_type_id, resource_id, item_type_id_1, {1.0});
+    Instance instance = instance_builder.build();
+
+    std::vector<std::vector<Block>> blocks = compute_blocks(instance);
+    auto simple_block_id = [&blocks, &instance](ItemTypeId item_type_id)
+    {
+        for (ItemPos block_id = 0; block_id < (ItemPos)blocks[0].size(); ++block_id) {
+            const Block& block = blocks[0][block_id];
+            if (block.is_simple
+                    && block.item_type_id == item_type_id
+                    && block.number_of_items == 1) {
+                return block_id;
+            }
+        }
+        return (ItemPos)-1;
+    };
+
+    BranchingSchemeMaximalSpaces::Parameters parameters;
+    parameters.first_cut_orientation = CutOrientation::Vertical;
+    BranchingSchemeMaximalSpaces branching_scheme(instance, blocks, parameters);
+    auto node = std::make_shared<BranchingSchemeMaximalSpaces::Node>(*branching_scheme.root());
+
+    BranchingSchemeMaximalSpaces::Insertion insertion_0;
+    insertion_0.block_id = simple_block_id(item_type_id_0);
+    insertion_0.space_id = 0;
+    insertion_0.cut_orientation = CutOrientation::Vertical;
+    ASSERT_NE(insertion_0.block_id, -1);
+    branching_scheme.apply_insertion(*node, insertion_0);
+    ASSERT_EQ(node->empty_spaces.size(), (size_t)1);
+    EXPECT_EQ(node->empty_spaces[0].bl_corner.x, 10);
+
+    BranchingSchemeMaximalSpaces::Insertion insertion_2;
+    insertion_2.block_id = simple_block_id(item_type_id_2);
+    insertion_2.space_id = 0;
+    insertion_2.cut_orientation = CutOrientation::Vertical;
+    ASSERT_NE(insertion_2.block_id, -1);
+    branching_scheme.apply_insertion(*node, insertion_2);
+
+    Solution solution = branching_scheme.to_solution(node);
+    EXPECT_TRUE(solution.feasible());
+    EXPECT_EQ(solution.number_of_items(), 2);
+    EXPECT_EQ(solution.item_copies(item_type_id_0), 1);
+    EXPECT_EQ(solution.item_copies(item_type_id_2), 1);
+}
