@@ -1164,7 +1164,8 @@ public:
             const std::unordered_set<std::shared_ptr<const columngenerationsolver::Column>>&,
             const std::vector<columngenerationsolver::Value>& duals,
             const std::vector<std::pair<std::shared_ptr<const columngenerationsolver::Cut>, columngenerationsolver::Value>>&,
-            PricingType) override
+            PricingType,
+            columngenerationsolver::Value) override
     {
         PricingOutput output;
         ItemTypeId number_of_item_types = data_.instance.number_of_item_types();
