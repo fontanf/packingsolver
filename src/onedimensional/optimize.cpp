@@ -382,6 +382,9 @@ void optimize_column_generation(
     // from-scratch sequential search would be a disproportionate cost for
     // what's meant to be a fast approximate bound.
     cg_parameters.use_sequential_feasibility = false;
+    // The pricing problems are cheap: their best columns make the column
+    // generation converge faster than the first improving ones.
+    cg_parameters.use_pricing_knapsack_goal = false;
     cg_parameters.new_solution_callback = [&algorithm_formatter](
             const onedimensional::Output& ps_output)
     {
