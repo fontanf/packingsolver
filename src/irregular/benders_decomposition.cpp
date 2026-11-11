@@ -148,14 +148,21 @@ OptimizationMode subproblem_optimization_mode(
 
 /**
  * Result of the tree search on relative positions for a selection of items,
- * through the cache: it solves the subproblem of the selection.
+ * through the cache: it solves the subproblem of the selection. In 'Exact'
+ * mode, through the automatic selection of the algorithms, which runs the
+ * tree search on relative positions together with the algorithms which
+ * quickly find a packing when the items fit.
+ *
+ * 'growing_subsets': see
+ * 'OptimizeParameters::tree_search_relative_positions_growing_subsets'.
  */
 const TreeSearchRelativePositionsResult& tree_search_relative_positions_result(
         const Instance& instance,
         BinTypeId bin_type_id,
         const std::vector<std::pair<ItemTypeId, ItemPos>>& selected_items,
         const BendersDecompositionParameters& parameters,
-        SubproblemCache& subproblem_cache)
+        SubproblemCache& subproblem_cache,
+        bool growing_subsets = true)
 {
     auto key = std::make_pair(bin_type_id, selected_items);
     auto it = subproblem_cache.results.find(key);
@@ -171,8 +178,16 @@ const TreeSearchRelativePositionsResult& tree_search_relative_positions_result(
     OptimizeParameters sub_parameters;
     sub_parameters.verbosity_level = 0;
     sub_parameters.timer = parameters.timer;
-    sub_parameters.optimization_mode = subproblem_optimization_mode(parameters);
-    sub_parameters.use_tree_search_relative_positions = true;
+    if (parameters.optimization_mode == OptimizationMode::Exact) {
+        // The automatic selection runs the tree search on relative
+        // positions, which proves that the items don't fit, together with
+        // the algorithms which quickly find a packing when they fit.
+        sub_parameters.optimization_mode = OptimizationMode::Exact;
+    } else {
+        sub_parameters.optimization_mode = subproblem_optimization_mode(parameters);
+        sub_parameters.use_tree_search_relative_positions = true;
+    }
+    sub_parameters.tree_search_relative_positions_growing_subsets = growing_subsets;
     irregular::Output sub_output = optimize(sub_instance, sub_parameters);
 
     TreeSearchRelativePositionsResult result;
@@ -533,6 +548,165 @@ std::vector<MinimalInfeasibleSubset> enumerate_minimal_infeasible_subsets(
     return subsets;
 }
 
+/**
+ * Enumerate minimal infeasible subsets of a selection proven not to fit,
+ * bottom-up.
+ *
+ * The units of the selection (one per copy) are sorted by decreasing area,
+ * and its subsets are enumerated in the order A, B, BA, C, CA, CB, CBA, D...
+ * (the binary order of their characteristic vectors). Every subset comes
+ * before its supersets, so a subset is only checked if all its subsets with
+ * one item less fit: then, a subset proven not to fit is a minimal
+ * infeasible subset. All the subsets of the largest items are enumerated
+ * first, and the enumeration stops after
+ * 'bottom_up_maximum_number_of_subproblem_solves' subproblem solves or
+ * 'bottom_up_maximum_number_of_cuts' minimal infeasible subsets: all the
+ * minimal infeasible subsets of a small selection are found, and some of the
+ * ones of a large selection.
+ *
+ * A subset fits without solving anything if it is contained in a selection
+ * known to fit ('feasible_selections', the selections packed so far).
+ * Otherwise, its subproblem is solved (see
+ * 'tree_search_relative_positions_result'), without the growing subsets of
+ * the largest items in the tree search on relative positions, since its
+ * subsets are already known to fit. A subset which isn't proven infeasible is
+ * considered to fit to check the larger subsets: a subset proven infeasible
+ * is still a valid cut, only maybe not minimal.
+ */
+std::vector<MinimalInfeasibleSubset> enumerate_minimal_infeasible_subsets_bottom_up(
+        const Instance& instance,
+        BinTypeId bin_type_id,
+        const std::vector<std::pair<ItemTypeId, ItemPos>>& selected_items,
+        std::vector<std::vector<std::pair<ItemTypeId, ItemPos>>>& feasible_selections,
+        const BendersDecompositionParameters& parameters,
+        SubproblemCache& subproblem_cache,
+        BendersDecompositionOutput& output)
+{
+    // Units sorted by decreasing area; the copies of an item type are
+    // consecutive.
+    std::vector<ItemTypeId> units;
+    for (const std::pair<ItemTypeId, ItemPos>& p: selected_items)
+        for (ItemPos copy = 0; copy < p.second; ++copy)
+            units.push_back(p.first);
+    std::sort(
+            units.begin(),
+            units.end(),
+            [&instance](ItemTypeId item_type_id_1, ItemTypeId item_type_id_2)
+            {
+                double area_1 = instance.item_type(item_type_id_1).area_scaled;
+                double area_2 = instance.item_type(item_type_id_2).area_scaled;
+                if (area_1 != area_2)
+                    return area_1 > area_2;
+                return item_type_id_1 < item_type_id_2;
+            });
+    // Subsets are bit masks over the first units.
+    const std::size_t maximum_number_of_units = 20;
+    std::size_t number_of_units = (std::min)(units.size(), maximum_number_of_units);
+    // First unit of the group of copies of each unit.
+    std::vector<std::size_t> group_start(number_of_units, 0);
+    for (std::size_t pos = 1; pos < number_of_units; ++pos) {
+        group_start[pos] = (units[pos] == units[pos - 1])?
+            group_start[pos - 1]: pos;
+    }
+    // The copies of an item type are identical: a subset is represented by
+    // its canonical mask, whose units of each group form a prefix.
+    auto canonical = [&group_start, number_of_units](uint32_t mask)
+    {
+        uint32_t result = 0;
+        std::size_t pos = 0;
+        while (pos < number_of_units) {
+            std::size_t start = group_start[pos];
+            std::size_t end = pos;
+            while (end < number_of_units && group_start[end] == start)
+                ++end;
+            std::size_t count = 0;
+            for (std::size_t pos_2 = start; pos_2 < end; ++pos_2)
+                if (mask & ((uint32_t)1 << pos_2))
+                    ++count;
+            for (std::size_t pos_2 = start; pos_2 < start + count; ++pos_2)
+                result |= ((uint32_t)1 << pos_2);
+            pos = end;
+        }
+        return result;
+    };
+    auto to_selection = [&units, number_of_units](uint32_t mask)
+    {
+        std::vector<std::pair<ItemTypeId, ItemPos>> selection;
+        for (std::size_t pos = 0; pos < number_of_units; ++pos) {
+            if (!(mask & ((uint32_t)1 << pos)))
+                continue;
+            if (!selection.empty() && selection.back().first == units[pos]) {
+                selection.back().second++;
+            } else {
+                selection.push_back({units[pos], 1});
+            }
+        }
+        std::sort(selection.begin(), selection.end());
+        return selection;
+    };
+
+    // Subsets known to fit.
+    std::vector<bool> feasible((std::size_t)1 << number_of_units, false);
+    feasible[0] = true;
+    std::vector<MinimalInfeasibleSubset> subsets;
+    Counter number_of_solves = 0;
+    for (uint32_t mask = 1; mask < ((uint32_t)1 << number_of_units); ++mask) {
+        if (parameters.timer.needs_to_end())
+            break;
+        if (canonical(mask) != mask)
+            continue;
+        // All the subsets with one item less must fit.
+        bool all_feasible = true;
+        for (std::size_t pos = 0; pos < number_of_units; ++pos) {
+            if (!(mask & ((uint32_t)1 << pos)))
+                continue;
+            if (!feasible[canonical(mask & ~((uint32_t)1 << pos))]) {
+                all_feasible = false;
+                break;
+            }
+        }
+        if (!all_feasible)
+            continue;
+
+        output.number_of_bottom_up_checks++;
+        std::vector<std::pair<ItemTypeId, ItemPos>> selection = to_selection(mask);
+        bool known_feasible = false;
+        for (const auto& feasible_selection: feasible_selections) {
+            if (contains(feasible_selection, selection)) {
+                known_feasible = true;
+                break;
+            }
+        }
+        if (known_feasible) {
+            feasible[mask] = true;
+            continue;
+        }
+        if (number_of_solves >= parameters.bottom_up_maximum_number_of_subproblem_solves)
+            break;
+        number_of_solves++;
+        output.number_of_bottom_up_solves++;
+        const TreeSearchRelativePositionsResult& result = tree_search_relative_positions_result(
+                instance,
+                bin_type_id,
+                selection,
+                parameters,
+                subproblem_cache,
+                false);
+        if (parameters.timer.needs_to_end())
+            break;
+        if (result.feasibility == SelectionFeasibility::ProvenInfeasible) {
+            subsets.push_back({selection, true});
+            if ((Counter)subsets.size() >= parameters.bottom_up_maximum_number_of_cuts)
+                break;
+        } else {
+            if (result.packing != nullptr)
+                feasible_selections.push_back(selection);
+            feasible[mask] = true;
+        }
+    }
+    return subsets;
+}
+
 /** Add a cut as a new resource of a bin type of the master problem. */
 void add_cut_as_resource(
         onedimensional::InstanceBuilder& master_instance_builder,
@@ -709,6 +883,11 @@ BendersDecompositionOutput packingsolver::irregular::benders_decomposition(
     std::vector<std::vector<std::vector<std::pair<ItemTypeId, ItemPos>>>> cut_items_by_bin_type(
             instance.number_of_bin_types());
     std::vector<std::vector<std::vector<std::pair<ItemTypeId, ItemPos>>>> proven_cut_items_by_bin_type(
+            instance.number_of_bin_types());
+    // Selections known to fit, per bin type: the bins packed so far and the
+    // selections packed by the bottom-up enumeration of the minimal
+    // infeasible subsets.
+    std::vector<std::vector<std::vector<std::pair<ItemTypeId, ItemPos>>>> feasible_selections_by_bin_type(
             instance.number_of_bin_types());
 
     SubproblemCache subproblem_cache;
@@ -986,6 +1165,7 @@ BendersDecompositionOutput packingsolver::irregular::benders_decomposition(
                 // The 'copies' identical bins of the master solution share
                 // the same packing.
                 solution.append_bin(packing, 0, master_bin.copies);
+                feasible_selections_by_bin_type[master_bin.bin_type_id].push_back(selected_items);
                 continue;
             }
             all_bins_feasible = false;
@@ -1000,13 +1180,28 @@ BendersDecompositionOutput packingsolver::irregular::benders_decomposition(
             // infeasible items. A cut which isn't proven may still help the master
             // problem converge, but then its bound isn't a bound anymore.
             auto minimal_infeasible_subsets_begin = std::chrono::steady_clock::now();
-            std::vector<MinimalInfeasibleSubset> subsets = enumerate_minimal_infeasible_subsets(
-                    instance,
-                    master_bin.bin_type_id,
-                    infeasible_items,
-                    feasibility == SelectionFeasibility::ProvenInfeasible,
-                    parameters,
-                    subproblem_cache);
+            std::vector<MinimalInfeasibleSubset> subsets;
+            if (parameters.subproblem_use_tree_search_relative_positions
+                    && feasibility == SelectionFeasibility::ProvenInfeasible
+                    && parameters.bottom_up_maximum_number_of_subproblem_solves > 0) {
+                subsets = enumerate_minimal_infeasible_subsets_bottom_up(
+                        instance,
+                        master_bin.bin_type_id,
+                        selected_items,
+                        feasible_selections_by_bin_type[master_bin.bin_type_id],
+                        parameters,
+                        subproblem_cache,
+                        output);
+            }
+            if (subsets.empty()) {
+                subsets = enumerate_minimal_infeasible_subsets(
+                        instance,
+                        master_bin.bin_type_id,
+                        infeasible_items,
+                        feasibility == SelectionFeasibility::ProvenInfeasible,
+                        parameters,
+                        subproblem_cache);
+            }
             output.minimal_infeasible_subsets_time += elapsed_time(minimal_infeasible_subsets_begin);
             for (const MinimalInfeasibleSubset& subset: subsets) {
                 if (parameters.subproblem_use_tree_search_relative_positions

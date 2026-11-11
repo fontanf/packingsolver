@@ -109,6 +109,14 @@ struct TreeSearchRelativePositionsParameters: packingsolver::Parameters<Instance
      * are searched. By default, the size of the bin.
      */
     LengthDbl open_dimension_upper_bound = std::numeric_limits<LengthDbl>::infinity();
+
+    /**
+     * For the 'Feasibility' objective, solve the increasing subsets of the
+     * largest items one after the other (see 'tree_search_relative_positions').
+     * If 'false', only the set of all the items is solved, e.g. when all its
+     * subsets are already known to fit.
+     */
+    bool growing_subsets = true;
 };
 
 /**

@@ -72,6 +72,15 @@ struct BendersDecompositionOutput: Output
     /** Time spent computing the incompatible pairs and triples. */
     double incompatible_subsets_time = 0.0;
 
+    /**
+     * Number of selections checked by the bottom-up enumeration of the
+     * minimal infeasible subsets (see
+     * 'BendersDecompositionParameters::bottom_up_maximum_number_of_subproblem_solves'),
+     * and number of them which needed a subproblem solve.
+     */
+    Counter number_of_bottom_up_checks = 0;
+    Counter number_of_bottom_up_solves = 0;
+
     virtual nlohmann::json to_json() const override
     {
         nlohmann::json json = Output::to_json();
@@ -86,6 +95,8 @@ struct BendersDecompositionOutput: Output
         json["NumberOfIncompatiblePairs"] = number_of_incompatible_pairs;
         json["NumberOfIncompatibleTriples"] = number_of_incompatible_triples;
         json["IncompatibleSubsetsTime"] = incompatible_subsets_time;
+        json["NumberOfBottomUpChecks"] = number_of_bottom_up_checks;
+        json["NumberOfBottomUpSolves"] = number_of_bottom_up_solves;
         return json;
     }
 
@@ -110,6 +121,8 @@ struct BendersDecompositionOutput: Output
             << std::setw(width) << std::left << "Number of incompatible pairs: " << number_of_incompatible_pairs << std::endl
             << std::setw(width) << std::left << "Number of incompatible triples: " << number_of_incompatible_triples << std::endl
             << std::setw(width) << std::left << "Incompatible subsets time (s): " << incompatible_subsets_time << std::endl
+            << std::setw(width) << std::left << "Number of bottom-up checks: " << number_of_bottom_up_checks << std::endl
+            << std::setw(width) << std::left << "Number of bottom-up solves: " << number_of_bottom_up_solves << std::endl
             ;
     }
 };
@@ -146,6 +159,22 @@ struct BendersDecompositionParameters: packingsolver::Parameters<Instance, Solut
      * irregular items, so a single one is searched by default.
      */
     Counter maximum_number_of_no_good_cuts_per_bin = 1;
+
+    /**
+     * With the tree search on relative positions, the minimal infeasible
+     * subsets of an infeasible bin are enumerated bottom-up (see
+     * 'enumerate_minimal_infeasible_subsets_bottom_up' in
+     * 'benders_decomposition.cpp'), each giving a cut
+     * ('maximum_number_of_no_good_cuts_per_bin' doesn't apply), until this
+     * number of subproblem solves or 'bottom_up_maximum_number_of_cuts' cuts
+     * is reached. If none is found, a minimal infeasible subset is searched
+     * top-down, from the infeasible subset returned by the tree search on
+     * relative positions. 0 disables the bottom-up enumeration.
+     */
+    Counter bottom_up_maximum_number_of_subproblem_solves = 16;
+
+    /** See 'bottom_up_maximum_number_of_subproblem_solves'. */
+    Counter bottom_up_maximum_number_of_cuts = 16;
 
     /**
      * Maximum number of item types lifted in a no-good cut (see

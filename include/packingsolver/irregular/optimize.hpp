@@ -317,6 +317,13 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
     bool use_tree_search_relative_positions = false;
 
     /**
+     * For the 'Feasibility' objective, solve the increasing subsets of the
+     * largest items one after the other in the tree search on relative
+     * positions. If 'false', only the set of all the items is solved.
+     */
+    bool tree_search_relative_positions_growing_subsets = true;
+
+    /**
      * Use the global nonlinear programming algorithm (only for the
      * 'Feasibility' objective with a single convex bin; only selected
      * automatically in 'Exact' mode, if an item type has continuous
@@ -426,6 +433,21 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
      * decomposition algorithm.
      */
     NodeId benders_decomposition_subproblem_tree_search_queue_size = 128;
+
+    /**
+     * Maximum number of subproblem solves of the bottom-up enumeration of the
+     * minimal infeasible subsets of an infeasible bin in the Benders
+     * decomposition algorithm with the tree search on relative positions (0
+     * disables it).
+     */
+    Counter benders_decomposition_bottom_up_maximum_number_of_subproblem_solves = 16;
+
+    /**
+     * Maximum number of cuts of the bottom-up enumeration of the minimal
+     * infeasible subsets of an infeasible bin in the Benders decomposition
+     * algorithm.
+     */
+    Counter benders_decomposition_bottom_up_maximum_number_of_cuts = 16;
 
     /*
      * Parameters for anytime mode
