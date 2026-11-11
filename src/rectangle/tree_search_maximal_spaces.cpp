@@ -230,23 +230,13 @@ bool BranchingSchemeMaximalSpaces::block_resource_capacity_ok(
         const Block& block,
         BinTypeId bin_type_id) const
 {
-    const BinType& bin_type = instance_.bin_type(bin_type_id);
-    if (bin_type.number_of_resources() == 0)
+    if (instance_.bin_type(bin_type_id).number_of_resources() == 0)
         return true;
-    const std::vector<double>& block_resource_consumption
-        = insertion_resource_consumption(parent, block, bin_type_id);
-    for (ResourceId resource_id = 0;
-            resource_id < bin_type.number_of_resources();
-            ++resource_id) {
-        const Resource& resource = bin_type.resource(resource_id);
-        if (resource.penalize)
-            continue;
-        double previous_consumption = parent.resource_consumption.empty()?
-            0.0: parent.resource_consumption[resource_id];
-        if (previous_consumption + block_resource_consumption[resource_id] > resource.capacity * PSTOL)
-            return false;
-    }
-    return true;
+    return resource_feasible(
+            instance_,
+            bin_type_id,
+            parent.resource_consumption,
+            insertion_resource_consumption(parent, block, bin_type_id));
 }
 
 Profit BranchingSchemeMaximalSpaces::insertion_profit(
@@ -254,25 +244,13 @@ Profit BranchingSchemeMaximalSpaces::insertion_profit(
         const Block& block,
         BinTypeId bin_type_id) const
 {
-    const BinType& bin_type = instance_.bin_type(bin_type_id);
-    Profit profit = block.item_profit;
-    if (bin_type.number_of_resources() == 0)
-        return profit;
-    const std::vector<double>& block_resource_consumption
-        = insertion_resource_consumption(parent, block, bin_type_id);
-    for (ResourceId resource_id = 0;
-            resource_id < bin_type.number_of_resources();
-            ++resource_id) {
-        const Resource& resource = bin_type.resource(resource_id);
-        if (!resource.penalize)
-            continue;
-        double previous_consumption = parent.resource_consumption.empty()?
-            0.0: parent.resource_consumption[resource_id];
-        double new_consumption = previous_consumption + block_resource_consumption[resource_id];
-        if (new_consumption > resource.capacity && previous_consumption <= resource.capacity)
-            profit -= resource.penalty;
-    }
-    return profit;
+    if (instance_.bin_type(bin_type_id).number_of_resources() == 0)
+        return block.item_profit;
+    return block.item_profit - resource_penalty(
+            instance_,
+            bin_type_id,
+            parent.resource_consumption,
+            insertion_resource_consumption(parent, block, bin_type_id));
 }
 
 const std::vector<BranchingSchemeMaximalSpaces::Insertion>& BranchingSchemeMaximalSpaces::insertions(

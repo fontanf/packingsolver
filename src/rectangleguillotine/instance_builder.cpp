@@ -366,6 +366,7 @@ ResourceId InstanceBuilder::add_bin_type_resource(
     ResourceId resource_id = bin_type.resources.size();
     Resource resource;
     resource.capacity = capacity;
+    resource.tolerance = compute_resource_tolerance(capacity);
     resource.penalize = penalize;
     resource.penalty = penalty;
     bin_type.resources.push_back(resource);
@@ -1835,9 +1836,9 @@ void InstanceBuilder::copy_cache_from_original_instance()
                     std::sort(block.item_copies.begin(), block.item_copies.end());
                     // The resources of the bin types may differ from the
                     // original ones.
-                    block.resource_consumption = compute_block_resource_consumption(
+                    block.resource_consumption = compute_resource_consumption(
                             instance_, bin_type_id, block.item_copies);
-                    if (!block_resource_feasible(instance_, bin_type_id, block))
+                    if (!resource_feasible(instance_, bin_type_id, {}, block.resource_consumption))
                         continue;
                     if (block.is_simple) {
                         block.item_type_id = block.item_copies.front().first;

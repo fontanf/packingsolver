@@ -1533,7 +1533,7 @@ bool items_incompatible(
             = (schedule_1_ptr != nullptr)? *schedule_1_ptr: empty_schedule;
         const std::vector<double>& schedule_2
             = (schedule_2_ptr != nullptr)? *schedule_2_ptr: empty_schedule;
-        if (min_or_zero(schedule_1) + min_or_zero(schedule_2) > resource.capacity)
+        if (strictly_greater_resource(min_or_zero(schedule_1) + min_or_zero(schedule_2), resource.capacity, resource.tolerance))
             return true;
     }
 

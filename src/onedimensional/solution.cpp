@@ -80,13 +80,13 @@ void Solution::update_indicators(
                 += schedule_consumption(
                         schedule,
                         item_type_copies_in_bin[item.item_type_id]);
-            if (bin.resource_consumption[resource_id] > resource.capacity) {
+            if (strictly_greater_resource(bin.resource_consumption[resource_id], resource.capacity, resource.tolerance)) {
                 if (resource.penalize) {
                     // Charge the penalty only once per bin, the first time
                     // consumption crosses the capacity (it never decreases
                     // afterwards, so this check would otherwise keep firing
                     // for every subsequent item added to the same bin).
-                    if (previous_consumption <= resource.capacity)
+                    if (!strictly_greater_resource(previous_consumption, resource.capacity, resource.tolerance))
                         item_profit_ -= resource.penalty;
                 } else {
                     resource_feasible_ = false;

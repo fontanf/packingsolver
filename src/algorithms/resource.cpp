@@ -26,15 +26,6 @@ bool packingsolver::same_copy_dependent_last_bin_copies(
     return true;
 }
 
-std::vector<double> packingsolver::compute_resource_consumption_prefix_sums(
-        const std::vector<double>& schedule)
-{
-    std::vector<double> prefix_sums(schedule.size() + 1, 0.0);
-    for (std::size_t k = 0; k < schedule.size(); ++k)
-        prefix_sums[k + 1] = prefix_sums[k] + schedule[k];
-    return prefix_sums;
-}
-
 Profit packingsolver::negative_penalty_sum(const std::vector<Resource>& resources)
 {
     Profit sum = 0.0;

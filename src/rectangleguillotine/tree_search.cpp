@@ -625,8 +625,8 @@ BranchingScheme::Node BranchingScheme::child_tmp(
                 node.last_bin_resource_consumption[resource_id]
                     += schedule_consumption(schedule, item_copy);
                 if (resource.penalize
-                        && node.last_bin_resource_consumption[resource_id] > resource.capacity
-                        && previous_consumption <= resource.capacity) {
+                        && strictly_greater_resource(node.last_bin_resource_consumption[resource_id], resource.capacity, resource.tolerance)
+                        && !strictly_greater_resource(previous_consumption, resource.capacity, resource.tolerance)) {
                     node.profit -= resource.penalty;
                 }
             }
@@ -1997,7 +1997,7 @@ void BranchingScheme::update(
                 const std::vector<double>& schedule
                     = resource.item_consumptions[item_resource_consumption.consumption_pos].second;
                 resource_consumption[resource_id] += schedule_consumption(schedule, item_copy);
-                if (resource_consumption[resource_id] > resource.capacity * PSTOL)
+                if (strictly_greater_resource(resource_consumption[resource_id], resource.capacity, resource.tolerance))
                     return;
             }
             item_number_of_copies[item_type_id]++;

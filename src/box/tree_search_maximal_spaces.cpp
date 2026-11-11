@@ -145,52 +145,28 @@ bool BranchingSchemeMaximalSpaces::block_resource_feasible(
         const Node& node,
         const Block& block) const
 {
-    const BinType& bin_type = instance_.bin_type(instance_.bin_type_id(0));
-    if (bin_type.number_of_resources() == 0)
+    if (node.resource_consumption.empty())
         return true;
-    const std::vector<double>& block_resource_consumption
-        = insertion_resource_consumption(node, block);
-    for (ResourceId resource_id = 0;
-            resource_id < bin_type.number_of_resources();
-            ++resource_id) {
-        const Resource& resource = bin_type.resource(resource_id);
-        if (resource.penalize)
-            continue;
-        if (node.resource_consumption[resource_id]
-                + block_resource_consumption[resource_id]
-                > resource.capacity) {
-            return false;
-        }
-    }
-    return true;
+    return resource_feasible(
+            instance_,
+            instance_.bin_type_id(0),
+            node.resource_consumption,
+            insertion_resource_consumption(node, block));
 }
 
 Profit BranchingSchemeMaximalSpaces::insertion_profit(
         const Node& node,
         const Block& block) const
 {
-    Profit profit = block.item_profit;
-    const BinType& bin_type = instance_.bin_type(instance_.bin_type_id(0));
-    if (bin_type.number_of_resources() == 0)
-        return profit;
-    const std::vector<double>& block_resource_consumption
-        = insertion_resource_consumption(node, block);
-    for (ResourceId resource_id = 0;
-            resource_id < bin_type.number_of_resources();
-            ++resource_id) {
-        const Resource& resource = bin_type.resource(resource_id);
-        if (!resource.penalize)
-            continue;
-        // The penalty is charged once per bin, the first time the
-        // consumption exceeds the capacity, as in 'Solution'.
-        double previous_consumption = node.resource_consumption[resource_id];
-        if (previous_consumption <= resource.capacity
-                && previous_consumption + block_resource_consumption[resource_id]
-                > resource.capacity) {
-            profit -= resource.penalty;
-        }
-    }
-    return profit;
+    // The penalty is charged once per bin, the first time the consumption
+    // exceeds the capacity, as in 'Solution'.
+    if (node.resource_consumption.empty())
+        return block.item_profit;
+    return block.item_profit - resource_penalty(
+            instance_,
+            instance_.bin_type_id(0),
+            node.resource_consumption,
+            insertion_resource_consumption(node, block));
 }
 
 const std::shared_ptr<BranchingSchemeMaximalSpaces::Node> BranchingSchemeMaximalSpaces::root() const

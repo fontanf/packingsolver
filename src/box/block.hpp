@@ -33,7 +33,7 @@ struct Block
     /**
      * Consumption of each resource of the bin type by the items of the block
      * alone in the bin, indexed by resource id (see
-     * 'compute_block_resource_consumption'). Empty iff the bin type has no
+     * 'compute_resource_consumption'). Empty iff the bin type has no
      * resources.
      */
     std::vector<double> resource_consumption;
@@ -91,25 +91,6 @@ struct BlockParameters
     /** Maximum number of blocks to generate (N_B in the thesis). */
     ItemPos maximum_number_of_blocks = 10000;
 };
-
-/**
- * Compute the consumption of each resource of a bin type by some copies of
- * item types alone in the bin: the consumption of the copies of an item type
- * starts at the first entry of its schedule (see 'Resource::item_consumptions').
- */
-std::vector<double> compute_block_resource_consumption(
-        const Instance& instance,
-        BinTypeId bin_type_id,
-        const std::vector<std::pair<ItemTypeId, ItemPos>>& item_copies);
-
-/**
- * Return true iff the consumption of a block alone in the bin doesn't exceed
- * the capacity of a resource of its bin type which is not penalized.
- */
-bool block_resource_feasible(
-        const Instance& instance,
-        BinTypeId bin_type_id,
-        const Block& block);
 
 /**
  * Generate the simple blocks of an item type for a bin type: the grids of

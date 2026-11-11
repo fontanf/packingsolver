@@ -106,6 +106,7 @@ ResourceId InstanceBuilder::add_bin_type_resource(
     ResourceId resource_id = bin_type.resources.size();
     Resource resource;
     resource.capacity = capacity;
+    resource.tolerance = compute_resource_tolerance(capacity);
     resource.penalize = penalize;
     resource.penalty = penalty;
     bin_type.resources.push_back(resource);
