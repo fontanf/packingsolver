@@ -399,11 +399,10 @@ public:
     inline Objective objective() const { return objective_; }
 
     /**
-     * Get the knapsack goal: for the 'Knapsack' objective, the search stops
-     * as soon as a solution reaches it, or as soon as the bound proves that
-     * it can't be reached (e.g. a pricing problem of a column generation,
-     * which only needs a column of negative reduced cost, or a proof that
-     * there is none). Infinite by default.
+     * Get the knapsack goal: for the 'Knapsack' objective, a solution whose
+     * profit reaches it is considered optimal, and the search stops (e.g. a
+     * pricing problem of a column generation, which only needs a column of
+     * negative reduced cost). Infinite by default.
      */
     inline Profit knapsack_goal() const { return knapsack_goal_; }
 
