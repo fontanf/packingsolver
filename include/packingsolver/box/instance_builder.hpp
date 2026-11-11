@@ -101,6 +101,16 @@ public:
             double penalty = 0.0);
 
     /**
+     * Set the tolerance of a resource of a bin type (see
+     * 'Resource::tolerance'). If it isn't set, 'build' computes it from the
+     * capacity of the resource.
+     */
+    void set_bin_type_resource_tolerance(
+            BinTypeId bin_type_id,
+            ResourceId resource_id,
+            double tolerance);
+
+    /**
      * Set an item type's whole per-copy consumption schedule of a bin
      * type's resource at once - see 'Resource::item_consumptions' for the
      * exact semantics of a per-copy schedule. May be called at most once

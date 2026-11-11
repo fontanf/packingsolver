@@ -768,6 +768,10 @@ onedimensional::Instance build_master_instance(
                     resource.capacity,
                     resource.penalize,
                     resource.penalty);
+            master_instance_builder.set_bin_type_resource_tolerance(
+                    master_bin_type_id,
+                    master_resource_id,
+                    resource.tolerance);
             for (const std::pair<ItemTypeId, std::vector<double>>& entry: resource.item_consumptions) {
                 master_instance_builder.add_resource_consumption(
                         master_bin_type_id,

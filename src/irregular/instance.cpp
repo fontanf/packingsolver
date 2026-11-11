@@ -843,6 +843,7 @@ void Instance::write(
             const Resource& resource = bin_type.resource(resource_id);
             nlohmann::json json_resource;
             json_resource["capacity"] = resource.capacity;
+            json_resource["tolerance"] = resource.tolerance;
             json_resource["penalize"] = resource.penalize;
             json_resource["penalty"] = resource.penalty;
             json_resource["consumptions"] = nlohmann::json::array();

@@ -89,12 +89,12 @@ struct Resource
      * 'strictly_lesser_resource' / 'equal_resource' for the comparisons of
      * the consumptions of the resource with its capacity.
      *
-     * Computed by 'InstanceBuilder::add_bin_type_resource' from the capacity
-     * (see 'compute_resource_tolerance'), so that it is the same in the
-     * sub-instances, whose resources are copied with the same capacity - not
-     * meant to be set directly.
+     * Set by 'InstanceBuilder::set_bin_type_resource_tolerance'. If it isn't
+     * set (negative), 'InstanceBuilder::build' computes it from the capacity
+     * (see 'compute_resource_tolerance'). It is copied with the resource in
+     * the sub-instances.
      */
-    double tolerance = 0.0;
+    double tolerance = -1.0;
 };
 
 /**

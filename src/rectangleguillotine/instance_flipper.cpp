@@ -57,11 +57,15 @@ Instance InstanceFlipper::flip(const Instance& instance)
                 resource_id < bin_type.number_of_resources();
                 ++resource_id) {
             const Resource& resource = bin_type.resource(resource_id);
-            flipped_instance_builder.add_bin_type_resource(
+            ResourceId flipped_resource_id = flipped_instance_builder.add_bin_type_resource(
                     flipped_bin_type_id,
                     resource.capacity,
                     resource.penalize,
                     resource.penalty);
+            flipped_instance_builder.set_bin_type_resource_tolerance(
+                    flipped_bin_type_id,
+                    flipped_resource_id,
+                    resource.tolerance);
         }
     }
     for (ItemTypeId item_type_id = 0;
