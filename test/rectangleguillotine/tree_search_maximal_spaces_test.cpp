@@ -4,6 +4,8 @@
 #include "packingsolver/rectangleguillotine/reduction.hpp"
 #include "rectangleguillotine/solution_builder.hpp"
 
+#include "treesearchsolver/iterative_beam_search.hpp"
+
 #include <gtest/gtest.h>
 #include <boost/filesystem.hpp>
 
@@ -437,4 +439,48 @@ TEST(RectangleGuillotineTreeSearchMaximalSpaces, ToSolutionSpacePrunedByResource
     EXPECT_EQ(solution.number_of_items(), 2);
     EXPECT_EQ(solution.item_copies(item_type_id_0), 1);
     EXPECT_EQ(solution.item_copies(item_type_id_2), 1);
+}
+
+TEST(RectangleGuillotineTreeSearchMaximalSpaces, FlippedFirstCut)
+{
+    // A bin of the 21-bin solution of martello1998/Class_07.2bp_80_4: a strip
+    // of three thin items stacked on top of each other, below two columns of
+    // two items each:
+    //   - column 1: 50 x 66 and 40 x 23 above it;
+    //   - column 2: 47 x 71 and 47 x 10 above it.
+    // With the simple blocks only, the items can't all be packed if the
+    // orientation of the first cut in each empty space is forced by its
+    // depth: the space above the first thin item would be cut vertically
+    // first, at the right of the second thin item.
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(Objective::Knapsack);
+    instance_builder.set_number_of_stages_unlimited();
+    instance_builder.add_bin_type(100, 100);
+    instance_builder.add_item_type(40, 23, true);
+    instance_builder.add_item_type(50, 66, true);
+    instance_builder.add_item_type(47, 71, true);
+    instance_builder.add_item_type(47, 10, true);
+    instance_builder.add_item_type(72, 4, true);
+    instance_builder.add_item_type(68, 3, true);
+    instance_builder.add_item_type(88, 3, true);
+    Instance instance = instance_builder.build();
+
+    std::vector<std::vector<Block>> all_blocks = compute_blocks(instance);
+    std::vector<std::vector<Block>> blocks(1);
+    for (const Block& block: all_blocks[0])
+        if (block.is_simple)
+            blocks[0].push_back(block);
+
+    BranchingSchemeMaximalSpaces branching_scheme(instance, blocks, {});
+    treesearchsolver::IterativeBeamSearchParameters<BranchingSchemeMaximalSpaces> ibs_parameters;
+    ibs_parameters.verbosity_level = 0;
+    ibs_parameters.global_history = true;
+    ibs_parameters.maximum_size_of_the_queue = 1024;
+    auto ibs_output = treesearchsolver::iterative_beam_search<BranchingSchemeMaximalSpaces>(
+            branching_scheme,
+            ibs_parameters);
+
+    Solution solution = branching_scheme.to_solution(ibs_output.solution_pool.best());
+    EXPECT_TRUE(solution.feasible());
+    EXPECT_EQ(solution.number_of_items(), instance.number_of_items());
 }

@@ -97,6 +97,13 @@ bool BranchingSchemeMaximalSpaces::cut_is_vertical(
         return !even_depth;
 }
 
+bool BranchingSchemeMaximalSpaces::first_cut_can_be_flipped(Depth depth) const
+{
+    // The deepest nodes of the insertion, the block area and the URS next to
+    // it, are 2 depths below the wrapper.
+    return depth + 3 <= instance_.parameters().number_of_stages;
+}
+
 ItemPos BranchingSchemeMaximalSpaces::find_best_space(const Node& node) const
 {
     ItemPos best_idx = -1;
@@ -157,7 +164,14 @@ BranchingSchemeMaximalSpaces::insertions(
     ItemPos space_idx = find_best_space(*parent);
     const EmptySpace& space = parent->empty_spaces[space_idx];
 
+    // Each block is inserted with both orientations of the first cut in the
+    // URS. At the root, they are given by the cut orientation of the bin.
+    // Otherwise, the cut orientation of the bin is fixed, and the first cut
+    // has either the orientation of the depth of the URS, or the opposite
+    // one.
     bool generate_both = (space.cut_orientation == CutOrientation::Any);
+    bool generate_flipped = !generate_both
+        && first_cut_can_be_flipped(space.depth);
 
     BinTypeId bin_type_id = instance_.bin_type_id(0);
     for (ItemPos block_id: parent->valid_block_ids) {
@@ -185,16 +199,27 @@ BranchingSchemeMaximalSpaces::insertions(
             ins.guide = guide;
             insertions_.push_back(ins);
         }
+        if (generate_flipped) {
+            Insertion ins;
+            ins.block_id = block_id;
+            ins.space_id = space_idx;
+            ins.cut_orientation = space.cut_orientation;
+            ins.flip_first_cut = true;
+            ins.guide = guide;
+            insertions_.push_back(ins);
+        }
     }
 
     std::sort(
             insertions_.begin(),
             insertions_.end(),
-            [](const Insertion& ins_1, const Insertion& ins_2) {
+            [this, &space](const Insertion& ins_1, const Insertion& ins_2) {
                 if (ins_1.guide != ins_2.guide)
                     return ins_1.guide > ins_2.guide;
-                // Vertical (enum value 1) > Horizontal (enum value 0): Vertical first.
-                return ins_1.cut_orientation > ins_2.cut_orientation;
+                // Vertical first cut first.
+                bool vertical_first_1 = (cut_is_vertical(space.depth, ins_1.cut_orientation) != ins_1.flip_first_cut);
+                bool vertical_first_2 = (cut_is_vertical(space.depth, ins_2.cut_orientation) != ins_2.flip_first_cut);
+                return vertical_first_1 && !vertical_first_2;
             });
 
     parent->cached_insertions = insertions_;
@@ -250,12 +275,17 @@ void BranchingSchemeMaximalSpaces::apply_insertion(
     Coord bl = space.bl_corner;
     Depth d = space.depth;
     CutOrientation co = insertion.cut_orientation;
+    // A flipped first cut is made in a node covering the URS, one depth
+    // deeper.
+    if (insertion.flip_first_cut)
+        d++;
 
     // Record placement.
     Node::PlacedBlock pb;
     pb.block_id = insertion.block_id;
     pb.bl_corner = bl;
     pb.cut_orientation = co;
+    pb.flip_first_cut = insertion.flip_first_cut;
     node.placed_blocks.push_back(pb);
 
     // Update the profit before the resource consumptions: the penalties
@@ -738,6 +768,16 @@ Solution BranchingSchemeMaximalSpaces::to_solution(
         Length h_b = block.rect.h;
         Depth d    = urs.depth;
         CutOrientation co = pb.cut_orientation;
+
+        // Flipped first cut: wrap the URS in a node covering it, one depth
+        // deeper.
+        if (pb.flip_first_cut) {
+            ItemPos wrap_idx = (ItemPos)cut_nodes.size();
+            { CutNode cn; cn.depth=d+1; cn.l=urs.xs(); cn.r=urs.xe(); cn.b=urs.ys(); cn.t=urs.ye(); cut_nodes.push_back(cn); }
+            cut_nodes[urs_node_idx].children.push_back(wrap_idx);
+            urs_node_idx = wrap_idx;
+            d++;
+        }
         bool vertical_first = cut_is_vertical(d, co);
 
         std::vector<UrsEntry> new_urs;
