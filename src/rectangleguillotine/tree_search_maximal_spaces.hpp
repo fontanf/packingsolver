@@ -160,6 +160,21 @@ public:
     struct Parameters
     {
         CutOrientation first_cut_orientation = CutOrientation::Any;
+
+        /**
+         * Exponent of the profit density of a block in the guide of its
+         * insertions: the fill rate of the block is weighted by its profit
+         * per unit of area to this power. It has no effect when the profits
+         * are proportional to the areas; 1 weights the fill rate by the
+         * density once, which amounts to the profit per unit of area of the
+         * block.
+         *
+         * Unlike the guides of the other problem types, the guide has no
+         * factor for the waste of an insertion, except the fill rate of the
+         * block. With an exponent greater than 1, the blocks of high density
+         * with a lot of waste come before the full blocks of lower density.
+         */
+        double profit_density_exponent = 1.0;
     };
 
     BranchingSchemeMaximalSpaces(
