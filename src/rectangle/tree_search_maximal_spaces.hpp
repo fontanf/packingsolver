@@ -195,6 +195,15 @@ public:
         double gamma_2 = 0.4732;
         double delta_2 = 0.0366;
         double configuration_switch_threshold = 0.6740;
+
+        /**
+         * Exponent of the profit density of a block in the guide of its
+         * insertions: the area of its items is weighted by its profit per
+         * unit of area to this power. It has no effect when the profits are
+         * proportional to the areas; 1 weights the area by the density
+         * once, which amounts to the profit of the block.
+         */
+        double profit_density_exponent = 2.0;
     };
 
     BranchingSchemeMaximalSpaces(
