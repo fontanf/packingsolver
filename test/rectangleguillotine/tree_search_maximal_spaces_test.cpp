@@ -9,6 +9,7 @@
 #include <gtest/gtest.h>
 #include <boost/filesystem.hpp>
 
+#include <algorithm>
 #include <set>
 
 using namespace packingsolver;
@@ -483,4 +484,84 @@ TEST(RectangleGuillotineTreeSearchMaximalSpaces, FlippedFirstCut)
     Solution solution = branching_scheme.to_solution(ibs_output.solution_pool.best());
     EXPECT_TRUE(solution.feasible());
     EXPECT_EQ(solution.number_of_items(), instance.number_of_items());
+}
+
+TEST(RectangleGuillotineTreeSearchMaximalSpaces, CopyDependentResourceConsumption)
+{
+    // Only the first copy of item type 0 consumes the resource, of capacity
+    // 1: once a copy is packed, the block of another copy remains valid.
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(Objective::Knapsack);
+    instance_builder.set_number_of_stages_unlimited();
+    BinTypeId bin_type_id = instance_builder.add_bin_type(15, 10);
+    ItemTypeId item_type_id_0 = instance_builder.add_item_type(5, 10, true);
+    instance_builder.set_item_type_copies(item_type_id_0, 2);
+    ItemTypeId item_type_id_1 = instance_builder.add_item_type(5, 10, true);
+    ResourceId resource_id = instance_builder.add_bin_type_resource(bin_type_id, 1.0);
+    instance_builder.add_resource_consumption(bin_type_id, resource_id, item_type_id_0, {1.0, 0.0});
+    instance_builder.add_resource_consumption(bin_type_id, resource_id, item_type_id_1, {1.0, 0.0});
+    Instance instance = instance_builder.build();
+
+    std::vector<std::vector<Block>> blocks = compute_blocks(instance);
+    ItemPos block_id = -1;
+    for (ItemPos candidate_block_id = 0;
+            candidate_block_id < (ItemPos)blocks[0].size();
+            ++candidate_block_id) {
+        const Block& block = blocks[0][candidate_block_id];
+        if (block.is_simple
+                && block.item_type_id == item_type_id_0
+                && block.number_of_items == 1) {
+            block_id = candidate_block_id;
+        }
+    }
+    ASSERT_NE(block_id, -1);
+
+    BranchingSchemeMaximalSpaces branching_scheme(instance, blocks, {});
+    auto node = std::make_shared<BranchingSchemeMaximalSpaces::Node>(*branching_scheme.root());
+    BranchingSchemeMaximalSpaces::Insertion insertion;
+    insertion.block_id = block_id;
+    insertion.space_id = 0;
+    insertion.cut_orientation = CutOrientation::Vertical;
+    branching_scheme.apply_insertion(*node, insertion);
+
+    EXPECT_EQ(node->resource_consumption[resource_id], 1.0);
+    EXPECT_NE(std::find(node->valid_block_ids.begin(), node->valid_block_ids.end(), block_id),
+            node->valid_block_ids.end());
+}
+
+TEST(RectangleGuillotineTreeSearchMaximalSpaces, InsertionOrderProfitDensity)
+{
+    // The tree search only generates the first children of a node: they must
+    // be the insertions of greatest profit per unit of area, not of greatest
+    // profit. Otherwise, with a queue of size 1, item type 0 is packed alone.
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(Objective::Knapsack);
+    instance_builder.set_number_of_stages_unlimited();
+    instance_builder.add_bin_type(10, 10);
+    ItemTypeId item_type_id_0 = instance_builder.add_item_type(10, 10, true);
+    instance_builder.set_item_type_profit(item_type_id_0, 30);
+    ItemTypeId item_type_id_1 = instance_builder.add_item_type(5, 10, true);
+    instance_builder.set_item_type_profit(item_type_id_1, 20);
+    ItemTypeId item_type_id_2 = instance_builder.add_item_type(5, 10, true);
+    instance_builder.set_item_type_profit(item_type_id_2, 20);
+    Instance instance = instance_builder.build();
+
+    std::vector<std::vector<Block>> all_blocks = compute_blocks(instance);
+    std::vector<std::vector<Block>> blocks(1);
+    for (const Block& block: all_blocks[0])
+        if (block.is_simple)
+            blocks[0].push_back(block);
+
+    BranchingSchemeMaximalSpaces branching_scheme(instance, blocks, {});
+    treesearchsolver::IterativeBeamSearchParameters<BranchingSchemeMaximalSpaces> ibs_parameters;
+    ibs_parameters.verbosity_level = 0;
+    ibs_parameters.global_history = true;
+    ibs_parameters.maximum_size_of_the_queue = 1;
+    auto ibs_output = treesearchsolver::iterative_beam_search<BranchingSchemeMaximalSpaces>(
+            branching_scheme,
+            ibs_parameters);
+
+    Solution solution = branching_scheme.to_solution(ibs_output.solution_pool.best());
+    EXPECT_TRUE(solution.feasible());
+    EXPECT_EQ(solution.profit(), 40);
 }

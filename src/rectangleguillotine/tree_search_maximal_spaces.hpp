@@ -188,6 +188,9 @@ public:
             const Insertion& insertion) const
     {
         auto node = std::make_shared<Node>(*parent);
+        // The insertions of the parent are not the ones of the child.
+        node->cached_insertions.clear();
+        node->next_child_pos = 0;
         apply_insertion(*node, insertion);
         node->greedy_value = compute_guide_greedy(*node);
         return node;
@@ -205,14 +208,19 @@ public:
             const std::shared_ptr<Node>& parent,
             NodeId number_of_children = -1) const
     {
-        insertions(parent);
+        // 'insertions_' is only filled if the insertions of the parent were
+        // not cached yet.
+        const std::vector<Insertion>& parent_insertions = insertions(parent);
         if (number_of_children < 0
-                || number_of_children > (NodeId)insertions_.size())
-            number_of_children = (NodeId)insertions_.size();
+                || number_of_children > (NodeId)parent_insertions.size())
+            number_of_children = (NodeId)parent_insertions.size();
         std::vector<std::shared_ptr<Node>> nodes(number_of_children);
         for (NodeId i = 0; i < number_of_children; ++i) {
             nodes[i] = std::make_shared<Node>(*parent);
-            apply_insertion(*nodes[i], insertions_[i]);
+            // The insertions of the parent are not the ones of the child.
+            nodes[i]->cached_insertions.clear();
+            nodes[i]->next_child_pos = 0;
+            apply_insertion(*nodes[i], parent_insertions[i]);
             nodes[i]->greedy_value = compute_guide_greedy(*nodes[i]);
         }
         return nodes;
@@ -317,6 +325,27 @@ private:
     /** True iff the bin type has a resource which is not penalized. */
     bool has_hard_resources_ = false;
 
+    /**
+     * For each item type, true iff its consumption of a resource of the bin
+     * type depends on the number of its copies already in the bin.
+     */
+    std::vector<bool> copy_dependent_resource_consumptions_;
+
+    /** Buffer of 'insertion_resource_consumption'. */
+    mutable std::vector<double> insertion_resource_consumption_;
+
+    /**
+     * Consumption of each resource of the bin type by the items of 'block'
+     * if it is inserted in 'node': 'Block::resource_consumption', shifted
+     * for the item types whose consumption depends on the number of their
+     * copies already in 'node'.
+     *
+     * The returned reference may be invalidated by the next call.
+     */
+    const std::vector<double>& insertion_resource_consumption(
+            const Node& node,
+            const Block& block) const;
+
     /** True iff the forced first cut for a URS at (depth, cut_orientation) is vertical. */
     bool cut_is_vertical(Depth depth, CutOrientation cut_orientation) const;
 
@@ -340,6 +369,16 @@ private:
      * penalties of the penalized resources whose capacity it exceeds first.
      */
     Profit insertion_profit(
+            const Node& node,
+            const Block& block) const;
+
+    /**
+     * Guide of the insertion of 'block' in 'node': its profit (see
+     * 'insertion_profit') per unit of area of the block. The insertions of a
+     * node are generated, and the greedy chooses its insertions, in
+     * decreasing order of guide.
+     */
+    double insertion_guide(
             const Node& node,
             const Block& block) const;
 
