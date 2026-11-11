@@ -157,7 +157,17 @@ double BranchingSchemeMaximalSpaces::compute_insertion_guide(
     const Block& block = blocks_[bin_type_id][insertion.block_id];
 
     double fill_rate = (double)parent.item_area / bin_rect_.area();
+    // Generalization of the volume of the items of the block of the fitness
+    // function of Guesser et al. (2026) to profits different from the areas:
+    // the area of the items weighted by their profit density. When the
+    // profits are proportional to the areas, all the blocks have the same
+    // density, and the order of the insertions is the one of the paper.
     double v = insertion_profit(parent, block, bin_type_id);
+    if (v > 0) {
+        v = block.item_area * std::pow(
+                v / block.item_area,
+                parameters_.profit_density_exponent);
+    }
     double l = compute_area_loss_factor(info, block);
     double n = (double)block.number_of_items;
     if (fill_rate < parameters_.configuration_switch_threshold) {
