@@ -5,6 +5,7 @@
 #include "packingsolver/box/solution.hpp"
 #include "packingsolver/box/algorithm_formatter.hpp"
 #include "box/solution_builder.hpp"
+#include "packingsolver/algorithms/resource.hpp"
 #include "algorithms/thread_pool.hpp"
 #include "treesearchsolver/iterative_beam_search.hpp"
 
@@ -122,6 +123,74 @@ BranchingSchemeMaximalSpaces::BranchingSchemeMaximalSpaces(
     bin_box_.x = max_reachable_lengths.x[bin_type.box.x];
     bin_box_.y = max_reachable_lengths.y[bin_type.box.y];
     bin_box_.z = max_reachable_lengths.z[bin_type.box.z];
+    copy_dependent_resource_consumptions_
+        = copy_dependent_resource_consumptions(instance_)[bin_type_id];
+}
+
+const std::vector<double>& BranchingSchemeMaximalSpaces::insertion_resource_consumption(
+        const Node& node,
+        const Block& block) const
+{
+    return shifted_resource_consumption(
+            instance_,
+            instance_.bin_type_id(0),
+            copy_dependent_resource_consumptions_,
+            node.item_number_of_copies,
+            block.item_copies,
+            block.resource_consumption,
+            insertion_resource_consumption_);
+}
+
+bool BranchingSchemeMaximalSpaces::block_resource_feasible(
+        const Node& node,
+        const Block& block) const
+{
+    const BinType& bin_type = instance_.bin_type(instance_.bin_type_id(0));
+    if (bin_type.number_of_resources() == 0)
+        return true;
+    const std::vector<double>& block_resource_consumption
+        = insertion_resource_consumption(node, block);
+    for (ResourceId resource_id = 0;
+            resource_id < bin_type.number_of_resources();
+            ++resource_id) {
+        const Resource& resource = bin_type.resource(resource_id);
+        if (resource.penalize)
+            continue;
+        if (node.resource_consumption[resource_id]
+                + block_resource_consumption[resource_id]
+                > resource.capacity) {
+            return false;
+        }
+    }
+    return true;
+}
+
+Profit BranchingSchemeMaximalSpaces::insertion_profit(
+        const Node& node,
+        const Block& block) const
+{
+    Profit profit = block.item_profit;
+    const BinType& bin_type = instance_.bin_type(instance_.bin_type_id(0));
+    if (bin_type.number_of_resources() == 0)
+        return profit;
+    const std::vector<double>& block_resource_consumption
+        = insertion_resource_consumption(node, block);
+    for (ResourceId resource_id = 0;
+            resource_id < bin_type.number_of_resources();
+            ++resource_id) {
+        const Resource& resource = bin_type.resource(resource_id);
+        if (!resource.penalize)
+            continue;
+        // The penalty is charged once per bin, the first time the
+        // consumption exceeds the capacity, as in 'Solution'.
+        double previous_consumption = node.resource_consumption[resource_id];
+        if (previous_consumption <= resource.capacity
+                && previous_consumption + block_resource_consumption[resource_id]
+                > resource.capacity) {
+            profit -= resource.penalty;
+        }
+    }
+    return profit;
 }
 
 const std::shared_ptr<BranchingSchemeMaximalSpaces::Node> BranchingSchemeMaximalSpaces::root() const
@@ -130,6 +199,9 @@ const std::shared_ptr<BranchingSchemeMaximalSpaces::Node> BranchingSchemeMaximal
     node->id = node_id_++;
     node->item_number_of_copies.assign(instance_.number_of_item_types(), 0);
     BinTypeId bin_type_id = instance_.bin_type_id(0);
+    node->resource_consumption.assign(
+            instance_.bin_type(bin_type_id).number_of_resources(),
+            0.0);
     EmptySpace space;
     space.bl_corner = {0, 0, 0};
     space.box = bin_box_;
@@ -194,7 +266,7 @@ double BranchingSchemeMaximalSpaces::compute_insertion_guide(
     const Block& block = blocks_[bin_type_id][insertion.block_id];
 
     double fill_rate = (double)parent.item_volume / bin_box_.volume();
-    double v = block.item_profit;
+    double v = insertion_profit(parent, block);
     double l = compute_volume_loss_factor(info, block);
     double n = (double)block.number_of_items;
     if (fill_rate < parameters_.configuration_switch_threshold) {
@@ -560,10 +632,19 @@ void BranchingSchemeMaximalSpaces::apply_insertion(
 
     BinTypeId bin_type_id = instance_.bin_type_id(0);
     const Block& block = blocks_[bin_type_id][insertion.block_id];
-    for (const auto& item_copy: block.item_copies) {
-        node.item_number_of_copies[item_copy.first] += item_copy.second;
-        node.profit += instance_.item_type(item_copy.first).profit * item_copy.second;
+    // Update the profit before the resource consumptions: the penalties
+    // depend on the previous consumptions. Both depend on the copies already
+    // in the node: update them before the item counts.
+    node.profit += insertion_profit(node, block);
+    const std::vector<double>& block_resource_consumption
+        = insertion_resource_consumption(node, block);
+    for (ResourceId resource_id = 0;
+            resource_id < (ResourceId)node.resource_consumption.size();
+            ++resource_id) {
+        node.resource_consumption[resource_id] += block_resource_consumption[resource_id];
     }
+    for (const auto& item_copy: block.item_copies)
+        node.item_number_of_copies[item_copy.first] += item_copy.second;
     node.item_volume += block.item_volume;
     node.block_volume += block.box.volume();
     node.weight += block.weight;
@@ -576,7 +657,9 @@ void BranchingSchemeMaximalSpaces::apply_insertion(
     node.placed_blocks.push_back(std::move(current_pb));
 
     // Filter valid_block_ids: remove blocks that no longer have sufficient
-    // item copies available after this placement.
+    // item copies available after this placement, or which would exceed the
+    // capacity of a resource which is not penalized. The consumptions only
+    // increase, so such a block can't be placed anymore.
     {
         const std::vector<Block>& bin_blocks = blocks_[bin_type_id];
         ItemPos block_idx = 0;
@@ -590,6 +673,8 @@ void BranchingSchemeMaximalSpaces::apply_insertion(
                     break;
                 }
             }
+            if (feasible && !block_resource_feasible(node, candidate))
+                feasible = false;
             if (!feasible) {
                 node.valid_block_ids[block_idx] = node.valid_block_ids.back();
                 node.valid_block_ids.pop_back();

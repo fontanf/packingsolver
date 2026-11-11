@@ -30,6 +30,14 @@ struct Block
     /** Sum of weights of all items inside the block. */
     Weight weight = 0;
 
+    /**
+     * Consumption of each resource of the bin type by the items of the block
+     * alone in the bin, indexed by resource id (see
+     * 'compute_block_resource_consumption'). Empty iff the bin type has no
+     * resources.
+     */
+    std::vector<double> resource_consumption;
+
     bool is_simple = false;
 
     ItemTypeId item_type_id = -1;
@@ -85,9 +93,29 @@ struct BlockParameters
 };
 
 /**
+ * Compute the consumption of each resource of a bin type by some copies of
+ * item types alone in the bin: the consumption of the copies of an item type
+ * starts at the first entry of its schedule (see 'Resource::item_consumptions').
+ */
+std::vector<double> compute_block_resource_consumption(
+        const Instance& instance,
+        BinTypeId bin_type_id,
+        const std::vector<std::pair<ItemTypeId, ItemPos>>& item_copies);
+
+/**
+ * Return true iff the consumption of a block alone in the bin doesn't exceed
+ * the capacity of a resource of its bin type which is not penalized.
+ */
+bool block_resource_feasible(
+        const Instance& instance,
+        BinTypeId bin_type_id,
+        const Block& block);
+
+/**
  * Generate the simple blocks of an item type for a bin type: the grids of
  * copies of the item type, in each of its allowed rotations, which fit in
- * the bin.
+ * the bin and don't exceed the capacity of a resource which is not
+ * penalized.
  */
 std::vector<Block> compute_simple_blocks(
         const Instance& instance,
@@ -101,7 +129,9 @@ std::vector<Block> compute_simple_blocks(
  *   for an item type which is not in the sub-instance);
  * - the blocks which don't fit in the bin or need more copies than available
  *   are removed;
- * - the profits are recomputed for the sub-instance;
+ * - the profits and the resource consumptions are recomputed for the
+ *   sub-instance, and the blocks which exceed the capacity of a resource
+ *   which is not penalized are removed;
  * - the item types 'new_item_types' of the sub-instance, which don't come
  *   from the original instance, only get their simple blocks.
  */

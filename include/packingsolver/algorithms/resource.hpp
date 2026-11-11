@@ -177,6 +177,63 @@ std::vector<std::vector<bool>> copy_dependent_resource_consumptions(
 }
 
 /**
+ * Consumption of each resource of bin type 'bin_type_id' by the copies
+ * 'item_copies' inserted in a bin which already contains
+ * 'item_number_of_copies' copies of each item type.
+ *
+ * 'consumption' is their consumption alone in the bin, their copies starting
+ * at the first entry of the schedules (see 'Resource::item_consumptions').
+ * It differs for the item types whose consumption depends on the number of
+ * copies already in the bin (see 'copy_dependent_resource_consumptions').
+ *
+ * Return 'consumption' if it doesn't differ, and 'buffer', filled with the
+ * shifted consumption, otherwise.
+ */
+template <typename Instance>
+const std::vector<double>& shifted_resource_consumption(
+        const Instance& instance,
+        BinTypeId bin_type_id,
+        const std::vector<bool>& copy_dependent_resource_consumptions,
+        const std::vector<ItemPos>& item_number_of_copies,
+        const std::vector<std::pair<ItemTypeId, ItemPos>>& item_copies,
+        const std::vector<double>& consumption,
+        std::vector<double>& buffer)
+{
+    bool shifted = false;
+    for (const std::pair<ItemTypeId, ItemPos>& item_copy: item_copies) {
+        if (copy_dependent_resource_consumptions[item_copy.first]
+                && item_number_of_copies[item_copy.first] > 0) {
+            shifted = true;
+            break;
+        }
+    }
+    if (!shifted)
+        return consumption;
+
+    const auto& bin_type = instance.bin_type(bin_type_id);
+    buffer = consumption;
+    for (const std::pair<ItemTypeId, ItemPos>& item_copy: item_copies) {
+        ItemTypeId item_type_id = item_copy.first;
+        ItemPos number_of_copies_in_bin = item_number_of_copies[item_type_id];
+        if (!copy_dependent_resource_consumptions[item_type_id]
+                || number_of_copies_in_bin == 0) {
+            continue;
+        }
+        const auto& item_type = instance.item_type(item_type_id);
+        for (const ItemResourceConsumption& item_resource_consumption: item_type.resources[bin_type_id]) {
+            const std::vector<double>& schedule = bin_type.resource(item_resource_consumption.resource_id)
+                .item_consumptions[item_resource_consumption.consumption_pos].second;
+            for (ItemPos copy = 0; copy < item_copy.second; ++copy) {
+                buffer[item_resource_consumption.resource_id]
+                    += schedule_consumption(schedule, number_of_copies_in_bin + copy)
+                    - schedule_consumption(schedule, copy);
+            }
+        }
+    }
+    return buffer;
+}
+
+/**
  * Return 'true' iff item types 'item_type_id_1' and 'item_type_id_2' have the
  * same consumption schedule of every resource of every bin type of
  * 'instance' (an item type which doesn't consume a resource has an empty

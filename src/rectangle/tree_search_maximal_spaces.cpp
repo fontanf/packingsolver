@@ -4,6 +4,7 @@
 
 #include "rectangle/solution_builder.hpp"
 #include "packingsolver/rectangle/algorithm_formatter.hpp"
+#include "packingsolver/algorithms/resource.hpp"
 #include "algorithms/thread_pool.hpp"
 #include "treesearchsolver/iterative_beam_search.hpp"
 
@@ -66,6 +67,23 @@ BranchingSchemeMaximalSpaces::BranchingSchemeMaximalSpaces(
     const BinType& bin_type = instance_.bin_type(bin_type_id);
     bin_rect_.x = max_reachable_lengths.x[bin_type.rect.x];
     bin_rect_.y = max_reachable_lengths.y[bin_type.rect.y];
+    copy_dependent_resource_consumptions_
+        = copy_dependent_resource_consumptions(instance_)[bin_type_id];
+}
+
+const std::vector<double>& BranchingSchemeMaximalSpaces::insertion_resource_consumption(
+        const Node& node,
+        const Block& block,
+        BinTypeId bin_type_id) const
+{
+    return shifted_resource_consumption(
+            instance_,
+            bin_type_id,
+            copy_dependent_resource_consumptions_,
+            node.item_number_of_copies,
+            block.item_copies,
+            block.resource_consumption,
+            insertion_resource_consumption_);
 }
 
 const std::shared_ptr<BranchingSchemeMaximalSpaces::Node> BranchingSchemeMaximalSpaces::root() const
@@ -213,6 +231,10 @@ bool BranchingSchemeMaximalSpaces::block_resource_capacity_ok(
         BinTypeId bin_type_id) const
 {
     const BinType& bin_type = instance_.bin_type(bin_type_id);
+    if (bin_type.number_of_resources() == 0)
+        return true;
+    const std::vector<double>& block_resource_consumption
+        = insertion_resource_consumption(parent, block, bin_type_id);
     for (ResourceId resource_id = 0;
             resource_id < bin_type.number_of_resources();
             ++resource_id) {
@@ -221,7 +243,7 @@ bool BranchingSchemeMaximalSpaces::block_resource_capacity_ok(
             continue;
         double previous_consumption = parent.resource_consumption.empty()?
             0.0: parent.resource_consumption[resource_id];
-        if (previous_consumption + block.resource_consumption[resource_id] > resource.capacity * PSTOL)
+        if (previous_consumption + block_resource_consumption[resource_id] > resource.capacity * PSTOL)
             return false;
     }
     return true;
@@ -234,6 +256,10 @@ Profit BranchingSchemeMaximalSpaces::insertion_profit(
 {
     const BinType& bin_type = instance_.bin_type(bin_type_id);
     Profit profit = block.item_profit;
+    if (bin_type.number_of_resources() == 0)
+        return profit;
+    const std::vector<double>& block_resource_consumption
+        = insertion_resource_consumption(parent, block, bin_type_id);
     for (ResourceId resource_id = 0;
             resource_id < bin_type.number_of_resources();
             ++resource_id) {
@@ -242,7 +268,7 @@ Profit BranchingSchemeMaximalSpaces::insertion_profit(
             continue;
         double previous_consumption = parent.resource_consumption.empty()?
             0.0: parent.resource_consumption[resource_id];
-        double new_consumption = previous_consumption + block.resource_consumption[resource_id];
+        double new_consumption = previous_consumption + block_resource_consumption[resource_id];
         if (new_consumption > resource.capacity && previous_consumption <= resource.capacity)
             profit -= resource.penalty;
     }
@@ -466,12 +492,16 @@ void BranchingSchemeMaximalSpaces::apply_insertion(
     // 'penalize' resource's *first* crossing of its capacity).
     node.profit += insertion_profit(node, block, bin_type_id);
     if (bin_type.number_of_resources() > 0) {
+        // Before the item counts: it depends on the copies already in the
+        // node.
+        const std::vector<double>& block_resource_consumption
+            = insertion_resource_consumption(node, block, bin_type_id);
         if (node.resource_consumption.empty())
             node.resource_consumption.assign(bin_type.number_of_resources(), 0.0);
         for (ResourceId resource_id = 0;
                 resource_id < bin_type.number_of_resources();
                 ++resource_id) {
-            node.resource_consumption[resource_id] += block.resource_consumption[resource_id];
+            node.resource_consumption[resource_id] += block_resource_consumption[resource_id];
         }
     }
 

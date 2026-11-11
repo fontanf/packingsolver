@@ -3,10 +3,12 @@
 #include "rectangle/solution_builder.hpp"
 #include "packingsolver/rectangle/reduction.hpp"
 #include "rectangle/block.hpp"
+#include "rectangle/tree_search_maximal_spaces.hpp"
 
 #include <gtest/gtest.h>
 #include <boost/filesystem.hpp>
 
+#include <algorithm>
 #include <set>
 
 using namespace packingsolver::rectangle;
@@ -350,4 +352,44 @@ TEST(RectangleTreeSearchMaximalSpaces, InstanceCacheBlocksReduction)
     Instance instance = build_instance_with_blocks();
     Reduction reduction(instance);
     check_cached_blocks(reduction.instance());
+}
+
+TEST(RectangleTreeSearchMaximalSpaces, CopyDependentResourceConsumption)
+{
+    // Only the first copy of item type 0 consumes the resource, of capacity
+    // 1: once a copy is packed, the block of another copy remains valid.
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(packingsolver::Objective::Knapsack);
+    packingsolver::BinTypeId bin_type_id = instance_builder.add_bin_type(15, 10);
+    packingsolver::ItemTypeId item_type_id_0 = instance_builder.add_item_type(5, 10, true);
+    instance_builder.set_item_type_copies(item_type_id_0, 2);
+    packingsolver::ResourceId resource_id = instance_builder.add_bin_type_resource(bin_type_id, 1.0);
+    instance_builder.add_resource_consumption(bin_type_id, resource_id, item_type_id_0, {1.0, 0.0});
+    Instance instance = instance_builder.build();
+
+    std::vector<std::vector<Block>> blocks = compute_blocks(instance);
+    packingsolver::ItemPos block_id = -1;
+    for (packingsolver::ItemPos candidate_block_id = 0;
+            candidate_block_id < (packingsolver::ItemPos)blocks[0].size();
+            ++candidate_block_id) {
+        if (blocks[0][candidate_block_id].number_of_items == 1)
+            block_id = candidate_block_id;
+    }
+    ASSERT_NE(block_id, -1);
+
+    MaxReachableLengths max_reachable_lengths = compute_max_reachable_lengths(instance);
+    BranchingSchemeMaximalSpaces branching_scheme(instance, blocks, max_reachable_lengths, {});
+    auto node = std::make_shared<BranchingSchemeMaximalSpaces::Node>(*branching_scheme.root());
+    bool inserted = false;
+    for (const BranchingSchemeMaximalSpaces::Insertion& insertion: branching_scheme.insertions(node)) {
+        if (insertion.block_id == block_id) {
+            branching_scheme.apply_insertion(*node, insertion);
+            inserted = true;
+            break;
+        }
+    }
+    ASSERT_TRUE(inserted);
+    EXPECT_EQ(node->resource_consumption[resource_id], 1.0);
+    EXPECT_NE(std::find(node->valid_block_ids.begin(), node->valid_block_ids.end(), block_id),
+            node->valid_block_ids.end());
 }

@@ -155,6 +155,13 @@ public:
         Volume item_volume = 0;
         Volume block_volume = 0;
         Weight weight = 0;
+
+        /**
+         * Consumption of each resource of the bin type by the blocks placed
+         * so far (see 'insertion_resource_consumption'). Empty iff the bin
+         * type has no resources.
+         */
+        std::vector<double> resource_consumption;
         ItemPos number_of_items = 0;
         ItemPos number_of_blocks = 0;
         Profit profit = 0;
@@ -277,6 +284,9 @@ public:
             const Insertion& insertion) const
     {
         auto node = std::make_shared<Node>(*parent);
+        // The insertions of the parent are not the ones of the child.
+        node->cached_insertions.clear();
+        node->next_child_pos = 0;
         apply_insertion(*node, insertion);
         node->greedy_value = compute_guide_greedy(*node);
         return node;
@@ -302,6 +312,9 @@ public:
         std::vector<std::shared_ptr<Node>> nodes(number_of_children);
         for (NodeId i = 0; i < number_of_children; ++i) {
             nodes[i] = std::make_shared<Node>(*parent);
+            // The insertions of the parent are not the ones of the child.
+            nodes[i]->cached_insertions.clear();
+            nodes[i]->next_child_pos = 0;
             apply_insertion(*nodes[i], insertions_[i]);
             nodes[i]->greedy_value = compute_guide_greedy(*nodes[i]);
         }
@@ -410,6 +423,44 @@ private:
     mutable NodeId node_id_ = 0;
 
     mutable std::vector<Insertion> insertions_;
+
+    /**
+     * For each item type, true iff its consumption of a resource of the bin
+     * type depends on the number of its copies already in the bin.
+     */
+    std::vector<bool> copy_dependent_resource_consumptions_;
+
+    /** Buffer of 'insertion_resource_consumption'. */
+    mutable std::vector<double> insertion_resource_consumption_;
+
+    /**
+     * Consumption of each resource of the bin type by the items of 'block'
+     * if it is inserted in 'node': 'Block::resource_consumption', shifted
+     * for the item types whose consumption depends on the number of their
+     * copies already in 'node' (see 'shifted_resource_consumption').
+     *
+     * The returned reference may be invalidated by the next call.
+     */
+    const std::vector<double>& insertion_resource_consumption(
+            const Node& node,
+            const Block& block) const;
+
+    /**
+     * Return true iff inserting 'block' in 'node' doesn't exceed the
+     * capacity of a resource which is not penalized.
+     */
+    bool block_resource_feasible(
+            const Node& node,
+            const Block& block) const;
+
+    /**
+     * Profit of inserting 'block' in 'node': the profit of its items minus
+     * the penalties of the penalized resources whose capacity it exceeds
+     * first.
+     */
+    Profit insertion_profit(
+            const Node& node,
+            const Block& block) const;
 
     /** Scratch buffers reused across calls to avoid repeated heap allocations. */
     mutable std::vector<bool> scratch_is_removed_;

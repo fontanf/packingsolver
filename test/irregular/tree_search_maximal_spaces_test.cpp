@@ -144,6 +144,12 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "irregular" / "tests" / "knapsack_penalized_resource.json",
                 fs::path("data") / "irregular" / "tests" / "knapsack_penalized_resource_solution.json"
             }, {
+                // A resource of capacity 1 of which only the first copy of item
+                // types 0 and 1 consume 1: the two copies of item type 0 are
+                // packed together, with item type 2 but not item type 1.
+                fs::path("data") / "irregular" / "tests" / "knapsack_resource_schedule.json",
+                fs::path("data") / "irregular" / "tests" / "knapsack_resource_schedule_solution.json"
+            }, {
                 // With the item-item spacing, the empty spaces above the items
                 // start above the bounding boxes of their non-inflated shapes,
                 // at the top of their inflated shapes, where their supporting
