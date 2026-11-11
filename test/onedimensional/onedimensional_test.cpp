@@ -95,6 +95,58 @@ TEST(OneDimensional, ResourceCapacityTolerance)
     EXPECT_TRUE(solution.feasible());
 }
 
+TEST(OneDimensional, ResourceToleranceSetByUser)
+{
+    // With a tolerance of 0, 0.1 + 0.2 exceeds the capacity of 0.3. The
+    // tolerance is kept in the sub-instances and in the JSON files.
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(packingsolver::Objective::Knapsack);
+    packingsolver::BinTypeId bin_type_id = instance_builder.add_bin_type(100);
+    packingsolver::ResourceId resource_id = instance_builder.add_bin_type_resource(bin_type_id, 0.3);
+    instance_builder.set_bin_type_resource_tolerance(bin_type_id, resource_id, 0.0);
+    packingsolver::ItemTypeId item_type_id_1 = instance_builder.add_item_type(10);
+    instance_builder.add_resource_consumption(bin_type_id, resource_id, item_type_id_1, {0.1});
+    packingsolver::ItemTypeId item_type_id_2 = instance_builder.add_item_type(10);
+    instance_builder.add_resource_consumption(bin_type_id, resource_id, item_type_id_2, {0.2});
+    const Instance instance = instance_builder.build();
+    EXPECT_EQ(instance.bin_type(bin_type_id).resource(resource_id).tolerance, 0.0);
+
+    SolutionBuilder solution_builder(instance);
+    packingsolver::BinPos bin_pos = solution_builder.add_bin(bin_type_id, 1);
+    solution_builder.add_item(bin_pos, item_type_id_1);
+    solution_builder.add_item(bin_pos, item_type_id_2);
+    Solution solution = solution_builder.build();
+    EXPECT_FALSE(solution.resource_feasible());
+
+    InstanceBuilder sub_instance_builder;
+    sub_instance_builder.set_original_instance(instance);
+    packingsolver::BinTypeId sub_bin_type_id = sub_instance_builder.add_bin_type_from_original_instance(bin_type_id);
+    const Instance sub_instance = sub_instance_builder.build();
+    EXPECT_EQ(sub_instance.bin_type(sub_bin_type_id).resource(0).tolerance, 0.0);
+
+    fs::path path = fs::temp_directory_path() / fs::unique_path();
+    std::string json_path = path.string() + ".json";
+    instance.write(json_path, packingsolver::InstanceFormat::Json);
+    InstanceBuilder read_instance_builder;
+    read_instance_builder.read(json_path);
+    const Instance read_instance = read_instance_builder.build();
+    fs::remove(json_path);
+    EXPECT_EQ(read_instance.bin_type(0).resource(0).tolerance, 0.0);
+}
+
+TEST(OneDimensional, ResourceToleranceComputed)
+{
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(packingsolver::Objective::Knapsack);
+    packingsolver::BinTypeId bin_type_id = instance_builder.add_bin_type(100);
+    instance_builder.add_bin_type_resource(bin_type_id, 10.0);
+    instance_builder.add_bin_type_resource(bin_type_id, 0.0);
+    instance_builder.add_item_type(10);
+    const Instance instance = instance_builder.build();
+    EXPECT_DOUBLE_EQ(instance.bin_type(bin_type_id).resource(0).tolerance, 1e-8);
+    EXPECT_DOUBLE_EQ(instance.bin_type(bin_type_id).resource(1).tolerance, 1e-9);
+}
+
 TEST(OneDimensional, WriteCsvRoundTrip)
 {
     InstanceBuilder instance_builder;
