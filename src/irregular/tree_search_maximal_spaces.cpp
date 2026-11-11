@@ -5,6 +5,7 @@
 #include "packingsolver/irregular/algorithm_formatter.hpp"
 
 #include "irregular/resources.hpp"
+#include "packingsolver/algorithms/resource.hpp"
 #include "irregular/rotations.hpp"
 #include "irregular/solution_builder.hpp"
 #include "irregular/tree_search_periodic_packing.hpp"
@@ -68,6 +69,8 @@ BranchingSchemeMaximalSpaces::BranchingSchemeMaximalSpaces(
     BinTypeId bin_type_id = instance.bin_type_id(0);
     const BinType& bin_type = instance.bin_type(bin_type_id);
     Direction direction = parameters_.direction;
+    copy_dependent_resource_consumptions_
+        = copy_dependent_resource_consumptions(instance)[bin_type_id];
 
     bin_type_ = build_trapezoid_bin_type(
             instance,
@@ -794,7 +797,21 @@ bool BranchingSchemeMaximalSpaces::block_valid(
             instance(),
             instance().bin_type_id(0),
             node.resource_consumption,
-            block.resource_consumption);
+            insertion_resource_consumption(node, block));
+}
+
+const std::vector<double>& BranchingSchemeMaximalSpaces::insertion_resource_consumption(
+        const Node& node,
+        const Block& block) const
+{
+    return shifted_resource_consumption(
+            instance(),
+            instance().bin_type_id(0),
+            copy_dependent_resource_consumptions_,
+            node.item_number_of_copies,
+            block.item_copies,
+            block.resource_consumption,
+            insertion_resource_consumption_);
 }
 
 Profit BranchingSchemeMaximalSpaces::insertion_profit(
@@ -807,7 +824,7 @@ Profit BranchingSchemeMaximalSpaces::insertion_profit(
             instance(),
             instance().bin_type_id(0),
             node.resource_consumption,
-            block.resource_consumption);
+            insertion_resource_consumption(node, block));
 }
 
 void BranchingSchemeMaximalSpaces::apply_insertion(
@@ -831,9 +848,12 @@ void BranchingSchemeMaximalSpaces::apply_insertion(
             node.trapezoids.push_back(shifted(trapezoid, insertion.x, insertion.y));
 
     // Update the profit before the resource consumptions: the penalties
-    // depend on the previous consumptions.
+    // depend on the previous consumptions. Both depend on the copies already
+    // in the node: update them before the number of copies.
     node.profit += insertion_profit(node, block);
-    add_resource_consumption(node.resource_consumption, block.resource_consumption);
+    add_resource_consumption(
+            node.resource_consumption,
+            insertion_resource_consumption(node, block));
 
     // Update the number of copies and the valid blocks. The consumptions
     // only increase: a block which exceeds the capacity of a resource which

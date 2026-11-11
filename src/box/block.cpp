@@ -1,6 +1,7 @@
 #include "box/block.hpp"
 
 #include "box/instance_cache.hpp"
+#include "packingsolver/algorithms/resource.hpp"
 
 #include "optimizationtools/utils/utils.hpp"
 
@@ -285,6 +286,10 @@ std::vector<Block> compute_blocks_for_bin(
                     combined.items.push_back(shifted);
                 }
                 seen.insert(key);
+                combined.resource_consumption = compute_block_resource_consumption(
+                        instance, bin_type_id, combined.item_copies);
+                if (!block_resource_feasible(instance, bin_type_id, combined))
+                    continue;
                 enqueue(std::move(combined));
             }
         }
@@ -363,6 +368,43 @@ MaxReachableLengths packingsolver::box::compute_max_reachable_lengths(
     return result;
 }
 
+std::vector<double> packingsolver::box::compute_block_resource_consumption(
+        const Instance& instance,
+        BinTypeId bin_type_id,
+        const std::vector<std::pair<ItemTypeId, ItemPos>>& item_copies)
+{
+    const BinType& bin_type = instance.bin_type(bin_type_id);
+    std::vector<double> resource_consumption(bin_type.number_of_resources(), 0.0);
+    for (const std::pair<ItemTypeId, ItemPos>& item_copy: item_copies) {
+        const ItemType& item_type = instance.item_type(item_copy.first);
+        for (const ItemResourceConsumption& consumption: item_type.resources[bin_type_id]) {
+            const std::vector<double>& schedule = bin_type.resource(consumption.resource_id)
+                .item_consumptions[consumption.consumption_pos].second;
+            for (ItemPos copy = 0; copy < item_copy.second; ++copy)
+                resource_consumption[consumption.resource_id] += schedule_consumption(schedule, copy);
+        }
+    }
+    return resource_consumption;
+}
+
+bool packingsolver::box::block_resource_feasible(
+        const Instance& instance,
+        BinTypeId bin_type_id,
+        const Block& block)
+{
+    const BinType& bin_type = instance.bin_type(bin_type_id);
+    for (ResourceId resource_id = 0;
+            resource_id < bin_type.number_of_resources();
+            ++resource_id) {
+        const Resource& resource = bin_type.resource(resource_id);
+        if (!resource.penalize
+                && block.resource_consumption[resource_id] > resource.capacity) {
+            return false;
+        }
+    }
+    return true;
+}
+
 std::vector<Block> packingsolver::box::compute_simple_blocks(
         const Instance& instance,
         BinTypeId bin_type_id,
@@ -399,6 +441,10 @@ std::vector<Block> packingsolver::box::compute_simple_blocks(
                     block.weight = cx * cy * cz * item_type.weight;
                     block.item_copies = {{item_type_id, cx * cy * cz}};
                     block.number_of_items = cx * cy * cz;
+                    block.resource_consumption = compute_block_resource_consumption(
+                            instance, bin_type_id, block.item_copies);
+                    if (!block_resource_feasible(instance, bin_type_id, block))
+                        continue;
                     block.items.reserve(cx * cy * cz);
                     for (ItemPos ccx = 0; ccx < cx; ++ccx) {
                         for (ItemPos ccy = 0; ccy < cy; ++ccy) {
@@ -461,6 +507,11 @@ std::vector<Block> packingsolver::box::copy_blocks(
         block.item_profit = 0;
         for (const std::pair<ItemTypeId, ItemPos>& item_copy: block.item_copies)
             block.item_profit += item_copy.second * instance.item_type(item_copy.first).profit;
+        // The resources of the bin types may differ from the original ones.
+        block.resource_consumption = compute_block_resource_consumption(
+                instance, bin_type_id, block.item_copies);
+        if (!block_resource_feasible(instance, bin_type_id, block))
+            continue;
         if (block.is_simple)
             block.item_type_id = block.item_copies.front().first;
         for (SolutionItem& item: block.items)

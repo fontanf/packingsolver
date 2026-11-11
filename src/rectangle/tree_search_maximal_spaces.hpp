@@ -148,10 +148,8 @@ public:
 
         /**
          * Resource consumption accumulated over every block placed so far,
-         * indexed by resource_id (elementwise sum of each placed block's own
-         * 'Block::resource_consumption' - exact for a uniform per-copy
-         * consumption schedule, the common case; see 'Resource::
-         * item_consumptions'). Empty iff the bin type has no resources.
+         * indexed by resource_id (see 'insertion_resource_consumption').
+         * Empty iff the bin type has no resources.
          */
         std::vector<double> resource_consumption;
 
@@ -225,6 +223,9 @@ public:
             const Insertion& insertion) const
     {
         auto node = std::make_shared<Node>(*parent);
+        // The insertions of the parent are not the ones of the child.
+        node->cached_insertions.clear();
+        node->next_child_pos = 0;
         apply_insertion(*node, insertion);
         node->greedy_value = compute_guide_greedy(*node);
         return node;
@@ -248,6 +249,9 @@ public:
         std::vector<std::shared_ptr<Node>> nodes(number_of_children);
         for (NodeId i = 0; i < number_of_children; ++i) {
             nodes[i] = std::make_shared<Node>(*parent);
+            // The insertions of the parent are not the ones of the child.
+            nodes[i]->cached_insertions.clear();
+            nodes[i]->next_child_pos = 0;
             apply_insertion(*nodes[i], insertions_[i]);
             nodes[i]->greedy_value = compute_guide_greedy(*nodes[i]);
         }
@@ -351,6 +355,15 @@ private:
     mutable std::vector<Length> max_reachable_y_;
 
     mutable NodeId node_id_ = 0;
+
+    /**
+     * For each item type, true iff its consumption of a resource of the bin
+     * type depends on the number of its copies already in the bin.
+     */
+    std::vector<bool> copy_dependent_resource_consumptions_;
+
+    /** Buffer of 'insertion_resource_consumption'. */
+    mutable std::vector<double> insertion_resource_consumption_;
 
     mutable std::vector<Insertion> insertions_;
 
@@ -476,12 +489,23 @@ private:
      * consumption would not push any non-'penalize' resource of
      * 'bin_type_id' past its capacity (see 'Resource::penalize') -
      * 'penalize' resources never block an insertion, only a plain
-     * (non-'penalize') resource does. Cheap: just adds the block's own
-     * precomputed 'resource_consumption' to 'parent''s running total,
-     * rather than recomputing it from 'block.item_copies'.
+     * (non-'penalize') resource does. See 'insertion_resource_consumption'.
      */
     bool block_resource_capacity_ok(
             const Node& parent,
+            const Block& block,
+            BinTypeId bin_type_id) const;
+
+    /**
+     * Consumption of each resource of 'bin_type_id' by the items of 'block'
+     * if it is inserted in 'node': 'Block::resource_consumption', shifted
+     * for the item types whose consumption depends on the number of their
+     * copies already in 'node' (see 'shifted_resource_consumption').
+     *
+     * The returned reference may be invalidated by the next call.
+     */
+    const std::vector<double>& insertion_resource_consumption(
+            const Node& node,
             const Block& block,
             BinTypeId bin_type_id) const;
 

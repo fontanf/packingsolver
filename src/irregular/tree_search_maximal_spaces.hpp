@@ -475,6 +475,15 @@ private:
     std::vector<Block> blocks_;
 
     /**
+     * For each item type, true iff its consumption of a resource of the bin
+     * type depends on the number of its copies already in the bin.
+     */
+    std::vector<bool> copy_dependent_resource_consumptions_;
+
+    /** Buffer of 'insertion_resource_consumption'. */
+    mutable std::vector<double> insertion_resource_consumption_;
+
+    /**
      * Rectangles covering the obstacles of the bin, cut out of the empty
      * spaces of the root node.
      */
@@ -553,6 +562,18 @@ private:
      * which is not penalized.
      */
     bool block_valid(
+            const Node& node,
+            const Block& block) const;
+
+    /**
+     * Consumption of each resource of the bin type by the items of 'block'
+     * if it is packed in 'node': 'Block::resource_consumption', shifted for
+     * the item types whose consumption depends on the number of their copies
+     * already in 'node' (see 'shifted_resource_consumption').
+     *
+     * The returned reference may be invalidated by the next call.
+     */
+    const std::vector<double>& insertion_resource_consumption(
             const Node& node,
             const Block& block) const;
 

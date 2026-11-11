@@ -1,11 +1,14 @@
 #include "packingsolver/box/instance_builder.hpp"
 #include "packingsolver/box/reduction.hpp"
 #include "box/block.hpp"
+#include "box/tree_search_maximal_spaces.hpp"
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <set>
 
+using namespace packingsolver;
 using namespace packingsolver::box;
 
 namespace
@@ -184,4 +187,100 @@ TEST(BoxTreeSearchMaximalSpaces, InstanceCacheBlocksReduction)
     Instance instance = build_instance_with_blocks();
     Reduction reduction(instance);
     check_cached_blocks(reduction.instance());
+}
+
+TEST(BoxTreeSearchMaximalSpaces, PenalizedResource)
+{
+    // Only two items fit in the bin. Packing item types 0 and 1 together
+    // exceeds the capacity of the resource, of penalty 15: 20 - 15 = 5, less
+    // than item types 0 and 2: 14.
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(packingsolver::Objective::Knapsack);
+    BinTypeId bin_type_id = instance_builder.add_bin_type(10, 10, 10);
+    ItemTypeId item_type_id_0 = instance_builder.add_item_type(5, 10, 10);
+    instance_builder.set_item_type_profit(item_type_id_0, 10);
+    ItemTypeId item_type_id_1 = instance_builder.add_item_type(5, 10, 10);
+    instance_builder.set_item_type_profit(item_type_id_1, 10);
+    ItemTypeId item_type_id_2 = instance_builder.add_item_type(5, 10, 10);
+    instance_builder.set_item_type_profit(item_type_id_2, 4);
+    ResourceId resource_id = instance_builder.add_bin_type_resource(bin_type_id, 1.0, true, 15.0);
+    instance_builder.add_resource_consumption(bin_type_id, resource_id, item_type_id_0, {1.0});
+    instance_builder.add_resource_consumption(bin_type_id, resource_id, item_type_id_1, {1.0});
+    Instance instance = instance_builder.build();
+
+    TreeSearchMaximalSpacesParameters parameters;
+    parameters.verbosity_level = 0;
+    parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytimeSequential;
+    TreeSearchMaximalSpacesOutput output = tree_search_maximal_spaces(instance, parameters);
+    EXPECT_TRUE(output.solution_pool.best().feasible());
+    EXPECT_EQ(output.solution_pool.best().profit(), 14);
+}
+
+TEST(BoxTreeSearchMaximalSpaces, HardResourceBlocks)
+{
+    // A resource which is not penalized forbids packing item types 0 and 1
+    // together: no block contains both.
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(packingsolver::Objective::Knapsack);
+    BinTypeId bin_type_id = instance_builder.add_bin_type(10, 10, 10);
+    ItemTypeId item_type_id_0 = instance_builder.add_item_type(5, 10, 10);
+    ItemTypeId item_type_id_1 = instance_builder.add_item_type(5, 10, 10);
+    instance_builder.add_item_type(5, 10, 10);
+    ResourceId resource_id = instance_builder.add_bin_type_resource(bin_type_id, 1.0);
+    instance_builder.add_resource_consumption(bin_type_id, resource_id, item_type_id_0, {1.0});
+    instance_builder.add_resource_consumption(bin_type_id, resource_id, item_type_id_1, {1.0});
+    Instance instance = instance_builder.build();
+
+    std::vector<std::vector<Block>> blocks = compute_blocks(instance);
+    for (const Block& block: blocks[0]) {
+        bool contains_item_type_0 = false;
+        bool contains_item_type_1 = false;
+        for (const std::pair<ItemTypeId, ItemPos>& item_copy: block.item_copies) {
+            if (item_copy.first == item_type_id_0)
+                contains_item_type_0 = true;
+            if (item_copy.first == item_type_id_1)
+                contains_item_type_1 = true;
+        }
+        EXPECT_FALSE(contains_item_type_0 && contains_item_type_1);
+    }
+}
+
+TEST(BoxTreeSearchMaximalSpaces, CopyDependentResourceConsumption)
+{
+    // Only the first copy of item type 0 consumes the resource, of capacity
+    // 1: once a copy is packed, the block of another copy remains valid.
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(packingsolver::Objective::Knapsack);
+    BinTypeId bin_type_id = instance_builder.add_bin_type(15, 10, 10);
+    ItemTypeId item_type_id_0 = instance_builder.add_item_type(5, 10, 10);
+    instance_builder.set_item_type_copies(item_type_id_0, 2);
+    ResourceId resource_id = instance_builder.add_bin_type_resource(bin_type_id, 1.0);
+    instance_builder.add_resource_consumption(bin_type_id, resource_id, item_type_id_0, {1.0, 0.0});
+    Instance instance = instance_builder.build();
+
+    std::vector<std::vector<Block>> blocks = compute_blocks(instance);
+    ItemPos block_id = -1;
+    for (ItemPos candidate_block_id = 0;
+            candidate_block_id < (ItemPos)blocks[0].size();
+            ++candidate_block_id) {
+        if (blocks[0][candidate_block_id].number_of_items == 1)
+            block_id = candidate_block_id;
+    }
+    ASSERT_NE(block_id, -1);
+
+    MaxReachableLengths max_reachable_lengths = compute_max_reachable_lengths(instance);
+    BranchingSchemeMaximalSpaces branching_scheme(instance, blocks, max_reachable_lengths, {});
+    auto node = std::make_shared<BranchingSchemeMaximalSpaces::Node>(*branching_scheme.root());
+    bool inserted = false;
+    for (const BranchingSchemeMaximalSpaces::Insertion& insertion: branching_scheme.insertions(node)) {
+        if (insertion.block_id == block_id) {
+            branching_scheme.apply_insertion(*node, insertion);
+            inserted = true;
+            break;
+        }
+    }
+    ASSERT_TRUE(inserted);
+    EXPECT_EQ(node->resource_consumption[resource_id], 1.0);
+    EXPECT_NE(std::find(node->valid_block_ids.begin(), node->valid_block_ids.end(), block_id),
+            node->valid_block_ids.end());
 }
