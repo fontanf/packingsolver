@@ -171,8 +171,9 @@ TEST(OneDimensionalTreeSearch, DominanceCopyDependentResourceConsumption)
                     item_type_id_a, false),
                 item_type_id_a, true),
             item_type_id_a, false);
-    EXPECT_EQ(node_1->last_bin_resource_consumption[resource_id], 2);
-    EXPECT_EQ(node_2->last_bin_resource_consumption[resource_id], 2);
+    const BinType& bin_type = instance.bin_type(bin_type_id);
+    EXPECT_EQ(branching_scheme.last_bin_resource_consumption(*node_1, bin_type, resource_id), 2);
+    EXPECT_EQ(branching_scheme.last_bin_resource_consumption(*node_2, bin_type, resource_id), 2);
 
     // Another copy of A fits in the last bin of node 2 only.
     auto fits_in_last_bin = [&branching_scheme, item_type_id_a](
