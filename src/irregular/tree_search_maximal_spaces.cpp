@@ -678,12 +678,17 @@ BranchingSchemeMaximalSpaces::Insertion BranchingSchemeMaximalSpaces::best_inser
             if (slider.out_of_bounds(position))
                 continue;
 
-            // The block must overlap the empty space.
+            // The block must overlap the empty space, or touch its left
+            // side: a block stopped by the wall alone ends against it.
             Point bl_corner = {
                 position.x + block_trapezoid_set.x_min,
                 position.y + block_trapezoid_set.y_min};
-            if (!overlaps(space, bl_corner, block_width, block_height))
+            if (!shape::strictly_lesser(bl_corner.x, space.xe())
+                    || shape::strictly_lesser(bl_corner.x + block_width, space.xs())
+                    || !shape::strictly_lesser(bl_corner.y, space.ye())
+                    || !shape::strictly_greater(bl_corner.y + block_height, space.ys())) {
                 continue;
+            }
 
             // Score.
             LengthDbl x_min = (std::min)(space.xs(), bl_corner.x);

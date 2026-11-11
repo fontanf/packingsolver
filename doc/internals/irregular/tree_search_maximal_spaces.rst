@@ -120,7 +120,7 @@ The insertions of a node are computed as follows.
 
 A slide is the one of the tree search (see :code:`TrapezoidSetSlider`): the block moves to the right along the supporting part, its supported part staying in contact with it, following the larger of the slopes of the two current edges (the supporting edge and the supported edge), and changing edge when it reaches the end of one of them. When a trapezoid of the block overlaps an obstacle, the block moves by the smallest distance getting it out of the obstacle; this is repeated until it overlaps no obstacle. Each move is the smallest one, so the final position is the first position along the supporting part, at or after the initial one, without overlap.
 
-The slide fails, and the position is discarded, if the end of the supporting part is reached, or if the block goes beyond the right side of the bin. The bottom and the top of the bin are obstacles, so they are respected by the slide too. Otherwise, the position is valid; it is kept if the bounding box of the block overlaps the empty space.
+The slide fails, and the position is discarded, if the end of the supporting part is reached, or if the block goes beyond the right side of the bin. The bottom and the top of the bin are obstacles, so they are respected by the slide too. Otherwise, the position is valid; it is kept if the bounding box of the block overlaps the empty space or touches its left side: a block stopped by the wall alone ends against the left side of the empty space.
 
 **6. Score.** Each position is scored by
 

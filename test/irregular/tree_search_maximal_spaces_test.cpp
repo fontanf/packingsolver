@@ -151,3 +151,49 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "irregular" / "tests" / "knapsack_item_item_minimum_spacing.json",
                 fs::path("data") / "irregular" / "tests" / "knapsack_item_item_minimum_spacing_solution.json"
             }}));
+
+struct IrregularTreeSearchMaximalSpacesRootTestParams
+{
+    fs::path instance_path;
+    Direction direction;
+};
+
+inline std::ostream& operator<<(std::ostream& os, const IrregularTreeSearchMaximalSpacesRootTestParams& test_params)
+{
+    os << test_params.instance_path;
+    return os;
+}
+
+class IrregularTreeSearchMaximalSpacesRootTest: public testing::TestWithParam<IrregularTreeSearchMaximalSpacesRootTestParams> { };
+
+// The root node of the branching scheme has a child: an item can be packed in
+// the bin. Only the single items are used as blocks.
+TEST_P(IrregularTreeSearchMaximalSpacesRootTest, IrregularTreeSearchMaximalSpaces)
+{
+    IrregularTreeSearchMaximalSpacesRootTestParams test_params = GetParam();
+    std::cout << "Instance path: " << test_params.instance_path << std::endl;
+
+    InstanceBuilder instance_builder;
+    instance_builder.read(test_params.instance_path.string());
+    Instance instance = instance_builder.build();
+
+    BranchingSchemeMaximalSpaces::Parameters parameters;
+    parameters.direction = test_params.direction;
+    parameters.use_periodic_blocks = false;
+    BranchingSchemeMaximalSpaces branching_scheme(instance, parameters);
+    auto root = branching_scheme.root();
+    EXPECT_NE(branching_scheme.next_child(root), nullptr);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+        Irregular,
+        IrregularTreeSearchMaximalSpacesRootTest,
+        testing::ValuesIn(std::vector<IrregularTreeSearchMaximalSpacesRootTestParams>{
+            {
+                // The empty space selected is above a slope whose rectangle
+                // is coarse, and the item resting on the slope is stopped by
+                // the wall alone, against the left side of the empty space.
+                fs::path("data") / "irregular" / "tests" / "knapsack_block_stopped_by_wall.json",
+                Direction::LeftToRightThenBottomToTop,
+            },
+            }));
