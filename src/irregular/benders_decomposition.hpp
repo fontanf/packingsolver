@@ -185,6 +185,15 @@ struct BendersDecompositionParameters: packingsolver::Parameters<Instance, Solut
     Counter maximum_number_of_lifted_item_types = 4;
 
     /**
+     * Lift the no-good cuts (see 'maximum_number_of_lifted_item_types').
+     *
+     * Each lifting checks many selections, and the lifted cuts make the
+     * master problems heavier: on the martinez2017 instances, the Benders
+     * decomposition is faster without it.
+     */
+    bool use_lifting = false;
+
+    /**
      * Before the first iteration, prove with the tree search on relative
      * positions which pairs of items don't fit together in a bin, and add a
      * cut for each of them. Only with the tree search on relative positions.

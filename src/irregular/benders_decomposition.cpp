@@ -1204,7 +1204,8 @@ BendersDecompositionOutput packingsolver::irregular::benders_decomposition(
             }
             output.minimal_infeasible_subsets_time += elapsed_time(minimal_infeasible_subsets_begin);
             for (const MinimalInfeasibleSubset& subset: subsets) {
-                if (parameters.subproblem_use_tree_search_relative_positions
+                if (parameters.use_lifting
+                        && parameters.subproblem_use_tree_search_relative_positions
                         && subset.proven
                         && parameters.maximum_number_of_lifted_item_types > 0) {
                     auto lifting_begin = std::chrono::steady_clock::now();
