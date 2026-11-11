@@ -1035,7 +1035,6 @@ BendersDecompositionOutput packingsolver::irregular::benders_decomposition(
             (parameters.optimization_mode == OptimizationMode::NotAnytimeSequential)?
             OptimizationMode::NotAnytimeSequential:
             OptimizationMode::NotAnytimeDeterministic;
-        master_parameters.use_milp_assignment = true;
         master_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
         onedimensional::Output master_output = onedimensional::optimize(
                 master_instance, master_parameters);

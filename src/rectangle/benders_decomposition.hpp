@@ -148,11 +148,17 @@ struct BendersDecompositionParameters: packingsolver::Parameters<Instance, Solut
     /** Optimization mode. */
     OptimizationMode optimization_mode = OptimizationMode::Anytime;
 
-    /** Use the tree search algorithm to solve the master problem. */
+    /**
+     * Use the tree search algorithm to solve the master problem.
+     *
+     * If neither 'master_problem_use_tree_search' nor
+     * 'master_problem_use_milp_assignment' is set, the algorithms solving the
+     * master problem are selected automatically.
+     */
     bool master_problem_use_tree_search = false;
 
     /** Use the MILP assignment algorithm to solve the master problem. */
-    bool master_problem_use_milp_assignment = true;
+    bool master_problem_use_milp_assignment = false;
 
     /**
      * Use the contiguity-master Benders decomposition to solve the
