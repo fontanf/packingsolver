@@ -97,6 +97,8 @@ int main(int argc, char *argv[])
             ("use-column-generation,", po::value<bool>(), "enable column-generation")
             ("use-benders-decomposition,", po::value<bool>(), "enable Benders decomposition algorithm")
             ("benders-decomposition-use-tree-search-relative-positions,", po::value<bool>(), "use the tree search on relative positions in the subproblems of the Benders decomposition algorithm")
+            ("benders-decomposition-bottom-up-maximum-number-of-subproblem-solves,", po::value<Counter>(), "maximum number of subproblem solves of the bottom-up enumeration of the minimal infeasible subsets of a bin in the Benders decomposition algorithm (0 disables it)")
+            ("benders-decomposition-bottom-up-maximum-number-of-cuts,", po::value<Counter>(), "maximum number of cuts of the bottom-up enumeration of the minimal infeasible subsets of a bin in the Benders decomposition algorithm")
             ("use-tree-search-relative-positions,", po::value<bool>(), "use the tree search on relative positions (Feasibility objective with a single bin, open dimension objectives)")
             ("use-global-nonlinear-programming,", po::value<bool>(), "use the global nonlinear programming algorithm (Feasibility objective with a single convex bin; requires SCIP)")
             ("use-dichotomic-search,", po::value<bool>(), "enable dichotomic search")
@@ -209,6 +211,10 @@ int main(int argc, char *argv[])
             parameters.use_benders_decomposition = vm["use-benders-decomposition"].as<bool>();
         if (vm.count("benders-decomposition-use-tree-search-relative-positions"))
             parameters.benders_decomposition_use_tree_search_relative_positions = vm["benders-decomposition-use-tree-search-relative-positions"].as<bool>();
+        if (vm.count("benders-decomposition-bottom-up-maximum-number-of-subproblem-solves"))
+            parameters.benders_decomposition_bottom_up_maximum_number_of_subproblem_solves = vm["benders-decomposition-bottom-up-maximum-number-of-subproblem-solves"].as<Counter>();
+        if (vm.count("benders-decomposition-bottom-up-maximum-number-of-cuts"))
+            parameters.benders_decomposition_bottom_up_maximum_number_of_cuts = vm["benders-decomposition-bottom-up-maximum-number-of-cuts"].as<Counter>();
         if (vm.count("use-tree-search-relative-positions"))
             parameters.use_tree_search_relative_positions = vm["use-tree-search-relative-positions"].as<bool>();
         if (vm.count("use-global-nonlinear-programming"))

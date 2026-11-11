@@ -928,6 +928,10 @@ void optimize_benders_decomposition(
         = parameters.not_anytime_benders_decomposition_number_of_iterations;
     bd_parameters.subproblem_queue_size
         = parameters.benders_decomposition_subproblem_tree_search_queue_size;
+    bd_parameters.bottom_up_maximum_number_of_subproblem_solves
+        = parameters.benders_decomposition_bottom_up_maximum_number_of_subproblem_solves;
+    bd_parameters.bottom_up_maximum_number_of_cuts
+        = parameters.benders_decomposition_bottom_up_maximum_number_of_cuts;
     // In 'Exact' mode, the tree search on relative positions is used so that
     // the cuts are proven.
     bd_parameters.subproblem_use_tree_search_relative_positions
@@ -957,6 +961,7 @@ void optimize_tree_search_relative_positions(
     tsrp_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
     if (parameters.optimization_mode == OptimizationMode::NotAnytimeSequential)
         tsrp_parameters.number_of_threads = 1;
+    tsrp_parameters.growing_subsets = parameters.tree_search_relative_positions_growing_subsets;
     tsrp_parameters.new_solution_callback = [&algorithm_formatter](
             const irregular::Output& output) {
         algorithm_formatter.update_solution(

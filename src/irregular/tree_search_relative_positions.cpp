@@ -1790,7 +1790,8 @@ TreeSearchRelativePositionsOutput packingsolver::irregular::tree_search_relative
     };
 
     if (!open_dimension) {
-        for (ItemPos number_of_items = 1;
+        for (ItemPos number_of_items = (parameters.growing_subsets)?
+                    1: (std::max)((ItemPos)1, (ItemPos)item_type_ids.size());
                 number_of_items <= (ItemPos)item_type_ids.size();
                 ++number_of_items) {
             if (parameters.timer.needs_to_end())
