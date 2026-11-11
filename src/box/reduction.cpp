@@ -412,9 +412,11 @@ bool Reduction::items_incompatible(
         const Resource& resource = bin_type.resource(resource_id);
         if (resource.penalize)
             continue;
-        if (minimum_consumption(find_item_type_schedule(item_type_1, bin_type_id, bin_type, resource_id))
-                + minimum_consumption(find_item_type_schedule(item_type_2, bin_type_id, bin_type, resource_id))
-                > resource.capacity) {
+        if (strictly_greater_resource(
+                    minimum_consumption(find_item_type_schedule(item_type_1, bin_type_id, bin_type, resource_id))
+                    + minimum_consumption(find_item_type_schedule(item_type_2, bin_type_id, bin_type, resource_id)),
+                    resource.capacity,
+                    resource.tolerance)) {
             return true;
         }
     }

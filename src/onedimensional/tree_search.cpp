@@ -127,7 +127,7 @@ BranchingScheme::Node BranchingScheme::child_tmp(
                     = resource.item_consumptions[item_resource_consumption.consumption_pos].second;
                 // The bin is empty before this insertion, so any crossing
                 // here is necessarily the first one.
-                if (schedule_consumption(schedule, 0) > resource.capacity)
+                if (strictly_greater_resource(schedule_consumption(schedule, 0), resource.capacity, resource.tolerance))
                     node.profit -= resource.penalty;
             }
             node.last_bin_item_number_of_copies[insertion.item_type_id] = 1;
@@ -157,8 +157,8 @@ BranchingScheme::Node BranchingScheme::child_tmp(
                         parent, bin_type, resource_id);
                 double consumption = previous_consumption
                     + schedule_consumption(schedule, item_copy);
-                if (consumption > resource.capacity
-                        && previous_consumption <= resource.capacity) {
+                if (strictly_greater_resource(consumption, resource.capacity, resource.tolerance)
+                        && !strictly_greater_resource(previous_consumption, resource.capacity, resource.tolerance)) {
                     node.profit -= resource.penalty;
                 }
             }
@@ -270,7 +270,7 @@ void BranchingScheme::insertion_item_same_bin(
             double consumption = last_bin_resource_consumption(
                     *parent, bin_type, resource_id)
                 + schedule_consumption(schedule, item_copy);
-            if (consumption > resource.capacity * PSTOL)
+            if (strictly_greater_resource(consumption, resource.capacity, resource.tolerance))
                 return;
         }
     }
@@ -311,7 +311,7 @@ void BranchingScheme::insertion_item_new_bin(
         const std::vector<double>& schedule
             = resource.item_consumptions[item_resource_consumption.consumption_pos].second;
         double consumption = schedule_consumption(schedule, 0);
-        if (consumption > resource.capacity * PSTOL)
+        if (strictly_greater_resource(consumption, resource.capacity, resource.tolerance))
             return;
     }
 

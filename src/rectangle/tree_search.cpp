@@ -362,7 +362,7 @@ BranchingScheme::Node BranchingScheme::child_tmp(
                 node.last_bin_resource_consumption[resource_id] = consumption;
                 // The bin is empty before this insertion, so any crossing here
                 // is necessarily the first one.
-                if (resource.penalize && consumption > resource.capacity)
+                if (resource.penalize && strictly_greater_resource(consumption, resource.capacity, resource.tolerance))
                     node.profit -= resource.penalty;
             }
             node.last_bin_item_number_of_copies[insertion.item_type_id] = 1;
@@ -379,8 +379,8 @@ BranchingScheme::Node BranchingScheme::child_tmp(
                 node.last_bin_resource_consumption[resource_id]
                     += schedule_consumption(schedule, item_copy);
                 if (resource.penalize
-                        && node.last_bin_resource_consumption[resource_id] > resource.capacity
-                        && previous_consumption <= resource.capacity) {
+                        && strictly_greater_resource(node.last_bin_resource_consumption[resource_id], resource.capacity, resource.tolerance)
+                        && !strictly_greater_resource(previous_consumption, resource.capacity, resource.tolerance)) {
                     node.profit -= resource.penalty;
                 }
             }
@@ -941,7 +941,7 @@ void BranchingScheme::insertion_item(
                     = resource.item_consumptions[item_resource_consumption.consumption_pos].second;
                 double consumption = parent->last_bin_resource_consumption[resource_id]
                     + schedule_consumption(schedule, item_copy);
-                if (consumption > resource.capacity * PSTOL)
+                if (strictly_greater_resource(consumption, resource.capacity, resource.tolerance))
                     return;
             }
         } else {
@@ -953,7 +953,7 @@ void BranchingScheme::insertion_item(
                 const std::vector<double>& schedule
                     = resource.item_consumptions[item_resource_consumption.consumption_pos].second;
                 double consumption = schedule_consumption(schedule, 0);
-                if (consumption > resource.capacity * PSTOL)
+                if (strictly_greater_resource(consumption, resource.capacity, resource.tolerance))
                     return;
             }
         }

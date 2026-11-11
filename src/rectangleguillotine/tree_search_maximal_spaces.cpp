@@ -48,42 +48,14 @@ const std::vector<double>& BranchingSchemeMaximalSpaces::insertion_resource_cons
         const Node& node,
         const Block& block) const
 {
-    // 'Block::resource_consumption' is the consumption of the block alone in
-    // the bin. It differs for the item types whose consumption depends on the
-    // number of copies already in the bin.
-    bool shifted = false;
-    for (const std::pair<ItemTypeId, ItemPos>& item_copy: block.item_copies) {
-        if (copy_dependent_resource_consumptions_[item_copy.first]
-                && node.item_number_of_copies[item_copy.first] > 0) {
-            shifted = true;
-            break;
-        }
-    }
-    if (!shifted)
-        return block.resource_consumption;
-
-    BinTypeId bin_type_id = instance_.bin_type_id(0);
-    const BinType& bin_type = instance_.bin_type(bin_type_id);
-    insertion_resource_consumption_ = block.resource_consumption;
-    for (const std::pair<ItemTypeId, ItemPos>& item_copy: block.item_copies) {
-        ItemTypeId item_type_id = item_copy.first;
-        ItemPos number_of_copies_in_node = node.item_number_of_copies[item_type_id];
-        if (!copy_dependent_resource_consumptions_[item_type_id]
-                || number_of_copies_in_node == 0) {
-            continue;
-        }
-        const ItemType& item_type = instance_.item_type(item_type_id);
-        for (const ItemResourceConsumption& consumption: item_type.resources[bin_type_id]) {
-            const std::vector<double>& schedule = bin_type.resource(consumption.resource_id)
-                .item_consumptions[consumption.consumption_pos].second;
-            for (ItemPos copy = 0; copy < item_copy.second; ++copy) {
-                insertion_resource_consumption_[consumption.resource_id]
-                    += schedule_consumption(schedule, number_of_copies_in_node + copy)
-                    - schedule_consumption(schedule, copy);
-            }
-        }
-    }
-    return insertion_resource_consumption_;
+    return shifted_resource_consumption(
+            instance_,
+            instance_.bin_type_id(0),
+            copy_dependent_resource_consumptions_,
+            node.item_number_of_copies,
+            block.item_copies,
+            block.resource_consumption,
+            insertion_resource_consumption_);
 }
 
 bool BranchingSchemeMaximalSpaces::block_resource_feasible(
@@ -92,47 +64,24 @@ bool BranchingSchemeMaximalSpaces::block_resource_feasible(
 {
     if (!has_hard_resources_)
         return true;
-    const BinType& bin_type = instance_.bin_type(instance_.bin_type_id(0));
-    const std::vector<double>& block_resource_consumption
-        = insertion_resource_consumption(node, block);
-    for (ResourceId resource_id = 0;
-            resource_id < bin_type.number_of_resources();
-            ++resource_id) {
-        const Resource& resource = bin_type.resource(resource_id);
-        if (resource.penalize)
-            continue;
-        if (node.resource_consumption[resource_id]
-                + block_resource_consumption[resource_id]
-                > resource.capacity) {
-            return false;
-        }
-    }
-    return true;
+    return resource_feasible(
+            instance_,
+            instance_.bin_type_id(0),
+            node.resource_consumption,
+            insertion_resource_consumption(node, block));
 }
 
 Profit BranchingSchemeMaximalSpaces::insertion_profit(
         const Node& node,
         const Block& block) const
 {
-    Profit profit = block.item_profit;
-    const BinType& bin_type = instance_.bin_type(instance_.bin_type_id(0));
-    const std::vector<double>& block_resource_consumption
-        = insertion_resource_consumption(node, block);
-    for (ResourceId resource_id = 0;
-            resource_id < bin_type.number_of_resources();
-            ++resource_id) {
-        const Resource& resource = bin_type.resource(resource_id);
-        if (!resource.penalize)
-            continue;
-        double previous_consumption = node.resource_consumption[resource_id];
-        if (previous_consumption > resource.capacity)
-            continue;
-        if (previous_consumption + block_resource_consumption[resource_id]
-                > resource.capacity) {
-            profit -= resource.penalty;
-        }
-    }
-    return profit;
+    if (node.resource_consumption.empty())
+        return block.item_profit;
+    return block.item_profit - resource_penalty(
+            instance_,
+            instance_.bin_type_id(0),
+            node.resource_consumption,
+            insertion_resource_consumption(node, block));
 }
 
 double BranchingSchemeMaximalSpaces::insertion_guide(

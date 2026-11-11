@@ -89,7 +89,10 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
             const std::vector<double>& schedule
                 = resource.item_consumptions[item_resource_consumption.consumption_pos].second;
             double consumption = schedule_consumption(schedule, copy);
-            if (parent->resource_consumption[resource_id] + consumption > resource.capacity * PSTOL) {
+            if (strictly_greater_resource(
+                        parent->resource_consumption[resource_id] + consumption,
+                        resource.capacity,
+                        resource.tolerance)) {
                 ok = false;
                 break;
             }
@@ -164,8 +167,8 @@ BranchingScheme::Node BranchingScheme::child_tmp(
             double consumption = schedule_consumption(schedule, candidate.copy);
             node.resource_consumption[resource_id] += consumption;
             if (resource.penalize
-                    && node.resource_consumption[resource_id] > resource.capacity
-                    && previous_consumption <= resource.capacity) {
+                    && strictly_greater_resource(node.resource_consumption[resource_id], resource.capacity, resource.tolerance)
+                    && !strictly_greater_resource(previous_consumption, resource.capacity, resource.tolerance)) {
                 node.profit -= resource.penalty;
             }
         }

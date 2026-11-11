@@ -217,7 +217,7 @@ bool Reduction::items_incompatible(
             *std::min_element(schedule_1->begin(), schedule_1->end());
         double minimum_2 = (schedule_2 == nullptr || schedule_2->empty())? 0.0:
             *std::min_element(schedule_2->begin(), schedule_2->end());
-        if (minimum_1 + minimum_2 > resource.capacity)
+        if (strictly_greater_resource(minimum_1 + minimum_2, resource.capacity, resource.tolerance))
             return true;
     }
     return false;

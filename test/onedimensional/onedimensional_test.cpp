@@ -70,6 +70,31 @@ TEST(OneDimensional, ResourceConsumptionCopiedFromOriginalInstance)
             5.0);
 }
 
+TEST(OneDimensional, ResourceCapacityTolerance)
+{
+    // 0.1 + 0.2 is slightly greater than 0.3 in floating point arithmetic:
+    // the consumption doesn't exceed the capacity with the tolerance of the
+    // resource.
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(packingsolver::Objective::Knapsack);
+    packingsolver::BinTypeId bin_type_id = instance_builder.add_bin_type(100);
+    packingsolver::ResourceId resource_id = instance_builder.add_bin_type_resource(bin_type_id, 0.3);
+    packingsolver::ItemTypeId item_type_id_1 = instance_builder.add_item_type(10);
+    instance_builder.add_resource_consumption(bin_type_id, resource_id, item_type_id_1, {0.1});
+    packingsolver::ItemTypeId item_type_id_2 = instance_builder.add_item_type(10);
+    instance_builder.add_resource_consumption(bin_type_id, resource_id, item_type_id_2, {0.2});
+    const Instance instance = instance_builder.build();
+    ASSERT_GT(0.1 + 0.2, 0.3);
+
+    SolutionBuilder solution_builder(instance);
+    packingsolver::BinPos bin_pos = solution_builder.add_bin(bin_type_id, 1);
+    solution_builder.add_item(bin_pos, item_type_id_1);
+    solution_builder.add_item(bin_pos, item_type_id_2);
+    Solution solution = solution_builder.build();
+    EXPECT_TRUE(solution.resource_feasible());
+    EXPECT_TRUE(solution.feasible());
+}
+
 TEST(OneDimensional, WriteCsvRoundTrip)
 {
     InstanceBuilder instance_builder;

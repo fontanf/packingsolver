@@ -2,6 +2,7 @@
 
 #include "packingsolver/algorithms/common.hpp"
 
+#include <cmath>
 #include <vector>
 
 namespace packingsolver
@@ -82,7 +83,51 @@ struct Resource
 
     /** Penalty subtracted from the solution's profit; only used when 'penalize' is 'true'. */
     double penalty = 0.0;
+
+    /**
+     * Absolute tolerance used by 'strictly_greater_resource' /
+     * 'strictly_lesser_resource' / 'equal_resource' for the comparisons of
+     * the consumptions of the resource with its capacity.
+     *
+     * Computed by 'InstanceBuilder::add_bin_type_resource' from the capacity
+     * (see 'compute_resource_tolerance'), so that it is the same in the
+     * sub-instances, whose resources are copied with the same capacity - not
+     * meant to be set directly.
+     */
+    double tolerance = 0.0;
 };
+
+/**
+ * Tolerance of a resource of capacity 'capacity' (see 'Resource::tolerance'):
+ * 1e-9 relative to the capacity, or a plain 1e-9 if the capacity is 0.
+ */
+inline double compute_resource_tolerance(double capacity)
+{
+    return (capacity != 0.0)?
+        std::abs(capacity) * 1e-9:
+        1e-9;
+}
+
+/**
+ * Absolute-tolerance comparisons for resource consumptions, with the
+ * tolerance of the resource (see 'Resource::tolerance'), as for the weights
+ * (see 'strictly_greater_weight').
+ */
+inline bool strictly_greater_resource(double v1, double v2, double resource_tolerance)
+{
+    return v1 - v2 > resource_tolerance;
+}
+
+inline bool strictly_lesser_resource(double v1, double v2, double resource_tolerance)
+{
+    return strictly_greater_resource(v2, v1, resource_tolerance);
+}
+
+inline bool equal_resource(double v1, double v2, double resource_tolerance)
+{
+    return !strictly_greater_resource(v1, v2, resource_tolerance)
+        && !strictly_greater_resource(v2, v1, resource_tolerance);
+}
 
 /**
  * Result of a domain's 'FeasibilityCallback' invocation (see each domain's
@@ -285,47 +330,123 @@ bool same_copy_dependent_last_bin_copies(
         const std::vector<ItemPos>& last_bin_item_number_of_copies_2);
 
 /**
- * Prefix sums of 'schedule' (an item type's consumption schedule for some
- * resource - see 'Resource::item_consumptions', typically obtained in O(1)
- * via 'ItemType::resources'): result[k] = sum of 'schedule[copy]' (or
- * 'schedule.back()' past its end) for 'copy' in [0, k), for k in
- * [0, schedule.size()] - always has at least one entry (result[0] == 0),
- * even for an empty schedule.
+ * Consumption of each resource of bin type 'bin_type_id' by the copies
+ * 'item_copies' alone in a bin: the copies of an item type start at the
+ * first entry of its schedule (see 'Resource::item_consumptions'). See
+ * 'shifted_resource_consumption' for their consumption in a bin which
+ * already contains copies of their item types.
  *
- * Not stored on 'Resource' itself: only a consumer that bundles several
- * copies of an item at once (e.g. rectangle::block.cpp's guillotine blocks)
- * ever needs a *range* sum - every other domain's tree search looks up one
- * copy at a time via 'schedule_consumption' directly, so precomputing this
- * unconditionally in every domain's 'InstanceBuilder::build' would pay for
- * something most of them never read. Call this once per (bin type, item
- * type, resource) a block-bundling consumer actually cares about, and pass
- * the result to 'sum_item_consumption' for an O(1) range sum instead of an
- * O(schedule.size()) one - worthwhile whenever the same triple gets queried
- * many times (e.g. once per generated block).
+ * Indexed by resource id. Empty iff the bin type has no resources.
  */
-std::vector<double> compute_resource_consumption_prefix_sums(
-        const std::vector<double>& schedule);
+template <typename Instance>
+std::vector<double> compute_resource_consumption(
+        const Instance& instance,
+        BinTypeId bin_type_id,
+        const std::vector<std::pair<ItemTypeId, ItemPos>>& item_copies)
+{
+    const auto& bin_type = instance.bin_type(bin_type_id);
+    std::vector<double> resource_consumption(bin_type.number_of_resources(), 0.0);
+    for (const std::pair<ItemTypeId, ItemPos>& item_copy: item_copies) {
+        const auto& item_type = instance.item_type(item_copy.first);
+        for (const ItemResourceConsumption& consumption: item_type.resources[bin_type_id]) {
+            const std::vector<double>& schedule = bin_type.resource(consumption.resource_id)
+                .item_consumptions[consumption.consumption_pos].second;
+            if (schedule.empty())
+                continue;
+            // A copy past the end of the schedule consumes its last entry.
+            ItemPos number_of_scheduled_copies = (std::min)(
+                    item_copy.second,
+                    (ItemPos)schedule.size());
+            for (ItemPos copy = 0; copy < number_of_scheduled_copies; ++copy)
+                resource_consumption[consumption.resource_id] += schedule[copy];
+            resource_consumption[consumption.resource_id]
+                += (item_copy.second - number_of_scheduled_copies) * schedule.back();
+        }
+    }
+    return resource_consumption;
+}
 
 /**
- * Sum of 'schedule_consumption(schedule, copy)' for 'copy' in '[0, count)',
- * in O(1) given 'prefix_sums' (see 'compute_resource_consumption_prefix_sums',
- * called against that same 'schedule').
+ * Return 'true' iff adding 'added_consumption' to 'consumption' doesn't
+ * exceed the capacity of a resource of bin type 'bin_type_id' which is not
+ * penalized.
+ *
+ * An empty 'consumption' counts as no consumption.
  */
-inline double sum_item_consumption(
-        const std::vector<double>& prefix_sums,
-        ItemPos count)
+template <typename Instance>
+bool resource_feasible(
+        const Instance& instance,
+        BinTypeId bin_type_id,
+        const std::vector<double>& consumption,
+        const std::vector<double>& added_consumption)
 {
-    ItemPos schedule_length = (ItemPos)prefix_sums.size() - 1;
-    if (schedule_length <= 0 || count <= 0)
-        return 0.0;
-    ItemPos head_count = (std::min)(count, schedule_length);
-    double sum = prefix_sums[head_count];
-    ItemPos tail_count = count - head_count;
-    if (tail_count > 0) {
-        double last_schedule_value = prefix_sums[schedule_length] - prefix_sums[schedule_length - 1];
-        sum += (double)tail_count * last_schedule_value;
+    const auto& bin_type = instance.bin_type(bin_type_id);
+    for (ResourceId resource_id = 0;
+            resource_id < bin_type.number_of_resources();
+            ++resource_id) {
+        const Resource& resource = bin_type.resource(resource_id);
+        if (resource.penalize)
+            continue;
+        double previous_consumption = consumption.empty()?
+            0.0: consumption[resource_id];
+        if (strictly_greater_resource(
+                    previous_consumption + added_consumption[resource_id],
+                    resource.capacity,
+                    resource.tolerance)) {
+            return false;
+        }
     }
-    return sum;
+    return true;
+}
+
+/**
+ * Penalty of adding 'added_consumption' to 'consumption': the sum of the
+ * penalties of the penalized resources of bin type 'bin_type_id' whose
+ * capacity is exceeded for the first time, as in the solutions.
+ *
+ * An empty 'consumption' counts as no consumption.
+ */
+template <typename Instance>
+Profit resource_penalty(
+        const Instance& instance,
+        BinTypeId bin_type_id,
+        const std::vector<double>& consumption,
+        const std::vector<double>& added_consumption)
+{
+    const auto& bin_type = instance.bin_type(bin_type_id);
+    Profit penalty = 0;
+    for (ResourceId resource_id = 0;
+            resource_id < bin_type.number_of_resources();
+            ++resource_id) {
+        const Resource& resource = bin_type.resource(resource_id);
+        if (!resource.penalize)
+            continue;
+        double previous_consumption = consumption.empty()?
+            0.0: consumption[resource_id];
+        if (!strictly_greater_resource(
+                    previous_consumption,
+                    resource.capacity,
+                    resource.tolerance)
+                && strictly_greater_resource(
+                    previous_consumption + added_consumption[resource_id],
+                    resource.capacity,
+                    resource.tolerance)) {
+            penalty += resource.penalty;
+        }
+    }
+    return penalty;
+}
+
+/** Add 'added_consumption' to 'consumption'. */
+inline void add_resource_consumption(
+        std::vector<double>& consumption,
+        const std::vector<double>& added_consumption)
+{
+    for (ResourceId resource_id = 0;
+            resource_id < (ResourceId)consumption.size();
+            ++resource_id) {
+        consumption[resource_id] += added_consumption[resource_id];
+    }
 }
 
 /**

@@ -203,8 +203,8 @@ void check_cached_blocks(
             EXPECT_DOUBLE_EQ(block.item_profit, profit);
             EXPECT_EQ(
                     block.resource_consumption,
-                    compute_block_resource_consumption(instance, bin_type_id, block.item_copies));
-            EXPECT_TRUE(block_resource_feasible(instance, bin_type_id, block));
+                    compute_resource_consumption(instance, bin_type_id, block.item_copies));
+            EXPECT_TRUE(resource_feasible(instance, bin_type_id, {}, block.resource_consumption));
             if (block.is_simple) {
                 const ItemType& item_type = instance.item_type(block.item_type_id);
                 EXPECT_EQ(block.rect.w % item_type.width(block.rotate), 0);

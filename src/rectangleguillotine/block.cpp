@@ -220,9 +220,9 @@ std::vector<Block> compute_blocks_for_bin(
                     continue;
                 seen.insert(key);
                 combined.item_copies = key.item_copies;
-                combined.resource_consumption = compute_block_resource_consumption(
+                combined.resource_consumption = compute_resource_consumption(
                         instance, bin_type_id, combined.item_copies);
-                if (!block_resource_feasible(instance, bin_type_id, combined))
+                if (!resource_feasible(instance, bin_type_id, {}, combined.resource_consumption))
                     continue;
                 combined.cut_is_vertical = (direction == 0);
                 combined.child_1_id = current_block_id;
@@ -246,51 +246,6 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
     os << "Block rect=(" << block.rect.w << "x" << block.rect.h << ")"
        << " items=" << block.number_of_items;
     return os;
-}
-
-std::vector<double> packingsolver::rectangleguillotine::compute_block_resource_consumption(
-        const Instance& instance,
-        BinTypeId bin_type_id,
-        const std::vector<std::pair<ItemTypeId, ItemPos>>& item_copies)
-{
-    const BinType& bin_type = instance.bin_type(bin_type_id);
-    std::vector<double> resource_consumption(bin_type.number_of_resources(), 0.0);
-    for (const std::pair<ItemTypeId, ItemPos>& item_copy: item_copies) {
-        const ItemType& item_type = instance.item_type(item_copy.first);
-        for (const ItemResourceConsumption& consumption: item_type.resources[bin_type_id]) {
-            const std::vector<double>& schedule = bin_type.resource(consumption.resource_id)
-                .item_consumptions[consumption.consumption_pos].second;
-            if (schedule.empty())
-                continue;
-            // A copy past the end of the schedule consumes its last entry.
-            ItemPos number_of_scheduled_copies = (std::min)(
-                    item_copy.second,
-                    (ItemPos)schedule.size());
-            for (ItemPos copy = 0; copy < number_of_scheduled_copies; ++copy)
-                resource_consumption[consumption.resource_id] += schedule[copy];
-            resource_consumption[consumption.resource_id]
-                += (item_copy.second - number_of_scheduled_copies) * schedule.back();
-        }
-    }
-    return resource_consumption;
-}
-
-bool packingsolver::rectangleguillotine::block_resource_feasible(
-        const Instance& instance,
-        BinTypeId bin_type_id,
-        const Block& block)
-{
-    const BinType& bin_type = instance.bin_type(bin_type_id);
-    for (ResourceId resource_id = 0;
-            resource_id < bin_type.number_of_resources();
-            ++resource_id) {
-        const Resource& resource = bin_type.resource(resource_id);
-        if (!resource.penalize
-                && block.resource_consumption[resource_id] > resource.capacity) {
-            return false;
-        }
-    }
-    return true;
 }
 
 std::vector<Block> packingsolver::rectangleguillotine::compute_simple_blocks(
@@ -331,9 +286,9 @@ std::vector<Block> packingsolver::rectangleguillotine::compute_simple_blocks(
                 block.item_profit = (double)(cx * cy) * item_type.profit;
                 block.item_copies = {{item_type_id, cx * cy}};
                 block.number_of_items = cx * cy;
-                block.resource_consumption = compute_block_resource_consumption(
+                block.resource_consumption = compute_resource_consumption(
                         instance, bin_type_id, block.item_copies);
-                if (!block_resource_feasible(instance, bin_type_id, block))
+                if (!resource_feasible(instance, bin_type_id, {}, block.resource_consumption))
                     continue;
                 blocks.push_back(std::move(block));
             }

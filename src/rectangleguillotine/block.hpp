@@ -88,24 +88,6 @@ struct BlockParameters
 std::ostream& operator<<(std::ostream& os, const Block& block);
 
 /**
- * Compute the consumption of each resource of a bin type by the items of a
- * block alone in the bin; see 'Block::resource_consumption'.
- */
-std::vector<double> compute_block_resource_consumption(
-        const Instance& instance,
-        BinTypeId bin_type_id,
-        const std::vector<std::pair<ItemTypeId, ItemPos>>& item_copies);
-
-/**
- * Return true iff the consumption of a block doesn't exceed the capacity of
- * a resource of its bin type which is not penalized.
- */
-bool block_resource_feasible(
-        const Instance& instance,
-        BinTypeId bin_type_id,
-        const Block& block);
-
-/**
  * Generate the simple blocks of an item type for a bin type: the grids of
  * copies of the item type, in each of its orientations, which fit in the
  * bin and don't exceed the capacity of a resource which is not penalized.

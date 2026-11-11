@@ -4,7 +4,6 @@
 #include "packingsolver/irregular/algorithm_formatter.hpp"
 
 #include "irregular/periodic_packing.hpp"
-#include "irregular/resources.hpp"
 #include "irregular/rotations.hpp"
 #include "irregular/shape_simplification.hpp"
 #include "irregular/solution_builder.hpp"
