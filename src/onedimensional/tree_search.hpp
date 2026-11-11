@@ -118,13 +118,16 @@ public:
          */
         Weight last_bin_remaining_weight = -1;
 
-        /** Resource consumption in the last bin, indexed by resource_id. */
-        std::vector<double> last_bin_resource_consumption;
-
         /**
          * Number of copies of each item type already placed in the last
          * bin, indexed by item_type_id - needed to look up the correct
          * entry of a per-copy resource consumption schedule.
+         *
+         * The resource consumptions of the last bin are derived from it
+         * (see 'BranchingScheme::last_bin_resource_consumption') rather than
+         * stored: with many resources (e.g. the no-good cuts of the master
+         * problems of a Benders decomposition), they would make most of the
+         * memory of the tree search.
          */
         std::vector<ItemPos> last_bin_item_number_of_copies;
 
@@ -230,6 +233,15 @@ public:
     };
 
     inline NodeHasher node_hasher() const { return NodeHasher(*this); }
+
+    /**
+     * Consumption of a resource of a bin type in the last bin of a node,
+     * from the numbers of copies of its item types in it.
+     */
+    double last_bin_resource_consumption(
+            const Node& node,
+            const BinType& bin_type,
+            ResourceId resource_id) const;
 
     bool dominates(
             const std::shared_ptr<Node>& node_1,

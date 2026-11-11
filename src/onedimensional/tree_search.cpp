@@ -114,23 +114,20 @@ BranchingScheme::Node BranchingScheme::child_tmp(
         node.last_bin_weight = item_type.weight;
         node.last_bin_maximum_number_of_items = item_type.maximum_stackability;
         node.last_bin_remaining_weight = item_type.maximum_weight_after;
-        // 'last_bin_item_number_of_copies'/'last_bin_resource_consumption'
-        // are only populated when the bin type has resources at all, so
-        // instances that don't use resources don't pay for
-        // allocating/copying these per-node vectors.
+        // 'last_bin_item_number_of_copies' is only populated when the bin
+        // type has resources at all, so instances that don't use resources
+        // don't pay for allocating/copying this per-node vector.
         if (bin_type.number_of_resources() > 0) {
             node.last_bin_item_number_of_copies.assign(instance().number_of_item_types(), 0);
-            node.last_bin_resource_consumption.assign(bin_type.number_of_resources(), 0.0);
             for (const ItemResourceConsumption& item_resource_consumption: item_type.resources[bin_type_id]) {
-                ResourceId resource_id = item_resource_consumption.resource_id;
-                const Resource& resource = bin_type.resource(resource_id);
+                const Resource& resource = bin_type.resource(item_resource_consumption.resource_id);
+                if (!resource.penalize)
+                    continue;
                 const std::vector<double>& schedule
                     = resource.item_consumptions[item_resource_consumption.consumption_pos].second;
-                double consumption = schedule_consumption(schedule, 0);
-                node.last_bin_resource_consumption[resource_id] = consumption;
-                // The bin is empty before this insertion, so any crossing here
-                // is necessarily the first one.
-                if (resource.penalize && consumption > resource.capacity)
+                // The bin is empty before this insertion, so any crossing
+                // here is necessarily the first one.
+                if (schedule_consumption(schedule, 0) > resource.capacity)
                     node.profit -= resource.penalty;
             }
             node.last_bin_item_number_of_copies[insertion.item_type_id] = 1;
@@ -148,23 +145,24 @@ BranchingScheme::Node BranchingScheme::child_tmp(
                 parent.last_bin_remaining_weight - item_type.weight,
                 item_type.maximum_weight_after);
         if (bin_type.number_of_resources() > 0) {
-            node.last_bin_item_number_of_copies = parent.last_bin_item_number_of_copies;
-            ItemPos item_copy = node.last_bin_item_number_of_copies[insertion.item_type_id];
-            node.last_bin_resource_consumption = parent.last_bin_resource_consumption;
+            ItemPos item_copy = parent.last_bin_item_number_of_copies[insertion.item_type_id];
             for (const ItemResourceConsumption& item_resource_consumption: item_type.resources[bin_type_id]) {
                 ResourceId resource_id = item_resource_consumption.resource_id;
                 const Resource& resource = bin_type.resource(resource_id);
+                if (!resource.penalize)
+                    continue;
                 const std::vector<double>& schedule
                     = resource.item_consumptions[item_resource_consumption.consumption_pos].second;
-                double previous_consumption = node.last_bin_resource_consumption[resource_id];
-                node.last_bin_resource_consumption[resource_id]
-                    += schedule_consumption(schedule, item_copy);
-                if (resource.penalize
-                        && node.last_bin_resource_consumption[resource_id] > resource.capacity
+                double previous_consumption = last_bin_resource_consumption(
+                        parent, bin_type, resource_id);
+                double consumption = previous_consumption
+                    + schedule_consumption(schedule, item_copy);
+                if (consumption > resource.capacity
                         && previous_consumption <= resource.capacity) {
                     node.profit -= resource.penalty;
                 }
             }
+            node.last_bin_item_number_of_copies = parent.last_bin_item_number_of_copies;
             node.last_bin_item_number_of_copies[insertion.item_type_id]++;
         }
     }
@@ -269,7 +267,8 @@ void BranchingScheme::insertion_item_same_bin(
                 continue;
             const std::vector<double>& schedule
                 = resource.item_consumptions[item_resource_consumption.consumption_pos].second;
-            double consumption = parent->last_bin_resource_consumption[resource_id]
+            double consumption = last_bin_resource_consumption(
+                    *parent, bin_type, resource_id)
                 + schedule_consumption(schedule, item_copy);
             if (consumption > resource.capacity * PSTOL)
                 return;
@@ -323,15 +322,29 @@ void BranchingScheme::insertion_item_new_bin(
     insertions_.push_back(insertion);
 }
 
+double BranchingScheme::last_bin_resource_consumption(
+        const Node& node,
+        const BinType& bin_type,
+        ResourceId resource_id) const
+{
+    double consumption = 0.0;
+    for (const auto& item_consumption: bin_type.resource(resource_id).item_consumptions) {
+        ItemPos copies = node.last_bin_item_number_of_copies[item_consumption.first];
+        for (ItemPos copy = 0; copy < copies; ++copy)
+            consumption += schedule_consumption(item_consumption.second, copy);
+    }
+    return consumption;
+}
+
 bool BranchingScheme::dominates(
         const std::shared_ptr<Node>& node_1,
         const std::shared_ptr<Node>& node_2) const
 {
     if (node_1->item_type_id != node_2->item_type_id)
         return false;
-    // 'last_bin_resource_consumption' only tracks the current (last) bin,
-    // and is only meaningfully comparable - index-for-index - between nodes
-    // on the exact same bin: 'bin_type_ids_' is a fixed, position-indexed
+    // The resource consumptions only track the current (last) bin, and are
+    // only meaningfully comparable - index-for-index - between nodes on the
+    // exact same bin: 'bin_type_ids_' is a fixed, position-indexed
     // sequence, so this also guarantees both nodes are packing into the
     // same bin type (same resources, same capacities), which the argument
     // below relies on (the same future insertion would otherwise not
@@ -354,12 +367,29 @@ bool BranchingScheme::dominates(
     // every future insertion into this bin, for both hard and 'penalize'
     // resources alike (a 'penalize' resource already crossed on node_1 is
     // already accounted for above, via 'profit').
-    for (ResourceId resource_id = 0;
-            resource_id < (ResourceId)node_1->last_bin_resource_consumption.size();
-            ++resource_id) {
-        if (node_1->last_bin_resource_consumption[resource_id]
-                > node_2->last_bin_resource_consumption[resource_id]) {
-            return false;
+    // Identical last bins have identical consumptions. Otherwise, only the
+    // resources of the item types of one of the last bins can have a
+    // non-zero consumption.
+    if (node_1->number_of_bins > 0
+            && node_1->last_bin_item_number_of_copies
+            != node_2->last_bin_item_number_of_copies) {
+        BinTypeId bin_type_id = bin_type_ids_[node_1->number_of_bins - 1];
+        const BinType& bin_type = instance().bin_type(bin_type_id);
+        for (const Node* node: {node_1.get(), node_2.get()}) {
+            for (ItemTypeId item_type_id = 0;
+                    item_type_id < (ItemTypeId)node->last_bin_item_number_of_copies.size();
+                    ++item_type_id) {
+                if (node->last_bin_item_number_of_copies[item_type_id] == 0)
+                    continue;
+                for (const ItemResourceConsumption& item_resource_consumption:
+                        instance().item_type(item_type_id).resources[bin_type_id]) {
+                    ResourceId resource_id = item_resource_consumption.resource_id;
+                    if (last_bin_resource_consumption(*node_1, bin_type, resource_id)
+                            > last_bin_resource_consumption(*node_2, bin_type, resource_id)) {
+                        return false;
+                    }
+                }
+            }
         }
     }
     // The future insertions consume the same quantities in both nodes
