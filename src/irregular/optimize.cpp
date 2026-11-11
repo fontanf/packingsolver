@@ -932,6 +932,7 @@ void optimize_benders_decomposition(
         = parameters.benders_decomposition_bottom_up_maximum_number_of_subproblem_solves;
     bd_parameters.bottom_up_maximum_number_of_cuts
         = parameters.benders_decomposition_bottom_up_maximum_number_of_cuts;
+    bd_parameters.use_lifting = parameters.benders_decomposition_use_lifting;
     // In 'Exact' mode, the tree search on relative positions is used so that
     // the cuts are proven.
     bd_parameters.subproblem_use_tree_search_relative_positions

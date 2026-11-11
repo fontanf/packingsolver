@@ -449,6 +449,12 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
      */
     Counter benders_decomposition_bottom_up_maximum_number_of_cuts = 16;
 
+    /**
+     * Lift the no-good cuts of the Benders decomposition algorithm with the
+     * tree search on relative positions.
+     */
+    bool benders_decomposition_use_lifting = false;
+
     /*
      * Parameters for anytime mode
      */
