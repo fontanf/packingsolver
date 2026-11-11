@@ -315,16 +315,26 @@ public:
         /**
          * Exponent of the density of an insertion in its score:
          *
-         * score = profit * density^beta * number_of_items^(-gamma)
+         * score = value * density^beta * number_of_items^(-gamma)
          *
-         * where the density is the area of the items of the block divided by
-         * the area of the rectangle from the corner of the empty space to the
-         * top-right corner of the block.
+         * where the value is the one of 'insertion_value' and the density is
+         * the area of the items of the block divided by the area of the
+         * rectangle from the corner of the empty space to the top-right
+         * corner of the block.
          */
         double beta = 2.0;
 
         /** Exponent of the number of items of an insertion in its score. */
         double gamma = 0.4;
+
+        /**
+         * Exponent of the profit density of a block in the value of its
+         * insertions: the area of its items is weighted by its profit per
+         * unit of area to this power. It has no effect when the profits are
+         * proportional to the areas; 1 weights the area by the density
+         * once, which amounts to the profit of the block.
+         */
+        double profit_density_exponent = 2.0;
 
         /**
          * Timer, checked during the greedy completions, which may be long.
@@ -582,6 +592,19 @@ private:
      * penalties of the penalized resources whose capacity it exceeds first.
      */
     Profit insertion_profit(
+            const Node& node,
+            const Block& block) const;
+
+    /**
+     * Value of packing a block in a node in the score of its insertions.
+     *
+     * Generalization of the volume of the items of the block of the fitness
+     * function of Guesser et al. (2026) to profits different from the areas:
+     * the area of the items weighted by their profit density. When the
+     * profits are proportional to the areas, all the blocks have the same
+     * density, and the order of the insertions is the one of the paper.
+     */
+    double insertion_value(
             const Node& node,
             const Block& block) const;
 

@@ -585,17 +585,17 @@ void BranchingSchemeMaximalSpaces::select_empty_space(
         // 'best_insertion') contains the bounding box of the block, so the
         // density is at most the area of the items divided by the area of
         // the bounding box. Since the density is at most 1, the score is
-        // at most 0 if the profit is negative. The bound is slightly
+        // at most 0 if the value is negative. The bound is slightly
         // increased to cover the rounding errors of the score.
-        Profit profit = insertion_profit(node, block);
+        double value = insertion_value(node, block);
         double score_bound = 0.0;
         if (parameters_.beta < 0) {
             score_bound = std::numeric_limits<double>::infinity();
-        } else if (profit > 0) {
+        } else if (value > 0) {
             double density_bound = (std::min)(
                     1.0,
                     block.item_area / (block_width * block_height));
-            score_bound = profit
+            score_bound = value
                 * std::pow(density_bound, parameters_.beta)
                 * std::pow(block.number_of_items, -parameters_.gamma);
             score_bound *= 1 + 1e-9;
@@ -698,7 +698,7 @@ BranchingSchemeMaximalSpaces::Insertion BranchingSchemeMaximalSpaces::best_inser
             AreaDbl area = (bl_corner.x + block_width - x_min)
                 * (bl_corner.y + block_height - y_min);
             double density = (std::min)(1.0, block.item_area / area);
-            double guide = insertion_profit(node, block)
+            double guide = insertion_value(node, block)
                 * std::pow(density, parameters_.beta)
                 * std::pow(block.number_of_items, -parameters_.gamma);
             if (best_insertion.block_id == -1
@@ -824,6 +824,19 @@ Profit BranchingSchemeMaximalSpaces::insertion_profit(
             instance().bin_type_id(0),
             node.resource_consumption,
             insertion_resource_consumption(node, block));
+}
+
+double BranchingSchemeMaximalSpaces::insertion_value(
+        const Node& node,
+        const Block& block) const
+{
+    double value = insertion_profit(node, block);
+    if (value > 0) {
+        value = block.item_area * std::pow(
+                value / block.item_area,
+                parameters_.profit_density_exponent);
+    }
+    return value;
 }
 
 void BranchingSchemeMaximalSpaces::apply_insertion(

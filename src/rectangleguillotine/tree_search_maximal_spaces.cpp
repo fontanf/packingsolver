@@ -93,7 +93,12 @@ double BranchingSchemeMaximalSpaces::insertion_guide(
     // come first. The tree search only generates the first children of a
     // node, and the insertions which lead to the good solutions might never
     // be generated.
-    return (double)insertion_profit(node, block) / block.rect.area();
+    double profit = insertion_profit(node, block);
+    if (profit <= 0)
+        return profit / block.rect.area();
+    return (double)block.item_area / block.rect.area() * std::pow(
+            profit / block.item_area,
+            parameters_.profit_density_exponent);
 }
 
 bool BranchingSchemeMaximalSpaces::cut_is_vertical(
