@@ -51,6 +51,26 @@ bool has_extra_constraints(const Instance& instance)
     return false;
 }
 
+/**
+ * Return true iff the MILP assignment models all the constraints of the
+ * instance: it doesn't model the nesting lengths, the maximum stackabilities
+ * and the maximum weights after.
+ */
+bool milp_assignment_models_all_constraints(const Instance& instance)
+{
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance.number_of_item_types();
+            ++item_type_id) {
+        const ItemType& item_type = instance.item_type(item_type_id);
+        if (item_type.nesting_length != 0
+                || item_type.maximum_stackability != std::numeric_limits<ItemPos>::max()
+                || item_type.maximum_weight_after != std::numeric_limits<Weight>::infinity()) {
+            return false;
+        }
+    }
+    return true;
+}
+
 void optimize_trivial_bound(
         const Instance& instance,
         const OptimizeParameters& parameters,
@@ -586,6 +606,15 @@ packingsolver::onedimensional::Output packingsolver::onedimensional::optimize(
     bool use_dichotomic_search = parameters.use_dichotomic_search;
     bool use_column_generation = parameters.use_column_generation;
     bool use_milp_assignment = parameters.use_milp_assignment;
+    // In 'Exact' mode, with constraints other than the lengths, the bounds of
+    // the other algorithms are weak, so the automatic selection also runs the
+    // MILP assignment to prove optimality, if it models all the constraints
+    // (it doesn't support the 'BinPackingWithLeftovers' objective).
+    bool use_milp_assignment_for_extra_constraints
+        = parameters.optimization_mode == OptimizationMode::Exact
+        && instance.objective() != Objective::BinPackingWithLeftovers
+        && has_extra_constraints(instance)
+        && milp_assignment_models_all_constraints(instance);
     if (instance.number_of_bins() <= 1) {
         use_sequential_single_knapsack = false;
         use_sequential_value_correction = false;
@@ -595,6 +624,8 @@ packingsolver::onedimensional::Output packingsolver::onedimensional::optimize(
         if (!use_tree_search
                 && !use_milp_assignment) {
             use_tree_search = true;
+            if (use_milp_assignment_for_extra_constraints)
+                use_milp_assignment = true;
         }
     } else if (instance.objective() == Objective::Feasibility) {
         // Disable algorithms which are not available for this objective.
@@ -605,6 +636,8 @@ packingsolver::onedimensional::Output packingsolver::onedimensional::optimize(
                 && !use_sequential_value_correction
                 && !use_column_generation
                 && !use_milp_assignment) {
+            if (use_milp_assignment_for_extra_constraints)
+                use_milp_assignment = true;
             if (mean_item_type_copies(instance)
                     > parameters.many_item_type_copies_factor
                     * mean_number_of_items_in_bins) {
@@ -629,6 +662,8 @@ packingsolver::onedimensional::Output packingsolver::onedimensional::optimize(
                 && !use_sequential_value_correction
                 && !use_column_generation
                 && !use_milp_assignment) {
+            if (use_milp_assignment_for_extra_constraints)
+                use_milp_assignment = true;
             if (mean_item_type_copies(instance)
                     > parameters.many_item_type_copies_factor
                     * mean_number_of_items_in_bins) {
@@ -666,6 +701,8 @@ packingsolver::onedimensional::Output packingsolver::onedimensional::optimize(
                 && !use_sequential_value_correction
                 && !use_column_generation
                 && !use_milp_assignment) {
+            if (use_milp_assignment_for_extra_constraints)
+                use_milp_assignment = true;
             if (mean_item_type_copies(instance)
                     > parameters.many_item_type_copies_factor
                     * mean_number_of_items_in_bins) {
@@ -711,6 +748,8 @@ packingsolver::onedimensional::Output packingsolver::onedimensional::optimize(
                 && !use_dichotomic_search
                 && !use_column_generation
                 && !use_milp_assignment) {
+            if (use_milp_assignment_for_extra_constraints)
+                use_milp_assignment = true;
             if (mean_item_type_copies(instance)
                     > parameters.many_item_type_copies_factor
                     * mean_number_of_items_in_bins) {

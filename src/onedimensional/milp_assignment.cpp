@@ -1620,6 +1620,15 @@ MilpAssignmentOutput packingsolver::onedimensional::milp_assignment(
         Highs highs;
         mathoptsolverscmake::reduce_printout(highs);
         mathoptsolverscmake::set_time_limit(highs, parameters.timer.remaining_time());
+        // In 'Exact' mode, the solve must prove optimality as 'Output::
+        // is_proven_optimal' does: with a relative gap of 1e-6 (see
+        // 'strictly_greater_profit'). Otherwise, it stops at the default gaps
+        // of HiGHS (1e-4 relative, 1e-6 absolute), and the other algorithms
+        // of the automatic selection keep searching until the time limit.
+        if (parameters.optimization_mode == OptimizationMode::Exact) {
+            highs.setOptionValue("mip_rel_gap", 1e-7);
+            highs.setOptionValue("mip_abs_gap", 1e-9);
+        }
         mathoptsolverscmake::load(highs, milp_model.model);
         highs.setCallback([
                 &instance,
