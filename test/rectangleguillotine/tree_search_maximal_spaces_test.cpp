@@ -531,9 +531,10 @@ TEST(RectangleGuillotineTreeSearchMaximalSpaces, CopyDependentResourceConsumptio
 
 TEST(RectangleGuillotineTreeSearchMaximalSpaces, InsertionOrderProfitDensity)
 {
-    // The tree search only generates the first children of a node: they must
-    // be the insertions of greatest profit per unit of area, not of greatest
-    // profit. Otherwise, with a queue of size 1, item type 0 is packed alone.
+    // Without the loss factor, the tree search only generates the first
+    // children of a node: they must be the insertions of greatest profit per
+    // unit of area, not of greatest profit. Otherwise, with a queue of size
+    // 1, item type 0 is packed alone.
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::Knapsack);
     instance_builder.set_number_of_stages_unlimited();
@@ -552,7 +553,10 @@ TEST(RectangleGuillotineTreeSearchMaximalSpaces, InsertionOrderProfitDensity)
         if (block.is_simple)
             blocks[0].push_back(block);
 
-    BranchingSchemeMaximalSpaces branching_scheme(instance, blocks, {});
+    BranchingSchemeMaximalSpaces::Parameters branching_scheme_parameters;
+    branching_scheme_parameters.use_loss_factor = false;
+    branching_scheme_parameters.profit_density_exponent = 1.0;
+    BranchingSchemeMaximalSpaces branching_scheme(instance, blocks, branching_scheme_parameters);
     treesearchsolver::IterativeBeamSearchParameters<BranchingSchemeMaximalSpaces> ibs_parameters;
     ibs_parameters.verbosity_level = 0;
     ibs_parameters.global_history = true;
@@ -564,4 +568,46 @@ TEST(RectangleGuillotineTreeSearchMaximalSpaces, InsertionOrderProfitDensity)
     Solution solution = branching_scheme.to_solution(ibs_output.solution_pool.best());
     EXPECT_TRUE(solution.feasible());
     EXPECT_EQ(solution.profit(), 40);
+}
+
+TEST(RectangleGuillotineTreeSearchMaximalSpaces, InsertionOrderLossFactor)
+{
+    // Item type 0 has the greatest profit density, but no item fits in the
+    // 3 x 10 space at its right. With the loss factor, the first insertion is
+    // item type 1, which leaves a space for item type 2. Otherwise, with a
+    // queue of size 1, item type 0 is packed alone.
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(Objective::Knapsack);
+    instance_builder.set_number_of_stages_unlimited();
+    instance_builder.add_bin_type(10, 10);
+    ItemTypeId item_type_id_0 = instance_builder.add_item_type(7, 10, true);
+    instance_builder.set_item_type_profit(item_type_id_0, 84);
+    ItemTypeId item_type_id_1 = instance_builder.add_item_type(5, 10, true);
+    instance_builder.set_item_type_profit(item_type_id_1, 50);
+    ItemTypeId item_type_id_2 = instance_builder.add_item_type(5, 10, true);
+    instance_builder.set_item_type_profit(item_type_id_2, 50);
+    Instance instance = instance_builder.build();
+
+    std::vector<std::vector<Block>> all_blocks = compute_blocks(instance);
+    std::vector<std::vector<Block>> blocks(1);
+    for (const Block& block: all_blocks[0])
+        if (block.is_simple)
+            blocks[0].push_back(block);
+
+    for (bool use_loss_factor: {true, false}) {
+        BranchingSchemeMaximalSpaces::Parameters branching_scheme_parameters;
+        branching_scheme_parameters.use_loss_factor = use_loss_factor;
+        BranchingSchemeMaximalSpaces branching_scheme(instance, blocks, branching_scheme_parameters);
+        treesearchsolver::IterativeBeamSearchParameters<BranchingSchemeMaximalSpaces> ibs_parameters;
+        ibs_parameters.verbosity_level = 0;
+        ibs_parameters.global_history = true;
+        ibs_parameters.maximum_size_of_the_queue = 1;
+        auto ibs_output = treesearchsolver::iterative_beam_search<BranchingSchemeMaximalSpaces>(
+                branching_scheme,
+                ibs_parameters);
+
+        Solution solution = branching_scheme.to_solution(ibs_output.solution_pool.best());
+        EXPECT_TRUE(solution.feasible());
+        EXPECT_EQ(solution.profit(), (use_loss_factor)? 100: 84);
+    }
 }
