@@ -190,6 +190,7 @@ def test_kept_methods():
             "read_item_types",
             "set_weight_tolerance",
             "add_bin_type_resource",
+            "set_bin_type_resource_tolerance",
             "add_resource_consumption",
             "set_bin_types_infinite_x",
             "set_bin_types_infinite_y",
@@ -217,6 +218,8 @@ RENAMED = {
 NOT_BOUND = {
     "add_bin_type_resource":
         "creates a resource with its own id; kept as a builder method",
+    "set_bin_type_resource_tolerance":
+        "needs a resource id; kept as a builder method",
     "set_item_type_box":
         "the dimensions are the positional arguments of add_item_type",
 }

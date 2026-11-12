@@ -281,6 +281,7 @@ def test_removed_setters():
             "add_defect",
             "set_item_defect_minimum_spacing",
             "add_bin_type_resource",
+            "set_bin_type_resource_tolerance",
             "add_resource_consumption",
             "set_bin_types_infinite_copies",
             "set_bin_types_unweighted",
@@ -306,6 +307,7 @@ NOT_BOUND = {
     "add_defect": "returns a defect id; kept as a separate method",
     "set_item_defect_minimum_spacing": "needs a defect id returned by 'add_defect'; kept as a separate method",
     "add_bin_type_resource": "returns a resource id; kept as a separate method",
+    "set_bin_type_resource_tolerance": "needs a resource id; kept as a separate method",
     "add_resource_consumption": "needs a resource id and an item type id; kept as a separate method",
     "add_fixed_item": "intentionally not bound in Python",
 }

@@ -202,6 +202,7 @@ def test_instance_builder_removed_methods(name):
 def test_instance_builder_kept_methods():
     for name in [
             "add_bin_type_resource",
+            "set_bin_type_resource_tolerance",
             "add_resource_consumption",
             "add_item_type_precedence",
             "set_bin_types_infinite_copies",
@@ -227,6 +228,7 @@ RENAMED = {
 NOT_BOUND = {
     "set_item_type_length": "redundant with the positional 'length' argument of 'add_item_type'",
     "add_bin_type_resource": "creates a resource with its own id; kept as a builder method",
+    "set_bin_type_resource_tolerance": "needs a resource id; kept as a builder method",
     "add_item_type_precedence": "relates two item types; kept as a builder method",
     "add_bin_type_from_original_instance": "C++ only: builds the sub-instances of the algorithms",
     "add_item_type_from_original_instance": "C++ only: builds the sub-instances of the algorithms",
@@ -377,6 +379,38 @@ def test_resources():
     for bin_pos in range(solution.number_of_different_bins()):
         for consumption in solution.bin(bin_pos).resource_consumption:
             assert consumption <= 10.0
+
+
+@pytest.mark.parametrize("tolerance, number_of_items", [(None, 2), (0.0, 1)])
+def test_resource_tolerance(tolerance, number_of_items):
+    # With a tolerance of 0, 0.1 + 0.2 exceeds the capacity of 0.3.
+    instance_builder = pso.InstanceBuilder()
+    instance_builder.set_objective(pso.Objective.Knapsack)
+    bin_type_id = instance_builder.add_bin_type(100)
+    resource_id = instance_builder.add_bin_type_resource(bin_type_id, 0.3)
+    if tolerance is not None:
+        instance_builder.set_bin_type_resource_tolerance(
+                bin_type_id, resource_id, tolerance)
+    for consumption in [0.1, 0.2]:
+        item_type_id = instance_builder.add_item_type(10)
+        instance_builder.add_resource_consumption(
+                bin_type_id, resource_id, item_type_id, [consumption])
+    instance = instance_builder.build()
+    output = pso.optimize(instance, quiet_parameters())
+    assert output.solution.number_of_items() == number_of_items
+    assert output.is_proven_optimal()
+
+
+def test_resource_tolerance_invalid():
+    instance_builder = pso.InstanceBuilder()
+    bin_type_id = instance_builder.add_bin_type(100)
+    resource_id = instance_builder.add_bin_type_resource(bin_type_id, 0.3)
+    with pytest.raises(ValueError):
+        instance_builder.set_bin_type_resource_tolerance(
+                bin_type_id, resource_id, -1.0)
+    with pytest.raises(ValueError):
+        instance_builder.set_bin_type_resource_tolerance(
+                bin_type_id, resource_id + 1, 0.0)
 
 
 def test_read_csv():

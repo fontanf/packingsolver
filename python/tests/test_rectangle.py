@@ -85,6 +85,7 @@ NOT_BOUND = {
     "set_bin_type_rect": "the dimensions are the positional arguments of 'add_bin_type'",
     "set_bin_type_semi_trailer_truck_parameters": "'SemiTrailerTruckData' is not bound in Python",
     "add_bin_type_resource": "creates a resource with its own id; kept as a method",
+    "set_bin_type_resource_tolerance": "needs a resource id; kept as a method",
 }
 
 
@@ -216,6 +217,7 @@ def test_removed_setters():
     for name in [
             "add_defect",
             "add_bin_type_resource",
+            "set_bin_type_resource_tolerance",
             "add_resource_consumption",
             "set_group_weight_constraints",
             "set_item_types_infinite_copies",
