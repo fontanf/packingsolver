@@ -490,6 +490,8 @@ void bind_irregular(nb::module_& m)
                 nb::arg("bin_type_id"), nb::arg("defect_id"), nb::arg("item_defect_minimum_spacing"))
         .def("add_bin_type_resource", &InstanceBuilder::add_bin_type_resource,
                 nb::arg("bin_type_id"), nb::arg("capacity"), nb::arg("penalize") = false, nb::arg("penalty") = 0.0)
+        .def("set_bin_type_resource_tolerance", &InstanceBuilder::set_bin_type_resource_tolerance,
+                nb::arg("bin_type_id"), nb::arg("resource_id"), nb::arg("tolerance"))
         .def("add_resource_consumption", &InstanceBuilder::add_resource_consumption,
                 nb::arg("bin_type_id"), nb::arg("resource_id"), nb::arg("item_type_id"), nb::arg("schedule"))
         .def("set_bin_types_infinite_copies", &InstanceBuilder::set_bin_types_infinite_copies)
