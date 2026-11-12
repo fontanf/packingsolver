@@ -162,19 +162,39 @@ public:
         CutOrientation first_cut_orientation = CutOrientation::Any;
 
         /**
-         * Exponent of the profit density of a block in the guide of its
-         * insertions: the fill rate of the block is weighted by its profit
-         * per unit of area to this power. It has no effect when the profits
-         * are proportional to the areas; 1 weights the fill rate by the
-         * density once, which amounts to the profit per unit of area of the
-         * block.
+         * If true, the guide of an insertion is the fitness of the tree
+         * searches with maximal spaces of the other problem types (Guesser et
+         * al., 2026), without the contact factor:
          *
-         * Unlike the guides of the other problem types, the guide has no
-         * factor for the waste of an insertion, except the fill rate of the
-         * block. With an exponent greater than 1, the blocks of high density
-         * with a lot of waste come before the full blocks of lower density.
+         *   guide = V * L^loss_factor_exponent * N^(-number_of_items_exponent)
+         *
+         * where V is the area of the items of the block weighted by their
+         * profit density to the power 'profit_density_exponent', L is the
+         * fraction of the area of the URS which can still be used by items
+         * after the insertion (see 'insertion_loss_factor'), and N is the
+         * number of items of the block.
+         *
+         * Otherwise, the guide is the fill rate of the block weighted by its
+         * profit density to the power 'profit_density_exponent'. It has no
+         * factor for the waste that the insertion leaves in the URS: with an
+         * exponent greater than 1, the blocks of high density with a lot of
+         * waste come before the full blocks of lower density.
          */
-        double profit_density_exponent = 1.0;
+        bool use_loss_factor = true;
+
+        /**
+         * Exponent of the profit density of a block in the guide of its
+         * insertions. It has no effect when the profits are proportional to
+         * the areas. With 1 and without the loss factor, the guide is the
+         * profit per unit of area of the block.
+         */
+        double profit_density_exponent = 2.0;
+
+        /** Exponent of the loss factor in the guide. */
+        double loss_factor_exponent = 2.6631;
+
+        /** Exponent of the number of items of the block in the guide. */
+        double number_of_items_exponent = 0.3968;
     };
 
     BranchingSchemeMaximalSpaces(
@@ -334,6 +354,14 @@ private:
     /** Dimensions of the area available for the items (from bin type 0). */
     Rectangle bin_rect_;
 
+    /**
+     * For each length 'length' between 0 and the width (height) of the area
+     * available for the items, the largest width (height) at most 'length'
+     * of a row (column) of items separated by cuts.
+     */
+    std::vector<Length> max_reachable_widths_;
+    std::vector<Length> max_reachable_heights_;
+
     mutable NodeId node_id_ = 0;
     mutable std::vector<Insertion> insertions_;
 
@@ -388,14 +416,38 @@ private:
             const Block& block) const;
 
     /**
-     * Guide of the insertion of 'block' in 'node': its profit (see
-     * 'insertion_profit') per unit of area of the block. The insertions of a
-     * node are generated, and the greedy chooses its insertions, in
-     * decreasing order of guide.
+     * Largest area of a URS of dimensions 'width' x 'height' which can be
+     * covered by the rows and columns of items of 'max_reachable_widths_'
+     * and 'max_reachable_heights_'.
+     */
+    Area usable_area(
+            Length width,
+            Length height) const;
+
+    /**
+     * Fraction of the area of 'space' which can still be used by items after
+     * the insertion of 'block' with a vertical first cut iff
+     * 'vertical_first': the area of the items of the block plus the usable
+     * areas of the two URSs of the insertion, divided by the area of the
+     * space.
+     */
+    double insertion_loss_factor(
+            const EmptySpace& space,
+            const Block& block,
+            bool vertical_first) const;
+
+    /**
+     * Guide of the insertion of 'block' in 'space' of 'node' with a vertical
+     * first cut iff 'vertical_first'. Without 'Parameters::use_loss_factor',
+     * its profit (see 'insertion_profit') per unit of area of the block. The
+     * insertions of a node are generated, and the greedy chooses its
+     * insertions, in decreasing order of guide.
      */
     double insertion_guide(
             const Node& node,
-            const Block& block) const;
+            const EmptySpace& space,
+            const Block& block,
+            bool vertical_first) const;
 
     /** Index of the URS with smallest area in node.empty_spaces. */
     ItemPos find_best_space(const Node& node) const;
