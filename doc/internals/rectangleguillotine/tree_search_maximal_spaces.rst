@@ -44,9 +44,23 @@ Unlike in the :code:`rectangle` case, the unused spaces never overlap. After eac
 Greedy value and search
 -----------------------
 
-**Insertions.** The children of a node are generated one at a time, by decreasing profit of the block divided by the area of the space (and vertical cuts first).
+**Insertions.** Each block which fits in the selected space is inserted at its bottom-left corner, with each orientation of the first cut allowed. The insertions are sorted by decreasing *fitness*, as in the :ref:`tree search with maximal spaces for rectangle <internals_rectangle_tree_search_maximal_spaces>`, but without the contact factor (a block in a corner of an unused space always touches two of its sides):
 
-**Greedy value.** A node is evaluated by completing it greedily: from the node, the block with the largest profit divided by the area of the selected space is placed repeatedly, until no space is left. The *greedy value* of the node is the profit of this completion. It is used:
+.. math::
+
+   V \times L^\beta \times N^{-\gamma}
+
+where:
+
+* :math:`V` is the *value* of the block: the area :math:`A` of its items weighted by their profit density to the power :math:`k`, :math:`V = A \times (p / A)^k`, where :math:`p` is the profit of the block minus the penalties of the *penalize* resources whose capacity it makes exceeded (:math:`V = p` if :math:`p \le 0`);
+* :math:`L` is the *area-loss factor*: the fraction of the area of the space which remains usable after the insertion. The usable area of an unused space of width :math:`w` and height :math:`h` is :math:`\bar{w} \times \bar{h}`, where :math:`\bar{w}` (:math:`\bar{h}`) is the largest width (height) at most :math:`w` (:math:`h`) of a row (column) of items separated by cuts. :math:`L` is the area of the items of the block plus the usable areas of the two new unused spaces, divided by the area of the space. It counts the waste inside the block and the waste left in the new spaces, and it depends on the orientation of the first cut, which gives the dimensions of the new spaces;
+* :math:`N` is the number of items of the block.
+
+By default, :math:`k = 2` (:code:`profit_density_exponent`), :math:`\beta = 2.66` (:code:`loss_factor_exponent`) and :math:`\gamma = 0.40` (:code:`number_of_items_exponent`), the first set of parameters of the :code:`rectangle` case. Ties are broken by placing the insertions with a vertical first cut first. The children of a node are generated one at a time, in this order.
+
+With the parameter :code:`use_loss_factor` set to false, the fitness is the fill rate of the block (the area of its items divided by the area of its rectangle) weighted by its profit density to the power :math:`k`; with :math:`k = 1`, it is the profit of the block per unit of area of its rectangle. This fitness doesn't count the waste left in the new spaces: with :math:`k = 2`, the blocks of high density with a lot of waste come before the full blocks of lower density.
+
+**Greedy value.** A node is evaluated by completing it greedily: from the node, the insertion of best fitness in the selected space is applied repeatedly, until no space is left; when the orientation of the first cut is free, the vertical one is used. The *greedy value* of the node is the profit of this completion. It is used:
 
 * as guide: the nodes with the largest greedy value come first in the queues, then the ones with the largest profit;
 * for the dominance: two nodes with the same number of copies of each item type packed are compared, and the one with the smallest greedy value is dominated. Since the depth of a node is its number of blocks, not its number of items, the nodes are compared to the nodes of all the queues (global dominance);

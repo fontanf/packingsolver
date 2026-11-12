@@ -130,15 +130,15 @@ The slide fails, and the position is discarded, if the end of the supporting par
 
 where:
 
-* :math:`V` is the profit of the block, minus the penalties of the *penalize* resources whose capacity it makes exceeded;
+* :math:`V` is the *value* of the block: the area :math:`A` of its items weighted by their profit density to the power :math:`k`, :math:`V = A \times (p / A)^k`, where :math:`p` is the profit of the block minus the penalties of the *penalize* resources whose capacity it makes exceeded (:math:`V = p` if :math:`p \le 0`). When the profits are proportional to the areas, :math:`V` is proportional to :math:`A`; with :math:`k = 1`, it is the profit of the block (see the :ref:`tree search with maximal spaces for rectangle <internals_rectangle_tree_search_maximal_spaces>`);
 * :math:`N` is its number of items;
 * :math:`D` is its *density*: the area of its items divided by the area of the rectangle going from the bottom-left corner of the empty space (or from the bottom-left corner of the bounding box of the block, if it is lower or more to the left) to the top-right corner of the bounding box of the block, capped at 1. It penalizes the blocks leaving free space between them and the corner of the empty space, and the blocks wasting space inside their own bounding box.
 
-By default, :math:`\beta = 2` and :math:`\gamma = 0.4`. A larger :math:`\beta` favors the dense positions, a larger :math:`\gamma` the blocks of few items.
+By default, :math:`k = 2`, :math:`\beta = 2` and :math:`\gamma = 0.4`. A larger :math:`\beta` favors the dense positions, a larger :math:`\gamma` the blocks of few items.
 
 For each block, only its best position is kept. The insertions of the node are these positions, sorted by decreasing score, then by the order of the blocks.
 
-**Score bounds.** The rectangle of the density contains the bounding box of the block, so the density is at most the area of the items of the block divided by the area of its bounding box. Replacing the density by this ratio (capped at 1) gives an upper bound of the score of the block which doesn't require any slide. The insertions are therefore computed lazily: the candidate blocks are sorted by decreasing bound, and to get the insertion of rank :math:`k`, the blocks are slid in this order until :math:`k + 1` insertions are found and the bound of the next block is below the score of the insertion of rank :math:`k`. The blocks left can't be ranked before, so the insertions are the same as if all the blocks were slid. With items of very different sizes, this skips most of the slides: once a large item has a position, the small items, whose bounds are low, are not slid.
+**Score bounds.** The value of a block doesn't depend on its position. The rectangle of the density contains the bounding box of the block, so the density is at most the area of the items of the block divided by the area of its bounding box. Replacing the density by this ratio (capped at 1) gives an upper bound of the score of the block which doesn't require any slide. The insertions are therefore computed lazily: the candidate blocks are sorted by decreasing bound, and to get the insertion of rank :math:`k`, the blocks are slid in this order until :math:`k + 1` insertions are found and the bound of the next block is below the score of the insertion of rank :math:`k`. The blocks left can't be ranked before, so the insertions are the same as if all the blocks were slid. With items of very different sizes, this skips most of the slides: once a large item has a position, the small items, whose bounds are low, are not slid.
 
 **7. Failed empty spaces.** If no block has a valid position in the selected empty space, the empty space is removed from the node and the next one is selected, until an insertion is found or no empty space is left. This is valid since a block which can't be inserted in an empty space can't be inserted there later either: later, there are more items packed and fewer valid blocks.
 
@@ -176,7 +176,8 @@ The parameters of the branching scheme (:code:`BranchingSchemeMaximalSpaces::Par
 * :code:`rectangle_approximation_ratio` (default 0.1): the initial maximum waste of the rectangles covering an item, as a ratio of its area; also the tolerance of the test "may fit";
 * :code:`maximum_number_of_rectangles` (default 8): the maximum number of rectangles covering an item;
 * :code:`use_periodic_blocks` (default true): whether to use the periodic blocks, or only the single items;
-* :code:`beta` (default 2) and :code:`gamma` (default 0.4): the exponents of the score.
+* :code:`beta` (default 2) and :code:`gamma` (default 0.4): the exponents of the score;
+* :code:`profit_density_exponent` (default 2): the exponent :math:`k` of the profit density in the value of a block.
 
 Limitations
 -----------
