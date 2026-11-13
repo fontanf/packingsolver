@@ -137,6 +137,13 @@ std::vector<Block> compute_blocks_for_bin(
     std::multiset<Block, BlockFillRateLess> blocks_to_process;
     std::vector<Block> returned_blocks;
     BlockSet seen;
+    // Ids of the returned blocks sorted by width and by height.
+    std::vector<ItemPos> returned_block_ids_by_width;
+    std::vector<ItemPos> returned_block_ids_by_height;
+    // For each returned block, bit 0 (resp. 1) is set if it is combined with
+    // the current block in direction 0 (resp. 1).
+    std::vector<char> candidate_directions;
+    std::vector<ItemPos> candidate_block_ids;
 
     auto enqueue = [&](Block block) {
         blocks_to_process.insert(std::move(block));
@@ -179,33 +186,84 @@ std::vector<Block> compute_blocks_for_bin(
         // Index that block will occupy once pushed to returned_blocks.
         ItemPos current_block_id = (ItemPos)returned_blocks.size();
 
-        for (ItemPos existing_idx = 0;
-                existing_idx < (ItemPos)returned_blocks.size();
-                ++existing_idx) {
+        // Most of the returned blocks don't fit next to the block in the bin.
+        // Only consider the ones which fit, in the order of their ids.
+        candidate_block_ids.clear();
+        auto width_end = std::upper_bound(
+                returned_block_ids_by_width.begin(),
+                returned_block_ids_by_width.end(),
+                bin_w - block.rect.w - cut_thickness,
+                [&returned_blocks](Length width, ItemPos block_id) {
+                    return width < returned_blocks[block_id].rect.w;
+                });
+        for (auto it = returned_block_ids_by_width.begin(); it != width_end; ++it) {
+            candidate_directions[*it] |= 1;
+            candidate_block_ids.push_back(*it);
+        }
+        auto height_end = std::upper_bound(
+                returned_block_ids_by_height.begin(),
+                returned_block_ids_by_height.end(),
+                bin_h - block.rect.h - cut_thickness,
+                [&returned_blocks](Length height, ItemPos block_id) {
+                    return height < returned_blocks[block_id].rect.h;
+                });
+        for (auto it = returned_block_ids_by_height.begin(); it != height_end; ++it) {
+            if (candidate_directions[*it] == 0)
+                candidate_block_ids.push_back(*it);
+            candidate_directions[*it] |= 2;
+        }
+        if (8 * candidate_block_ids.size() > returned_blocks.size()) {
+            // Many candidates: retrieving them in order from
+            // 'candidate_directions' is faster than sorting them.
+            candidate_block_ids.clear();
+            for (ItemPos block_id = 0;
+                    block_id < (ItemPos)returned_blocks.size();
+                    ++block_id) {
+                if (candidate_directions[block_id] != 0)
+                    candidate_block_ids.push_back(block_id);
+            }
+        } else {
+            std::sort(candidate_block_ids.begin(), candidate_block_ids.end());
+        }
+
+        for (ItemPos existing_idx: candidate_block_ids) {
             const Block& existing_block = returned_blocks[existing_idx];
+            char existing_directions = candidate_directions[existing_idx];
+            candidate_directions[existing_idx] = 0;
             if (block.is_simple && existing_block.is_simple
                     && block.item_type_id == existing_block.item_type_id
                     && block.rotate == existing_block.rotate)
                 continue;
             // direction 0 = X (vertical cut), direction 1 = Y (horizontal cut)
             for (int direction = 0; direction <= 1; ++direction) {
-                Block combined;
-                combined.item_area = block.item_area + existing_block.item_area;
-                combined.item_profit = block.item_profit + existing_block.item_profit;
-                if (direction == 0) {
-                    combined.rect.w = block.rect.w + existing_block.rect.w + cut_thickness;
-                    combined.rect.h = std::max(block.rect.h, existing_block.rect.h);
-                } else {
-                    combined.rect.w = std::max(block.rect.w, existing_block.rect.w);
-                    combined.rect.h = block.rect.h + existing_block.rect.h + cut_thickness;
-                }
-                if (combined.rect.w > bin_w || combined.rect.h > bin_h)
+                if (!(existing_directions & (1 << direction)))
                     continue;
+                Length combined_width = 0;
+                Length combined_height = 0;
+                if (direction == 0) {
+                    combined_width = block.rect.w + existing_block.rect.w + cut_thickness;
+                    combined_height = std::max(block.rect.h, existing_block.rect.h);
+                } else {
+                    combined_width = std::max(block.rect.w, existing_block.rect.w);
+                    combined_height = block.rect.h + existing_block.rect.h + cut_thickness;
+                }
+                Profit combined_profit = block.item_profit + existing_block.item_profit;
+                ItemPos combined_number_of_items = block.number_of_items + existing_block.number_of_items;
 
-                combined.number_of_items = block.number_of_items + existing_block.number_of_items;
+                // If the queue is full, the combined block must be better
+                // than the worst block of the queue (see 'BlockFillRateLess').
                 if (parameters.maximum_number_of_blocks != -1
                         && (ItemPos)blocks_to_process.size() >= parameters.maximum_number_of_blocks) {
-                    if (!BlockFillRateLess{}(*blocks_to_process.begin(), combined))
+                    const Block& worst_block = *blocks_to_process.begin();
+                    if (worst_block.number_of_items == 1)
+                        continue;
+                    double combined_efficiency = (double)combined_profit
+                        / ((Area)combined_width * combined_height);
+                    double worst_efficiency = worst_block.efficiency();
+                    if (combined_efficiency < worst_efficiency)
+                        continue;
+                    if (combined_efficiency == worst_efficiency
+                            && worst_block.number_of_items <= combined_number_of_items)
                         continue;
                 }
 
@@ -213,15 +271,34 @@ std::vector<Block> compute_blocks_for_bin(
                     continue;
 
                 BlockKey key;
-                key.width = combined.rect.w;
-                key.height = combined.rect.h;
+                key.width = combined_width;
+                key.height = combined_height;
                 key.item_copies = merge_item_copies(block.item_copies, existing_block.item_copies);
                 if (seen.count(key))
                     continue;
                 seen.insert(key);
+                Block combined;
+                combined.rect.w = combined_width;
+                combined.rect.h = combined_height;
+                combined.item_area = block.item_area + existing_block.item_area;
+                combined.item_profit = combined_profit;
+                combined.number_of_items = combined_number_of_items;
                 combined.item_copies = key.item_copies;
-                combined.resource_consumption = compute_resource_consumption(
-                        instance, bin_type_id, combined.item_copies);
+                if (combined.item_copies.size()
+                        == block.item_copies.size() + existing_block.item_copies.size()) {
+                    // The blocks don't share any item type: the consumption
+                    // of the combined block is the sum of their consumptions.
+                    combined.resource_consumption = block.resource_consumption;
+                    for (ResourceId resource_id = 0;
+                            resource_id < (ResourceId)combined.resource_consumption.size();
+                            ++resource_id) {
+                        combined.resource_consumption[resource_id]
+                            += existing_block.resource_consumption[resource_id];
+                    }
+                } else {
+                    combined.resource_consumption = compute_resource_consumption(
+                            instance, bin_type_id, combined.item_copies);
+                }
                 if (!resource_feasible(instance, bin_type_id, {}, combined.resource_consumption))
                     continue;
                 combined.cut_is_vertical = (direction == 0);
@@ -232,6 +309,25 @@ std::vector<Block> compute_blocks_for_bin(
         }
 
         returned_blocks.push_back(std::move(block));
+        candidate_directions.push_back(0);
+        returned_block_ids_by_width.insert(
+                std::upper_bound(
+                    returned_block_ids_by_width.begin(),
+                    returned_block_ids_by_width.end(),
+                    returned_blocks.back().rect.w,
+                    [&returned_blocks](Length width, ItemPos block_id) {
+                        return width < returned_blocks[block_id].rect.w;
+                    }),
+                current_block_id);
+        returned_block_ids_by_height.insert(
+                std::upper_bound(
+                    returned_block_ids_by_height.begin(),
+                    returned_block_ids_by_height.end(),
+                    returned_blocks.back().rect.h,
+                    [&returned_blocks](Length height, ItemPos block_id) {
+                        return height < returned_blocks[block_id].rect.h;
+                    }),
+                current_block_id);
     }
 
     return returned_blocks;
