@@ -138,6 +138,18 @@ bool block_item_volume_greater(const Block& block_1, const Block& block_2)
     return block_1.item_volume > block_2.item_volume;
 }
 
+Length box_length(
+        const Box& box,
+        Direction direction)
+{
+    switch (direction) {
+    case Direction::X: return box.x;
+    case Direction::Y: return box.y;
+    case Direction::Z: return box.z;
+    default: return 0;
+    }
+}
+
 struct BlockFillRateLess {
     bool operator()(const Block& block_1, const Block& block_2) const
     {
@@ -169,6 +181,12 @@ std::vector<Block> compute_blocks_for_bin(
     std::multiset<Block, BlockFillRateLess> blocks_to_process;
     std::vector<Block> returned_blocks;
     BlockSet seen;
+    // Ids of the returned blocks sorted by length along x, y and z.
+    std::vector<std::vector<ItemPos>> returned_block_ids_by_length(3);
+    // For each returned block, bit 'direction' is set if it is combined with
+    // the current block along 'direction'.
+    std::vector<char> candidate_directions;
+    std::vector<ItemPos> candidate_block_ids;
 
     // Helper: insert a block into the multiset and trim the worst if over capacity.
     auto enqueue = [&](Block block) {
@@ -221,44 +239,102 @@ std::vector<Block> compute_blocks_for_bin(
         //    << " " << blocks_to_process.size()
         //    << std::endl;
 
-        // Combine with every already-returned block in all three directions.
-        for (const Block& existing_block: returned_blocks) {
+        // Combine with the already-returned blocks in all three directions.
+        // Combined blocks must fit in the bin: along 'direction', only the
+        // returned blocks in
+        // [returned_block_ids_by_length[direction].begin(), ends[direction])
+        // fit next to the block.
+        std::vector<std::vector<ItemPos>::const_iterator> ends;
+        ItemPos number_of_candidates = 0;
+        for (Direction direction: {Direction::X, Direction::Y, Direction::Z}) {
+            const std::vector<ItemPos>& block_ids = returned_block_ids_by_length[(int)direction];
+            ends.push_back(std::upper_bound(
+                    block_ids.begin(),
+                    block_ids.end(),
+                    box_length(bin_box, direction) - box_length(block.box, direction),
+                    [&returned_blocks, direction](Length length, ItemPos block_id) {
+                        return length < box_length(returned_blocks[block_id].box, direction);
+                    }));
+            number_of_candidates += ends.back() - block_ids.begin();
+        }
+        // If many of the returned blocks fit, considering all of them is
+        // faster; otherwise, only consider the ones which fit, in the order
+        // of their ids.
+        bool use_candidates = (2 * number_of_candidates < (ItemPos)returned_blocks.size());
+        candidate_block_ids.clear();
+        if (use_candidates) {
+            for (Direction direction: {Direction::X, Direction::Y, Direction::Z}) {
+                const std::vector<ItemPos>& block_ids = returned_block_ids_by_length[(int)direction];
+                for (auto it = block_ids.cbegin(); it != ends[(int)direction]; ++it) {
+                    if (candidate_directions[*it] == 0)
+                        candidate_block_ids.push_back(*it);
+                    candidate_directions[*it] |= (1 << (int)direction);
+                }
+            }
+            std::sort(candidate_block_ids.begin(), candidate_block_ids.end());
+        }
+
+        ItemPos number_of_considered_blocks = (use_candidates)?
+            (ItemPos)candidate_block_ids.size():
+            (ItemPos)returned_blocks.size();
+        for (ItemPos considered_block_pos = 0;
+                considered_block_pos < number_of_considered_blocks;
+                ++considered_block_pos) {
+            ItemPos existing_block_id = (use_candidates)?
+                candidate_block_ids[considered_block_pos]:
+                considered_block_pos;
+            const Block& existing_block = returned_blocks[existing_block_id];
+            char existing_block_directions = 7;
+            if (use_candidates) {
+                existing_block_directions = candidate_directions[existing_block_id];
+                candidate_directions[existing_block_id] = 0;
+            }
             if (block.is_simple && existing_block.is_simple
                     && block.item_type_id == existing_block.item_type_id
                     && block.rotation == existing_block.rotation)
                 continue;
             for (Direction direction: {Direction::X, Direction::Y, Direction::Z}) {
-                Block combined;
-                combined.item_volume = block.item_volume + existing_block.item_volume;
-                combined.item_profit = block.item_profit + existing_block.item_profit;
-                combined.weight = block.weight + existing_block.weight;
+                if (!(existing_block_directions & (1 << (int)direction)))
+                    continue;
+                Box combined_box = {0, 0, 0};
                 switch (direction) {
                 case Direction::X:
-                    combined.box.x = block.box.x + existing_block.box.x;
-                    combined.box.y = std::max(block.box.y, existing_block.box.y);
-                    combined.box.z = std::max(block.box.z, existing_block.box.z);
+                    combined_box.x = block.box.x + existing_block.box.x;
+                    combined_box.y = std::max(block.box.y, existing_block.box.y);
+                    combined_box.z = std::max(block.box.z, existing_block.box.z);
                     break;
                 case Direction::Y:
-                    combined.box.x = std::max(block.box.x, existing_block.box.x);
-                    combined.box.y = block.box.y + existing_block.box.y;
-                    combined.box.z = std::max(block.box.z, existing_block.box.z);
+                    combined_box.x = std::max(block.box.x, existing_block.box.x);
+                    combined_box.y = block.box.y + existing_block.box.y;
+                    combined_box.z = std::max(block.box.z, existing_block.box.z);
                     break;
                 case Direction::Z:
-                    combined.box.x = std::max(block.box.x, existing_block.box.x);
-                    combined.box.y = std::max(block.box.y, existing_block.box.y);
-                    combined.box.z = block.box.z + existing_block.box.z;
+                    combined_box.x = std::max(block.box.x, existing_block.box.x);
+                    combined_box.y = std::max(block.box.y, existing_block.box.y);
+                    combined_box.z = block.box.z + existing_block.box.z;
                     break;
                 default: break;
                 }
-                if (combined.box.x > bin_box.x
-                        || combined.box.y > bin_box.y
-                        || combined.box.z > bin_box.z)
+                if (combined_box.x > bin_box.x
+                        || combined_box.y > bin_box.y
+                        || combined_box.z > bin_box.z)
                     continue;
+                Profit combined_profit = block.item_profit + existing_block.item_profit;
+                ItemPos combined_number_of_items = block.number_of_items + existing_block.number_of_items;
 
-                combined.number_of_items = block.number_of_items + existing_block.number_of_items;
+                // If the queue is full, the combined block must be better
+                // than the worst block of the queue (see 'BlockFillRateLess').
                 if (parameters.maximum_number_of_blocks != -1
                         && (ItemPos)blocks_to_process.size() >= parameters.maximum_number_of_blocks) {
-                    if (!BlockFillRateLess{}(*blocks_to_process.begin(), combined))
+                    const Block& worst_block = *blocks_to_process.begin();
+                    if (worst_block.number_of_items == 1)
+                        continue;
+                    double combined_efficiency = (double)combined_profit / combined_box.volume();
+                    double worst_efficiency = worst_block.efficiency();
+                    if (combined_efficiency < worst_efficiency)
+                        continue;
+                    if (combined_efficiency == worst_efficiency
+                            && worst_block.number_of_items <= combined_number_of_items)
                         continue;
                 }
 
@@ -266,15 +342,22 @@ std::vector<Block> compute_blocks_for_bin(
                     continue;
 
                 BlockKey key;
-                key.box = combined.box;
+                key.box = combined_box;
                 key.item_copies = merge_item_copies(
                         block.item_copies,
                         existing_block.item_copies,
                         instance);
                 if (seen.count(key))
                     continue;
+                Block combined;
+                combined.box = combined_box;
+                combined.item_volume = block.item_volume + existing_block.item_volume;
+                combined.item_profit = combined_profit;
+                combined.weight = block.weight + existing_block.weight;
+                combined.number_of_items = combined_number_of_items;
                 combined.item_copies = key.item_copies;
                 combined.items = block.items;
+                combined.items.reserve(block.items.size() + existing_block.items.size());
                 for (const SolutionItem& item: existing_block.items) {
                     SolutionItem shifted = item;
                     switch (direction) {
@@ -286,15 +369,42 @@ std::vector<Block> compute_blocks_for_bin(
                     combined.items.push_back(shifted);
                 }
                 seen.insert(key);
-                combined.resource_consumption = compute_resource_consumption(
-                        instance, bin_type_id, combined.item_copies);
+                if (combined.item_copies.size()
+                        == block.item_copies.size() + existing_block.item_copies.size()) {
+                    // The blocks don't share any item type: the consumption
+                    // of the combined block is the sum of their consumptions.
+                    combined.resource_consumption = block.resource_consumption;
+                    for (ResourceId resource_id = 0;
+                            resource_id < (ResourceId)combined.resource_consumption.size();
+                            ++resource_id) {
+                        combined.resource_consumption[resource_id]
+                            += existing_block.resource_consumption[resource_id];
+                    }
+                } else {
+                    combined.resource_consumption = compute_resource_consumption(
+                            instance, bin_type_id, combined.item_copies);
+                }
                 if (!resource_feasible(instance, bin_type_id, {}, combined.resource_consumption))
                     continue;
                 enqueue(std::move(combined));
             }
         }
 
+        ItemPos block_id = (ItemPos)returned_blocks.size();
         returned_blocks.push_back(std::move(block));
+        candidate_directions.push_back(0);
+        for (Direction direction: {Direction::X, Direction::Y, Direction::Z}) {
+            std::vector<ItemPos>& block_ids = returned_block_ids_by_length[(int)direction];
+            block_ids.insert(
+                    std::upper_bound(
+                        block_ids.begin(),
+                        block_ids.end(),
+                        box_length(returned_blocks.back().box, direction),
+                        [&returned_blocks, direction](Length length, ItemPos block_id) {
+                            return length < box_length(returned_blocks[block_id].box, direction);
+                        }),
+                    block_id);
+        }
     }
 
     return returned_blocks;
