@@ -134,6 +134,14 @@ struct ReductionParameters: optimizationtools::Parameters
      */
     columngenerationsolver::SolverName linear_programming_solver_name
         = columngenerationsolver::SolverName::CLP;
+
+    /**
+     * Optimization mode of 'optimize': in 'NotAnytimeSequential' mode, the
+     * feasibility check subproblems are solved on the calling thread.
+     *
+     * Set by 'optimize' from 'OptimizeParameters::optimization_mode'.
+     */
+    OptimizationMode optimization_mode = OptimizationMode::Anytime;
 };
 
 /**

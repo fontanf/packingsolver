@@ -81,6 +81,7 @@ void optimize_trivial_bound(
     trivial_bound_parameters.timer = parameters.timer;
     trivial_bound_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
     trivial_bound_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
+    trivial_bound_parameters.optimization_mode = parameters.optimization_mode;
     trivial_bound_parameters.dynamic_programming_subset_sum_maximum_size
         = parameters.dynamic_programming_subset_sum_maximum_size;
     trivial_bound_parameters.dynamic_programming_knapsack_maximum_number_of_states

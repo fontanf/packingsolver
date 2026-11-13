@@ -189,7 +189,10 @@ void trivial_bound_impl(
         kp_parameters.verbosity_level = 0;
         kp_parameters.timer = parameters.timer;
         kp_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
-        kp_parameters.optimization_mode = OptimizationMode::NotAnytime;
+        kp_parameters.optimization_mode
+            = (parameters.optimization_mode == OptimizationMode::NotAnytimeSequential)?
+            OptimizationMode::NotAnytimeSequential:
+            OptimizationMode::NotAnytime;
         kp_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
         kp_parameters.dynamic_programming_subset_sum_maximum_size
             = parameters.dynamic_programming_subset_sum_maximum_size;
