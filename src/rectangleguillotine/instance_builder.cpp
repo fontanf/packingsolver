@@ -1487,6 +1487,19 @@ void InstanceBuilder::build_stacks()
             offset += instance_.item_type(item_type_id).copies;
         }
     }
+
+    // Compute number_of_non_empty_stacks_.
+    std::vector<bool> stack_contains_an_item_type(instance_.number_of_stacks(), false);
+    instance_.number_of_non_empty_stacks_ = 0;
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance_.number_of_item_types();
+            ++item_type_id) {
+        StackId stack_id = instance_.item_type(item_type_id).stack_id;
+        if (!stack_contains_an_item_type[stack_id]) {
+            stack_contains_an_item_type[stack_id] = true;
+            instance_.number_of_non_empty_stacks_++;
+        }
+    }
 }
 
 void InstanceBuilder::resolve_item_types_unlimited_copies()

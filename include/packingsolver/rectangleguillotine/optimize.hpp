@@ -227,10 +227,10 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
 
     /**
      * Maximum number of states of the hypergraph of an instance for which
-     * the 'tree_search_hypergraph' algorithm is used, automatically in
-     * 'Exact' mode for the 'Knapsack' and 'Feasibility' objectives with a
-     * single bin, and for the 'PricingType::Dual' calls of the pricing of
-     * the column generation.
+     * the 'tree_search_hypergraph' algorithm is used, automatically for the
+     * 'Knapsack' objective with a single bin, in 'Exact' mode for the
+     * 'Feasibility' objective with a single bin, and for the
+     * 'PricingType::Dual' calls of the pricing of the column generation.
      */
     Counter tree_search_hypergraph_maximum_number_of_states = 1 << 22;
 
@@ -307,6 +307,17 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
      * maximum_array_size').
      */
     Counter not_anytime_tree_search_hypergraph_infinite_copies_maximum_array_size = 1500000;
+
+    /**
+     * Maximum number of elementary operations of the 'tree_search_hypergraph'
+     * algorithm (see
+     * 'TreeSearchHypergraphParameters::maximum_number_of_operations'), per
+     * item of the instance (if negative: no maximum).
+     *
+     * As for the queue sizes of the other tree search algorithms, the work
+     * is proportional to the number of items.
+     */
+    Counter not_anytime_tree_search_hypergraph_number_of_operations_per_item = 10000;
 
     /**
      * Size of the queue in the bin packing subproblem of the dichotomic search

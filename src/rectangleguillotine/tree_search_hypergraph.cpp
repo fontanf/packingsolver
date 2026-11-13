@@ -31,12 +31,11 @@ bool packingsolver::rectangleguillotine::tree_search_hypergraph_supported(
     const BinType& bin_type = instance.bin_type(0);
     if (!bin_type.defects.empty()
             || !bin_type.fixed_items.empty()
-            || bin_type.number_of_resources() > 0
             || bin_type.has_soft_left_trim()
             || bin_type.has_soft_bottom_trim()) {
         return false;
     }
-    if (instance.number_of_stacks() != instance.number_of_item_types())
+    if (instance.number_of_non_empty_stacks() != instance.number_of_item_types())
         return false;
     for (ItemTypeId item_type_id = 0;
             item_type_id < instance.number_of_item_types();
@@ -875,16 +874,38 @@ private:
 
 };
 
+/**
+ * Work of the algorithm: its number of elementary operations, the pairs of
+ * labels considered by 'merge' (for each label of the first set, the number
+ * of labels of the second set) and the leaves and hyperarcs considered by
+ * the dynamic programming algorithms computing the bounds ('compute_dp' and
+ * 'compute_rdp').
+ */
+struct Work
+{
+    Counter number_of_operations = 0;
+
+    /** Maximum number of operations (if negative: no maximum). */
+    Counter maximum_number_of_operations = -1;
+
+    bool exceeded() const
+    {
+        return maximum_number_of_operations >= 0
+            && number_of_operations > maximum_number_of_operations;
+    }
+};
+
 /*
  * Call 'function(pos_1, pos_2, profit)' for each pair of labels of
  * 'label_set_1' and 'label_set_2' whose sum is feasible and whose profit is
  * at least 'threshold'; the sum is written in 'out'.
  *
- * Return 'false' if interrupted by the timer.
+ * Return 'false' if interrupted by the timer or by the maximum work.
  */
 template <typename Function>
 bool merge(
         const Encoder& encoder,
+        Work& work,
         const LabelSet& label_set_1,
         const LabelSet& label_set_2,
         Profit threshold,
@@ -909,6 +930,9 @@ bool merge(
                 function(pos_1, pos_2, profit);
         }
         number_of_pairs += label_set_2.size();
+        work.number_of_operations += label_set_2.size();
+        if (work.exceeded())
+            return false;
         if (number_of_pairs > (1 << 22)) {
             if (timer.needs_to_end())
                 return false;
@@ -948,6 +972,29 @@ struct TreeSearchHypergraphData
 
     /** Numbers of copies of the item types. */
     const std::vector<ItemPos>& copies;
+
+    /** Work of the algorithm, see 'Work'. */
+    mutable Work work;
+
+    /**
+     * 'true' iff the resources of the bin are taken into account in the
+     * profits of the patterns, see 'update_best'.
+     */
+    bool use_resources = false;
+
+    /**
+     * 'true' iff the penalties of the penalized resources are subtracted from
+     * the profits of the patterns. With an objective other than 'Knapsack',
+     * the profits are the areas of the items, and only the resources which
+     * are not penalized are taken into account.
+     */
+    bool use_penalties = false;
+
+    /**
+     * Maximum increase of the profit of a pattern by the penalized resources
+     * with a negative penalty (see 'negative_penalty_sum').
+     */
+    Profit negative_penalties = 0;
 
     Encoder encoder;
 
@@ -1040,25 +1087,33 @@ bool compute_dp(
     const Hypergraph& hypergraph = data.hypergraph;
     StateId number_of_states = hypergraph.number_of_states();
     data.dp.assign(number_of_states, 0);
+    Counter number_of_operations = 0;
     for (StateId state_id = 0; state_id < number_of_states; ++state_id) {
-        if (state_id % 1024 == 0 && timer.needs_to_end())
-            return false;
+        if (state_id % 1024 == 0) {
+            data.work.number_of_operations += number_of_operations;
+            number_of_operations = 0;
+            if (data.work.exceeded() || timer.needs_to_end())
+                return false;
+        }
         Profit value = 0;
         hypergraph.for_each_leaf(
                 state_id,
-                [&data, &value](Counter, const Leaf& leaf)
+                [&data, &value, &number_of_operations](Counter, const Leaf& leaf)
                 {
                     value = std::max(value, leaf_profit(data, leaf));
+                    number_of_operations++;
                 });
         hypergraph.for_each_hyperarc(
                 state_id,
-                [&data, &value](Counter, StateId s1, StateId s2)
+                [&data, &value, &number_of_operations](Counter, StateId s1, StateId s2)
                 {
                     value = std::max(value, data.dp[s1] + ((s2 >= 0)? data.dp[s2]: 0));
+                    number_of_operations++;
                 });
         data.dp[state_id] = value;
     }
-    return true;
+    data.work.number_of_operations += number_of_operations;
+    return !data.work.exceeded();
 }
 
 /**
@@ -1074,22 +1129,29 @@ bool compute_rdp(
     StateId number_of_states = hypergraph.number_of_states();
     data.rdp.assign(number_of_states, -std::numeric_limits<Profit>::infinity());
     data.rdp[hypergraph.goal()] = 0;
+    Counter number_of_operations = 0;
     for (StateId state_id = number_of_states - 1; state_id >= 0; --state_id) {
-        if (state_id % 1024 == 0 && timer.needs_to_end())
-            return false;
+        if (state_id % 1024 == 0) {
+            data.work.number_of_operations += number_of_operations;
+            number_of_operations = 0;
+            if (data.work.exceeded() || timer.needs_to_end())
+                return false;
+        }
         Profit value = data.rdp[state_id];
         if (value == -std::numeric_limits<Profit>::infinity())
             continue;
         hypergraph.for_each_hyperarc(
                 state_id,
-                [&data, value](Counter, StateId s1, StateId s2)
+                [&data, value, &number_of_operations](Counter, StateId s1, StateId s2)
                 {
                     data.rdp[s1] = std::max(data.rdp[s1], value + ((s2 >= 0)? data.dp[s2]: 0));
                     if (s2 >= 0)
                         data.rdp[s2] = std::max(data.rdp[s2], value + data.dp[s1]);
+                    number_of_operations++;
                 });
     }
-    return true;
+    data.work.number_of_operations += number_of_operations;
+    return !data.work.exceeded();
 }
 
 /**
@@ -1337,8 +1399,32 @@ void update_best(
             ++item_type_id) {
         profit += data.encoder.get(label, item_type_id) * data.profits[item_type_id];
     }
-    if (profit <= best.profit)
+    if (profit + data.negative_penalties <= best.profit)
         return;
+    if (data.use_resources) {
+        // The patterns which exceed the capacity of a resource which is not
+        // penalized are skipped, and the penalties of the penalized ones are
+        // subtracted from the profit, as in the solutions. Since the bounds
+        // ignore the resources, they remain valid, the penalties with a
+        // negative penalty apart (see 'negative_penalty_sum').
+        std::vector<std::pair<ItemTypeId, ItemPos>> item_copies;
+        for (ItemTypeId item_type_id = 0;
+                item_type_id < data.instance.number_of_item_types();
+                ++item_type_id) {
+            ItemPos number_of_copies = data.encoder.get(label, item_type_id);
+            if (number_of_copies > 0)
+                item_copies.push_back({item_type_id, number_of_copies});
+        }
+        std::vector<double> resource_consumption = compute_resource_consumption(
+                data.instance, 0, item_copies);
+        if (!resource_feasible(data.instance, 0, {}, resource_consumption))
+            return;
+        if (data.use_penalties) {
+            profit -= resource_penalty(data.instance, 0, {}, resource_consumption);
+            if (profit <= best.profit)
+                return;
+        }
+    }
     best.state_id = state_id;
     best.choice = choice;
     best.forward_pos_1 = forward_pos_1;
@@ -1480,6 +1566,7 @@ bool forward_pass(
                     }
                     interrupted = !merge(
                             data.encoder,
+                            data.work,
                             forward_set(data, s1),
                             (s2 >= 0)? forward_set(data, s2): data.zero,
                             state_threshold,
@@ -1579,6 +1666,7 @@ bool backward_pass(
                         LabelTable& source_table = table_pool[tables[source]];
                         interrupted = !merge(
                                 data.encoder,
+                                data.work,
                                 backward_set,
                                 other_set,
                                 source_threshold,
@@ -1665,6 +1753,7 @@ bool merge_phase(
             tables[state_id] = -1;
             bool ok = merge(
                     data.encoder,
+                    data.work,
                     source_set,
                     forward_set(data, state_id),
                     threshold,
@@ -1728,6 +1817,7 @@ bool merge_phase(
                         // Gathered for this target.
                         interrupted = !merge(
                                 data.encoder,
+                                data.work,
                                 forward_set_1,
                                 forward_set_2,
                                 threshold - backward_profit_max,
@@ -1761,6 +1851,7 @@ bool merge_phase(
                     LabelTable& source_table = table_pool[tables[source]];
                     interrupted = !merge(
                             data.encoder,
+                            data.work,
                             backward_set,
                             other_set,
                             threshold - source_set.profits[0],
@@ -1783,6 +1874,7 @@ bool merge_phase(
         LabelSet target_set = target_table.extract();
         bool ok = merge(
                 data.encoder,
+                data.work,
                 target_set,
                 backward_set,
                 threshold,
@@ -2139,10 +2231,12 @@ const TreeSearchHypergraphOutput packingsolver::rectangleguillotine::tree_search
     // The features of the instance which the hypergraph doesn't take into
     // account (see 'tree_search_hypergraph_supported') are ignored: the
     // solutions which don't satisfy them are not reported. They only
-    // restrict the patterns, so the bounds remain valid, except the negative
-    // penalties of the penalized resources, which may increase the profit,
-    // and the other bins: the bounds and the infeasibility are only proven
-    // with a single bin.
+    // restrict the patterns, so the bounds remain valid, except the other
+    // bins: the bounds and the infeasibility are only proven with a single
+    // bin. The resources are taken into account in the profits of the
+    // patterns (see 'update_best'), but not in the bounds, which remain
+    // valid, except the negative penalties of the penalized resources, which
+    // may increase the profit.
     bool proofs = (instance.number_of_bins() == 1);
     Profit penalties = negative_penalty_sum(instance);
 
@@ -2187,6 +2281,12 @@ const TreeSearchHypergraphOutput packingsolver::rectangleguillotine::tree_search
             hypergraph,
             copies,
             profits);
+    data.work.maximum_number_of_operations = parameters.maximum_number_of_operations;
+    data.use_resources = (instance.bin_type(0).number_of_resources() > 0);
+    if (!feasibility) {
+        data.use_penalties = true;
+        data.negative_penalties = negative_penalty_sum(instance);
+    }
     if (parameters.use_lagrangian_relaxation)
         compute_multipliers(data, parameters);
     Profit lagrangian_constant = data.lagrangian_constant;
@@ -2276,6 +2376,7 @@ const TreeSearchHypergraphOutput packingsolver::rectangleguillotine::tree_search
         threshold -= step;
     }
 
+    output.number_of_operations = data.work.number_of_operations;
     algorithm_formatter.end();
     return output;
 }

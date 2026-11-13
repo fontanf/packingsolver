@@ -34,9 +34,13 @@ TEST_P(
 {
     RectangleGuillotineTreeSearchHypergraphTestParams test_params = GetParam();
     InstanceBuilder instance_builder;
-    instance_builder.read_item_types(test_params.items_path.string());
-    instance_builder.read_bin_types(test_params.bins_path.string());
-    instance_builder.read_parameters(test_params.parameters_path.string());
+    if (test_params.items_path.extension() == ".json") {
+        instance_builder.read(test_params.items_path.string());
+    } else {
+        instance_builder.read_item_types(test_params.items_path.string());
+        instance_builder.read_bin_types(test_params.bins_path.string());
+        instance_builder.read_parameters(test_params.parameters_path.string());
+    }
     Instance instance = instance_builder.build();
 
     TreeSearchHypergraphParameters tree_search_hypergraph_parameters;
@@ -237,4 +241,63 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "rectangleguillotine" / "tests" / "feasibility_2nao_infeasible" / "bins.csv",
                 fs::path("data") / "rectangleguillotine" / "tests" / "feasibility_2nao_infeasible" / "parameters.csv",
                 fs::path(),
+            }, {
+                // A resource of capacity 1 consumed by item types 0 and 1:
+                // they can't be packed together, item types 0 and 2 are.
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_unlimited_stages_hard_resource" / "instance.json",
+                fs::path(""),
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_unlimited_stages_hard_resource" / "solution.csv",
+            }, {
+                // A resource of capacity 2 consumed by the 5 copies of item
+                // type 0: 2 copies are packed with 3 copies of item type 1.
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_unlimited_stages_hard_resource_copies" / "instance.json",
+                fs::path(""),
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_unlimited_stages_hard_resource_copies" / "solution.csv",
+            }, {
+                // The same resource as above, penalized with a penalty of
+                // 60: packing item types 0 and 1 together (190 - 60) is worse
+                // than packing item types 0 and 2 (150).
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_unlimited_stages_penalized_resource" / "instance.json",
+                fs::path(""),
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_unlimited_stages_penalized_resource" / "solution.csv",
+            }, {
+                // A resource of capacity 1 with the consumption schedule
+                // [1, 0] for item types 0 and 1: only their first copy
+                // consumes it, so the two copies of item type 0 can be
+                // packed together, with item type 2 but not item type 1.
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_unlimited_stages_resource_schedule" / "instance.json",
+                fs::path(""),
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_unlimited_stages_resource_schedule" / "solution.csv",
             }}));
+
+TEST(RectangleGuillotineTreeSearchHypergraph, SubInstanceEmptyStacks)
+{
+    // A sub-instance with item types 0 and 2 of an original instance: they
+    // keep the ids of their stacks in the original instance, so the stack of
+    // item type 1 is empty, but the stacks don't constrain the order of the
+    // items.
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(packingsolver::Objective::Knapsack);
+    instance_builder.add_bin_type(10, 10);
+    instance_builder.add_item_type(5, 10, true);
+    instance_builder.add_item_type(4, 10, true);
+    instance_builder.add_item_type(5, 5, true);
+    Instance instance = instance_builder.build();
+
+    InstanceBuilder sub_instance_builder;
+    sub_instance_builder.set_objective(packingsolver::Objective::Knapsack);
+    sub_instance_builder.set_parameters(instance.parameters());
+    sub_instance_builder.set_original_instance(instance);
+    sub_instance_builder.add_bin_type_from_original_instance(0);
+    sub_instance_builder.add_item_type_from_original_instance(0);
+    sub_instance_builder.add_item_type_from_original_instance(2);
+    Instance sub_instance = sub_instance_builder.build();
+
+    EXPECT_EQ(sub_instance.number_of_stacks(), 3);
+    EXPECT_EQ(sub_instance.number_of_non_empty_stacks(), 2);
+    EXPECT_TRUE(tree_search_hypergraph_supported(sub_instance));
+}

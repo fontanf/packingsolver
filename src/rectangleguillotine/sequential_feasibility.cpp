@@ -47,7 +47,7 @@ bool pack_strips(
             || (instance_parameters.first_stage_orientation != CutOrientation::Any
                 && instance_parameters.first_stage_orientation != first_cut_orientation)
             || instance.number_of_defects() > 0
-            || instance.number_of_stacks() != instance.number_of_item_types()
+            || instance.number_of_non_empty_stacks() != instance.number_of_item_types()
             || instance_parameters.minimum_waste_length != 0
             || instance_parameters.minimum_distance_1_cuts != 0
             || instance_parameters.maximum_distance_1_cuts != -1

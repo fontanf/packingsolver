@@ -20,6 +20,9 @@ struct TreeSearchHypergraphOutput: Output
 
     /** Number of backward labels kept by the last search. */
     Counter number_of_backward_labels = 0;
+
+    /** Number of elementary operations (see 'maximum_number_of_operations'). */
+    Counter number_of_operations = 0;
 };
 
 struct TreeSearchHypergraphParameters: packingsolver::Parameters<Instance, Solution, Output>
@@ -30,6 +33,19 @@ struct TreeSearchHypergraphParameters: packingsolver::Parameters<Instance, Solut
      * negative: no maximum).
      */
     Counter maximum_number_of_states = -1;
+
+    /**
+     * Maximum number of elementary operations, a measure of the work of the
+     * algorithm used in the non-anytime modes (if negative: no maximum): the
+     * pairs of labels considered by the merges of the labels, and the leaves
+     * and hyperarcs considered by the dynamic programming algorithms
+     * computing the bounds, including the ones of the column generation
+     * computing the multipliers of the Lagrangian relaxation. When it is
+     * reached, the algorithm stops, as when the time limit is reached: it
+     * returns the best solution found and the bound of the last complete
+     * search.
+     */
+    Counter maximum_number_of_operations = -1;
 
     /**
      * Use the Lagrangian relaxation of the numbers of copies of the item
@@ -63,7 +79,7 @@ struct TreeSearchHypergraphParameters: packingsolver::Parameters<Instance, Solut
  * any number of stages (or an unlimited number of stages), the 'NonExact',
  * 'Exact' and 'Roadef2018' cut types (any cut type with an unlimited number
  * of stages), any first stage orientation, the cut thickness, the item
- * rotations, the hard trims and the soft right and top trims.
+ * rotations, the hard trims, the soft right and top trims and the resources.
  */
 bool tree_search_hypergraph_supported(const Instance& instance);
 

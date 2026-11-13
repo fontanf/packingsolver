@@ -489,6 +489,17 @@ public:
     /** Get the number of stacks. */
     inline StackId number_of_stacks() const { return (StackId)stack_offsets_.size() - 1; }
 
+    /**
+     * Get the number of stacks containing at least one item type.
+     *
+     * The stacks don't constrain the order of the items iff it is equal to
+     * the number of item types: each item type is then alone in its stack.
+     * Some stacks may be empty, for example in a sub-instance whose item
+     * types keep the ids of their stacks in the original instance (see
+     * 'InstanceBuilder::add_item_type_from_original_instance').
+     */
+    inline StackId number_of_non_empty_stacks() const { return number_of_non_empty_stacks_; }
+
     /** Get the size of stack s. */
     inline ItemPos stack_size(StackId s) const { return stack_offsets_[s + 1] - stack_offsets_[s]; }
 
@@ -699,6 +710,9 @@ private:
     /** stack_offsets_[s] = start of stack s in item_type_ids_;
      *  stack_offsets_.size() = number_of_stacks() + 1 (sentinel at end). */
     std::vector<ItemPos> stack_offsets_;
+
+    /** Number of stacks containing at least one item type. */
+    StackId number_of_non_empty_stacks_ = 0;
 
     /** Total item area. */
     Area item_area_ = 0;
