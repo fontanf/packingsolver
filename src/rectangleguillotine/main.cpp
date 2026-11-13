@@ -138,6 +138,7 @@ int main(int argc, char *argv[])
             ("not-anytime-sequential-value-correction-number-of-iterations,", po::value<Counter>(), "")
             ("not-anytime-tree-search-hypergraph-infinite-copies-maximum-array-size,", po::value<Counter>(), "")
             ("not-anytime-dichotomic-search-subproblem-tree-search-queue-size,", po::value<Counter>(), "")
+            ("few-items-in-bins-threshold,", po::value<Counter>(), "")
 
             ("minimize-number-of-stages,", po::value<bool>(), "")
             ("group-identical-bins,", po::value<bool>(), "")
@@ -346,6 +347,8 @@ int main(int argc, char *argv[])
             parameters.not_anytime_tree_search_hypergraph_infinite_copies_maximum_array_size = vm["not-anytime-tree-search-hypergraph-infinite-copies-maximum-array-size"].as<Counter>();
         if (vm.count("not-anytime-dichotomic-search-subproblem-tree-search-queue-size"))
             parameters.not_anytime_dichotomic_search_subproblem_tree_search_queue_size = vm["not-anytime-dichotomic-search-subproblem-tree-search-queue-size"].as<Counter>();
+        if (vm.count("few-items-in-bins-threshold"))
+            parameters.few_items_in_bins_threshold = vm["few-items-in-bins-threshold"].as<Counter>();
         const rectangleguillotine::Output output = optimize(instance, parameters);
 
         if (vm.count("output"))

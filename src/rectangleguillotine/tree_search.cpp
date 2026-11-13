@@ -67,6 +67,13 @@ BranchingScheme::BranchingScheme(
         }
     }
 
+    // Compute cut_type_.
+    cut_type_ = instance.parameters().cut_type;
+    if (cut_type_ == CutType::Exact
+            && instance.parameters().number_of_stages >= 4) {
+        cut_type_ = CutType::NonExact;
+    }
+
     // Compute minimum_distance_1_cuts_ and minimum_distance_2_cuts_.
     if (instance.parameters().number_of_stages == 2) {
         minimum_distance_1_cuts_ = 0;
@@ -947,7 +954,7 @@ std::vector<std::shared_ptr<BranchingScheme::Node>> BranchingScheme::children(
             }
 
             // Try adding it with a second item
-            if (instance.parameters().cut_type == CutType::Roadef2018) {
+            if (cut_type_ == CutType::Roadef2018) {
                 Length wj = item_type.rect.w;
                 Length wjr = item_type.rect.h;
                 for (StackId s2 = s; s2 < instance.number_of_stacks(); ++s2) {
@@ -1264,7 +1271,7 @@ void BranchingScheme::insertion_1_item(
     }
 
     // Homogenous
-    if (df == 2 && instance.parameters().cut_type == CutType::Homogenous
+    if (df == 2 && cut_type_ == CutType::Homogenous
             && parent.item_type_id_1 != item_type_id) {
         return;
     }
@@ -1290,8 +1297,8 @@ void BranchingScheme::insertion_1_item(
                 bin_type);
     }
     if (defect_id >= 0) {
-        if (instance.parameters().cut_type == CutType::Roadef2018
-                || instance.parameters().cut_type == CutType::NonExact) {
+        if (cut_type_ == CutType::Roadef2018
+                || cut_type_ == CutType::NonExact) {
             // Place the item on top of its third-level sub-plate
             insertion.item_type_id_1 = -1;
             insertion.item_type_id_2 = item_type_id;
@@ -1307,8 +1314,8 @@ void BranchingScheme::insertion_1_item(
     }
 
     // Update insertion.z2 with respect to cut_type()
-    if (instance.parameters().cut_type == CutType::Exact
-            || instance.parameters().cut_type == CutType::Homogenous)
+    if (cut_type_ == CutType::Exact
+            || cut_type_ == CutType::Homogenous)
         insertion.z2 = 2;
 
     update(children, pparent, insertion);

@@ -480,6 +480,17 @@ private:
     CutOrientation first_stage_orientation_ = CutOrientation::Any;
 
     /**
+     * Effective cut type.
+     *
+     * The patterns built by the branching scheme have at most 3 stages,
+     * plus, for the non-exact cut types, a 4th cut separating an item from
+     * a waste. If the instance allows at least 4 stages, this 4th cut is a
+     * regular cut: the non-exact patterns are valid for the 'Exact' cut type
+     * too, so it is replaced by 'NonExact'.
+     */
+    CutType cut_type_ = CutType::NonExact;
+
+    /**
      * Effective minimum distance between two consecutive 1-cuts.
      *
      * For 2-staged instances, insertion.x1 does not correspond to a real
