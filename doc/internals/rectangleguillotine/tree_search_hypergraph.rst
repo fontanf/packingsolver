@@ -8,7 +8,7 @@ Objectives
 
 This algorithm solves the :code:`feasibility` and :code:`knapsack` objectives, with a single bin, exactly.
 
-It generates guillotine patterns with any number of stages, or an unlimited number of stages, with the :code:`non-exact`, :code:`exact` and :code:`roadef2018` cut types (any cut type with an unlimited number of stages) and any orientation of the first stage. It supports the cut thickness, the rotations of the items, the hard trims, and the soft right and top trims. It doesn't support the defects, the stacks, the minimum waste length, the minimum and maximum distances between cuts, the maximum numbers of cuts, the soft left and bottom trims, and the :code:`homogenous` cut type with a limited number of stages.
+It generates guillotine patterns with any number of stages, or an unlimited number of stages, with the :code:`non-exact`, :code:`exact` and :code:`roadef2018` cut types (any cut type with an unlimited number of stages) and any orientation of the first stage. It supports the cut thickness, the rotations of the items, the hard trims, the soft right and top trims, and the resources. It doesn't support the defects, the stacks, the minimum waste length, the minimum and maximum distances between cuts, the maximum numbers of cuts, the soft left and bottom trims, and the :code:`homogenous` cut type with a limited number of stages.
 
 It is the bidirectional labeling algorithm with b-values in a decision hypergraph of Léonard and Clautiaux (2026), with the bounds of the linear relaxation of the flow formulation of the hypergraph (Léonard and Clautiaux, 2026).
 
@@ -75,10 +75,20 @@ Thresholds
 
 The threshold starts at the bound and decreases by 0.1% of the bound at each search, but never below the profit of the best solution known (minus :math:`\Lambda`), including the solutions found by the other algorithms running in parallel. When a search ends with a pattern of profit at least the threshold plus :math:`\Lambda`, it is optimal. Otherwise, all the patterns of profit at least the threshold plus :math:`\Lambda` have been searched, which is a new bound. With the :code:`feasibility` objective, a single search, with the total profit of the items as threshold, finds a pattern with all the items or proves that there is none.
 
+Resources
+---------
+
+The resources are only taken into account in the profits of the complete patterns: the patterns which exceed the capacity of a resource which is not penalized are skipped, and the penalties of the penalized resources whose capacity is exceeded are subtracted from the profit, as in the solutions. The bounds ignore the resources, so they remain valid (with a negative penalty, the profit may increase: the sum of the negative penalties is added to the bounds). With many penalized resources, for example the subset-row cuts of the pricing problems of the column generation, the bounds are weak, so the optimal pattern is often found quickly, but proving its optimality takes long.
+
+Work
+----
+
+The work of the algorithm is measured by its number of elementary operations: the pairs of labels considered by the merges, and the leaves and hyperarcs considered by the dynamic programming algorithms computing the bounds, including the ones of the column generation computing the multipliers of the Lagrangian relaxation, which dominate the work on the instances with many items in the bin. In the non-anytime modes, it stops when this number reaches :code:`not_anytime_tree_search_hypergraph_number_of_operations_per_item` (:math:`10^4` by default) times the number of items, as the queue sizes of the other tree search algorithms, which set a work proportional to the number of items. It then returns the best solution found and the bound of its last complete search. The work needed varies by several orders of magnitude between instances of the same size: it mostly depends on the gap between the bound and the profit of the optimal solution.
+
 Automatic selection
 -------------------
 
-In the :code:`exact` mode, it is run for the :code:`knapsack` and :code:`feasibility` objectives with a single bin when it supports the instance and the hypergraph has at most :code:`tree_search_hypergraph_maximum_number_of_states` states (:math:`2^{22}` by default), together with the other algorithms of the automatic selection, which find good solutions quickly. It is also used for the pricing problems of the :ref:`column generation <internals_generic_algorithms_column_generation>` when a bound on the best pattern is needed. See :ref:`algorithm selection <internals_algorithm_selection>`.
+It is run for the :code:`knapsack` objective with a single bin when it supports the instance and the hypergraph has at most :code:`tree_search_hypergraph_maximum_number_of_states` states (:math:`2^{22}` by default), together with the other algorithms of the automatic selection, and also for the :code:`feasibility` objective in the :code:`exact` mode. When few patterns have a profit close to the bound, it finds and proves the optimal solutions quickly, which the heuristic algorithms may miss; otherwise, it improves the bound while the other algorithms find good solutions. This includes the pricing problems of the :ref:`column generation <internals_generic_algorithms_column_generation>`, where it is also used alone, without maximum work, when a bound on the best pattern is needed. See :ref:`algorithm selection <internals_algorithm_selection>`.
 
 It can be forced with :code:`--use-tree-search-hypergraph 1` (CLI) or :code:`use_tree_search_hypergraph` (Python).
 
