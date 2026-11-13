@@ -214,6 +214,18 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
     /** Threshold to consider that a bin contains "many" items. */
     Counter many_items_in_bins_threshold_2 = 64;
 
+    /**
+     * Threshold to consider that a bin contains "few" items.
+     *
+     * For the knapsack objective with unlimited stages, if the estimated
+     * number of items in a bin is at most this threshold, the tree search is
+     * also run, together with the tree search with maximal spaces: with few
+     * items in a bin, the 3-staged non-exact patterns it builds are rarely
+     * worse than the guillotine ones (with at most 4 items in a bin, they
+     * never are).
+     */
+    Counter few_items_in_bins_threshold = 6;
+
     /** Factor to consider that the number of copies of items is "high". */
     Counter many_item_type_copies_factor = 1;
 

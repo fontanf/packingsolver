@@ -496,6 +496,7 @@ void optimize_sequential_single_knapsack(
                 kp_parameters.not_anytime_tree_search_queue_size = queue_size;
                 kp_parameters.not_anytime_tree_search_maximal_spaces_queue_size = queue_size_ms;
                 kp_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
+                kp_parameters.few_items_in_bins_threshold = parameters.few_items_in_bins_threshold;
                 auto kp_output = optimize(kp_instance, kp_parameters);
                 return kp_output.solution_pool;
             };
@@ -562,6 +563,7 @@ void optimize_sequential_value_correction(
             kp_parameters.not_anytime_tree_search_maximal_spaces_queue_size
                 = parameters.sequential_value_correction_subproblem_tree_search_maximal_spaces_queue_size;
             kp_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
+            kp_parameters.few_items_in_bins_threshold = parameters.few_items_in_bins_threshold;
             auto kp_output = optimize(kp_instance, kp_parameters);
             return kp_output.solution_pool;
         };
@@ -676,6 +678,7 @@ void optimize_column_generation(
             kp_parameters.not_anytime_tree_search_maximal_spaces_queue_size
                 = parameters.column_generation_subproblem_tree_search_maximal_spaces_queue_size;
             kp_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
+            kp_parameters.few_items_in_bins_threshold = parameters.few_items_in_bins_threshold;
             kp_parameters.tree_search_hypergraph_maximum_number_of_states
                 = parameters.tree_search_hypergraph_maximum_number_of_states;
             // 'PricingType::Dual' calls are rare and exist to prove a bound:
@@ -956,6 +959,14 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
                     //&& mean_number_of_items_in_bins > parameters.many_items_in_bins_threshold_2
                     && tree_search_maximal_spaces_supported(instance)) {
                 use_tree_search_maximal_spaces = true;
+                // With few items in a bin, the 3-staged non-exact patterns
+                // of the tree search are rarely worse than the guillotine
+                // ones, so it is worth running it too.
+                if (instance.objective() == Objective::Knapsack
+                        && mean_number_of_items_in_bins
+                        <= parameters.few_items_in_bins_threshold) {
+                    use_tree_search = true;
+                }
             } else if ((instance.objective() == Objective::Knapsack
                         || instance.objective() == Objective::OpenDimensionX
                         || instance.objective() == Objective::OpenDimensionY)
