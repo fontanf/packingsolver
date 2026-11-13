@@ -24,7 +24,10 @@ OptimizeParameters build_check_parameters(
     OptimizeParameters check_parameters;
     check_parameters.verbosity_level = 0;
     check_parameters.timer = parameters.timer;
-    check_parameters.optimization_mode = OptimizationMode::NotAnytimeDeterministic;
+    check_parameters.optimization_mode
+        = (parameters.optimization_mode == OptimizationMode::NotAnytimeSequential)?
+        OptimizationMode::NotAnytimeSequential:
+        OptimizationMode::NotAnytimeDeterministic;
     check_parameters.use_tree_search = true;
     check_parameters.not_anytime_tree_search_queue_size = parameters.subproblem_queue_size;
     check_parameters.fixed_items = fixed_items;

@@ -47,6 +47,13 @@ struct TrivialBoundParameters: packingsolver::Parameters<Instance, Solution, Out
      * 'OptimizeParameters::dynamic_programming_knapsack_maximum_number_of_states').
      */
     Counter dynamic_programming_knapsack_maximum_number_of_states = (1 << 20);
+
+    /**
+     * Optimization mode of the knapsack solved to compute the bound of the
+     * variable-sized bin packing objective; 'NotAnytimeSequential' keeps it
+     * on the calling thread.
+     */
+    OptimizationMode optimization_mode = OptimizationMode::NotAnytime;
 };
 
 Output trivial_bound(

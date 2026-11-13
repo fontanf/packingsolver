@@ -783,6 +783,8 @@ void ColumnGenerationPricingSolver::generate_1e_patterns(
             onedimensional::OptimizeParameters kp_parameters;
             kp_parameters.verbosity_level = 0;
             kp_parameters.linear_programming_solver_name = parameters_.linear_programming_solver_name;
+            if (parameters_.optimization_mode == OptimizationMode::NotAnytimeSequential)
+                kp_parameters.optimization_mode = OptimizationMode::NotAnytimeSequential;
             auto kp_output = optimize(kp_instance, kp_parameters);
             if (parameters_.timer.needs_to_end())
                 break;
@@ -954,6 +956,8 @@ void ColumnGenerationPricingSolver::generate_1n_patterns(
         onedimensional::OptimizeParameters kp_parameters;
         kp_parameters.verbosity_level = 0;
         kp_parameters.linear_programming_solver_name = parameters_.linear_programming_solver_name;
+        if (parameters_.optimization_mode == OptimizationMode::NotAnytimeSequential)
+            kp_parameters.optimization_mode = OptimizationMode::NotAnytimeSequential;
         auto kp_output = optimize(kp_instance, kp_parameters);
         if (parameters_.timer.needs_to_end())
             break;
@@ -1211,6 +1215,8 @@ void ColumnGenerationPricingSolver::generate_1ro_patterns(
         onedimensional::OptimizeParameters kp_parameters;
         kp_parameters.verbosity_level = 0;
         kp_parameters.linear_programming_solver_name = parameters_.linear_programming_solver_name;
+        if (parameters_.optimization_mode == OptimizationMode::NotAnytimeSequential)
+            kp_parameters.optimization_mode = OptimizationMode::NotAnytimeSequential;
         auto kp_output = optimize(kp_instance, kp_parameters);
         if (parameters_.timer.needs_to_end())
             break;
@@ -1462,6 +1468,8 @@ void ColumnGenerationPricingSolver::generate_2ho_patterns(
         onedimensional::OptimizeParameters kp_parameters;
         kp_parameters.verbosity_level = 0;
         kp_parameters.linear_programming_solver_name = parameters_.linear_programming_solver_name;
+        if (parameters_.optimization_mode == OptimizationMode::NotAnytimeSequential)
+            kp_parameters.optimization_mode = OptimizationMode::NotAnytimeSequential;
         auto kp_output = optimize(kp_instance, kp_parameters);
         if (parameters_.timer.needs_to_end())
             break;
