@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="308" height="261.2" viewBox="-10 -197.2 308 261.2">
+<defs><marker id="arrow0" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#b85450"/></marker><marker id="arrow1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#000000"/></marker></defs>
+<rect x="-10" y="-197.2" width="308" height="261.2" fill="#ffffff"/>
+<polygon points="0,0 108,0 126.0,-72 36,-108" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="67.5" y="-40.8">P</tspan></text>
+<polygon points="180,-36 252,-18.0 288,-108 216,-144" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="234.0" y="-72.3">Q</tspan></text>
+<polyline points="145.82,28.8 112.17,-162.0" fill="none" stroke="#000000" stroke-width="2"/>
+<polyline points="186.03,28.8 152.38,-162.0" fill="none" stroke="#000000" stroke-width="1" stroke-dasharray="3 3"/>
+<polyline points="120.43,-115.2 148.79,-120.2" fill="none" stroke="#b85450" stroke-width="2" marker-end="url(#arrow0)"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#b85450" text-anchor="middle"><tspan x="134.83" y="-130.8">n(α)</tspan></text>
+<polyline points="138.83,-10.8 177.83,-17.68" fill="none" stroke="#000000" stroke-width="1" marker-end="url(#arrow1)"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="158.63" y="-21.0">s</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="145.82" y="47.4">n(α) · u = β</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="152.38" y="-172.2">n(α) · u = β + s</tspan></text>
+</svg>

@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="975.4" height="445.8" viewBox="-10 -37.2 975.4 445.8">
+<rect x="-10" y="-37.2" width="975.4" height="445.8" fill="#ffffff"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start" font-weight="bold"><tspan x="0" y="-12.8">Bin types (cost = length, 3 copies each)</tspan></text>
+<rect x="0" y="-6.8" width="153.0" height="27.2" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="76.5" y="11.0">10</tspan></text>
+<rect x="170.0" y="-6.8" width="122.4" height="27.2" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="231.2" y="11.0">8</tspan></text>
+<rect x="309.4" y="-6.8" width="91.8" height="27.2" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="355.3" y="11.0">6</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start" font-weight="bold"><tspan x="0" y="51.8">Items (total length 30)</tspan></text>
+<rect x="0" y="61.2" width="107.1" height="27.2" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="53.55" y="79.0">7</tspan></text>
+<rect x="113.9" y="61.2" width="76.5" height="27.2" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="152.15" y="79.0">5</tspan></text>
+<rect x="197.2" y="61.2" width="76.5" height="27.2" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="235.45" y="79.0">5</tspan></text>
+<rect x="280.5" y="61.2" width="76.5" height="27.2" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="318.75" y="79.0">5</tspan></text>
+<rect x="363.8" y="61.2" width="61.2" height="27.2" fill="#fff2cc" stroke="#d6b656" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="394.4" y="79.0">4</tspan></text>
+<rect x="431.8" y="61.2" width="30.6" height="27.2" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="447.1" y="79.0">2</tspan></text>
+<rect x="469.2" y="61.2" width="30.6" height="27.2" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="484.5" y="79.0">2</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start" font-weight="bold"><tspan x="0" y="130.0">iteration 1: waste estimate 10%, space 30 x 1.1 = 33 at least</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start"><tspan x="0" y="150.4">cheapest bins: 10 + 10 + 8 + 6 (cost 34)</tspan></text>
+<rect x="0" y="159.8" width="153.0" height="27.2" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<rect x="0.0" y="159.8" width="107.1" height="27.2" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="53.55" y="177.6">7</tspan></text>
+<rect x="107.1" y="159.8" width="30.6" height="27.2" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="122.4" y="177.6">2</tspan></text>
+<rect x="166.6" y="159.8" width="153.0" height="27.2" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<rect x="166.6" y="159.8" width="76.5" height="27.2" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="204.85" y="177.6">5</tspan></text>
+<rect x="243.1" y="159.8" width="76.5" height="27.2" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="281.35" y="177.6">5</tspan></text>
+<rect x="333.2" y="159.8" width="122.4" height="27.2" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<rect x="333.2" y="159.8" width="76.5" height="27.2" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="371.45" y="177.6">5</tspan></text>
+<rect x="409.7" y="159.8" width="30.6" height="27.2" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="425.0" y="177.6">2</tspan></text>
+<rect x="469.2" y="159.8" width="91.8" height="27.2" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<rect x="469.2" y="159.8" width="61.2" height="27.2" fill="#fff2cc" stroke="#d6b656" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="499.8" y="177.6">4</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#82b366" text-anchor="start"><tspan x="581.4" y="177.6">the items fit: the estimate is decreased</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start" font-weight="bold"><tspan x="0" y="218.4">iteration 2: waste estimate 5%, space 30 x 1.05 = 31 at least</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start"><tspan x="0" y="238.8">cheapest bins: 10 + 10 + 6 + 6 (cost 32)</tspan></text>
+<rect x="0" y="248.2" width="153.0" height="27.2" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<rect x="0.0" y="248.2" width="107.1" height="27.2" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="53.55" y="266.0">7</tspan></text>
+<rect x="107.1" y="248.2" width="30.6" height="27.2" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="122.4" y="266.0">2</tspan></text>
+<rect x="166.6" y="248.2" width="153.0" height="27.2" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<rect x="166.6" y="248.2" width="76.5" height="27.2" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="204.85" y="266.0">5</tspan></text>
+<rect x="243.1" y="248.2" width="76.5" height="27.2" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="281.35" y="266.0">5</tspan></text>
+<rect x="333.2" y="248.2" width="91.8" height="27.2" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<rect x="333.2" y="248.2" width="76.5" height="27.2" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="371.45" y="266.0">5</tspan></text>
+<rect x="438.6" y="248.2" width="91.8" height="27.2" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<rect x="438.6" y="248.2" width="61.2" height="27.2" fill="#fff2cc" stroke="#d6b656" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="469.2" y="266.0">4</tspan></text>
+<rect x="499.8" y="248.2" width="30.6" height="27.2" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="515.1" y="266.0">2</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#82b366" text-anchor="start"><tspan x="550.8" y="266.0">the items fit: the estimate is decreased</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start" font-weight="bold"><tspan x="0" y="306.8">iteration 3: waste estimate 2.5%, space 30 x 1.025 = 30 at least</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start"><tspan x="0" y="327.2">cheapest bins: 10 + 10 + 10 (cost 30)</tspan></text>
+<rect x="0" y="336.6" width="153.0" height="27.2" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<rect x="166.6" y="336.6" width="153.0" height="27.2" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<rect x="333.2" y="336.6" width="153.0" height="27.2" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#b85450" text-anchor="start"><tspan x="506.6" y="354.4">the items don&#x27;t fit: the estimate is increased</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start"><tspan x="0" y="381.2">next iterations: the estimate stays between 2.5% and 5%, where the same bins are chosen, which aren&#x27;t solved again; the search stops after 15</tspan><tspan x="0" y="395.6">iterations</tspan></text>
+</svg>

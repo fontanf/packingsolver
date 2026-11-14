@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Tree search hypergraph &#8212; PackingSolver</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../_static/classic.css?v=14e077c0" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=6a604523" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=a00afc7f" />
+    
+    <script src="../../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script data-sd-tabs-storage-prefix="sphinx-design-tab-id-" src="../../_static/design-tabs.js?v=fcb327ea"></script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Tree search hypergraph with infinite copies" href="tree_search_hypergraph_infinite_copies.html" />
+    <link rel="prev" title="Sequential strips / one-dimensional" href="sequential_strips_onedimensional.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="tree_search_hypergraph_infinite_copies.html" title="Tree search hypergraph with infinite copies"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="sequential_strips_onedimensional.html" title="Sequential strips / one-dimensional"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../overview.html" >Solver internals</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../rectangleguillotine.html" accesskey="U"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> algorithms</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Tree search hypergraph</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="tree-search-hypergraph">
+<span id="internals-rectangleguillotine-tree-search-hypergraph"></span><h1>Tree search hypergraph<a class="headerlink" href="#tree-search-hypergraph" title="Link to this heading">¶</a></h1>
+<section id="objectives">
+<h2>Objectives<a class="headerlink" href="#objectives" title="Link to this heading">¶</a></h2>
+<p>This algorithm solves the <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code> and <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code> objectives, with a single bin, exactly.</p>
+<p>It generates guillotine patterns with any number of stages, or an unlimited number of stages, with the <code class="code docutils literal notranslate"><span class="pre">non-exact</span></code>, <code class="code docutils literal notranslate"><span class="pre">exact</span></code> and <code class="code docutils literal notranslate"><span class="pre">roadef2018</span></code> cut types (any cut type with an unlimited number of stages) and any orientation of the first stage. It supports the cut thickness, the rotations of the items, the hard trims, the soft right and top trims, and the resources. It doesn’t support the defects, the stacks, the minimum waste length, the minimum and maximum distances between cuts, the maximum numbers of cuts, the soft left and bottom trims, and the <code class="code docutils literal notranslate"><span class="pre">homogenous</span></code> cut type with a limited number of stages.</p>
+<p>It is the bidirectional labeling algorithm with b-values in a decision hypergraph of Léonard and Clautiaux (2026), with the bounds of the linear relaxation of the flow formulation of the hypergraph (Léonard and Clautiaux, 2026).</p>
+</section>
+<section id="decision-hypergraph">
+<h2>Decision hypergraph<a class="headerlink" href="#decision-hypergraph" title="Link to this heading">¶</a></h2>
+<p>A <em>state</em> is a sub-plate of a pattern. A <em>hyperarc</em> decomposes a state, its <em>target</em>, into one or two smaller states, its <em>sources</em>: a pattern of the target is made of a pattern of each source. A state can also be a <em>leaf</em>: waste, or items. A pattern of the bin is then a tree of states, from the bin to the leaves.</p>
+<p><strong>Limited number of stages.</strong> With <span class="math notranslate nohighlight">\(K\)</span> stages, there are two kinds of states, where <span class="math notranslate nohighlight">\(o\)</span> is an orientation (vertical or horizontal), <span class="math notranslate nohighlight">\(\bar{o}\)</span> the other orientation, and <span class="math notranslate nohighlight">\(r\)</span> the number of stages left:</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(N(w, h, o, r)\)</span>: a sub-plate of dimensions <span class="math notranslate nohighlight">\(w \times h\)</span>, whose sub-plates, if it is cut, are obtained by cuts of orientation <span class="math notranslate nohighlight">\(o\)</span>. The bin is <span class="math notranslate nohighlight">\(N(W, H, o_1, K)\)</span>, where <span class="math notranslate nohighlight">\(o_1\)</span> is the orientation of the first stage. It is a leaf: waste, an item of dimensions <span class="math notranslate nohighlight">\(w \times h\)</span> (except for the bin itself), or, if <span class="math notranslate nohighlight">\(r = 0\)</span>, the items separated by the extra cut of the cut type (one item and a waste for <code class="code docutils literal notranslate"><span class="pre">non-exact</span></code>, one or two items and a waste for <code class="code docutils literal notranslate"><span class="pre">roadef2018</span></code>). Otherwise, if <span class="math notranslate nohighlight">\(r \ge 1\)</span>, it is cut: the hyperarc <span class="math notranslate nohighlight">\(N(w, h, o, r) \leftarrow S(w, h, o, r)\)</span>.</p></li>
+<li><p><span class="math notranslate nohighlight">\(S(w, h, o, r)\)</span>: the part of a sub-plate which remains to be cut by cuts of orientation <span class="math notranslate nohighlight">\(o\)</span>. For <span class="math notranslate nohighlight">\(o\)</span> vertical, it is waste; or its first strip <span class="math notranslate nohighlight">\(N(c, h, \bar{o}, r - 1)\)</span> followed by the rest <span class="math notranslate nohighlight">\(S(\lfloor w - c - t \rfloor, h, o, r)\)</span>; or a single last strip <span class="math notranslate nohighlight">\(N(c, h, \bar{o}, r - 1)\)</span>, the rest being waste. <span class="math notranslate nohighlight">\(t\)</span> is the cut thickness and <span class="math notranslate nohighlight">\(\lfloor x \rfloor\)</span> the largest normal position not larger than <span class="math notranslate nohighlight">\(x\)</span>.</p></li>
+</ul>
+<p>The lengths of the states are <em>normal positions</em>, the sums of item dimensions with the cut thickness (Herz, 1972; Christofides and Whitlock, 1977), except the dimensions of the bin: an item of a leaf fills its sub-plate exactly, so the dimension of a strip along its cut is never rounded down. With “any” orientation of the first stage, a goal state gathers the bins of both orientations.</p>
+<p>The figure below shows a 2-staged pattern, and the two hyperarcs which cut the bin into its first strip and the rest, and the first strip into its first piece (item A) and the rest:</p>
+<img alt="../../_images/rectangleguillotine_tree_search_hypergraph_states.svg" class="align-center" src="../../_images/rectangleguillotine_tree_search_hypergraph_states.svg" />
+<p><strong>Unlimited number of stages.</strong> A state <span class="math notranslate nohighlight">\(P(w, h)\)</span> is a rectangle whose dimensions are <em>raster points</em> (Scheithauer and Terno, 1996), as for the <a class="reference internal" href="tree_search_hypergraph_infinite_copies.html#internals-rectangleguillotine-tree-search-hypergraph-infinite-copies"><span class="std std-ref">tree search hypergraph with infinite copies</span></a>. It is waste, an item in its bottom left corner, or it is cut: <span class="math notranslate nohighlight">\(P(w, h) \leftarrow P(c, h) + P(\lfloor w - c - t \rfloor, h)\)</span> and <span class="math notranslate nohighlight">\(P(w, h) \leftarrow P(w, c) + P(w, \lfloor h - c - t \rfloor)\)</span>, with <span class="math notranslate nohighlight">\(c\)</span> not larger than the rest: a cut whose first part is larger than the rest is dominated by the cut at the rest, a larger rectangle having more patterns.</p>
+<p>The states are numbered in a topological order: the sources of a hyperarc come before its target.</p>
+</section>
+<section id="labels">
+<h2>Labels<a class="headerlink" href="#labels" title="Link to this heading">¶</a></h2>
+<p>A <em>label</em> of a state is the vector of the numbers of copies of each item type of a pattern of the state. The labels are packed into 64-bit words, with one more bit than needed for the number of copies of each item type: the sum of two labels is an addition of the words, and it doesn’t exceed the numbers of copies iff adding the complement of the numbers of copies doesn’t set any of the extra bits. The labels of a state are kept without duplicates (with a hash table), sorted by decreasing profit, so that merging two sets of labels stops as soon as the sum of the profits falls below a threshold.</p>
+<p>The numbers of copies are limited by the number of items of each type which fit in the bin. With the <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code> objective, the profit of an item is its area, and the patterns with all the items are the patterns of maximum profit.</p>
+</section>
+<section id="bounds">
+<h2>Bounds<a class="headerlink" href="#bounds" title="Link to this heading">¶</a></h2>
+<p>The numbers of copies are relaxed with non-negative multipliers <span class="math notranslate nohighlight">\(\lambda_i\)</span>: the <em>reduced profit</em> of an item type is <span class="math notranslate nohighlight">\(p_i - \lambda_i\)</span>, and the profit of a pattern is at most its reduced profit plus <span class="math notranslate nohighlight">\(\Lambda = \sum_i \lambda_i b_i\)</span>, where <span class="math notranslate nohighlight">\(b_i\)</span> is the number of copies of the item type. Without the numbers of copies, two dynamic programs on the hypergraph give, for each state <span class="math notranslate nohighlight">\(v\)</span>:</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(\text{dp}(v)\)</span>: the best reduced profit of a pattern of <span class="math notranslate nohighlight">\(v\)</span>, computed in the topological order from its leaves and hyperarcs;</p></li>
+<li><p><span class="math notranslate nohighlight">\(\text{rdp}(v)\)</span>: the best reduced profit of a completion of a pattern of <span class="math notranslate nohighlight">\(v\)</span> into a pattern of the bin, computed in the reverse order: along each hyperarc, the completion of a source is the completion of the target plus the best pattern of the other source.</p></li>
+</ul>
+<p>The multipliers are the dual values of the linear relaxation of the flow formulation of the hypergraph, whose variables are the patterns of the bin:</p>
+<div class="math notranslate nohighlight">
+\[\max \sum_p \text{profit}(p) \, x_p \quad \text{s.t.} \quad \sum_p n_i(p) \, x_p \le b_i \;\; (\lambda_i), \qquad \sum_p x_p \le 1, \qquad x \ge 0\]</div>
+<p>It is solved by column generation (parameter <code class="code docutils literal notranslate"><span class="pre">linear_programming_solver_name</span></code>), the pricing problem being <span class="math notranslate nohighlight">\(\text{dp}\)</span> with the reduced profits. Each pricing gives the bound <span class="math notranslate nohighlight">\(\text{dp}(\text{bin}) + \Lambda\)</span> for its multipliers, and the multipliers of the best one are kept. This is the bound reported at the start.</p>
+</section>
+<section id="bidirectional-search">
+<h2>Bidirectional search<a class="headerlink" href="#bidirectional-search" title="Link to this heading">¶</a></h2>
+<p>For a threshold <span class="math notranslate nohighlight">\(T\)</span>, a search builds all the patterns of the bin of reduced profit at least <span class="math notranslate nohighlight">\(T\)</span>:</p>
+<ul class="simple">
+<li><p><strong>Forward pass.</strong> In the topological order, the forward labels of a state are its leaves, and the sums of the forward labels of the sources of its hyperarcs. A forward label of <span class="math notranslate nohighlight">\(v\)</span> of reduced profit <span class="math notranslate nohighlight">\(c\)</span> is kept iff its <em>b-value</em> is good enough: <span class="math notranslate nohighlight">\(2c + \text{rdp}(v) - \text{dp}(v) \ge T\)</span>.</p></li>
+<li><p><strong>Backward pass.</strong> In the reverse order, a backward label of a state is a pattern of the rest of the bin around it. The backward labels of a source of a hyperarc are the sums of the backward labels of its target and of the forward labels of the other source. A backward label of <span class="math notranslate nohighlight">\(v\)</span> is kept iff <span class="math notranslate nohighlight">\(2c + \text{dp}(v) - \text{rdp}(v) \ge T\)</span>. The bin has the empty backward label.</p></li>
+<li><p><strong>Merge.</strong> For each hyperarc, the forward labels of its sources and the backward labels of its target are merged, the two smallest sets first; and for each leaf, the leaf and the backward labels of its state. The best pattern of profit at least the threshold is kept, and rebuilt from the origins of its labels.</p></li>
+</ul>
+<img alt="../../_images/rectangleguillotine_tree_search_hypergraph_merge.svg" class="align-center" src="../../_images/rectangleguillotine_tree_search_hypergraph_merge.svg" />
+<p>For a pattern of reduced profit at least <span class="math notranslate nohighlight">\(T\)</span> and any state of its tree, the b-values of the part of the pattern below the state and of the rest add up to at least <span class="math notranslate nohighlight">\(2T\)</span>, so one of them passes its filter: the pattern is built by the merge at the hyperarc of the last state of its tree whose rest passes the filter. With these thresholds, the two passes stop half-way, measured by the gap between the bounds and the threshold rather than by a structural resource such as the area, and they keep far fewer labels than a single forward pass.</p>
+</section>
+<section id="thresholds">
+<h2>Thresholds<a class="headerlink" href="#thresholds" title="Link to this heading">¶</a></h2>
+<p>The threshold starts at the bound and decreases by 0.1% of the bound at each search, but never below the profit of the best solution known (minus <span class="math notranslate nohighlight">\(\Lambda\)</span>), including the solutions found by the other algorithms running in parallel. When a search ends with a pattern of profit at least the threshold plus <span class="math notranslate nohighlight">\(\Lambda\)</span>, it is optimal. Otherwise, all the patterns of profit at least the threshold plus <span class="math notranslate nohighlight">\(\Lambda\)</span> have been searched, which is a new bound. The threshold never decreases below the knapsack cutoff of the instance (minus <span class="math notranslate nohighlight">\(\Lambda\)</span>), if any: the patterns below it are not useful, for example in the dual pricing calls of the <a class="reference internal" href="../generic_algorithms/column_generation.html#internals-generic-algorithms-column-generation"><span class="std std-ref">column generation</span></a>, where a bound below the cutoff proves that the node is cut. The last threshold is slightly below the cutoff, so that its search proves that no pattern reaches it, or finds the best one which does. With the <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code> objective, a single search, with the total profit of the items as threshold, finds a pattern with all the items or proves that there is none.</p>
+</section>
+<section id="resources">
+<h2>Resources<a class="headerlink" href="#resources" title="Link to this heading">¶</a></h2>
+<p>The resources are only taken into account in the profits of the complete patterns: the patterns which exceed the capacity of a resource which is not penalized are skipped, and the penalties of the penalized resources whose capacity is exceeded are subtracted from the profit, as in the solutions. The bounds ignore the resources, so they remain valid (with a negative penalty, the profit may increase: the sum of the negative penalties is added to the bounds). With many penalized resources, for example the subset-row cuts of the pricing problems of the column generation, the bounds are weak, so the optimal pattern is often found quickly, but proving its optimality takes long.</p>
+</section>
+<section id="work">
+<h2>Work<a class="headerlink" href="#work" title="Link to this heading">¶</a></h2>
+<p>The work of the algorithm is measured by its number of elementary operations: the pairs of labels considered by the merges, and the leaves and hyperarcs considered by the dynamic programming algorithms computing the bounds, including the ones of the column generation computing the multipliers of the Lagrangian relaxation, which dominate the work on the instances with many items in the bin. In the non-anytime modes, it stops when this number reaches <code class="code docutils literal notranslate"><span class="pre">not_anytime_tree_search_hypergraph_number_of_operations_per_item</span></code> (<span class="math notranslate nohighlight">\(10^4\)</span> by default) times the number of items, as the queue sizes of the other tree search algorithms, which set a work proportional to the number of items. It then returns the best solution found and the bound of its last complete search. The work needed varies by several orders of magnitude between instances of the same size: it mostly depends on the gap between the bound and the profit of the optimal solution.</p>
+</section>
+<section id="automatic-selection">
+<h2>Automatic selection<a class="headerlink" href="#automatic-selection" title="Link to this heading">¶</a></h2>
+<p>It is run for the <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code> objective with a single bin when it supports the instance and the hypergraph has at most <code class="code docutils literal notranslate"><span class="pre">tree_search_hypergraph_maximum_number_of_states</span></code> states (<span class="math notranslate nohighlight">\(2^{22}\)</span> by default), together with the other algorithms of the automatic selection, and also for the <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code> objective in the <code class="code docutils literal notranslate"><span class="pre">exact</span></code> mode. When few patterns have a profit close to the bound, it finds and proves the optimal solutions quickly, which the heuristic algorithms may miss; otherwise, it improves the bound while the other algorithms find good solutions. This includes the pricing problems of the <a class="reference internal" href="../generic_algorithms/column_generation.html#internals-generic-algorithms-column-generation"><span class="std std-ref">column generation</span></a>, where it is also used alone when a bound on the best pattern is needed: without maximum work in the <code class="code docutils literal notranslate"><span class="pre">exact</span></code> mode, to prove whether a column with an improving reduced cost exists, and with the same maximum work as the other pricing calls in the other modes, where the time is better spent finding solutions. See <a class="reference internal" href="../algorithm_selection.html#internals-algorithm-selection"><span class="std std-ref">algorithm selection</span></a>.</p>
+<p>It can be forced with <code class="code docutils literal notranslate"><span class="pre">--use-tree-search-hypergraph</span> <span class="pre">1</span></code> (CLI) or <code class="code docutils literal notranslate"><span class="pre">use_tree_search_hypergraph</span></code> (Python).</p>
+</section>
+<section id="source-files">
+<h2>Source files<a class="headerlink" href="#source-files" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">src/rectangleguillotine/tree_search_hypergraph.hpp</span></code>, <code class="code docutils literal notranslate"><span class="pre">src/rectangleguillotine/tree_search_hypergraph.cpp</span></code></p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">src/rectangleguillotine/normal_positions.hpp</span></code>, <code class="code docutils literal notranslate"><span class="pre">src/rectangleguillotine/normal_positions.cpp</span></code>: the normal positions and the raster points</p></li>
+</ul>
+<p>References:</p>
+<ul class="simple">
+<li><p>“Bidirectional labeling with b-values in directed graphs and decision hypergraphs” (Léonard and Clautiaux, 2026)</p>
+<ul>
+<li><p><a class="reference external" href="https://github.com/Arturgo/Papier_BIDIR">https://github.com/Arturgo/Papier_BIDIR</a></p></li>
+</ul>
+</li>
+<li><p>“An efficient solver for integral flows in decision hypergraphs with applications to orthogonal knapsack problems” (Léonard and Clautiaux, 2026)</p>
+<ul>
+<li><p><a class="reference external" href="https://doi.org/10.1287/ijoc.2025.1692">https://doi.org/10.1287/ijoc.2025.1692</a></p></li>
+</ul>
+</li>
+</ul>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+<h3><a href="../../index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">PackingSolver’s documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../objectives.html">Objectives</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../optimization_modes.html">Optimization modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> solver</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../overview.html">Solver internals</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../tree_search.html">Tree search</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> algorithms</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> algorithms</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="tree_search.html">Tree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tree_search_maximal_spaces.html">Tree search with maximal spaces</a></li>
+<li class="toctree-l3"><a class="reference internal" href="column_generation_strips.html">Column generation strips</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sequential_strips_onedimensional.html">Sequential strips / one-dimensional</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Tree search hypergraph</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tree_search_hypergraph_infinite_copies.html">Tree search hypergraph with infinite copies</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rectangleguillotine.html#dual-feasible-functions">Dual feasible functions</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generic_algorithms.html">Generic algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../algorithm_selection.html">Algorithm selection</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="tree_search_hypergraph_infinite_copies.html" title="Tree search hypergraph with infinite copies"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="sequential_strips_onedimensional.html" title="Sequential strips / one-dimensional"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../overview.html" >Solver internals</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../rectangleguillotine.html" ><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> algorithms</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Tree search hypergraph</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2019-2024, Florian Fontan.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.2.0.
+    </div>
+  </body>
+</html>

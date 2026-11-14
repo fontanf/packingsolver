@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="428.0" height="389.0" viewBox="-46.0 -106 428.0 389.0">
+<rect x="-46.0" y="-106" width="428.0" height="389.0" fill="#ffffff"/>
+<rect x="0" y="-96" width="96" height="96" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="48.0" y="-58.2">w = 8</tspan><tspan x="48.0" y="-43.8">h = 8</tspan><tspan x="48.0" y="-29.4">p = 62</tspan></text>
+<rect x="144" y="-84" width="84" height="84" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="186.0" y="-52.2">w = 7</tspan><tspan x="186.0" y="-37.8">h = 7</tspan><tspan x="186.0" y="-23.4">p = 46</tspan></text>
+<polygon points="109.0,12 119.0,12 119.0,34 125.0,34 114.0,48 103.0,34 109.0,34" fill="#ffffff" stroke="#000000"/>
+<rect x="0" y="72" width="180" height="96" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="90.0" y="109.8">w = 15</tspan><tspan x="90.0" y="124.2">h = 8</tspan><tspan x="90.0" y="138.6">p = 108</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#000000" text-anchor="middle"><tspan x="90.0" y="186.25">side by side</tspan></text>
+<rect x="240" y="72" width="96" height="180" fill="#fff2cc" stroke="#d6b656" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="288.0" y="151.8">w = 8</tspan><tspan x="288.0" y="166.2">h = 15</tspan><tspan x="288.0" y="180.6">p = 108</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#000000" text-anchor="middle"><tspan x="288.0" y="270.25">one above the other</tspan></text>
+</svg>

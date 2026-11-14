@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Blocks &#8212; PackingSolver</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../_static/classic.css?v=14e077c0" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=6a604523" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=a00afc7f" />
+    
+    <script src="../../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script data-sd-tabs-storage-prefix="sphinx-design-tab-id-" src="../../_static/design-tabs.js?v=fcb327ea"></script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Tree search with maximal spaces" href="tree_search_maximal_spaces.html" />
+    <link rel="prev" title="Tree search with periodic packings" href="tree_search_periodic_packing.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="tree_search_maximal_spaces.html" title="Tree search with maximal spaces"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="tree_search_periodic_packing.html" title="Tree search with periodic packings"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../overview.html" >Solver internals</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../irregular.html" accesskey="U"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Blocks</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="blocks">
+<span id="internals-irregular-blocks"></span><h1>Blocks<a class="headerlink" href="#blocks" title="Link to this heading">¶</a></h1>
+<p>A <em>block</em> is a set of items with fixed relative positions. The <a class="reference internal" href="tree_search_periodic_packing.html#internals-irregular-tree-search-periodic-packing"><span class="std std-ref">tree search with periodic packings</span></a> and the <a class="reference internal" href="tree_search_maximal_spaces.html#internals-irregular-tree-search-maximal-spaces"><span class="std std-ref">tree search with maximal spaces</span></a> pack a block at each stage. A block is described by its items, its numbers of copies of each item type, and its dimensions: the dimensions of the bounding box of its items, plus the item-item minimum spacing, so that two blocks placed side by side respect the spacing.</p>
+<section id="kinds-of-blocks">
+<h2>Kinds of blocks<a class="headerlink" href="#kinds-of-blocks" title="Link to this heading">¶</a></h2>
+<p>The blocks are built for the bin of the instance, from the <a class="reference internal" href="tree_search_periodic_packing.html#internals-irregular-tree-search-periodic-packing"><span class="std std-ref">periodic packings</span></a> of the item types:</p>
+<ul class="simple">
+<li><p>the tilings of <span class="math notranslate nohighlight">\(n_x \times n_y\)</span> unit cells of a periodic packing, as long as they fit in the bin and don’t use more copies than available;</p></li>
+<li><p>the <em>clipped lattice</em> blocks: the bin is filled with the lattice of a periodic packing, for several positions of the lattice, and a block is made of the items whose top and right are below given thresholds. Unlike the tilings, these blocks may contain partial unit cells, which is often denser along the sides of the bin;</p></li>
+<li><p>the grid blocks: the items of an item type aligned on a grid of their bounding boxes, in each of its orientations;</p></li>
+<li><p>the framed blocks (see below).</p></li>
+</ul>
+</section>
+<section id="framed-blocks">
+<h2>Framed blocks<a class="headerlink" href="#framed-blocks" title="Link to this heading">¶</a></h2>
+<p>A <em>frame item</em> is an item type in an orientation whose bounding box has a large empty rectangle touching one of its sides, at least half of the bounding box, like an L-shape or a U-shape. Without the framed blocks, such items are poorly packed: the space in their empty rectangle is only used by chance.</p>
+<p>A block is framed by one frame item in an orientation <span class="math notranslate nohighlight">\(r\)</span>, by two in the orientations <span class="math notranslate nohighlight">\(r\)</span> and <span class="math notranslate nohighlight">\(r + 180°\)</span>, or by four in the orientations <span class="math notranslate nohighlight">\(r\)</span>, <span class="math notranslate nohighlight">\(r + 90°\)</span>, <span class="math notranslate nohighlight">\(r + 180°\)</span> and <span class="math notranslate nohighlight">\(r + 270°\)</span>. The frame items are placed one after the other, with the block in their empty rectangle, and moved away from the block and from the previous frame items until they don’t overlap them; the position giving the smallest bounding box is kept. The frame items are placed using only their bounding box, their empty rectangle and the bounding box of the block, so the framed blocks are valid without computing any no-fit polygon.</p>
+<p>The <em>saving</em> of a framed block is the space taken by the block and by the frame items packed separately, minus the space taken by the framed block. The space taken by the frame items packed separately is their area divided by the best density of the blocks of their item type alone. A framed block is only kept if its saving is non-negative. The framed blocks are framed again once.</p>
+<p>The number of framed blocks of each frame item type is limited. For a framed block, the maximum number of copies of the block, given the numbers of copies of its item types, times the number of copies of the frame item type in the block, is the number of copies of the frame item type that this block can use. The sum of this number over the framed blocks of a frame item type, at both depths, doesn’t exceed 4 times the number of copies of the frame item type. Without this limit, an instance with many item types with a single copy has a framed block for almost every pair of an item and of an L-shape.</p>
+<p>The framed blocks kept are the ones with the largest savings. To avoid framing all the blocks, the saving is first bounded: the framed block is at least as large, in each dimension, as the block and as each of its frame items, so its saving is at most the space taken by the block and by the frame items packed separately, minus the area of this smallest possible bounding box. For each frame item type, the blocks are framed by decreasing bound, until the bound is smaller than the saving of the framed blocks which already reach the limit.</p>
+</section>
+<section id="dominance">
+<h2>Dominance<a class="headerlink" href="#dominance" title="Link to this heading">¶</a></h2>
+<p>A block dominates another one if it contains the same item types, at least as many copies of each, and takes no more space in both dimensions. Dominated blocks are discarded as they are generated, except the blocks of a single item, which are always kept: they may be the only way to pack the last copy of an item type.</p>
+</section>
+<section id="resources">
+<h2>Resources<a class="headerlink" href="#resources" title="Link to this heading">¶</a></h2>
+<p>The resource consumption of a block is the consumption of each resource of the bin by its items alone in the bin, the consumption of the copies of an item type starting at the first entry of its consumption schedule. The blocks which exceed the capacity of a resource which is not <em>penalize</em> are discarded. The consumption of a node of the tree searches is the sum of the consumptions of its blocks: it is exact for the uniform consumption schedules, and overestimates the consumption for a non-increasing schedule when the copies of an item type are in several blocks.</p>
+</section>
+<section id="use-by-the-algorithms">
+<h2>Use by the algorithms<a class="headerlink" href="#use-by-the-algorithms" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>The <a class="reference internal" href="tree_search_periodic_packing.html#internals-irregular-tree-search-periodic-packing"><span class="std std-ref">tree search with periodic packings</span></a> uses all the blocks, described by their bounding boxes.</p></li>
+<li><p>The <a class="reference internal" href="tree_search_maximal_spaces.html#internals-irregular-tree-search-maximal-spaces"><span class="std std-ref">tree search with maximal spaces</span></a> uses a block for each item type in each of its orientations, with a single item, and the blocks of more than one item built from the periodic packings: the tilings and the clipped lattice blocks. The grid blocks and the framed blocks are not kept: the tree search with maximal spaces packs the items on their actual shapes, and the items of these blocks are placed using their bounding boxes only.</p></li>
+</ul>
+</section>
+<section id="source-files">
+<h2>Source files<a class="headerlink" href="#source-files" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">src/irregular/periodic_packing.hpp</span></code>, <code class="code docutils literal notranslate"><span class="pre">src/irregular/periodic_packing.cpp</span></code>: the periodic packings</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">src/irregular/tree_search_periodic_packing.hpp</span></code>, <code class="code docutils literal notranslate"><span class="pre">src/irregular/tree_search_periodic_packing.cpp</span></code>: the blocks (<code class="code docutils literal notranslate"><span class="pre">compute_periodic_blocks</span></code>)</p></li>
+</ul>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+<h3><a href="../../index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">PackingSolver’s documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../objectives.html">Objectives</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../optimization_modes.html">Optimization modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> solver</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../overview.html">Solver internals</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../tree_search.html">Tree search</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> algorithms</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#trivial-single-item">Trivial single item</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tree_search.html">Tree search</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../irregular.html#tree-search-with-periodic-packings">Tree search with periodic packings</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="tree_search_periodic_packing.html">Tree search with periodic packings</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Blocks</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="tree_search_maximal_spaces.html">Tree search with maximal spaces</a></li>
+<li class="toctree-l3"><a class="reference internal" href="local_search.html">Local search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="milp_raster.html">MILP raster</a></li>
+<li class="toctree-l3"><a class="reference internal" href="benders_decomposition.html">Benders decomposition</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tree_search_relative_positions.html">Tree search on relative positions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="global_nonlinear_programming.html">Global nonlinear programming</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#one-dimensional-bound">One-dimensional bound</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../generic_algorithms.html">Generic algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../algorithm_selection.html">Algorithm selection</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="tree_search_maximal_spaces.html" title="Tree search with maximal spaces"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="tree_search_periodic_packing.html" title="Tree search with periodic packings"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../overview.html" >Solver internals</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../irregular.html" ><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Blocks</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2019-2024, Florian Fontan.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.2.0.
+    </div>
+  </body>
+</html>

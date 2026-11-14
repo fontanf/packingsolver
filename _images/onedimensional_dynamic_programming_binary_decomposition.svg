@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="358.8" height="140.0" viewBox="-10.0 -107.4 358.8 140.0">
+<rect x="-10.0" y="-107.4" width="358.8" height="140.0" fill="#ffffff"/>
+<rect x="0.0" y="-77.0" width="22" height="22" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<rect x="24.2" y="-77.0" width="22" height="22" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<rect x="48.4" y="-77.0" width="22" height="22" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<rect x="72.6" y="-77.0" width="22" height="22" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<rect x="96.8" y="-77.0" width="22" height="22" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<rect x="121.0" y="-77.0" width="22" height="22" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<rect x="145.2" y="-77.0" width="22" height="22" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<rect x="169.4" y="-77.0" width="22" height="22" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<rect x="193.6" y="-77.0" width="22" height="22" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<rect x="217.8" y="-77.0" width="22" height="22" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<rect x="242.0" y="-77.0" width="22" height="22" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<rect x="266.2" y="-77.0" width="22" height="22" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<rect x="290.4" y="-77.0" width="22" height="22" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="157.3" y="-86.0">13 copies of an item type</tspan></text>
+<rect x="0" y="-22" width="22.0" height="22" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="11.0" y="-6.8">1</tspan></text>
+<rect x="33.0" y="-22" width="46.2" height="22" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="56.1" y="-6.8">2</tspan></text>
+<rect x="90.2" y="-22" width="94.6" height="22" fill="#fff2cc" stroke="#d6b656" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="137.5" y="-6.8">4</tspan></text>
+<rect x="195.8" y="-22" width="143.0" height="22" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="267.3" y="-6.8">6</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="174.9" y="19.6">0-1 knapsack items: 1 + 2 + 4 + 6 = 13</tspan></text>
+</svg>

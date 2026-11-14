@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Global nonlinear programming &#8212; PackingSolver</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../_static/classic.css?v=14e077c0" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=6a604523" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=a00afc7f" />
+    
+    <script src="../../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script data-sd-tabs-storage-prefix="sphinx-design-tab-id-" src="../../_static/design-tabs.js?v=fcb327ea"></script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Generic algorithms" href="../generic_algorithms.html" />
+    <link rel="prev" title="Tree search on relative positions" href="tree_search_relative_positions.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../generic_algorithms.html" title="Generic algorithms"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="tree_search_relative_positions.html" title="Tree search on relative positions"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../overview.html" >Solver internals</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../irregular.html" accesskey="U"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Global nonlinear programming</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="global-nonlinear-programming">
+<span id="internals-irregular-global-nonlinear-programming"></span><h1>Global nonlinear programming<a class="headerlink" href="#global-nonlinear-programming" title="Link to this heading">¶</a></h1>
+<section id="objectives">
+<h2>Objectives<a class="headerlink" href="#objectives" title="Link to this heading">¶</a></h2>
+<p>This algorithm solves the <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code> objective with a single bin: it finds a packing of all the items, or proves that there is none. Unlike the <a class="reference internal" href="tree_search_relative_positions.html#internals-irregular-tree-search-relative-positions"><span class="std std-ref">tree search on relative positions</span></a>, it handles the continuous rotations.</p>
+<p>It requires SCIP: PackingSolver must be built with <code class="code docutils literal notranslate"><span class="pre">-DPACKINGSOLVER_USE_SCIP=ON</span></code>. In the <code class="code docutils literal notranslate"><span class="pre">exact</span></code> mode, it is selected automatically if an item type has continuous rotations.</p>
+<p>Supported instances: a convex polygonal bin, polygonal items (with holes), any allowed rotation ranges (continuous ranges or single angles), the item-item and item-bin spacings. Not supported: several bins, non-convex bins, defects, fixed items, mirrored rotations, circular arcs.</p>
+</section>
+<section id="model">
+<h2>Model<a class="headerlink" href="#model" title="Link to this heading">¶</a></h2>
+<p>The lengths are scaled so that the bin fits in the unit square.</p>
+<p><strong>Variables</strong>, for each item <span class="math notranslate nohighlight">\(i\)</span>:</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\((x_i, y_i)\)</span>: the position of its center, the average of the vertices of its shapes; it is in the convex hull of the item, so in the bin;</p></li>
+<li><p><span class="math notranslate nohighlight">\((c_i, s_i) \in [-1, 1]^2\)</span>: the cosine and the sine of its angle.</p></li>
+</ul>
+<p>A point <span class="math notranslate nohighlight">\(v\)</span> of item <span class="math notranslate nohighlight">\(i\)</span>, given relatively to its center, is at</p>
+<div class="math notranslate nohighlight">
+\[p_i(v) = \big(x_i + c_i v_x - s_i v_y, \; y_i + s_i v_x + c_i v_y\big),\]</div>
+<p>which is linear in the variables of the item.</p>
+<p><strong>Rotations</strong>: <span class="math notranslate nohighlight">\(c_i^2 + s_i^2 = 1\)</span>. The angles of an allowed range of width <span class="math notranslate nohighlight">\(w\)</span> and middle <span class="math notranslate nohighlight">\(m\)</span> are the points of the unit circle such that</p>
+<div class="math notranslate nohighlight">
+\[c_i \cos m + s_i \sin m \ge \cos(w / 2).\]</div>
+<p>A range of width 360 degrees adds no constraint, and a single angle (<span class="math notranslate nohighlight">\(w = 0\)</span>) fixes <span class="math notranslate nohighlight">\((c_i, s_i)\)</span>. With several ranges, a binary variable selects the range, and the constraints of the other ranges are relaxed.</p>
+<p><strong>Containment</strong>: for each vertex <span class="math notranslate nohighlight">\(v\)</span> of the convex hull of each shape of item <span class="math notranslate nohighlight">\(i\)</span>, and each edge of the bin, of outward normal <span class="math notranslate nohighlight">\(n\)</span> and offset <span class="math notranslate nohighlight">\(h\)</span> (shrunk by the item-bin spacing), <span class="math notranslate nohighlight">\(n \cdot p_i(v) \le h\)</span>. These constraints are linear.</p>
+<p><strong>Non-overlap</strong>: the items are partitioned into convex parts. Two convex parts don’t overlap iff a line separates them. For each pair of parts <span class="math notranslate nohighlight">\(P\)</span> of item <span class="math notranslate nohighlight">\(i\)</span> and <span class="math notranslate nohighlight">\(Q\)</span> of item <span class="math notranslate nohighlight">\(j \ne i\)</span>, the separating line, of normal <span class="math notranslate nohighlight">\((a, b) \in [-1, 1]^2\)</span> and offset <span class="math notranslate nohighlight">\(d\)</span>, is a variable:</p>
+<div class="math notranslate nohighlight">
+\[a \, p_{i,x}(v) + b \, p_{i,y}(v) \le d \quad \forall v \in P, \qquad
+a \, p_{j,x}(w) + b \, p_{j,y}(w) \ge d \quad \forall w \in Q.\]</div>
+<p>These constraints are bilinear. A separating line remains one when its coefficients are scaled, so the normal only has to be nonzero: <span class="math notranslate nohighlight">\(a^2 + b^2 \ge 1\)</span>. With an item-item spacing <span class="math notranslate nohighlight">\(\delta\)</span>, the normal is a unit vector, <span class="math notranslate nohighlight">\(a^2 + b^2 = 1\)</span>, and the constraints have <span class="math notranslate nohighlight">\(d - \delta / 2\)</span> and <span class="math notranslate nohighlight">\(d + \delta / 2\)</span> as right-hand sides.</p>
+<p><strong>Symmetries</strong>:</p>
+<ul class="simple">
+<li><p>the identical items are sorted by their x-coordinates;</p></li>
+<li><p>if the bin is centrally symmetric and all the items can be rotated by any angle, rotating a packing by 180 degrees around the center of the bin gives a packing, so the first item, which has the smallest x-coordinate among its identical items, is in the left half of the bin.</p></li>
+</ul>
+<p>The program has no objective. It is solved to global optimality by the spatial branch-and-bound of SCIP, which branches on the continuous variables of the bilinear terms and on the binary variables.</p>
+</section>
+<section id="subsets">
+<h2>Subsets<a class="headerlink" href="#subsets" title="Link to this heading">¶</a></h2>
+<p>If a subset of the items doesn’t fit in the bin, neither do all of them. As in the tree search on relative positions, the program is first solved on subsets of the items: on each pair of item types, by decreasing area, then on the increasing subsets of the largest items. The algorithm stops at the first subset proven infeasible, which is the infeasible subset of the output. The solution of the program with all the items is converted into a packing, which is checked before being returned.</p>
+<p>Small subsets are often proven infeasible quickly when two large items can’t both fit in the bin. The program with three items or more is much harder: the relaxations of the bilinear terms are weak until the domains of most of the variables of each pair of parts are small.</p>
+</section>
+<section id="tolerances">
+<h2>Tolerances<a class="headerlink" href="#tolerances" title="Link to this heading">¶</a></h2>
+<p>The results are exact up to the tolerances of SCIP: a packing in which the items overlap by less than its feasibility tolerance (<span class="math notranslate nohighlight">\(10^{-6}\)</span> relatively to the size of the bin) may be missed, so the infeasibility proofs hold up to this tolerance. Conversely, the solutions are converted back to the original coordinates and checked, and a solution in which the items overlap isn’t returned.</p>
+</section>
+<section id="performance">
+<h2>Performance<a class="headerlink" href="#performance" title="Link to this heading">¶</a></h2>
+<p>The algorithm is a baseline for the exact algorithms with continuous rotations, which are only able to solve problems with a few items. The same limit is reported in the literature: Cherri, Cherri and Soler (2018), with a model with separating edges selected by binary variables, and Jones (2014), with a relaxation in which circles inscribed in the items mustn’t overlap, solve problems with two or three items, and sometimes four.</p>
+</section>
+<section id="references">
+<h2>References<a class="headerlink" href="#references" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Cherri, L. H., Cherri, A. C., Soler, E. M. (2018). Mixed integer quadratically-constrained programming model to solve the irregular strip packing problem with continuous rotations. <em>Journal of Global Optimization</em>, 72(1), 89–107. <a class="reference external" href="https://doi.org/10.1007/s10898-018-0638-x">doi:10.1007/s10898-018-0638-x</a></p></li>
+<li><p>Jones, D. R. (2014). A fully general, exact algorithm for nesting irregular shapes. <em>Journal of Global Optimization</em>, 59(2–3), 367–404. <a class="reference external" href="https://doi.org/10.1007/s10898-013-0129-z">doi:10.1007/s10898-013-0129-z</a></p></li>
+</ul>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+<h3><a href="../../index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">PackingSolver’s documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../objectives.html">Objectives</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../optimization_modes.html">Optimization modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> solver</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../overview.html">Solver internals</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../tree_search.html">Tree search</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> algorithms</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#trivial-single-item">Trivial single item</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tree_search.html">Tree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#tree-search-with-periodic-packings">Tree search with periodic packings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tree_search_maximal_spaces.html">Tree search with maximal spaces</a></li>
+<li class="toctree-l3"><a class="reference internal" href="local_search.html">Local search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="milp_raster.html">MILP raster</a></li>
+<li class="toctree-l3"><a class="reference internal" href="benders_decomposition.html">Benders decomposition</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tree_search_relative_positions.html">Tree search on relative positions</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Global nonlinear programming</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../irregular.html#one-dimensional-bound">One-dimensional bound</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../generic_algorithms.html">Generic algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../algorithm_selection.html">Algorithm selection</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../generic_algorithms.html" title="Generic algorithms"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="tree_search_relative_positions.html" title="Tree search on relative positions"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../overview.html" >Solver internals</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../irregular.html" ><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Global nonlinear programming</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2019-2024, Florian Fontan.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.2.0.
+    </div>
+  </body>
+</html>

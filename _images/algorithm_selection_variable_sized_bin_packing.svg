@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600.0" height="280.0" viewBox="-50.0 -110.0 600.0 280.0">
+<defs><marker id="arrow0" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#000000"/></marker></defs>
+<rect x="-50.0" y="-110.0" width="600.0" height="280.0" fill="#ffffff"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="200.0" y="-83.8">Objective: variable-sized bin packing, several bin types</tspan></text>
+<rect x="120.0" y="-40.0" width="160" height="40" rx="6.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="200.0" y="-15.8">How many items fit in a bin?</tspan></text>
+<rect x="0.0" y="40.0" width="160" height="40" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="80.0" y="57.0">Sequential value correction</tspan><tspan x="80.0" y="71.4">Column generation</tspan></text>
+<rect x="220.0" y="40.0" width="200" height="40" rx="6.0" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="320.0" y="64.2">How many copies per item type?</tspan></text>
+<rect x="100.0" y="120.0" width="200" height="40" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="200.0" y="137.0">Sequential single knapsack</tspan><tspan x="200.0" y="151.4">Dichotomic search</tspan></text>
+<rect x="340.0" y="120.0" width="200" height="40" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="440.0" y="144.2">Sequential single knapsack</tspan></text>
+<polyline points="200,-0.0 200,20.0 80,20.0 80,40.0" fill="none" stroke="#000000" stroke-width="1" marker-end="url(#arrow0)"/>
+<rect x="130.25" y="13.4" width="19.51" height="13.2" fill="#ffffff"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#000000" text-anchor="middle"><tspan x="140.0" y="23.85">few</tspan></text>
+<polyline points="200,-0.0 200,20.0 320,20.0 320,40.0" fill="none" stroke="#000000" stroke-width="1" marker-end="url(#arrow0)"/>
+<rect x="247.66" y="13.4" width="24.68" height="13.2" fill="#ffffff"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#000000" text-anchor="middle"><tspan x="260.0" y="23.85">many</tspan></text>
+<polyline points="320,80.0 320,100.0 200,100.0 200,120.0" fill="none" stroke="#000000" stroke-width="1" marker-end="url(#arrow0)"/>
+<rect x="250.25" y="93.4" width="19.51" height="13.2" fill="#ffffff"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#000000" text-anchor="middle"><tspan x="260.0" y="103.85">few</tspan></text>
+<polyline points="320,80.0 320,100.0 440,100.0 440,120.0" fill="none" stroke="#000000" stroke-width="1" marker-end="url(#arrow0)"/>
+<rect x="367.66" y="93.4" width="24.68" height="13.2" fill="#ffffff"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#000000" text-anchor="middle"><tspan x="380.0" y="103.85">many</tspan></text>
+</svg>

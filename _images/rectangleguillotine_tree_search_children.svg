@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680.0" height="540.6" viewBox="-40.0 -130 680.0 540.6">
+<rect x="-40.0" y="-130" width="680.0" height="540.6" fill="#ffffff"/>
+<rect x="220.0" y="-120" width="60" height="120" fill="none" stroke="#000000" stroke-width="1" stroke-dasharray="3 3"/>
+<rect x="220.0" y="-40" width="60" height="40" fill="none" stroke="#000000" stroke-width="1" stroke-dasharray="3 3"/>
+<rect x="220.0" y="-40" width="60" height="40" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="250.0" y="-15.8">1</tspan></text>
+<rect x="220.0" y="-70.0" width="60" height="30.0" fill="none" stroke="#000000" stroke-width="1" stroke-dasharray="3 3"/>
+<rect x="220.0" y="-70.0" width="40" height="30.0" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="240.0" y="-50.8">2</tspan></text>
+<rect x="220.0" y="-120" width="160" height="120" fill="none" stroke="#000000" stroke-width="2"/>
+<polygon points="295.0,10.0 305.0,10.0 305.0,46.0 311.0,46.0 300.0,60.0 289.0,46.0 295.0,46.0" fill="#ffffff" stroke="#000000"/>
+<rect x="0" y="80" width="120" height="120" fill="none" stroke="#000000" stroke-width="1" stroke-dasharray="3 3"/>
+<rect x="0" y="160" width="120" height="40" fill="none" stroke="#000000" stroke-width="1" stroke-dasharray="3 3"/>
+<rect x="0" y="160" width="60" height="40" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="30.0" y="184.2">1</tspan></text>
+<rect x="0" y="120" width="120" height="40" fill="none" stroke="#000000" stroke-width="1" stroke-dasharray="3 3"/>
+<rect x="0" y="130.0" width="40" height="30.0" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="20.0" y="149.2">2</tspan></text>
+<rect x="40" y="120" width="80" height="40" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="80.0" y="144.2">3</tspan></text>
+<rect x="0" y="80" width="160" height="120" fill="none" stroke="#000000" stroke-width="2"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#000000" text-anchor="middle"><tspan x="80.0" y="217.85">3 in the current second-level sub-plate</tspan></text>
+<rect x="220" y="80" width="80" height="120" fill="none" stroke="#000000" stroke-width="1" stroke-dasharray="3 3"/>
+<rect x="220" y="160" width="80" height="40" fill="none" stroke="#000000" stroke-width="1" stroke-dasharray="3 3"/>
+<rect x="220" y="160" width="60" height="40" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="250.0" y="184.2">1</tspan></text>
+<rect x="220" y="130.0" width="80" height="30.0" fill="none" stroke="#000000" stroke-width="1" stroke-dasharray="3 3"/>
+<rect x="220" y="130.0" width="40" height="30.0" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="240.0" y="149.2">2</tspan></text>
+<rect x="220" y="90.0" width="80" height="40.0" fill="none" stroke="#000000" stroke-width="1" stroke-dasharray="3 3"/>
+<rect x="220" y="90.0" width="80" height="40" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="260.0" y="114.2">3</tspan></text>
+<rect x="220" y="80" width="160" height="120" fill="none" stroke="#000000" stroke-width="2"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#000000" text-anchor="middle"><tspan x="300.0" y="217.85">3 in a new second-level sub-plate</tspan></text>
+<rect x="440" y="80" width="60" height="120" fill="none" stroke="#000000" stroke-width="1" stroke-dasharray="3 3"/>
+<rect x="440" y="160" width="60" height="40" fill="none" stroke="#000000" stroke-width="1" stroke-dasharray="3 3"/>
+<rect x="440" y="160" width="60" height="40" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="470.0" y="184.2">1</tspan></text>
+<rect x="440" y="130.0" width="60" height="30.0" fill="none" stroke="#000000" stroke-width="1" stroke-dasharray="3 3"/>
+<rect x="440" y="130.0" width="40" height="30.0" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="460.0" y="149.2">2</tspan></text>
+<rect x="500" y="80" width="80" height="120" fill="none" stroke="#000000" stroke-width="1" stroke-dasharray="3 3"/>
+<rect x="500" y="160" width="80" height="40" fill="none" stroke="#000000" stroke-width="1" stroke-dasharray="3 3"/>
+<rect x="500" y="160" width="80" height="40" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="540.0" y="184.2">3</tspan></text>
+<rect x="440" y="80" width="160" height="120" fill="none" stroke="#000000" stroke-width="2"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#000000" text-anchor="middle"><tspan x="520.0" y="217.85">3 in a new first-level sub-plate</tspan></text>
+<rect x="0" y="260" width="90.0" height="120" fill="none" stroke="#000000" stroke-width="1" stroke-dasharray="3 3"/>
+<rect x="0" y="340" width="90.0" height="40" fill="none" stroke="#000000" stroke-width="1" stroke-dasharray="3 3"/>
+<rect x="0" y="340" width="60" height="40" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="30.0" y="364.2">1</tspan></text>
+<rect x="0" y="280" width="90.0" height="60" fill="none" stroke="#000000" stroke-width="1" stroke-dasharray="3 3"/>
+<rect x="0" y="310.0" width="40" height="30.0" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="20.0" y="329.2">2</tspan></text>
+<rect x="40" y="280" width="50.0" height="60" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="65.0" y="314.2">4</tspan></text>
+<rect x="0" y="260" width="160" height="120" fill="none" stroke="#000000" stroke-width="2"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#000000" text-anchor="middle"><tspan x="80.0" y="397.85">4 in the current second-level sub-plate</tspan></text>
+<rect x="220" y="260" width="60" height="120" fill="none" stroke="#000000" stroke-width="1" stroke-dasharray="3 3"/>
+<rect x="220" y="340" width="60" height="40" fill="none" stroke="#000000" stroke-width="1" stroke-dasharray="3 3"/>
+<rect x="220" y="340" width="60" height="40" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="250.0" y="364.2">1</tspan></text>
+<rect x="220" y="310.0" width="60" height="30.0" fill="none" stroke="#000000" stroke-width="1" stroke-dasharray="3 3"/>
+<rect x="220" y="310.0" width="40" height="30.0" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="240.0" y="329.2">2</tspan></text>
+<rect x="280" y="260" width="50.0" height="120" fill="none" stroke="#000000" stroke-width="1" stroke-dasharray="3 3"/>
+<rect x="280" y="320" width="50.0" height="60" fill="none" stroke="#000000" stroke-width="1" stroke-dasharray="3 3"/>
+<rect x="280" y="320" width="50.0" height="60" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="305.0" y="354.2">4</tspan></text>
+<rect x="220" y="260" width="160" height="120" fill="none" stroke="#000000" stroke-width="2"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#000000" text-anchor="middle"><tspan x="300.0" y="397.85">4 in a new first-level sub-plate</tspan></text>
+</svg>
