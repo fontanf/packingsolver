@@ -18,7 +18,8 @@ target_sources(PackingSolver_rectangleguillotine_test PRIVATE
     tree_search_hypergraph_test.cpp
     tree_search_maximal_spaces_test.cpp
     post_process_test.cpp
-    reduction_test.cpp)
+    reduction_test.cpp
+    benders_decomposition_test.cpp)
 target_include_directories(PackingSolver_rectangleguillotine_test PRIVATE
     ${PROJECT_SOURCE_DIR}/src)
 target_link_libraries(PackingSolver_rectangleguillotine_test

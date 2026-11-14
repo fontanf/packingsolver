@@ -214,6 +214,9 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
     /** Use column generation algorithm. */
     bool use_column_generation = false;
 
+    /** Use Benders decomposition algorithm. */
+    bool use_benders_decomposition = false;
+
     /** Guides used in the tree search algorithm. */
     std::vector<GuideId> tree_search_guides;
 

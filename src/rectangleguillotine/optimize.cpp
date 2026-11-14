@@ -8,6 +8,7 @@
 #include "rectangleguillotine/sequential_strips_onedimensional.hpp"
 #include "rectangleguillotine/tree_search_hypergraph_infinite_copies.hpp"
 #include "rectangleguillotine/tree_search_hypergraph.hpp"
+#include "rectangleguillotine/benders_decomposition.hpp"
 #include "rectangle/dual_feasible_functions.hpp"
 #include "packingsolver/rectangle/instance_builder.hpp"
 #include "packingsolver/onedimensional/instance_builder.hpp"
@@ -360,6 +361,30 @@ void optimize_tree_search_hypergraph_infinite_copies(
         algorithm_formatter.update_bounds(ps_output);
     };
     tree_search_hypergraph_infinite_copies(instance, tsh_ic_parameters);
+}
+
+void optimize_benders_decomposition(
+        const Instance& instance,
+        const OptimizeParameters& parameters,
+        AlgorithmFormatter& algorithm_formatter)
+{
+    BendersDecompositionParameters bd_parameters;
+    bd_parameters.verbosity_level = 0;
+    bd_parameters.timer = parameters.timer;
+    bd_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+    bd_parameters.optimization_mode = parameters.optimization_mode;
+    bd_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
+    bd_parameters.new_solution_callback = [&algorithm_formatter](
+            const rectangleguillotine::Output& ps_output)
+    {
+        const BendersDecompositionOutput& psbd_output
+            = static_cast<const BendersDecompositionOutput&>(ps_output);
+        std::stringstream ss;
+        ss << "BD " << psbd_output.number_of_iterations;
+        algorithm_formatter.update_solution(psbd_output.solution_pool.best(), ss.str());
+        algorithm_formatter.update_bounds(psbd_output);
+    };
+    benders_decomposition(instance, bd_parameters);
 }
 
 void optimize_tree_search_hypergraph(
@@ -926,6 +951,7 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
     bool use_sequential_value_correction = parameters.use_sequential_value_correction;
     bool use_dichotomic_search = parameters.use_dichotomic_search;
     bool use_column_generation = parameters.use_column_generation;
+    bool use_benders_decomposition = parameters.use_benders_decomposition;
     if (instance.number_of_bins() <= 1) {
         // Disable algorithms which are not available for this objective.
         use_sequential_single_knapsack = false;
@@ -938,7 +964,8 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
                 && !use_tree_search_maximal_spaces
                 && !use_column_generation_strips
                 && !use_tree_search_hypergraph_infinite_copies
-                && !use_tree_search_hypergraph) {
+                && !use_tree_search_hypergraph
+                && !use_benders_decomposition) {
             // Knapsack with "high" numbers of copies (e.g. the subproblems of
             // the sequential single knapsack and of the column generation
             // algorithms): the dynamic programming algorithm which ignores
@@ -1036,7 +1063,8 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
         if (!use_tree_search
                 && !use_sequential_single_knapsack
                 && !use_sequential_value_correction
-                && !use_column_generation) {
+                && !use_column_generation
+                && !use_benders_decomposition) {
             if (mean_item_type_copies(instance)
                     > parameters.many_item_type_copies_factor
                     * mean_number_of_items_in_bins) {
@@ -1061,7 +1089,8 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
         if (!use_tree_search
                 && !use_sequential_single_knapsack
                 && !use_sequential_value_correction
-                && !use_column_generation) {
+                && !use_column_generation
+                && !use_benders_decomposition) {
             if (mean_item_type_copies(instance)
                     > parameters.many_item_type_copies_factor
                     * mean_number_of_items_in_bins) {
@@ -1100,7 +1129,8 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
                 && !use_sequential_single_knapsack
                 && !use_sequential_value_correction
                 && !use_sequential_strips_onedimensional
-                && !use_column_generation) {
+                && !use_column_generation
+                && !use_benders_decomposition) {
             if (mean_item_type_copies(instance)
                     > parameters.many_item_type_copies_factor
                     * mean_number_of_items_in_bins) {
@@ -1145,7 +1175,8 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
                 && !use_sequential_single_knapsack
                 && !use_sequential_value_correction
                 && !use_dichotomic_search
-                && !use_column_generation) {
+                && !use_column_generation
+                && !use_benders_decomposition) {
             if (mean_item_type_copies(instance)
                     > parameters.many_item_type_copies_factor
                     * mean_number_of_items_in_bins) {
@@ -1183,6 +1214,7 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
         use_sequential_value_correction = false;
         use_dichotomic_search = false;
         use_column_generation = false;
+        use_benders_decomposition = false;
     }
 
     // Run selected algorithms.
@@ -1262,6 +1294,19 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
         auto context = task_context();
         tasks.push_back([&exception_ptr, &instance, context]() {
             wrapper<decltype(&optimize_tree_search_hypergraph_infinite_copies), optimize_tree_search_hypergraph_infinite_copies>(
+                    exception_ptr,
+                    instance,
+                    *context.first,
+                    *context.second);
+        });
+    }
+    // Benders decomposition.
+    if (use_benders_decomposition) {
+        exception_ptr_list.push_front(std::exception_ptr());
+        std::exception_ptr& exception_ptr = exception_ptr_list.front();
+        auto context = task_context();
+        tasks.push_back([&exception_ptr, &instance, context]() {
+            wrapper<decltype(&optimize_benders_decomposition), optimize_benders_decomposition>(
                     exception_ptr,
                     instance,
                     *context.first,
