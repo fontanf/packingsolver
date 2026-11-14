@@ -21,6 +21,9 @@ public:
     /** Set the knapsack goal (see 'Instance::knapsack_goal'). */
     void set_knapsack_goal(Profit knapsack_goal) { instance_.knapsack_goal_ = knapsack_goal; }
 
+    /** Set the knapsack cutoff (see 'Instance::knapsack_cutoff'). */
+    void set_knapsack_cutoff(Profit knapsack_cutoff) { instance_.knapsack_cutoff_ = knapsack_cutoff; }
+
     /*
      * Read from files
      */

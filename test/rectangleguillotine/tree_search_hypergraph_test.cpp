@@ -301,3 +301,47 @@ TEST(RectangleGuillotineTreeSearchHypergraph, SubInstanceEmptyStacks)
     EXPECT_EQ(sub_instance.number_of_non_empty_stacks(), 2);
     EXPECT_TRUE(tree_search_hypergraph_supported(sub_instance));
 }
+
+namespace
+{
+
+/**
+ * Knapsack instance whose optimal solution packs item types 0 and 1 (profit
+ * 190), with the given knapsack cutoff.
+ */
+Instance build_knapsack_cutoff_instance(packingsolver::Profit knapsack_cutoff)
+{
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(packingsolver::Objective::Knapsack);
+    instance_builder.set_knapsack_cutoff(knapsack_cutoff);
+    instance_builder.add_bin_type(10, 10);
+    packingsolver::ItemTypeId item_type_id_0 = instance_builder.add_item_type(5, 10, true);
+    instance_builder.set_item_type_profit(item_type_id_0, 100);
+    packingsolver::ItemTypeId item_type_id_1 = instance_builder.add_item_type(5, 10, true);
+    instance_builder.set_item_type_profit(item_type_id_1, 90);
+    packingsolver::ItemTypeId item_type_id_2 = instance_builder.add_item_type(5, 10, true);
+    instance_builder.set_item_type_profit(item_type_id_2, 50);
+    return instance_builder.build();
+}
+
+}
+
+TEST(RectangleGuillotineTreeSearchHypergraph, KnapsackCutoffAboveOptimum)
+{
+    // No solution reaches the cutoff: the search stops with a bound below
+    // it.
+    Instance instance = build_knapsack_cutoff_instance(200);
+    TreeSearchHypergraphOutput output = tree_search_hypergraph(instance);
+    EXPECT_LT(output.knapsack_bound, 200);
+    EXPECT_GE(output.knapsack_bound, 190);
+    EXPECT_TRUE(output.is_proven_optimal());
+}
+
+TEST(RectangleGuillotineTreeSearchHypergraph, KnapsackCutoffBelowOptimum)
+{
+    // The optimal solution reaches the cutoff: it is found and proven.
+    Instance instance = build_knapsack_cutoff_instance(150);
+    TreeSearchHypergraphOutput output = tree_search_hypergraph(instance);
+    EXPECT_EQ(output.solution_pool.best().profit(), 190);
+    EXPECT_EQ(output.knapsack_bound, 190);
+}

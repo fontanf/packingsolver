@@ -994,6 +994,7 @@ Instance Reduction::reduction_to_instance(
 {
     InstanceBuilder instance_builder;
     instance_builder.set_objective(original_instance_->objective());
+    instance_builder.set_knapsack_cutoff(original_instance_->knapsack_cutoff());
     instance_builder.set_parameters(original_instance_->parameters());
     instance_builder.set_original_instance(*original_instance_);
     instance_builder.set_feasibility_callback(original_instance_->feasibility_callback());

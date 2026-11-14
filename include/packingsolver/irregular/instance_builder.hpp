@@ -18,6 +18,9 @@ public:
     /** Set the objective. */
     void set_objective(Objective objective) { instance_.objective_ = objective; }
 
+    /** Set the knapsack cutoff (see 'Instance::knapsack_cutoff'). */
+    void set_knapsack_cutoff(Profit knapsack_cutoff) { instance_.knapsack_cutoff_ = knapsack_cutoff; }
+
     /** Set the knapsack goal (see 'Instance::knapsack_goal'). */
     void set_knapsack_goal(Profit knapsack_goal) { instance_.knapsack_goal_ = knapsack_goal; }
 

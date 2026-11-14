@@ -382,6 +382,16 @@ public:
     /** Get the objective of the problem. */
     inline Objective objective() const { return objective_; }
 
+    /**
+     * Get the knapsack cutoff: for the 'Knapsack' objective, the solutions
+     * whose profit is below it are not useful, so the search stops as soon
+     * as the bound proves that no solution reaches it (e.g. a dual pricing
+     * problem of a column generation, which only needs a column good enough
+     * to prevent the node from being cut, or a bound proving that the node
+     * is cut). Minus infinity by default.
+     */
+    inline Profit knapsack_cutoff() const { return knapsack_cutoff_; }
+
     /*
      * Getters: parameters
      */
@@ -586,6 +596,9 @@ private:
 
     /** Objective. */
     Objective objective_ = Objective::BinPacking;
+
+    /** Knapsack cutoff (see 'knapsack_cutoff'). */
+    Profit knapsack_cutoff_ = -std::numeric_limits<Profit>::infinity();
 
     /** Parameters. */
     Parameters parameters_;

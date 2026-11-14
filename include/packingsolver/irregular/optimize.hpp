@@ -99,6 +99,9 @@ struct Output: packingsolver::Output<Instance, Solution>
             return true;
         switch (solution_pool.best().instance().objective()) {
         case Objective::Knapsack: {
+            // The bound proves that no solution reaches the knapsack cutoff.
+            if (knapsack_bound < solution_pool.best().instance().knapsack_cutoff())
+                return true;
             Profit knapsack_goal = solution_pool.best().instance().knapsack_goal();
             // The bound proves that the knapsack goal can't be reached.
             if (std::isfinite(knapsack_goal) && knapsack_bound < knapsack_goal)
