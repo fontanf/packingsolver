@@ -153,28 +153,42 @@ TEST(IrregularColumnGeneration, BinPackingDualPricing)
 TEST(IrregularBendersDecomposition, KnapsackGoal)
 {
     // With a knapsack goal of 25, the bound 20 proves that it can't be
-    // reached; with a knapsack goal of 15, a solution of profit 20 reaches
-    // it.
-    for (Profit knapsack_goal: {25.0, 15.0}) {
+    // reached, but the search doesn't stop: the goal only stops it when a
+    // solution reaches it, while a knapsack cutoff of 25 stops it. With a
+    // knapsack goal of 15, a solution of profit 20 reaches it.
+    auto build_instance = [](Profit knapsack_goal, Profit knapsack_cutoff)
+    {
         InstanceBuilder instance_builder;
         instance_builder.set_objective(Objective::Knapsack);
         instance_builder.set_knapsack_goal(knapsack_goal);
+        instance_builder.set_knapsack_cutoff(knapsack_cutoff);
         instance_builder.add_bin_type(shape::build_rectangle(0, 100, 0, 100));
         add_rectangle_item_type(instance_builder, 60, 40, 10, 3);
-        Instance instance = instance_builder.build();
+        return instance_builder.build();
+    };
+    Profit no_cutoff = -std::numeric_limits<Profit>::infinity();
 
-        irregular::Output output(instance);
-        output.knapsack_bound = 30;
-        EXPECT_FALSE(output.is_proven_optimal());
-        if (knapsack_goal > 20) {
-            output.knapsack_bound = 20;
-            EXPECT_TRUE(output.is_proven_optimal());
-        } else {
-            output = optimize(instance, benders_decomposition_parameters(true));
-            EXPECT_GE(output.solution_pool.best().profit(), 15);
-            EXPECT_TRUE(output.is_proven_optimal());
-        }
-    }
+    Instance instance_unreachable_goal = build_instance(25, no_cutoff);
+    irregular::Output output_unreachable_goal(instance_unreachable_goal);
+    output_unreachable_goal.knapsack_bound = 30;
+    EXPECT_FALSE(output_unreachable_goal.is_proven_optimal());
+    output_unreachable_goal.knapsack_bound = 20;
+    EXPECT_FALSE(output_unreachable_goal.is_proven_optimal());
+
+    Instance instance_cutoff = build_instance(25, 25);
+    irregular::Output output_cutoff(instance_cutoff);
+    output_cutoff.knapsack_bound = 30;
+    EXPECT_FALSE(output_cutoff.is_proven_optimal());
+    output_cutoff.knapsack_bound = 20;
+    EXPECT_TRUE(output_cutoff.is_proven_optimal());
+
+    Instance instance_reachable_goal = build_instance(15, no_cutoff);
+    irregular::Output output_reachable_goal(instance_reachable_goal);
+    output_reachable_goal.knapsack_bound = 30;
+    EXPECT_FALSE(output_reachable_goal.is_proven_optimal());
+    output_reachable_goal = optimize(instance_reachable_goal, benders_decomposition_parameters(true));
+    EXPECT_GE(output_reachable_goal.solution_pool.best().profit(), 15);
+    EXPECT_TRUE(output_reachable_goal.is_proven_optimal());
 }
 
 TEST(IrregularBendersDecomposition, IncompatiblePairsAndTriples)
