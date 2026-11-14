@@ -903,6 +903,10 @@ void InstanceBuilder::read_parameters(
         if (name == "objective") {
             Objective objective = read_enum<Objective>(value, name);
             set_objective(objective);
+        } else if (name == "knapsack_goal") {
+            set_knapsack_goal(std::stod(value));
+        } else if (name == "knapsack_cutoff") {
+            set_knapsack_cutoff(std::stod(value));
         } else if (name == "number_of_stages") {
             if (value == "u"
                     || value == "U"
@@ -1236,6 +1240,10 @@ void InstanceBuilder::read(
         }
         set_objective(objective);
     }
+    if (j.contains("knapsack_goal"))
+        set_knapsack_goal(j["knapsack_goal"]);
+    if (j.contains("knapsack_cutoff"))
+        set_knapsack_cutoff(j["knapsack_cutoff"]);
     if (j.contains("number_of_stages")) {
         if (j["number_of_stages"].is_string()) {
             set_number_of_stages_unlimited();

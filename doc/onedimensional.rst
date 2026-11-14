@@ -59,6 +59,14 @@ An instance is a JSON object with the following fields:
      - Description
    * - ``objective``
      - **Mandatory**. One of ``knapsack``, ``bin-packing``, ``bin-packing-with-leftovers``, ``variable-sized-bin-packing``; see :ref:`objectives`
+   * - ``bin_packing_goal``
+     - For the ``bin-packing`` objective, the search stops as soon as a solution reaches this number of bins. Default: none
+   * - ``knapsack_goal``
+     - For the ``knapsack`` objective, the search stops as soon as a solution reaches this profit. Default: none
+   * - ``knapsack_cutoff``
+     - For the ``knapsack`` objective, the solutions whose profit is below this value are not useful: the search stops as soon as the bound proves that no solution reaches it. Default: none
+   * - ``variable_sized_bin_packing_goal``
+     - For the ``variable-sized-bin-packing`` objective, the search stops as soon as a solution reaches this cost. Default: none
    * - ``bin_types``
      - **Mandatory**. The bin types (array)
    * - ``item_types``

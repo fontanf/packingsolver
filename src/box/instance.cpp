@@ -1,6 +1,9 @@
 #include "packingsolver/box/instance.hpp"
 
+#include <cmath>
 #include <fstream>
+#include <iomanip>
+#include <limits>
 #include <sstream>
 
 using namespace packingsolver;
@@ -387,6 +390,10 @@ void Instance::write_json(
         ss << objective();
         j["objective"] = ss.str();
     }
+    if (std::isfinite(knapsack_goal()))
+        j["knapsack_goal"] = knapsack_goal();
+    if (std::isfinite(knapsack_cutoff()))
+        j["knapsack_cutoff"] = knapsack_cutoff();
     {
         std::stringstream ss;
         ss << parameters().leftover_mode;
@@ -563,5 +570,16 @@ void Instance::write_parameters(
     }
     file
         << "NAME,VALUE" << std::endl
+        << "objective," << objective() << std::endl
         ;
+    if (std::isfinite(knapsack_goal())) {
+        file << "knapsack_goal,"
+            << std::setprecision(std::numeric_limits<Profit>::max_digits10)
+            << knapsack_goal() << std::endl;
+    }
+    if (std::isfinite(knapsack_cutoff())) {
+        file << "knapsack_cutoff,"
+            << std::setprecision(std::numeric_limits<Profit>::max_digits10)
+            << knapsack_cutoff() << std::endl;
+    }
 }

@@ -59,6 +59,10 @@ An instance is a JSON object with the following fields:
      - Description
    * - ``objective``
      - **Mandatory**. One of ``knapsack``, ``bin-packing``, ``bin-packing-with-leftovers``, ``open-dimension-x``, ``open-dimension-y``, ``variable-sized-bin-packing``; see :ref:`objectives`
+   * - ``knapsack_goal``
+     - For the ``knapsack`` objective, the search stops as soon as a solution reaches this profit. Default: none
+   * - ``knapsack_cutoff``
+     - For the ``knapsack`` objective, the solutions whose profit is below this value are not useful: the search stops as soon as the bound proves that no solution reaches it. Default: none
    * - ``leftover_mode``
      - How the leftover of the last bin is measured, for the ``bin-packing-with-leftovers`` objective: ``area`` (default; the area of the bin minus the area of the rectangle containing its items), ``x`` (the width of the bin on the right of the items, times the height of the bin), or ``y`` (the height of the bin above the items, times the width of the bin)
    * - ``unloading_constraint``

@@ -1,8 +1,10 @@
 #include "packingsolver/rectangleguillotine/instance.hpp"
 
+#include <cmath>
 #include <iostream>
 #include <fstream>
 #include <iomanip>
+#include <limits>
 #include <sstream>
 
 using namespace packingsolver;
@@ -387,6 +389,16 @@ void Instance::write_csv(
         f_parameters
             << "waste_cost," << parameters().waste_cost << std::endl;
     }
+    if (std::isfinite(knapsack_goal())) {
+        f_parameters << "knapsack_goal,"
+            << std::setprecision(std::numeric_limits<Profit>::max_digits10)
+            << knapsack_goal() << std::endl;
+    }
+    if (std::isfinite(knapsack_cutoff())) {
+        f_parameters << "knapsack_cutoff,"
+            << std::setprecision(std::numeric_limits<Profit>::max_digits10)
+            << knapsack_cutoff() << std::endl;
+    }
 }
 
 void Instance::write_json(
@@ -399,6 +411,10 @@ void Instance::write_json(
         ss << objective();
         j["objective"] = ss.str();
     }
+    if (std::isfinite(knapsack_goal()))
+        j["knapsack_goal"] = knapsack_goal();
+    if (std::isfinite(knapsack_cutoff()))
+        j["knapsack_cutoff"] = knapsack_cutoff();
     j["number_of_stages"] = parameters().number_of_stages;
     {
         std::stringstream ss;
