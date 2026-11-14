@@ -47,6 +47,18 @@ See :doc:`the detailed description <box/dual_feasible_functions>`.
 
    box/dual_feasible_functions
 
+Static stability
+----------------
+
+The static stability constraint is checked on each bin by solving a linear program: the bin is stable if and only if there exist contact forces which balance the weight of each item. The tree search algorithms don't model it; they repair their solutions by letting the items fall, then by removing the items which still can't be balanced.
+
+See :doc:`the detailed description <box/static_stability>`.
+
+.. toctree::
+   :hidden:
+
+   box/static_stability
+
 Trivial bounds
 --------------
 

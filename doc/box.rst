@@ -280,5 +280,5 @@ With ``"static_stability": true``, the items of each bin must be in static mecha
 
 The equilibrium depends on the weights of the items, which are their volumes by default.
 
-The algorithms don't take the static stability into account yet. The tree search algorithms repair the solutions they find: in each bin which is not stable, the items fall until they rest on the floor or on other items, then, while the bin is still not stable, an item which can't be balanced is removed with the items resting on it. The removed items are not re-inserted, so with the objectives which require all the items to be packed, a repaired solution is often not feasible.
+The algorithms don't take the static stability into account yet. The tree search algorithms repair the solutions they find: in each bin which is not stable, the items fall until they rest on the floor or on other items, then, while the bin is still not stable, an item which can't be balanced is removed with the items resting on it. The removed items are not re-inserted, so with the objectives which require all the items to be packed, a repaired solution is often not feasible. See :ref:`the detailed description <internals_box_static_stability>`.
 

@@ -165,6 +165,61 @@ def figure_maximal_spaces():
     fig.write(SVG_DIR + "/" + PREFIX + "maximal_spaces.svg")
 
 
+################################################################################
+# Static stability: repair of a solution.
+################################################################################
+
+STABILITY_BIN = (12, 4, 9)
+# Items of the solution of the search; C, E and F float. The items span the
+# whole bin along y, so that the bin is seen as in two dimensions.
+STABILITY_ITEMS = {
+    "A": (0, 0, 0, 4, 4, 3),
+    "B": (4, 0, 0, 4, 4, 2),
+    "D": (8, 0, 0, 4, 4, 4),
+    "C": (0, 0, 4, 5, 4, 2),
+    "E": (4, 0, 6, 4, 4, 2),
+    "F": (5, 0, 8, 2, 4, 1),
+}
+# After the drop: C lands on A, E on C and F on E. The center of gravity of E
+# is beyond its contact with C, so E tips, and F rests on E.
+STABILITY_DROPPED_Z = {"C": 3, "E": 5, "F": 7}
+STABILITY_UNBALANCED = {"E", "F"}
+
+
+def figure_static_stability():
+    # Seen from the beginning of the y-axis: the items span the whole bin
+    # along y.
+    fig = figure.Figure(unit=20)
+    step = 15
+    lx, _, lz = STABILITY_BIN
+    steps = [
+        ("solution of the search", {}, set(), set()),
+        ("after the drop", STABILITY_DROPPED_Z, STABILITY_UNBALANCED, set()),
+        ("after the removal", STABILITY_DROPPED_Z, set(), STABILITY_UNBALANCED),
+    ]
+    for k, (title, dropped_z, red, removed) in enumerate(steps):
+        ox = k * step
+        for name, (x, _, z, dx, _, dz) in STABILITY_ITEMS.items():
+            if name in removed:
+                continue
+            z = dropped_z.get(name, z)
+            fig.rect(ox + x, z, dx, dz, name, RED if name in red else BLUE)
+        if red:
+            # Vertical line below the center of gravity of E, beyond its
+            # contact with C.
+            x, _, _, dx, _, _ = STABILITY_ITEMS["E"]
+            z = dropped_z["E"]
+            fig.polyline(
+                    [(ox + x + dx / 2, z), (ox + x + dx / 2, z - 1.5)],
+                    "strokeColor=#b85450;dashed=1;strokeWidth=2;")
+        fig.rect(ox, 0, lx, lz, "", "fillColor=none;strokeColor=#000000;strokeWidth=2;")
+        fig.text(ox + lx / 2, -0.6, "x", w=0.6)
+        fig.text(ox - 0.6, lz / 2, "z", w=0.6)
+        fig.text(ox + lx / 2, -1.6, title, w=12)
+    fig.write(SVG_DIR + "/" + PREFIX + "static_stability_repair.svg")
+
+
 if __name__ == "__main__":
     figure_tree_search()
     figure_maximal_spaces()
+    figure_static_stability()
