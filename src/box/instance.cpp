@@ -237,6 +237,11 @@ std::ostream& Instance::format(
                 << "Leftover all bins:     " << this->parameters().leftover_all_bins << std::endl
                 ;
         }
+        if (this->parameters().static_stability) {
+            os
+                << "Static stability:      " << this->parameters().static_stability << std::endl
+                ;
+        }
         os
             << "Number of item types:  " << this->number_of_item_types() << std::endl
             << "Number of items:       " << this->number_of_items() << std::endl
@@ -388,6 +393,7 @@ void Instance::write_json(
         j["leftover_mode"] = ss.str();
     }
     j["leftover_all_bins"] = parameters().leftover_all_bins;
+    j["static_stability"] = parameters().static_stability;
 
     j["bin_types"] = nlohmann::json::array();
     for (BinTypeId bin_type_id = 0;

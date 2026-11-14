@@ -208,8 +208,13 @@ struct ItemType
     /** Allowed rotations of the item type. */
     std::vector<Rotation> rotations;
 
-    /** Weight of the item type. */
-    Weight weight = 0;
+    /**
+     * Weight of the item type.
+     *
+     * If it isn't set (negative), 'InstanceBuilder::build' sets it to the
+     * volume of the item type.
+     */
+    Weight weight = -1;
 
     /*
      * Computed attributes
@@ -337,6 +342,15 @@ struct Parameters
      * leftover value of the last bin.
      */
     bool leftover_all_bins = true;
+
+    /**
+     * If true, the items of each bin of a feasible solution must be in static
+     * mechanical equilibrium (see 'Solution::stable').
+     *
+     * It is a feasibility criterion of the solutions: the algorithms don't
+     * take it into account when building them.
+     */
+    bool static_stability = false;
 };
 
 ////////////////////////////////////////////////////////////////////////////////

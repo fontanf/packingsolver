@@ -27,6 +27,8 @@ Features:
 
 * Maximum weight in bins
 
+* Static stability
+
 Basic usage
 -----------
 
@@ -58,6 +60,8 @@ An instance is a JSON object with the following fields:
      - **Mandatory**. One of ``knapsack``, ``bin-packing``, ``bin-packing-with-leftovers``, ``open-dimension-x``, ``open-dimension-y``, ``open-dimension-z``, ``variable-sized-bin-packing``; see :ref:`objectives`
    * - ``leftover_mode``
      - How the leftover of the last bin is measured, for the ``bin-packing-with-leftovers`` objective: the volume of the bin minus the volume used, which is the box from the origin of the bin to the items along the dimensions of the mode, and the whole bin along the other dimensions. One of ``XYZ`` (default; the bounding box of the items), ``XY``, ``XZ``, ``YZ``, ``X`` (the length of the bin used along X, times the Y and Z dimensions of the bin), ``Y``, ``Z``
+   * - ``static_stability``
+     - See :ref:`box-static-stability`. Default: ``false``
    * - ``bin_types``
      - **Mandatory**. The bin types (array)
    * - ``item_types``
@@ -101,7 +105,7 @@ An **item type** has the following fields:
    * - ``rotations``
      - See :ref:`box-item-rotations`. Default: ``["XYZ"]``
    * - ``weight``
-     - See :ref:`box-maximum-weight`. Default: ``0``
+     - See :ref:`box-maximum-weight` and :ref:`box-static-stability`. Default: the volume of the item
 
 In Python, the optional fields of the bin types and of the item types are keyword arguments of ``InstanceBuilder.add_bin_type`` and ``InstanceBuilder.add_item_type``, with the same names. In C++, they are set with the ``InstanceBuilder.set_bin_type_<field>`` and ``InstanceBuilder.set_item_type_<field>`` methods; the examples below show the exceptions.
 
@@ -262,3 +266,15 @@ In the following example, 4 items of size 10 × 10 × 10 and of weight 100 are p
      - |box_maximum_weight_yes|
 
 .. example-tabs:: box/maximum_weight_no box/maximum_weight_yes
+
+.. _box-static-stability:
+
+Static stability
+----------------
+
+With ``"static_stability": true``, the items of each bin must be in static mechanical equilibrium: each item must rest on the floor of the bin or on items below it without falling, taking into account the weights of the items above it. The items are rigid bodies whose only external force is their weight, applied at their center; an item leaning against another one is not supported. A solution which doesn't satisfy it is not feasible.
+
+The equilibrium depends on the weights of the items, which are their volumes by default.
+
+The algorithms don't take the static stability into account yet: it is only checked on the solutions they find, so they may find no feasible solution when many of their solutions are unstable.
+

@@ -48,6 +48,7 @@ TEST_P(BoxTreeSearchTest, BoxTreeSearch)
 
     EXPECT_EQ(!(output.solution_pool.best() < solution), true);
     EXPECT_EQ(!(solution < output.solution_pool.best()), true);
+    EXPECT_FALSE(output.is_proven_infeasible);
 }
 
 INSTANTIATE_TEST_SUITE_P(
@@ -94,6 +95,14 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "box" / "tests" / "open_dimension_z_4_different_items_zy" / "bins.csv",
                 fs::path("data") / "box" / "tests" / "open_dimension_z_4_different_items_zy" / "parameters.csv",
                 fs::path("data") / "box" / "tests" / "open_dimension_z_4_different_items_zy" / "solution.csv",
+            }, {
+                // The best solution without the static stability is
+                // unstable, so the tree search must not prove the
+                // infeasibility.
+                fs::path("data") / "box" / "tests" / "knapsack_static_stability" / "items.csv",
+                fs::path("data") / "box" / "tests" / "knapsack_static_stability" / "bins.csv",
+                fs::path("data") / "box" / "tests" / "knapsack_static_stability" / "parameters.csv",
+                fs::path("data") / "box" / "tests" / "knapsack_static_stability" / "solution.csv",
             }}));
 
 #include "box/tree_search.hpp"

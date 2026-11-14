@@ -1,5 +1,7 @@
 #include "packingsolver/box/solution.hpp"
 
+#include "box/static_stability.hpp"
+
 #include "algorithms/staircase.hpp"
 
 #include "optimizationtools/utils/utils.hpp"
@@ -97,6 +99,13 @@ void Solution::update_indicators(
         staircase.add(item_used_box.x, item_used_box.y, item_used_box.z);
     }
 
+    // Update the static stability.
+    if (instance().parameters().static_stability) {
+        bin.stable = is_statically_stable(instance(), bin_type, bin.items);
+        if (!bin.stable)
+            stable_ = false;
+    }
+
     // Update the leftover values. The volume used in a bin is the box from
     // its origin to its items, the rest of the bin being the leftover (see
     // 'LeftoverMode').
@@ -138,6 +147,7 @@ void Solution::update_indicators(
     feasible_ = item_copies_feasible_
         && callback_feasible_
         && resource_feasible_
+        && stable_
         && (number_of_infeasible_item_copies_min_ == 0);
 }
 

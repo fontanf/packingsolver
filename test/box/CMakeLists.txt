@@ -5,6 +5,7 @@ target_sources(PackingSolver_box_test PRIVATE
     sequential_feasibility_test.cpp
     tree_search_test.cpp
     reduction_test.cpp
+    static_stability_test.cpp
     tree_search_maximal_spaces_test.cpp)
 target_include_directories(PackingSolver_box_test PRIVATE
     ${PROJECT_SOURCE_DIR}/src)

@@ -73,6 +73,9 @@ public:
     /** Set whether the leftover values of all the bins are compared. */
     void set_leftover_all_bins(bool leftover_all_bins) { instance_.parameters_.leftover_all_bins = leftover_all_bins; }
 
+    /** Set whether the solutions must be statically stable (see 'Parameters::static_stability'). */
+    void set_static_stability(bool static_stability) { instance_.parameters_.static_stability = static_stability; }
+
     /** Set the feasibility callback. */
     void set_feasibility_callback(const FeasibilityCallback& feasibility_callback) { instance_.feasibility_callback_ = feasibility_callback; }
 

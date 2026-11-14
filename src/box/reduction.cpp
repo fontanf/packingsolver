@@ -120,7 +120,12 @@ Reduction::Reduction(
         && lift_item_dimensions_applies(instance);
     bool full_bin_reduction = full_bin_reduction_applies(instance);
     bool run_full_bin_items = full_bin_reduction && parameters.reduce_full_bin_items;
-    bool run_perfect_pairs = full_bin_reduction && parameters.reduce_perfect_pairs;
+    // With the static stability, the exchange argument of the perfect pairs
+    // doesn't hold: the items moved in place of an item of the pair may not
+    // support the items which it supported.
+    bool run_perfect_pairs = full_bin_reduction
+        && parameters.reduce_perfect_pairs
+        && !instance.parameters().static_stability;
     while (run_lift || run_full_bin_items || run_perfect_pairs) {
         if (parameters.timer.needs_to_end())
             break;
@@ -152,6 +157,11 @@ Reduction::Reduction(
 bool Reduction::remove_negative_profit_items_applies(const Instance& instance)
 {
     if (instance.objective() != Objective::Knapsack)
+        return false;
+
+    // With the static stability, a negative-profit item may be needed to
+    // support other items.
+    if (instance.parameters().static_stability)
         return false;
 
     // A 'penalize' resource with a negative 'penalty' is a one-time profit
@@ -282,6 +292,10 @@ bool Reduction::remove_negative_profit_items(
 
 bool Reduction::remove_dominated_items_applies(const Instance& instance)
 {
+    // With the static stability, replacing an item by a smaller one may
+    // remove the support of the items above it.
+    if (instance.parameters().static_stability)
+        return false;
     return instance.objective() == Objective::Knapsack;
 }
 
@@ -751,6 +765,11 @@ bool Reduction::reduce_perfect_pairs(
 
 bool Reduction::lift_item_dimensions_applies(const Instance& instance)
 {
+    // With the static stability, the compaction argument of the class-level
+    // doc comment doesn't hold: moving and enlarging the items changes their
+    // supports.
+    if (instance.parameters().static_stability)
+        return false;
     // A single bin type, so that the bin dimensions are unambiguous, and
     // no fixed items, which the compaction argument of the class-level doc
     // comment cannot move.
