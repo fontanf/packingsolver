@@ -39,7 +39,13 @@ struct Output: packingsolver::Output<Instance, Solution>
     /** True if the instance has been proven infeasible. */
     bool is_proven_infeasible = false;
 
-    /** Return 'true' iff the current bound proves the best solution optimal. */
+    /**
+     * Return 'true' iff the search is done: the current bound proves the best
+     * solution optimal, or, for the 'Knapsack' objective, the best solution
+     * reaches the knapsack goal (see 'Instance::knapsack_goal'), or the
+     * current bound proves that no solution reaches the knapsack cutoff (see
+     * 'Instance::knapsack_cutoff').
+     */
     bool is_proven_optimal() const
     {
         // A proven-infeasible instance is done being searched regardless of
@@ -48,6 +54,9 @@ struct Output: packingsolver::Output<Instance, Solution>
             return true;
         switch (solution_pool.best().instance().objective()) {
         case Objective::Knapsack:
+            // The bound proves that no solution reaches the knapsack cutoff.
+            if (knapsack_bound < solution_pool.best().instance().knapsack_cutoff())
+                return true;
             return solution_pool.best().feasible()
                 && (equal_profit(knapsack_bound, solution_pool.best().profit())
                         || solution_pool.best().profit()

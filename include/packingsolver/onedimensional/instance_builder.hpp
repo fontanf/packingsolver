@@ -18,6 +18,9 @@ public:
     /** Set the objective. */
     void set_objective(Objective objective) { instance_.objective_ = objective; }
 
+    /** Set the knapsack cutoff (see 'Instance::knapsack_cutoff'). */
+    void set_knapsack_cutoff(Profit knapsack_cutoff) { instance_.knapsack_cutoff_ = knapsack_cutoff; }
+
     /**
      * Set the goal of the 'BinPacking' objective (see
      * 'Instance::bin_packing_goal').

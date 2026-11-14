@@ -48,6 +48,9 @@ struct Output: packingsolver::Output<Instance, Solution>
             return true;
         switch (solution_pool.best().instance().objective()) {
         case Objective::Knapsack:
+            // The bound proves that no solution reaches the knapsack cutoff.
+            if (knapsack_bound < solution_pool.best().instance().knapsack_cutoff())
+                return true;
             return solution_pool.best().feasible()
                 && equal_profit(knapsack_bound, solution_pool.best().profit());
         case Objective::BinPacking:
