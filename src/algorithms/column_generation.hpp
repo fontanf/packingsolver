@@ -54,7 +54,6 @@
 #include <array>
 #include <set>
 #include <sstream>
-#include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
@@ -248,44 +247,6 @@ private:
     /** See 'has_cached_maximum_number_of_bins_'. */
     BinPos cached_maximum_number_of_bins_ = -1;
 
-};
-
-/**
- * Whether an instance builder has a 'set_knapsack_goal' method (see
- * 'solve_pricing').
- */
-template <typename...>
-struct VoidType
-{
-    typedef void type;
-};
-
-template <typename InstanceBuilder, typename = void>
-struct HasSetKnapsackGoal: std::false_type { };
-
-template <typename InstanceBuilder>
-struct HasSetKnapsackGoal<
-    InstanceBuilder,
-    typename VoidType<decltype(std::declval<InstanceBuilder&>().set_knapsack_goal(Profit()))>::type>:
-    std::true_type { };
-
-/**
- * Set the knapsack goal of an instance builder, if it has a
- * 'set_knapsack_goal' method.
- */
-template <typename InstanceBuilder, bool = HasSetKnapsackGoal<InstanceBuilder>::value>
-struct KnapsackGoalSetter
-{
-    static void set(InstanceBuilder&, Profit) { }
-};
-
-template <typename InstanceBuilder>
-struct KnapsackGoalSetter<InstanceBuilder, true>
-{
-    static void set(InstanceBuilder& instance_builder, Profit knapsack_goal)
-    {
-        instance_builder.set_knapsack_goal(knapsack_goal);
-    }
 };
 
 template <typename Instance, typename InstanceBuilder, typename Solution, typename Output>
@@ -761,10 +722,9 @@ PricingOutput ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution,
                 cutoff = overcost_target;
             }
 
-            if (use_pricing_knapsack_goal_) {
-                KnapsackGoalSetter<InstanceBuilder>::set(kp_instance_builder, goal);
-                kp_instance_builder.set_knapsack_cutoff(cutoff);
-            }
+            if (use_pricing_knapsack_goal_)
+                kp_instance_builder.set_knapsack_goal(goal);
+            kp_instance_builder.set_knapsack_cutoff(cutoff);
         }
 
         Instance kp_instance = kp_instance_builder.build();
@@ -1591,13 +1551,13 @@ struct ColumnGenerationParameters: packingsolver::Parameters<Instance, Solution,
     bool pricing_function_has_dual_bound = false;
 
     /**
-     * Give the pricing knapsack problems a knapsack goal (if their instance
-     * builder has a 'set_knapsack_goal' method): the pricing solver then
-     * stops as soon as it finds a column with a negative reduced cost,
+     * Give the pricing knapsack problems a knapsack goal: the pricing solver
+     * then stops as soon as it finds a column with a negative reduced cost,
      * instead of searching for the best one. Useful when the pricing
-     * problems are expensive; disabled by 'onedimensional', whose pricing
-     * problems are cheap and whose best columns make the column generation
-     * converge faster.
+     * problems are expensive; disabled by 'onedimensional' and 'rectangle',
+     * whose best columns make the column generation converge faster, and by
+     * 'box', which hasn't been benchmarked with it. The knapsack cutoff of
+     * the dual pricing calls doesn't depend on it.
      */
     bool use_pricing_knapsack_goal = true;
 };

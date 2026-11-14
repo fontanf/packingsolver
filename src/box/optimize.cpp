@@ -469,6 +469,8 @@ void optimize_column_generation(
     cg_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
     cg_parameters.optimization_mode = parameters.optimization_mode;
     cg_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
+    // Not benchmarked with the knapsack goal yet.
+    cg_parameters.use_pricing_knapsack_goal = false;
     cg_parameters.new_solution_callback = [&algorithm_formatter](
             const box::Output& ps_output)
     {
