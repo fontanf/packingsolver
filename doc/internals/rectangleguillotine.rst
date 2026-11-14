@@ -126,6 +126,20 @@ See :doc:`the detailed description <rectangleguillotine/tree_search_hypergraph_i
 
    rectangleguillotine/tree_search_hypergraph_infinite_copies
 
+Benders decomposition
+---------------------
+
+This algorithm solves the :code:`knapsack`, :code:`bin-packing` and :code:`variable-sized-bin-packing` objectives exactly.
+
+It is a copy of the :ref:`Benders decomposition of the rectangle problem type <internals_rectangle_benders_decomposition>`, whose master problem decides which items go in which bin and whose cuts are built on the non-guillotine relaxation of the instance, with guillotine feasibility subproblems, solved by the tree search hypergraph.
+
+See :doc:`the detailed description <rectangleguillotine/benders_decomposition>`.
+
+.. toctree::
+   :hidden:
+
+   rectangleguillotine/benders_decomposition
+
 Dual feasible functions
 -------------------------
 

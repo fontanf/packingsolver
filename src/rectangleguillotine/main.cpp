@@ -121,6 +121,7 @@ int main(int argc, char *argv[])
             ("use-sequential-strips-onedimensional,", po::value<bool>(), "enable sequential strips onedimensional algorithm")
             ("use-tree-search-hypergraph-infinite-copies,", po::value<bool>(), "enable tree search hypergraph (infinite copies) algorithm")
             ("use-tree-search-hypergraph,", po::value<bool>(), "enable tree search hypergraph algorithm")
+            ("use-benders-decomposition,", po::value<bool>(), "enable Benders decomposition algorithm")
             ("use-sequential-single-knapsack,", po::value<bool>(), "enable sequential-single-knapsack")
             ("use-sequential-value-correction,", po::value<bool>(), "enable sequential-value-correction")
             ("use-column-generation,", po::value<bool>(), "enable column-generation")
@@ -312,6 +313,8 @@ int main(int argc, char *argv[])
             parameters.use_tree_search_hypergraph_infinite_copies = vm["use-tree-search-hypergraph-infinite-copies"].as<bool>();
         if (vm.count("use-tree-search-hypergraph"))
             parameters.use_tree_search_hypergraph = vm["use-tree-search-hypergraph"].as<bool>();
+        if (vm.count("use-benders-decomposition"))
+            parameters.use_benders_decomposition = vm["use-benders-decomposition"].as<bool>();
         if (vm.count("use-sequential-single-knapsack"))
             parameters.use_sequential_single_knapsack = vm["use-sequential-single-knapsack"].as<bool>();
         if (vm.count("use-sequential-value-correction"))
