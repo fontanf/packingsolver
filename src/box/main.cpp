@@ -78,6 +78,7 @@ int main(int argc, char *argv[])
             ("objective,f", po::value<Objective>(), "Objective")
             ("leftover-mode,", po::value<box::LeftoverMode>(), "Leftover mode (bin-packing-with-leftovers): X, Y, Z, XY, XZ, YZ, XYZ")
             ("leftover-all-bins", po::value<bool>(), "also compare the leftover values of all the bins")
+            ("static-stability", po::value<bool>(), "require the solutions to be in static mechanical equilibrium")
 
             ("output,o", po::value<std::string>(), "Output path")
             ("certificate,c", po::value<std::string>(), "Certificate path")
@@ -197,6 +198,8 @@ int main(int argc, char *argv[])
             instance_builder.set_leftover_mode(vm["leftover-mode"].as<box::LeftoverMode>());
         if (vm.count("leftover-all-bins"))
             instance_builder.set_leftover_all_bins(vm["leftover-all-bins"].as<bool>());
+        if (vm.count("static-stability"))
+            instance_builder.set_static_stability(vm["static-stability"].as<bool>());
 
         Instance instance = instance_builder.build();
 

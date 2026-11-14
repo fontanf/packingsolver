@@ -118,7 +118,7 @@ def test_add_item_type_defaults():
     assert item_type.copies == 1
     # Resolved to 'copies' by 'build()' (except for Knapsack objectives).
     assert item_type.copies_min == 1
-    assert item_type.weight == 0
+    assert item_type.weight == 6  # The volume.
     assert item_type.rotations == [psb.Rotation.XYZ]
     item_type = instance.item_type(1)
     assert item_type.profit == 8

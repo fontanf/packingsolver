@@ -5,6 +5,7 @@ target_sources(PackingSolver_box PRIVATE
     instance_builder.cpp
     solution.cpp
     solution_builder.cpp
+    static_stability.cpp
     instance_flipper.cpp
     algorithm_formatter.cpp
     optimize.cpp
@@ -24,6 +25,7 @@ target_link_libraries(PackingSolver_box PUBLIC
     PackingSolver_algorithms
     PackingSolver_rectangle
     PackingSolver_onedimensional
+    MathOptSolversCMake::mathopt
     MultipleChoiceSubsetSumSolver::dynamic_programming_bellman
     Threads::Threads)
 # Resource limits: the portable RSS reader in

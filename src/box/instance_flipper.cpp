@@ -59,6 +59,9 @@ Instance InstanceFlipper::flip(
         flipped_instance_builder.set_objective(instance.objective());
     }
     box::Parameters flipped_instance_parameters = instance.parameters();
+    // The axes are swapped, so the weights may not act along z in the flipped
+    // instance: the static stability is checked on the unflipped solutions.
+    flipped_instance_parameters.static_stability = false;
     flipped_instance_builder.set_parameters(flipped_instance_parameters);
     for (BinTypeId bin_type_id = 0;
             bin_type_id < instance.number_of_bin_types();

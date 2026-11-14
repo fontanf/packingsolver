@@ -686,6 +686,8 @@ void InstanceBuilder::read_parameters(
             set_leftover_mode(leftover_mode);
         } else if (name == "leftover_all_bins") {
             set_leftover_all_bins(value == "1" || value == "true");
+        } else if (name == "static_stability") {
+            set_static_stability(value == "1" || value == "true");
         }
     }
 }
@@ -788,7 +790,7 @@ void InstanceBuilder::read_item_types(
         Length y = -1;
         Length z = -1;
         Profit profit = -1;
-        Weight weight = 0;
+        Weight weight = -1;
         ItemPos copies = 1;
         ItemPos copies_min = -1;
         std::vector<Rotation> rotations;
@@ -902,6 +904,8 @@ void InstanceBuilder::read(
     }
     if (j.contains("leftover_all_bins"))
         set_leftover_all_bins(j["leftover_all_bins"]);
+    if (j.contains("static_stability"))
+        set_static_stability(j["static_stability"]);
 
     // Read bin types.
     for (const auto& json_bin_type: j["bin_types"]) {
@@ -1051,6 +1055,15 @@ Instance InstanceBuilder::build()
             ++item_type_id) {
         if (instance_.item_types_[item_type_id].rotations.empty())
             instance_.item_types_[item_type_id].rotations = {Rotation::XYZ};
+    }
+
+    // Default weights to the volumes for item types with no weight specified.
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance_.number_of_item_types();
+            ++item_type_id) {
+        ItemType& item_type = instance_.item_types_[item_type_id];
+        if (item_type.weight < 0)
+            item_type.weight = item_type.volume();
     }
 
     // Compute item type attributes.

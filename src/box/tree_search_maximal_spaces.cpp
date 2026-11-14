@@ -1051,9 +1051,13 @@ const packingsolver::box::TreeSearchMaximalSpacesOutput packingsolver::box::tree
                     // 'solution_pool.best()' can only be infeasible here if
                     // no feasible solution was found anywhere in this
                     // now-exhaustive search: a genuine infeasibility proof,
-                    // independent of objective.
+                    // independent of objective. The search doesn't model
+                    // the static stability and the feasibility callback, so
+                    // it only proves the infeasibility without them, and
+                    // the value of its best solution is a bound even if
+                    // they make it infeasible.
                     Output bounds(instance);
-                    if (!solution.feasible()) {
+                    if (!solution.feasible_without_unmodeled_constraints()) {
                         // For every non-Knapsack objective (Feasibility
                         // included), 'copies_min' defaults to 'copies', so
                         // this already subsumes "not everything got packed"

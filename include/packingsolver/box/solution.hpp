@@ -42,6 +42,13 @@ struct SolutionBin
     /** Resource consumption, indexed by resource_id. */
     std::vector<double> resource_consumption;
 
+    /**
+     * True iff the items of the bin are in static mechanical equilibrium
+     * (see 'Solution::stable'). Only computed when
+     * 'Parameters::static_stability' is set; true otherwise.
+     */
+    bool stable = true;
+
     /** Leftover value of the bin (see 'LeftoverMode'). */
     Volume leftover_value = 0;
 
@@ -128,6 +135,30 @@ public:
 
     /** Feasibility with respect to non-'penalize' resource capacities. */
     inline bool resource_feasible() const { return resource_feasible_; }
+
+    /**
+     * Static stability: the items of each bin are in static mechanical
+     * equilibrium, as rigid bodies whose only external force is their
+     * weight (see 'is_statically_stable'). Only computed when
+     * 'Parameters::static_stability' is set; true otherwise.
+     */
+    inline bool stable() const { return stable_; }
+
+    /**
+     * Feasibility without the static stability and the feasibility
+     * callback, the constraints which the algorithms don't model.
+     *
+     * An algorithm which has explored all its solutions proves the
+     * infeasibility of the instance only if none of them is feasible
+     * according to this, and the value of its best solution is a bound even
+     * if this solution is not 'feasible'.
+     */
+    inline bool feasible_without_unmodeled_constraints() const
+    {
+        return item_copies_feasible_
+            && resource_feasible_
+            && (number_of_infeasible_item_copies_min_ == 0);
+    }
 
     /*
      * Getters: bins
@@ -310,6 +341,9 @@ private:
 
     /** Feasibility with respect to non-'penalize' resource capacities. */
     bool resource_feasible_ = true;
+
+    /** Static stability. */
+    bool stable_ = true;
 
     /** Bins. */
     std::vector<SolutionBin> bins_;

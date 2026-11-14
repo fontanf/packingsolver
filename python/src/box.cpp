@@ -146,6 +146,7 @@ void bind_box(nb::module_& m)
         .def("set_weight_tolerance", &InstanceBuilder::set_weight_tolerance, nb::arg("weight_tolerance"))
         .def("set_leftover_mode", &InstanceBuilder::set_leftover_mode, nb::arg("leftover_mode"))
         .def("set_leftover_all_bins", &InstanceBuilder::set_leftover_all_bins, nb::arg("leftover_all_bins"))
+        .def("set_static_stability", &InstanceBuilder::set_static_stability, nb::arg("static_stability"))
         // Bin types.
         .def("add_bin_type",
                 [](InstanceBuilder& instance_builder,
@@ -261,13 +262,15 @@ void bind_box(nb::module_& m)
         .def_ro("items", &SolutionBin::items)
         .def_ro("weight", &SolutionBin::weight)
         .def_ro("profit", &SolutionBin::profit)
-        .def_ro("resource_consumption", &SolutionBin::resource_consumption);
+        .def_ro("resource_consumption", &SolutionBin::resource_consumption)
+        .def_ro("stable", &SolutionBin::stable);
 
     nb::class_<Solution>(m, "Solution")
         // Feasibility.
         .def("callback_feasible", &Solution::callback_feasible)
         .def("feasible", &Solution::feasible)
         .def("resource_feasible", &Solution::resource_feasible)
+        .def("stable", &Solution::stable)
         // Bins.
         .def("number_of_bins", &Solution::number_of_bins)
         .def("number_of_different_bins", &Solution::number_of_different_bins)
