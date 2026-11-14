@@ -701,7 +701,11 @@ void optimize_column_generation(
             // bypassing the regular (heuristic) automatic algorithm
             // selection, when it supports the instance.
             // In 'Exact' mode, also solved in 'Exact' mode so that the bound
-            // is actually proven.
+            // is actually proven. In the other modes, its work is limited as
+            // in the other pricing calls (see
+            // 'not_anytime_tree_search_hypergraph_number_of_operations_per_item'):
+            // the bound helps, but the time is better spent finding
+            // solutions.
             if (pricing_type == PricingType::Dual
                     && tree_search_hypergraph_supported(kp_instance)
                     && tree_search_hypergraph_number_of_states(kp_instance)
@@ -709,8 +713,6 @@ void optimize_column_generation(
                 if (parameters.optimization_mode == OptimizationMode::Exact)
                     kp_parameters.optimization_mode = OptimizationMode::Exact;
                 kp_parameters.use_tree_search_hypergraph = true;
-                // The bound is needed: no maximum work.
-                kp_parameters.not_anytime_tree_search_hypergraph_number_of_operations_per_item = -1;
             }
             return optimize(kp_instance, kp_parameters);
         };
