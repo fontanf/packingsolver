@@ -485,7 +485,7 @@ void optimize_local_search(
         algorithm_formatter.update_solution(ps_output.solution_pool.best(), ss.str());
     };
     std::mt19937_64 generator(parameters.seed);
-    local_search(instance, generator, nullptr, ls_parameters);
+    local_search(instance, generator, parameters.initial_solution, ls_parameters);
 }
 
 void optimize_local_search_linear_programming(
@@ -1133,6 +1133,31 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         return output;
     }
 
+    if (parameters.initial_solution != nullptr) {
+        const Solution& initial_solution = *parameters.initial_solution;
+        // 'feasible()' doesn't check the geometry, and the initial solution
+        // is reported as it is. The minimum spacings are not checked.
+        bool overlapping = false;
+        for (BinPos bin_pos = 0;
+                bin_pos < initial_solution.number_of_different_bins();
+                ++bin_pos) {
+            Solution::OverlappingItems overlapping_items
+                = initial_solution.compute_overlapping_items(bin_pos);
+            if (!overlapping_items.item_border_pairs.empty()
+                    || !overlapping_items.item_defect_pairs.empty()
+                    || !overlapping_items.item_item_pairs.empty()
+                    || !overlapping_items.items_outside_bin.empty()) {
+                overlapping = true;
+            }
+        }
+        if (!initial_solution.feasible() || overlapping) {
+            throw std::invalid_argument(
+                    FUNC_SIGNATURE + ": "
+                    "the initial solution is not feasible.");
+        }
+        algorithm_formatter.update_solution(initial_solution, "initial solution");
+    }
+
     // Instance reduction (see 'Reduction'): applied once, upfront,
     // wrapping the whole dispatch logic below uniformly for every
     // algorithm - mirrors 'rectangle::optimize''s own wiring. Gated
@@ -1142,8 +1167,10 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
     // building its working representation when disabled.
     // 'reduced_parameters.reduction_parameters.reduce' is set to 'false'
     // below to avoid re-running the reduction recursively on the
-    // already-reduced instance.
-    if (parameters.reduction_parameters.reduce) {
+    // already-reduced instance. The initial solution is one of the original
+    // instance, so the instance is not reduced when there is one.
+    if (parameters.reduction_parameters.reduce
+            && parameters.initial_solution == nullptr) {
         ReductionParameters reduction_parameters = parameters.reduction_parameters;
         reduction_parameters.timer = parameters.timer;
         Reduction reduction(instance, reduction_parameters);

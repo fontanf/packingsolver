@@ -1,6 +1,7 @@
 #include "packingsolver/irregular/optimize.hpp"
 #include "packingsolver/irregular/post_process.hpp"
 #include "packingsolver/irregular/instance_builder.hpp"
+#include "irregular/solution_builder.hpp"
 
 #include <boost/program_options.hpp>
 
@@ -71,6 +72,7 @@ int main(int argc, char *argv[])
 
             ("output,o", po::value<std::string>(), "Output path")
             ("certificate,c", po::value<std::string>(), "Certificate path")
+            ("initial-solution", po::value<std::string>(), "Initial solution path")
             ("log,l", po::value<std::string>(), "Log path")
             ("time-limit,t", po::value<double>(), "Time limit in seconds")
             ("seed,s", po::value<Seed>(), "Seed")
@@ -275,6 +277,13 @@ int main(int argc, char *argv[])
             parameters.not_anytime_sequential_single_knapsack_subproblem_local_search_maximum_number_of_moves_factor = vm["not-anytime-sequential-single-knapsack-subproblem-local-search-maximum-number-of-moves-factor"].as<Counter>();
         if (vm.count("not-anytime-dichotomic-search-subproblem-tree-search-queue-size"))
             parameters.not_anytime_dichotomic_search_subproblem_tree_search_queue_size = vm["not-anytime-dichotomic-search-subproblem-tree-search-queue-size"].as<Counter>();
+        Solution initial_solution(instance);
+        if (vm.count("initial-solution")) {
+            SolutionBuilder initial_solution_builder(instance);
+            initial_solution_builder.read(vm["initial-solution"].as<std::string>());
+            initial_solution = initial_solution_builder.build();
+            parameters.initial_solution = &initial_solution;
+        }
         const irregular::Output output = optimize(instance, parameters);
 
         if (vm.count("output"))

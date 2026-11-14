@@ -122,21 +122,27 @@ bool run_iterated_local_search(
  * local search: the separator is in knapsack mode, so that the layouts
  * contain a set of items whose profit is strictly greater than this
  * threshold, and the perturbations change this set while keeping this
- * property. The first sub-problem starts from an empty layout; each next one
- * starts from the solution of the previous one, with items inserted until
- * its profit is above the new threshold. The search stops when a sub-problem
- * fails, or when all the items are packed.
+ * property. The first sub-problem starts from the initial solution if any,
+ * else from an empty layout; each next one starts from the solution of the
+ * previous one, with items inserted until its profit is above the new
+ * threshold. The search stops when a sub-problem fails, or when all the items
+ * are packed.
  */
 template <typename SeparatorType>
 void run_knapsack_local_search(
         const Instance& instance,
         SeparatorType& separator,
         std::mt19937_64& generator,
+        const Solution* initial_solution,
         const LocalSearchParameters& parameters,
         AlgorithmFormatter& algorithm_formatter)
 {
     separator.set_profit_threshold(0);
-    separator.set_solution(Solution(instance), parameters.timer);
+    separator.set_solution(
+            (initial_solution != nullptr)?
+                convert_initial_solution(instance, *initial_solution):
+                Solution(instance),
+            parameters.timer);
     for (Counter sub_problem = 0; ; ++sub_problem) {
         if (algorithm_formatter.end_boolean() || parameters.timer.needs_to_end())
             return;
@@ -175,7 +181,7 @@ void local_search_direct_trigonometry(
             parameters.initial_separation_maximum_number_of_iterations_without_improvement,
             parameters.initial_separation_maximum_number_of_strikes);
     if (instance.objective() == Objective::Knapsack) {
-        run_knapsack_local_search(instance, separator, generator, parameters, algorithm_formatter);
+        run_knapsack_local_search(instance, separator, generator, initial_solution, parameters, algorithm_formatter);
         return;
     }
     if (initial_solution != nullptr) {
@@ -250,7 +256,7 @@ void local_search_black_box_optimization(
             parameters.initial_separation_maximum_number_of_iterations_without_improvement,
             parameters.initial_separation_maximum_number_of_strikes);
     if (instance.objective() == Objective::Knapsack) {
-        run_knapsack_local_search(instance, separator, generator, parameters, algorithm_formatter);
+        run_knapsack_local_search(instance, separator, generator, initial_solution, parameters, algorithm_formatter);
         return;
     }
     if (initial_solution != nullptr) {

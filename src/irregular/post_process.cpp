@@ -171,6 +171,8 @@ Solution packingsolver::irregular::reoptimize_bin(
     // The sub-instance has a single bin: its post-process would re-optimize
     // this same bin again.
     bin_parameters.post_process = false;
+    // The initial solution is one of the original instance.
+    bin_parameters.initial_solution = nullptr;
     auto bin_output = optimize(bin_instance, bin_parameters);
     const Solution& bin_solution = bin_output.solution_pool.best();
     if (!bin_solution.feasible() || !bin_solution.full())

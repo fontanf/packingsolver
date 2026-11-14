@@ -466,3 +466,41 @@ TEST(Irregular, InstanceCacheSubInstance)
     Instance sub_instance_4 = sub_instance_builder_4.build();
     EXPECT_EQ(sub_instance_4.get_simplified_instance(0.2, end_true), nullptr);
 }
+
+TEST(Irregular, InitialSolution)
+{
+    // Bin 110x110; four 50x50 squares. The initial solution packs two of
+    // them. The local search starts from it, so the solution found is not
+    // worse. An initial solution with overlapping items is rejected.
+    ItemShape item_shape;
+    item_shape.shape_orig.shape = shape::build_rectangle(0, 50, 0, 50);
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(packingsolver::Objective::Knapsack);
+    instance_builder.add_bin_type(shape::build_rectangle(0, 110, 0, 110));
+    packingsolver::ItemTypeId item_type_id = instance_builder.add_item_type({item_shape});
+    instance_builder.set_item_type_copies(item_type_id, 4);
+    const Instance instance = instance_builder.build();
+
+    SolutionBuilder solution_builder(instance);
+    packingsolver::BinPos bin_pos = solution_builder.add_bin(0, 1);
+    solution_builder.add_item(bin_pos, item_type_id, {0, 0}, 0, false);
+    solution_builder.add_item(bin_pos, item_type_id, {55, 0}, 0, false);
+    Solution initial_solution = solution_builder.build();
+
+    OptimizeParameters optimize_parameters;
+    optimize_parameters.verbosity_level = 0;
+    optimize_parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytimeSequential;
+    optimize_parameters.use_local_search_direct_trigonometry = true;
+    optimize_parameters.initial_solution = &initial_solution;
+    Output output = optimize(instance, optimize_parameters);
+    EXPECT_TRUE(output.solution_pool.best().feasible());
+    EXPECT_GE(output.solution_pool.best().profit(), initial_solution.profit());
+
+    SolutionBuilder overlapping_solution_builder(instance);
+    bin_pos = overlapping_solution_builder.add_bin(0, 1);
+    overlapping_solution_builder.add_item(bin_pos, item_type_id, {0, 0}, 0, false);
+    overlapping_solution_builder.add_item(bin_pos, item_type_id, {25, 0}, 0, false);
+    Solution overlapping_solution = overlapping_solution_builder.build();
+    optimize_parameters.initial_solution = &overlapping_solution;
+    EXPECT_THROW(optimize(instance, optimize_parameters), std::invalid_argument);
+}
