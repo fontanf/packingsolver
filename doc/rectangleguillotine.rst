@@ -103,6 +103,10 @@ An instance is a JSON object with the following fields:
      - Description
    * - ``objective``
      - **Mandatory**. One of ``knapsack``, ``bin-packing``, ``bin-packing-with-leftovers``, ``open-dimension-x``, ``open-dimension-y``, ``variable-sized-bin-packing``; see :ref:`objectives`
+   * - ``knapsack_goal``
+     - For the ``knapsack`` objective, the search stops as soon as a solution reaches this profit. Default: none
+   * - ``knapsack_cutoff``
+     - For the ``knapsack`` objective, the solutions whose profit is below this value are not useful: the search stops as soon as the bound proves that no solution reaches it. Default: none
    * - ``number_of_stages``
      - See :ref:`rectangleguillotine-stages`. Default: ``3``
    * - ``cut_type``

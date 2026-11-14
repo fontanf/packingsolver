@@ -557,3 +557,55 @@ TEST(RectangleGuillotine, InstanceBuilderCropBinType)
     EXPECT_EQ(bin_type.defects[1].rect.w, 10);
     EXPECT_EQ(bin_type.defects[1].rect.h, 40);
 }
+
+TEST(RectangleGuillotine, WriteJsonRoundTripGoals)
+{
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(packingsolver::Objective::Knapsack);
+    instance_builder.set_knapsack_goal(1.0445144262560912);
+    instance_builder.set_knapsack_cutoff(0.98765432101234567);
+    instance_builder.add_bin_type(100, 100);
+    instance_builder.add_item_type(10, 10);
+    const Instance instance = instance_builder.build();
+
+    fs::path path = fs::temp_directory_path() / fs::unique_path();
+    std::string json_path = path.string() + ".json";
+    instance.write(json_path, packingsolver::InstanceFormat::Json);
+
+    InstanceBuilder read_instance_builder;
+    read_instance_builder.read(json_path);
+    const Instance read_instance = read_instance_builder.build();
+
+    fs::remove(json_path);
+
+    EXPECT_EQ(read_instance.objective(), packingsolver::Objective::Knapsack);
+    EXPECT_EQ(read_instance.knapsack_goal(), 1.0445144262560912);
+    EXPECT_EQ(read_instance.knapsack_cutoff(), 0.98765432101234567);
+}
+
+TEST(RectangleGuillotine, WriteCsvRoundTripGoals)
+{
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(packingsolver::Objective::Knapsack);
+    instance_builder.set_knapsack_goal(1.0445144262560912);
+    instance_builder.set_knapsack_cutoff(0.98765432101234567);
+    instance_builder.add_bin_type(100, 100);
+    instance_builder.add_item_type(10, 10);
+    const Instance instance = instance_builder.build();
+
+    fs::path path = fs::temp_directory_path() / fs::unique_path();
+    instance.write(path.string(), packingsolver::InstanceFormat::Csv);
+
+    InstanceBuilder read_instance_builder;
+    read_instance_builder.read_item_types(path.string() + "_items.csv");
+    read_instance_builder.read_bin_types(path.string() + "_bins.csv");
+    read_instance_builder.read_parameters(path.string() + "_parameters.csv");
+    const Instance read_instance = read_instance_builder.build();
+
+    for (const std::string& suffix: {"_items.csv", "_bins.csv", "_defects.csv", "_parameters.csv"})
+        fs::remove(path.string() + suffix);
+
+    EXPECT_EQ(read_instance.objective(), packingsolver::Objective::Knapsack);
+    EXPECT_EQ(read_instance.knapsack_goal(), 1.0445144262560912);
+    EXPECT_EQ(read_instance.knapsack_cutoff(), 0.98765432101234567);
+}

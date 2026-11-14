@@ -466,3 +466,30 @@ TEST(Irregular, InstanceCacheSubInstance)
     Instance sub_instance_4 = sub_instance_builder_4.build();
     EXPECT_EQ(sub_instance_4.get_simplified_instance(0.2, end_true), nullptr);
 }
+
+TEST(Irregular, WriteJsonRoundTripGoals)
+{
+    ItemShape item_shape;
+    item_shape.shape_orig.shape = build_rectangle(0, 10, 0, 10);
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(packingsolver::Objective::Knapsack);
+    instance_builder.set_knapsack_goal(1.0445144262560912);
+    instance_builder.set_knapsack_cutoff(0.98765432101234567);
+    instance_builder.add_bin_type(build_rectangle(0, 100, 0, 100));
+    instance_builder.add_item_type({item_shape});
+    const Instance instance = instance_builder.build();
+
+    fs::path path = fs::temp_directory_path() / fs::unique_path();
+    std::string json_path = path.string() + ".json";
+    instance.write(json_path);
+
+    InstanceBuilder read_instance_builder;
+    read_instance_builder.read(json_path);
+    const Instance read_instance = read_instance_builder.build();
+
+    fs::remove(json_path);
+
+    EXPECT_EQ(read_instance.objective(), packingsolver::Objective::Knapsack);
+    EXPECT_EQ(read_instance.knapsack_goal(), 1.0445144262560912);
+    EXPECT_EQ(read_instance.knapsack_cutoff(), 0.98765432101234567);
+}

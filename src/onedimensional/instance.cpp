@@ -1,8 +1,10 @@
 #include "packingsolver/onedimensional/instance.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <fstream>
 #include <iomanip>
+#include <limits>
 #include <sstream>
 
 using namespace packingsolver;
@@ -333,6 +335,23 @@ void Instance::write_csv(
     // Export parameters.
     f_parameters << "NAME,VALUE" << std::endl
         << "objective," << objective() << std::endl;
+    if (bin_packing_goal() != 0)
+        f_parameters << "bin_packing_goal," << bin_packing_goal() << std::endl;
+    if (std::isfinite(knapsack_goal())) {
+        f_parameters << "knapsack_goal,"
+            << std::setprecision(std::numeric_limits<Profit>::max_digits10)
+            << knapsack_goal() << std::endl;
+    }
+    if (std::isfinite(knapsack_cutoff())) {
+        f_parameters << "knapsack_cutoff,"
+            << std::setprecision(std::numeric_limits<Profit>::max_digits10)
+            << knapsack_cutoff() << std::endl;
+    }
+    if (variable_sized_bin_packing_goal() != 0) {
+        f_parameters << "variable_sized_bin_packing_goal,"
+            << std::setprecision(std::numeric_limits<Profit>::max_digits10)
+            << variable_sized_bin_packing_goal() << std::endl;
+    }
 }
 
 void Instance::write_json(
@@ -350,6 +369,14 @@ void Instance::write_json(
     std::stringstream objective_ss;
     objective_ss << objective();
     json["objective"] = objective_ss.str();
+    if (bin_packing_goal() != 0)
+        json["bin_packing_goal"] = bin_packing_goal();
+    if (std::isfinite(knapsack_goal()))
+        json["knapsack_goal"] = knapsack_goal();
+    if (std::isfinite(knapsack_cutoff()))
+        json["knapsack_cutoff"] = knapsack_cutoff();
+    if (variable_sized_bin_packing_goal() != 0)
+        json["variable_sized_bin_packing_goal"] = variable_sized_bin_packing_goal();
 
     json["bin_types"] = nlohmann::json::array();
     for (BinTypeId bin_type_id = 0;

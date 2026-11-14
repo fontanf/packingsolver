@@ -757,6 +757,10 @@ void InstanceBuilder::read_parameters(
         if (name == "objective") {
             Objective objective = read_enum<Objective>(value, name);
             set_objective(objective);
+        } else if (name == "knapsack_goal") {
+            set_knapsack_goal(std::stod(value));
+        } else if (name == "knapsack_cutoff") {
+            set_knapsack_cutoff(std::stod(value));
         } else if (name == "unloading_constraint") {
             rectangle::UnloadingConstraint unloading_constraint = read_enum<rectangle::UnloadingConstraint>(
                     value,
@@ -1031,6 +1035,10 @@ void InstanceBuilder::read(
         }
         set_objective(objective);
     }
+    if (j.contains("knapsack_goal"))
+        set_knapsack_goal(j["knapsack_goal"]);
+    if (j.contains("knapsack_cutoff"))
+        set_knapsack_cutoff(j["knapsack_cutoff"]);
     if (j.contains("unloading_constraint")) {
         std::string unloading_constraint_string = j["unloading_constraint"];
         UnloadingConstraint unloading_constraint = read_enum<UnloadingConstraint>(

@@ -626,6 +626,10 @@ void InstanceBuilder::read(
         }
         set_objective(objective);
     }
+    if (j.contains("knapsack_goal"))
+        set_knapsack_goal(j["knapsack_goal"]);
+    if (j.contains("knapsack_cutoff"))
+        set_knapsack_cutoff(j["knapsack_cutoff"]);
 
     // Read parameters.
     if (j.contains("parameters")) {

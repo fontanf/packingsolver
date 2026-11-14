@@ -1,5 +1,6 @@
 #include "packingsolver/irregular/instance.hpp"
 
+#include <cmath>
 #include <sstream>
 
 using namespace packingsolver;
@@ -816,6 +817,10 @@ void Instance::write(
     std::stringstream objective_ss;
     objective_ss << objective();
     json["objective"] = objective_ss.str();
+    if (std::isfinite(knapsack_goal()))
+        json["knapsack_goal"] = knapsack_goal();
+    if (std::isfinite(knapsack_cutoff()))
+        json["knapsack_cutoff"] = knapsack_cutoff();
 
     // Export bins.
     for (BinTypeId bin_type_id = 0;

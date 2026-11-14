@@ -658,6 +658,14 @@ void InstanceBuilder::read_parameters(
         if (name == "objective") {
             Objective objective = read_enum<Objective>(value, name);
             set_objective(objective);
+        } else if (name == "bin_packing_goal") {
+            set_bin_packing_goal((BinPos)std::stol(value));
+        } else if (name == "knapsack_goal") {
+            set_knapsack_goal(std::stod(value));
+        } else if (name == "knapsack_cutoff") {
+            set_knapsack_cutoff(std::stod(value));
+        } else if (name == "variable_sized_bin_packing_goal") {
+            set_variable_sized_bin_packing_goal(std::stod(value));
         }
     }
 }
@@ -829,6 +837,14 @@ void InstanceBuilder::read(
         }
         set_objective(objective);
     }
+    if (j.contains("bin_packing_goal"))
+        set_bin_packing_goal(j["bin_packing_goal"]);
+    if (j.contains("knapsack_goal"))
+        set_knapsack_goal(j["knapsack_goal"]);
+    if (j.contains("knapsack_cutoff"))
+        set_knapsack_cutoff(j["knapsack_cutoff"]);
+    if (j.contains("variable_sized_bin_packing_goal"))
+        set_variable_sized_bin_packing_goal(j["variable_sized_bin_packing_goal"]);
 
     // Read bin types.
     for (const auto& json_bin_type: j["bin_types"]) {
