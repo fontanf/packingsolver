@@ -916,6 +916,9 @@ bool merge(
     if (label_set_1.size() == 0 || label_set_2.size() == 0)
         return true;
     Profit profit_2_max = label_set_2.profits[0];
+    // Number of pairs enumerated since the last timer check: the timer is
+    // checked inside the inner loop, since a single label set can be large
+    // enough for one inner loop to last seconds.
     Counter number_of_pairs = 0;
     for (Counter pos_1 = 0; pos_1 < label_set_1.size(); ++pos_1) {
         Profit profit_1 = label_set_1.profits[pos_1];
@@ -928,16 +931,16 @@ bool merge(
                 break;
             if (encoder.add(label_1, label_set_2.label(pos_2), out))
                 function(pos_1, pos_2, profit);
+            ++number_of_pairs;
+            if (number_of_pairs >= (1 << 16)) {
+                if (timer.needs_to_end())
+                    return false;
+                number_of_pairs = 0;
+            }
         }
-        number_of_pairs += label_set_2.size();
         work.number_of_operations += label_set_2.size();
         if (work.exceeded())
             return false;
-        if (number_of_pairs > (1 << 22)) {
-            if (timer.needs_to_end())
-                return false;
-            number_of_pairs = 0;
-        }
     }
     return true;
 }
