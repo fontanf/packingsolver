@@ -628,6 +628,9 @@ void optimize_column_generation(
     cg_parameters.optimization_mode = parameters.optimization_mode;
     cg_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
     cg_parameters.pricing_function_has_dual_bound = true;
+    // The best columns make the column generation converge faster than the
+    // first improving ones.
+    cg_parameters.use_pricing_knapsack_goal = false;
     cg_parameters.new_solution_callback = [&algorithm_formatter](
             const rectangle::Output& ps_output)
     {
