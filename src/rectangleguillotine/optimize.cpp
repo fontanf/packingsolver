@@ -1018,9 +1018,10 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
             // solutions. In 'Exact' mode, it proves the optimality (or the
             // infeasibility) of the solutions, while the other algorithms
             // find good solutions quickly, from which it starts.
-            if ((parameters.optimization_mode == OptimizationMode::Exact
-                        || instance.objective() == Objective::Knapsack)
-                    && tree_search_hypergraph_supported(instance)
+            // For the 'Feasibility' objective (e.g. the subproblems of a
+            // Benders decomposition), a single search finds a pattern with
+            // all the items or proves that there is none.
+            if (tree_search_hypergraph_supported(instance)
                     && tree_search_hypergraph_number_of_states(instance)
                     <= parameters.tree_search_hypergraph_maximum_number_of_states) {
                 use_tree_search_hypergraph = true;
