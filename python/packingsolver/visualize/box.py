@@ -25,7 +25,8 @@ def figure(
         item_color="ID",
         columns=None,
         zoom=1.0,
-        legend=True):
+        legend=True,
+        bins=None):
     """Build the figure of a box solution certificate.
 
     Args:
@@ -36,6 +37,8 @@ def figure(
         zoom: camera zoom factor (higher: closer/bigger)
         legend: show the legend; if False, hide the legend, freeing up space
             for the plot itself
+        bins: positions of the bins to draw, all of them by default; the
+            scale is the one of all the bins of the certificate
 
     Returns:
         plotly.graph_objects.Figure
@@ -168,7 +171,8 @@ def figure(
                 item_ids_z[i].append((z1 + z2) / 2)
                 item_ids[i].append(id_)
 
-    m = len(bins_x)
+    bin_positions = list(range(len(bins_x))) if bins is None else list(bins)
+    m = len(bin_positions)
     colors = px.colors.qualitative.Pastel
     number_of_cols = columns if columns is not None else math.ceil(math.sqrt(m))
     number_of_rows = math.ceil(m / number_of_cols)
@@ -179,9 +183,9 @@ def figure(
             specs=[[{'type': 'mesh3d'} for _ in range(number_of_cols)] for _ in range(number_of_rows)],
             vertical_spacing=0.001)
 
-    for i in range(0, m):
-        row = (i // number_of_cols) + 1
-        col = (i % number_of_cols) + 1
+    for subplot_pos, i in enumerate(bin_positions):
+        row = (subplot_pos // number_of_cols) + 1
+        col = (subplot_pos % number_of_cols) + 1
 
         fig.add_trace(go.Mesh3d(
             x=bins_x[i],
@@ -192,7 +196,7 @@ def figure(
             k=bins_k[i],
             name="Bins",
             legendgroup="bins",
-            showlegend=(i == 0),
+            showlegend=(subplot_pos == 0),
             opacity=0.1,
             color="grey",
             flatshading=True),
@@ -208,7 +212,7 @@ def figure(
             k=defects_k[i],
             name="Defects",
             legendgroup="defects",
-            showlegend=(i == 0),
+            showlegend=(subplot_pos == 0),
             opacity=0.2,
             color="grey",
             flatshading=True),
@@ -229,7 +233,7 @@ def figure(
                 k=items_k[i][k],
                 name="Items" if item_color == 'SAME' else f"Items {item_ids[i][k]}",
                 legendgroup="items",
-                showlegend=(i == 0 and k == 0),
+                showlegend=(subplot_pos == 0 and k == 0),
                 opacity=1,
                 flatshading=True,
                 color=color),
