@@ -227,3 +227,43 @@ export function progressFigure(progress, result, colors) {
         },
     };
 }
+
+/////////////////////////////////////////////////////////////////////////////
+// Report a solution
+/////////////////////////////////////////////////////////////////////////////
+
+export const ISSUES_URL = "https://github.com/fontanf/packingsolver/issues/new";
+
+// GitHub refuses longer URLs.
+export const MAXIMUM_ISSUE_URL_LENGTH = 8000;
+
+// The URL opening a GitHub issue about a solution: its title and body filled
+// in. GitHub can't attach a file from a URL: the instance ('instance', its
+// JSON object) is in the body if it fits ('inlined' true), otherwise the body
+// asks to attach the file 'fileName'. 'summary' describes the solution.
+export function issueUrl({problemType, objective, parameters, summary, instance, fileName}) {
+    const url = (body) => ISSUES_URL
+        + "?title=" + encodeURIComponent(`Solution not satisfying (${problemType}, ${objective})`)
+        + "&body=" + encodeURIComponent(body);
+    const body = (instanceText) => [
+        "<!-- What is wrong with the solution? What did you expect? -->",
+        "",
+        "",
+        `**Problem type:** ${problemType}`,
+        `**Objective:** ${objective}`,
+        `**Parameters:** \`${JSON.stringify(parameters)}\``,
+        `**Solution:** ${summary}`,
+        "",
+        "**Instance:**",
+        instanceText,
+        "",
+        "_Opened from the PackingSolver web page._",
+    ].join("\n");
+    const inlined = url(body("```json\n" + JSON.stringify(instance) + "\n```"));
+    if (inlined.length <= MAXIMUM_ISSUE_URL_LENGTH)
+        return {url: inlined, inlined: true};
+    return {
+        url: url(body(`<!-- Drag and drop the downloaded file "${fileName}" here. -->`)),
+        inlined: false,
+    };
+}
