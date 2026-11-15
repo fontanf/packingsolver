@@ -1,0 +1,11 @@
+{
+    "objective": "bin-packing",
+    "static_stability": true,
+    "bin_types": [
+        {"x": 10, "y": 10, "z": 20, "copies": 10}
+    ],
+    "item_types": [
+        {"x": 9, "y": 3, "z": 12, "copies": 2},
+        {"x": 10, "y": 7, "z": 6, "copies": 2}
+    ]
+}

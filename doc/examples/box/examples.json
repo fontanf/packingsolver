@@ -4,5 +4,7 @@
     {"name": "rotation_no", "title": "Item rotations: oriented items"},
     {"name": "rotation_yes", "title": "Item rotations: items which can be rotated"},
     {"name": "maximum_weight_no", "title": "Maximum weight: without maximum weight"},
-    {"name": "maximum_weight_yes", "title": "Maximum weight: with maximum weight"}
+    {"name": "maximum_weight_yes", "title": "Maximum weight: with maximum weight"},
+    {"name": "static_stability_no", "title": "Static stability: without static stability"},
+    {"name": "static_stability_yes", "title": "Static stability: with static stability"}
 ]

@@ -285,6 +285,8 @@ def rotations(snippet, item_type, rotation_type):
 def box(instance):
     s = Snippet("box")
     s.objective(instance)
+    if instance.get("static_stability", False):
+        s.setter("set_static_stability", "True", "true")
     for bin_type in instance["bin_types"]:
         python, cpp = optional_fields(bin_type, ["cost", "maximum_weight", "copies", "copies_min"])
         add_type(s, "bin", [bin_type["x"], bin_type["y"], bin_type["z"]], python, with_kind(cpp, "bin"))
