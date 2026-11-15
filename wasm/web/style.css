@@ -940,3 +940,17 @@ tr.placed-shapes-line.invalid .placed-shapes-label,
 a {
     color: var(--accent);
 }
+
+/* Controls on one line, wrapped on narrow screens (e.g. the rotations of all
+   the item types). */
+.fields-inline:not([hidden]) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.fields-inline label {
+    margin: 0;
+}

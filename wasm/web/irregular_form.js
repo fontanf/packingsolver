@@ -387,6 +387,19 @@ export function itemRotations(row) {
     });
 }
 
+// Set the rotations of all the item rows: 'rotations' a key of 'ROTATIONS'
+// other than "custom", and the mirroring. The custom ranges of the rows are
+// reset.
+export function setRotations(rows, rotations, mirror) {
+    if (!(rotations in ROTATIONS) || ROTATIONS[rotations].rotations === null)
+        throw new Error(`invalid rotations: "${rotations}".`);
+    for (const row of rows) {
+        row.rotations = rotations;
+        row.mirror = Boolean(mirror);
+        row.rotation_ranges = [defaultRotationRange()];
+    }
+}
+
 // The shapes of an item row: its shape with its holes, then its other shapes.
 export function itemShapes(row) {
     return [itemShape(row), ...(row.extra_shapes || []).map((extra, j) => {
