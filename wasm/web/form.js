@@ -171,8 +171,11 @@ export function itemColumns(problemType) {
         columns.push(detailsNumber("stack_id", "Stack id", "none", {integer: true}));
     if (problemType === "boxstacks")
         columns.push(numberColumn(["stackability_id", "Stackability id"], 0));
-    if (problemType === "box")
+    if (problemType === "box") {
+        // Maximum weight of the items packed above the items of this type.
+        columns.push(detailsNumber("maximum_weight_above", "Maximum weight above", "unlimited"));
         columns.push({key: "rotations", label: "Rotations", type: "rotations", value: ["XYZ"]});
+    }
     // The items of boxstacks stay on their base: only the rotation around the
     // vertical axis.
     if (problemType === "boxstacks") {

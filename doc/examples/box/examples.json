@@ -6,5 +6,7 @@
     {"name": "maximum_weight_no", "title": "Maximum weight: without maximum weight"},
     {"name": "maximum_weight_yes", "title": "Maximum weight: with maximum weight"},
     {"name": "static_stability_no", "title": "Static stability: without static stability"},
-    {"name": "static_stability_yes", "title": "Static stability: with static stability"}
+    {"name": "static_stability_yes", "title": "Static stability: with static stability"},
+    {"name": "maximum_weight_above_no", "title": "Maximum weight above: without maximum weight above"},
+    {"name": "maximum_weight_above_yes", "title": "Maximum weight above: with maximum weight above"}
 ]

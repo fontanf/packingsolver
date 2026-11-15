@@ -312,6 +312,7 @@ std::ostream& Instance::format(
             << std::setw(10) << "Copies"
             << std::setw(10) << "Rotations"
             << std::setw(10) << "Weight"
+            << std::setw(12) << "Max w. abv."
             << std::endl
             << std::setw(10) << "---------"
             << std::setw(10) << "-"
@@ -321,6 +322,7 @@ std::ostream& Instance::format(
             << std::setw(10) << "------"
             << std::setw(10) << "---------"
             << std::setw(10) << "------"
+            << std::setw(12) << "-----------"
             << std::endl;
         for (ItemTypeId item_type_id = 0;
                 item_type_id < this->number_of_item_types();
@@ -335,6 +337,7 @@ std::ostream& Instance::format(
                 << std::setw(10) << item_type.copies
                 << std::setw(10) << item_type.rotations.size()
                 << std::setw(10) << item_type.weight
+                << std::setw(12) << item_type.maximum_weight_above
                 << std::endl;
         }
     }
@@ -466,6 +469,8 @@ void Instance::write_json(
         json_item_type["copies"] = item_type.copies;
         json_item_type["copies_min"] = item_type.copies_min;
         json_item_type["weight"] = item_type.weight;
+        if (item_type.maximum_weight_above != std::numeric_limits<Weight>::infinity())
+            json_item_type["maximum_weight_above"] = item_type.maximum_weight_above;
         json_item_type["rotations"] = nlohmann::json::array();
         for (Rotation rotation: item_type.rotations)
             json_item_type["rotations"].push_back(to_string(rotation));
@@ -503,7 +508,8 @@ void Instance::write_item_types(
         "ROTATION_YZX,"
         "ROTATION_XZY,"
         "ROTATION_ZXY,"
-        "WEIGHT" << std::endl;
+        "WEIGHT,"
+        "MAXIMUM_WEIGHT_ABOVE" << std::endl;
     for (ItemTypeId item_type_id = 0;
             item_type_id < this->number_of_item_types();
             ++item_type_id) {
@@ -522,7 +528,8 @@ void Instance::write_item_types(
             << (item_type.can_rotate(Rotation::YZX)? 1: 0) << ","
             << (item_type.can_rotate(Rotation::XZY)? 1: 0) << ","
             << (item_type.can_rotate(Rotation::ZXY)? 1: 0) << ","
-            << item_type.weight << std::endl;
+            << item_type.weight << ","
+            << item_type.maximum_weight_above << std::endl;
     }
 }
 

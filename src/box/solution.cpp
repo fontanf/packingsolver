@@ -106,6 +106,14 @@ void Solution::update_indicators(
             stable_ = false;
     }
 
+    // Update the maximum weights above.
+    if (instance().has_maximum_weight_above()) {
+        bin.maximum_weight_above_feasible = satisfies_maximum_weights_above(
+                instance(), bin_type, bin.items);
+        if (!bin.maximum_weight_above_feasible)
+            maximum_weight_above_feasible_ = false;
+    }
+
     // Update the leftover values. The volume used in a bin is the box from
     // its origin to its items, the rest of the bin being the leftover (see
     // 'LeftoverMode').
@@ -148,6 +156,7 @@ void Solution::update_indicators(
         && callback_feasible_
         && resource_feasible_
         && stable_
+        && maximum_weight_above_feasible_
         && (number_of_infeasible_item_copies_min_ == 0);
 }
 

@@ -220,6 +220,8 @@ function canonicalOther(problemType, json, objective) {
             r.eligibility_id = value(t.eligibility_id, null);
         if (problemType === "box" || problemType === "boxstacks")
             r.rotations = ((t.rotations || []).length > 0)? t.rotations.slice().sort(): ["XYZ"];
+        if (problemType === "box")
+            r.maximum_weight_above = value(t.maximum_weight_above, null);
         if (problemType === "boxstacks") {
             if (unloading)
                 r.group_id = value(t.group_id, 0);

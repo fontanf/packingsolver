@@ -255,7 +255,8 @@ subprocess.run([
 ])
 
 for name in ["maximum_weight_no", "maximum_weight_yes", "rotation_no", "rotation_yes",
-             "static_stability_no", "static_stability_yes"]:
+             "static_stability_no", "static_stability_yes",
+             "maximum_weight_above_no", "maximum_weight_above_yes"]:
     print("box_" + name)
     subprocess.run([
         os.path.join(bin_dir, "packingsolver_box"),

@@ -32,7 +32,24 @@ bool is_statically_stable(
         const std::vector<SolutionItem>& items);
 
 /**
- * Let the items of the bins of a solution which aren't stable fall.
+ * Return true iff the items of a bin satisfy the maximum weights above of
+ * their item types.
+ *
+ * The forces are those of 'is_statically_stable'. The items satisfy the
+ * maximum weights above iff there exist such forces which balance the
+ * vertical forces of each item (and its moments, with the static stability)
+ * and for which the total force on the top face of each item is at most the
+ * maximum weight above of its item type. So, each item with a weight must
+ * rest on the floor of the bin or on other items.
+ */
+bool satisfies_maximum_weights_above(
+        const Instance& instance,
+        const BinType& bin_type,
+        const std::vector<SolutionItem>& items);
+
+/**
+ * Let the items of the bins of a solution which aren't stable, or which don't
+ * satisfy the maximum weights above, fall.
  *
  * Each item is moved down until it rests on the floor of the bin or on the
  * top face of another item. The items only move down and the items whose
@@ -47,13 +64,15 @@ bool is_statically_stable(
 Solution drop_items(const Solution& solution);
 
 /**
- * Remove items from the bins of a solution which aren't stable until they are.
+ * Remove items from the bins of a solution which aren't stable, or which
+ * don't satisfy the maximum weights above, until they do.
  *
- * While a bin is not stable, the items which can't be balanced are those whose
- * equilibrium rows are violated in an optimal solution of the equilibrium
- * linear program in which the rows may be violated at a cost. The highest of
- * them is removed with the items which rest on it, directly or not; the other
- * items keep their positions, so they remain supported.
+ * While a bin doesn't, the items which can't be balanced are those whose
+ * balance rows are violated in an optimal solution of the equilibrium
+ * linear program in which these rows may be violated at a cost, with the
+ * maximum weights above. The highest of them is removed with the items which
+ * rest on it, directly or not; the other items keep their positions, so they
+ * remain supported.
  *
  * It is meant to be called after 'drop_items', so that the floating items
  * have fallen instead of being removed.

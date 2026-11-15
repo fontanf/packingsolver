@@ -297,6 +297,9 @@ struct BoxRemoveUnbalancedItemsItem
 
     /** Weight; the volume if negative. */
     Weight weight = -1;
+
+    /** Maximum weight above. */
+    Weight maximum_weight_above = std::numeric_limits<Weight>::infinity();
 };
 
 struct BoxRemoveUnbalancedItemsTestParams
@@ -325,6 +328,7 @@ TEST_P(BoxRemoveUnbalancedItemsTest, BoxRemoveUnbalancedItems)
         ItemTypeId item_type_id = instance_builder.add_item_type(item.box.x, item.box.y, item.box.z);
         if (item.weight >= 0)
             instance_builder.set_item_type_weight(item_type_id, item.weight);
+        instance_builder.set_item_type_maximum_weight_above(item_type_id, item.maximum_weight_above);
     }
     Instance instance = instance_builder.build();
 
@@ -343,6 +347,7 @@ TEST_P(BoxRemoveUnbalancedItemsTest, BoxRemoveUnbalancedItems)
 
     Solution new_solution = remove_unbalanced_items(solution);
     EXPECT_TRUE(new_solution.stable());
+    EXPECT_TRUE(new_solution.maximum_weight_above_feasible());
     ASSERT_EQ(new_solution.number_of_different_bins(), 1);
     std::vector<bool> kept(test_params.items.size(), false);
     for (const SolutionItem& item: new_solution.bin(0).items) {
@@ -393,4 +398,181 @@ INSTANTIATE_TEST_SUITE_P(
                     {{10, 10, 10}, {20, 0, 0}, true},
                     {{10, 10, 10}, {20, 0, 10}, true},
                 },
+            }, {
+                // The bottom item can carry half of the weight of the top
+                // item: the top item is removed.
+                "maximum_weight_above_exceeded",
+                {10, 10, 20},
+                {
+                    {{10, 10, 10}, {0, 0, 0}, true, -1, 500},
+                    {{10, 10, 10}, {0, 0, 10}, false},
+                },
             }}));
+
+struct BoxMaximumWeightAboveItem
+{
+    Box box;
+    Point bl_corner;
+
+    /** Maximum weight above. */
+    Weight maximum_weight_above = std::numeric_limits<Weight>::infinity();
+};
+
+struct BoxMaximumWeightAboveTestParams
+{
+    std::string name;
+    Box bin;
+    std::vector<BoxMaximumWeightAboveItem> items;
+
+    /** Expected feasibility without the static stability. */
+    bool expected_feasible;
+
+    /** Expected feasibility with the static stability. */
+    bool expected_feasible_with_static_stability;
+};
+
+inline std::ostream& operator<<(std::ostream& os, const BoxMaximumWeightAboveTestParams& test_params)
+{
+    os << test_params.name;
+    return os;
+}
+
+class BoxMaximumWeightAboveTest: public testing::TestWithParam<BoxMaximumWeightAboveTestParams> { };
+
+TEST_P(BoxMaximumWeightAboveTest, BoxMaximumWeightAbove)
+{
+    BoxMaximumWeightAboveTestParams test_params = GetParam();
+    for (bool static_stability: {false, true}) {
+        InstanceBuilder instance_builder;
+        instance_builder.set_objective(packingsolver::Objective::Knapsack);
+        instance_builder.set_static_stability(static_stability);
+        instance_builder.add_bin_type(test_params.bin.x, test_params.bin.y, test_params.bin.z);
+        for (const BoxMaximumWeightAboveItem& item: test_params.items) {
+            ItemTypeId item_type_id = instance_builder.add_item_type(item.box.x, item.box.y, item.box.z);
+            instance_builder.set_item_type_maximum_weight_above(item_type_id, item.maximum_weight_above);
+        }
+        Instance instance = instance_builder.build();
+
+        SolutionBuilder solution_builder(instance);
+        BinPos bin_pos = solution_builder.add_bin(0, 1);
+        for (ItemTypeId item_type_id = 0;
+                item_type_id < (ItemTypeId)test_params.items.size();
+                ++item_type_id) {
+            solution_builder.add_item(
+                    bin_pos,
+                    item_type_id,
+                    test_params.items[item_type_id].bl_corner,
+                    Rotation::XYZ);
+        }
+        Solution solution = solution_builder.build();
+
+        bool expected_feasible = (static_stability)?
+            test_params.expected_feasible_with_static_stability:
+            test_params.expected_feasible;
+        EXPECT_EQ(solution.maximum_weight_above_feasible(), expected_feasible)
+            << "static stability: " << static_stability;
+        EXPECT_EQ(solution.bin(0).maximum_weight_above_feasible, expected_feasible)
+            << "static stability: " << static_stability;
+        if (!expected_feasible)
+            EXPECT_FALSE(solution.feasible());
+    }
+}
+
+INSTANTIATE_TEST_SUITE_P(
+        Box,
+        BoxMaximumWeightAboveTest,
+        testing::ValuesIn(std::vector<BoxMaximumWeightAboveTestParams>{
+            {
+                // The weights are the volumes: the top item weighs 1000.
+                "tower_within_the_limit",
+                {10, 10, 20},
+                {{{10, 10, 10}, {0, 0, 0}, 1000}, {{10, 10, 10}, {0, 0, 10}}},
+                true,
+                true,
+            }, {
+                "tower_beyond_the_limit",
+                {10, 10, 20},
+                {{{10, 10, 10}, {0, 0, 0}, 999}, {{10, 10, 10}, {0, 0, 10}}},
+                false,
+                false,
+            }, {
+                // Nothing rests on the item which can't carry anything.
+                "nothing_above",
+                {20, 10, 10},
+                {{{10, 10, 10}, {0, 0, 0}, 0}, {{10, 10, 10}, {10, 0, 0}}},
+                true,
+                true,
+            }, {
+                // The weight of the item on top of the tower is carried by
+                // the bottom item through the middle item.
+                "weight_carried_through_an_item",
+                {10, 10, 30},
+                {
+                    {{10, 10, 10}, {0, 0, 0}, 1500},
+                    {{10, 10, 10}, {0, 0, 10}},
+                    {{10, 10, 10}, {0, 0, 20}},
+                },
+                false,
+                false,
+            }, {
+                // Two items resting on the same item.
+                "two_items_on_an_item",
+                {20, 10, 20},
+                {
+                    {{20, 10, 10}, {0, 0, 0}, 1500},
+                    {{10, 10, 10}, {0, 0, 10}},
+                    {{10, 10, 10}, {10, 0, 10}},
+                },
+                false,
+                false,
+            }, {
+                // A plank of weight 1500 on two pillars which can carry 750
+                // each: it is balanced when each pillar carries half of it.
+                "bridge",
+                {30, 10, 20},
+                {
+                    {{5, 10, 10}, {0, 0, 0}, 750},
+                    {{5, 10, 10}, {25, 0, 0}, 750},
+                    {{30, 10, 5}, {0, 0, 10}},
+                },
+                true,
+                true,
+            }, {
+                // A plank of weight 1500 on two pillars, the right one much
+                // closer to its center: its moments are balanced only if the
+                // right pillar carries at least 750, which is beyond its
+                // limit, while its vertical forces are balanced if the left
+                // pillar carries most of it.
+                "moments_require_more_than_the_limit",
+                {30, 10, 20},
+                {
+                    {{5, 10, 10}, {0, 0, 0}},
+                    {{5, 10, 10}, {20, 0, 0}, 600},
+                    {{30, 10, 5}, {0, 0, 10}},
+                },
+                true,
+                false,
+            }, {
+                // An item with a weight must rest on something.
+                "floating_item",
+                {20, 10, 20},
+                {{{10, 10, 10}, {0, 0, 0}, 0}, {{10, 10, 10}, {10, 0, 5}}},
+                false,
+                false,
+            }}));
+
+TEST(Box, ItemTypeMaximumWeightAbove)
+{
+    InstanceBuilder instance_builder;
+    instance_builder.add_bin_type(10, 10, 10);
+    instance_builder.add_item_type(2, 3, 4);
+    ItemTypeId item_type_id = instance_builder.add_item_type(2, 3, 4);
+    instance_builder.set_item_type_maximum_weight_above(item_type_id, 7);
+    EXPECT_THROW(
+            instance_builder.set_item_type_maximum_weight_above(item_type_id, -1),
+            std::invalid_argument);
+    Instance instance = instance_builder.build();
+    EXPECT_EQ(instance.item_type(0).maximum_weight_above, std::numeric_limits<Weight>::infinity());
+    EXPECT_EQ(instance.item_type(1).maximum_weight_above, 7);
+    EXPECT_TRUE(instance.has_maximum_weight_above());
+}

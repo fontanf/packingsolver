@@ -235,6 +235,11 @@ public:
             ItemTypeId item_type_id,
             Weight weight);
 
+    /** Set the maximum weight above the items of an item type. */
+    void set_item_type_maximum_weight_above(
+            ItemTypeId item_type_id,
+            Weight maximum_weight_above);
+
     /** Add an item type from an item type of the original instance. */
     ItemTypeId add_item_type_from_original_instance(
             ItemTypeId original_item_type_id);

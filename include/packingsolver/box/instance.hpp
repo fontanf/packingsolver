@@ -216,6 +216,16 @@ struct ItemType
      */
     Weight weight = -1;
 
+    /**
+     * Maximum weight of the items packed above the items of this type: the
+     * total vertical force that the items resting on an item of this type
+     * apply on its top face (see 'SolutionBin::maximum_weight_above_feasible').
+     *
+     * It is a feasibility criterion of the solutions: the algorithms don't
+     * take it into account when building them.
+     */
+    Weight maximum_weight_above = std::numeric_limits<Weight>::infinity();
+
     /*
      * Computed attributes
      */
@@ -518,6 +528,9 @@ public:
     /** Return true iff all items have infinite copies. */
     inline bool unbounded_knapsack() const { return all_item_types_infinite_copies_; }
 
+    /** Return true iff an item type has a maximum weight above. */
+    inline bool has_maximum_weight_above() const { return has_maximum_weight_above_; }
+
     /**
      * Return 'true' iff item type 'item_type_id' fits (in some allowed
      * rotation) in bin type 'bin_type_id'.
@@ -653,6 +666,9 @@ private:
 
     /** True iff all item types have an infinite number of copies. */
     bool all_item_types_infinite_copies_ = false;
+
+    /** True iff an item type has a maximum weight above. */
+    bool has_maximum_weight_above_ = false;
 
     /** Smallest x-extent of the items (over all rotations). */
     Length smallest_item_x_ = 0;

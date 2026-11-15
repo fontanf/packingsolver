@@ -1,9 +1,9 @@
 .. _internals_box_static_stability:
 
-Static stability
-================
+Static stability and maximum weight above
+=========================================
 
-With the :ref:`static stability <box-static-stability>` constraint, the items of each bin must be in static mechanical equilibrium. This page describes how it is checked, and how the tree search algorithms, which don't model it, repair their solutions so that they satisfy it.
+With the :ref:`static stability <box-static-stability>` constraint, the items of each bin must be in static mechanical equilibrium. With the :ref:`maximum weights above <box-maximum-weight-above>`, the items must not carry more than the maximum weights above of their item types. This page describes how they are checked, and how the tree search algorithms, which don't model them, repair their solutions so that they satisfy them.
 
 Feasibility criterion
 ---------------------
@@ -95,16 +95,31 @@ The model has 4 variables per contact and 3 rows per item. The forces are divide
 
 The linear program is not solved when all the items are on the floor of the bin (the bin is stable), or when an item with a weight has no support (the bin is not stable).
 
+Maximum weight above
+--------------------
+
+The weight that an item carries depends on how the items above it share their weights between their supports, which the same forces describe. The maximum weights above are satisfied if and only if there exist forces which satisfy the constraints of the equilibrium model and, for each item :math:`i` whose item type has a maximum weight above :math:`W_i`:
+
+.. math::
+
+   \sum_{c : l(c) = i} \; \sum_{k \in K(c)} f_k \le W_i
+
+Without the static stability, only the constraints of the vertical forces are kept, not the constraints of the moments: the weights flow down through the contacts, in any proportions. With the static stability, the three constraints of each item are kept, so a single force distribution must both balance the items and satisfy the maximum weights above. In both cases, each item with a weight must rest on the floor of the bin or on other items.
+
+Since the forces aren't unique, the check is optimistic: it accepts a bin if some force distribution satisfies the maximum weights above, while the actual forces also depend on the stiffness of the items.
+
+The criterion is checked by :code:`Solution` on the bins of the instances in which an item type has a maximum weight above (:code:`SolutionBin::maximum_weight_above_feasible`), and is part of the feasibility of the solutions. Like the static stability, the algorithms don't model it.
+
 Repair of the solutions
 -----------------------
 
 The tree search algorithms often generate solutions with floating items, especially the :ref:`tree search with maximal spaces <internals_box_tree_search_maximal_spaces>`, which places a block on the floor of a maximal space, while the space can extend beyond the items supporting it. Without repair, with this constraint, they may find no stable solution at all.
 
-So, before passing a new solution to the algorithm formatter, :ref:`tree search <internals_box_tree_search>` and :ref:`tree search with maximal spaces <internals_box_tree_search_maximal_spaces>` repair it in two steps. Only the bins which are not stable are changed.
+So, before passing a new solution to the algorithm formatter, :ref:`tree search <internals_box_tree_search>` and :ref:`tree search with maximal spaces <internals_box_tree_search_maximal_spaces>` repair it in two steps. Only the bins which are not stable, or which don't satisfy the maximum weights above, are changed.
 
 **Drop.** The items fall until they rest on the floor or on another item. They are processed in a single pass, from the lowest to the highest one: an item lands on the highest top face of the items already processed whose footprints intersect its footprint, or on the floor. The items which may stop an item are below it, so they are already at their final positions. The items only move down, and the items whose footprints intersect keep their vertical order, so the solution remains valid, with the same items in the same bins.
 
-**Removal of the unbalanced items.** After the drop, no item floats, but an item may still tip, when its center of gravity is beyond its support, or because of the weight of the items above it. While a bin is not stable:
+**Removal of the unbalanced items.** After the drop, no item floats, but an item may still tip, when its center of gravity is beyond its support, or because of the weight of the items above it, and an item may carry too much. While a bin is not stable, or doesn't satisfy the maximum weights above:
 
 * the items which can't be balanced are found by solving the equilibrium linear program in which each row may be violated, at a cost equal to the violation (see below); the items whose rows are violated in an optimal solution are the unbalanced items;
 * the highest of them is removed, with the items which rest on it, directly or not;
@@ -115,7 +130,7 @@ In the example below, seen from the beginning of the y-axis (the items span the 
 .. image:: ../../img/box_static_stability_repair.svg
    :align: center
 
-The linear program which finds the unbalanced items has the input and the variables of the equilibrium model, and:
+The linear program which finds the unbalanced items has the input and the variables of the equilibrium model, the constraints of the maximum weights above (which may not be violated), and:
 
 **Variables**, in addition:
 
@@ -135,7 +150,7 @@ The linear program which finds the unbalanced items has the input and the variab
    - \sum_{c : l(c) = i} \; \sum_{k \in K(c)} f_k
    + s_{i,1}^+ - s_{i,1}^- = w_i
 
-It always has a solution: the null forces, with the violations of the vertical forces equal to the weights. Its optimal value is zero if and only if the bin is stable. An item :math:`i` is unbalanced if :math:`\sum_r (s_{i,r}^+ + s_{i,r}^-) > 10^{-7}` in the optimal solution found.
+It always has a solution: the null forces, with the violations of the vertical forces equal to the weights. Its optimal value is zero if and only if the bin satisfies the constraints. With the maximum weights above, the items whose weight can't be carried are unbalanced, so the items above an item which carries too much are removed first. An item :math:`i` is unbalanced if :math:`\sum_r (s_{i,r}^+ + s_{i,r}^-) > 10^{-7}` in the optimal solution found.
 
 The removed items are not re-inserted. With the :code:`knapsack` objective, the repaired solution is feasible. With the objectives which require all the items to be packed, it often isn't.
 
@@ -144,8 +159,8 @@ The infeasibility proofs and the bounds of the tree searches are computed from t
 Source files
 ------------
 
-* :code:`src/box/static_stability.hpp`, :code:`src/box/static_stability.cpp`: the equilibrium linear program, the drop and the removal of the unbalanced items
-* :code:`src/box/solution.cpp`: the check of the criterion on each bin
+* :code:`src/box/static_stability.hpp`, :code:`src/box/static_stability.cpp`: the equilibrium linear program, with the maximum weights above, the drop and the removal of the unbalanced items
+* :code:`src/box/solution.cpp`: the check of the criteria on each bin
 * :code:`src/box/tree_search.cpp`, :code:`src/box/tree_search_maximal_spaces.cpp`: the calls to the repair
 * :code:`scripts/doc_figures/box.py`: the figure of this page
 

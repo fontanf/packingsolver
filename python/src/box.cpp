@@ -53,6 +53,7 @@ void bind_box(nb::module_& m)
         .def_ro("copies_min", &ItemType::copies_min)
         .def_ro("rotations", &ItemType::rotations)
         .def_ro("weight", &ItemType::weight)
+        .def_ro("maximum_weight_above", &ItemType::maximum_weight_above)
         .def_ro("copies_fixed", &ItemType::copies_fixed)
         .def("volume", &ItemType::volume)
         .def("area", &ItemType::area)
@@ -199,6 +200,7 @@ void bind_box(nb::module_& m)
                     Length z,
                     std::optional<std::vector<Rotation>> rotations,
                     std::optional<Weight> weight,
+                    std::optional<Weight> maximum_weight_above,
                     std::optional<Profit> profit,
                     std::optional<ItemPos> copies,
                     std::optional<ItemPos> copies_min)
@@ -209,6 +211,8 @@ void bind_box(nb::module_& m)
                             instance_builder.add_item_type_rotation(item_type_id, rotation);
                     if (weight.has_value())
                         instance_builder.set_item_type_weight(item_type_id, *weight);
+                    if (maximum_weight_above.has_value())
+                        instance_builder.set_item_type_maximum_weight_above(item_type_id, *maximum_weight_above);
                     if (profit.has_value())
                         instance_builder.set_item_type_profit(item_type_id, *profit);
                     if (copies.has_value())
@@ -221,6 +225,7 @@ void bind_box(nb::module_& m)
                 nb::kw_only(),
                 nb::arg("rotations") = nb::none(),
                 nb::arg("weight") = nb::none(),
+                nb::arg("maximum_weight_above") = nb::none(),
                 nb::arg("profit") = nb::none(),
                 nb::arg("copies") = nb::none(),
                 nb::arg("copies_min") = nb::none(),
@@ -228,7 +233,9 @@ void bind_box(nb::module_& m)
                 "Keyword arguments (omitted ones keep the C++ default):\n"
                 "- rotations: the allowed rotations of the item type (the full\n"
                 "  list; when omitted or empty, only 'Rotation.XYZ' is allowed).\n"
-                "- weight: the weight of the item type.\n"
+                "- weight: the weight of the item type (default: its volume).\n"
+                "- maximum_weight_above: the maximum weight of the items packed\n"
+                "  above the items of the item type (default: no limit).\n"
                 "- profit: the profit of the item type (default: its volume).\n"
                 "- copies: the number of copies of the item type.\n"
                 "- copies_min: the minimum number of copies to pack of the item type.")
@@ -263,7 +270,8 @@ void bind_box(nb::module_& m)
         .def_ro("weight", &SolutionBin::weight)
         .def_ro("profit", &SolutionBin::profit)
         .def_ro("resource_consumption", &SolutionBin::resource_consumption)
-        .def_ro("stable", &SolutionBin::stable);
+        .def_ro("stable", &SolutionBin::stable)
+        .def_ro("maximum_weight_above_feasible", &SolutionBin::maximum_weight_above_feasible);
 
     nb::class_<Solution>(m, "Solution")
         // Feasibility.
@@ -271,6 +279,7 @@ void bind_box(nb::module_& m)
         .def("feasible", &Solution::feasible)
         .def("resource_feasible", &Solution::resource_feasible)
         .def("stable", &Solution::stable)
+        .def("maximum_weight_above_feasible", &Solution::maximum_weight_above_feasible)
         // Bins.
         .def("number_of_bins", &Solution::number_of_bins)
         .def("number_of_different_bins", &Solution::number_of_different_bins)

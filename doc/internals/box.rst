@@ -47,10 +47,10 @@ See :doc:`the detailed description <box/dual_feasible_functions>`.
 
    box/dual_feasible_functions
 
-Static stability
-----------------
+Static stability and maximum weight above
+-----------------------------------------
 
-The static stability constraint is checked on each bin by solving a linear program: the bin is stable if and only if there exist contact forces which balance the weight of each item. The tree search algorithms don't model it; they repair their solutions by letting the items fall, then by removing the items which still can't be balanced.
+The static stability constraint is checked on each bin by solving a linear program: the bin is stable if and only if there exist contact forces which balance the weight of each item. The maximum weights above are checked with the same linear program, with an upper bound on the forces on the top face of each item. The tree search algorithms don't model them; they repair their solutions by letting the items fall, then by removing the items which still can't be balanced.
 
 See :doc:`the detailed description <box/static_stability>`.
 

@@ -49,6 +49,13 @@ struct SolutionBin
      */
     bool stable = true;
 
+    /**
+     * True iff the items of the bin satisfy the maximum weights above of
+     * their item types (see 'Solution::maximum_weight_above_feasible'). Only
+     * computed when an item type has a maximum weight above; true otherwise.
+     */
+    bool maximum_weight_above_feasible = true;
+
     /** Leftover value of the bin (see 'LeftoverMode'). */
     Volume leftover_value = 0;
 
@@ -145,8 +152,18 @@ public:
     inline bool stable() const { return stable_; }
 
     /**
-     * Feasibility without the static stability and the feasibility
-     * callback, the constraints which the algorithms don't model.
+     * Maximum weights above: in each bin, there exist contact forces which
+     * balance the items and for which the total force on the top face of
+     * each item is at most the maximum weight above of its item type (see
+     * 'satisfies_maximum_weights_above'). Only computed when an item type has
+     * a maximum weight above; true otherwise.
+     */
+    inline bool maximum_weight_above_feasible() const { return maximum_weight_above_feasible_; }
+
+    /**
+     * Feasibility without the static stability, the maximum weights above and
+     * the feasibility callback, the constraints which the algorithms don't
+     * model.
      *
      * An algorithm which has explored all its solutions proves the
      * infeasibility of the instance only if none of them is feasible
@@ -344,6 +361,9 @@ private:
 
     /** Static stability. */
     bool stable_ = true;
+
+    /** Maximum weights above. */
+    bool maximum_weight_above_feasible_ = true;
 
     /** Bins. */
     std::vector<SolutionBin> bins_;

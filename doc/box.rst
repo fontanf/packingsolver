@@ -29,6 +29,8 @@ Features:
 
 * Static stability
 
+* Maximum weight above an item
+
 Basic usage
 -----------
 
@@ -109,7 +111,9 @@ An **item type** has the following fields:
    * - ``rotations``
      - See :ref:`box-item-rotations`. Default: ``["XYZ"]``
    * - ``weight``
-     - See :ref:`box-maximum-weight` and :ref:`box-static-stability`. Default: the volume of the item
+     - See :ref:`box-maximum-weight`, :ref:`box-static-stability` and :ref:`box-maximum-weight-above`. Default: the volume of the item
+   * - ``maximum_weight_above``
+     - See :ref:`box-maximum-weight-above`. Default: no limit
 
 In Python, the optional fields of the bin types and of the item types are keyword arguments of ``InstanceBuilder.add_bin_type`` and ``InstanceBuilder.add_item_type``, with the same names. In C++, they are set with the ``InstanceBuilder.set_bin_type_<field>`` and ``InstanceBuilder.set_item_type_<field>`` methods; the examples below show the exceptions.
 
@@ -324,4 +328,58 @@ In the following example, 2 items of size 9 × 3 × 12 (pillars) and 2 items of 
 .. example-tabs:: box/static_stability_no box/static_stability_yes
 
 The algorithms don't take the static stability into account yet. The tree search algorithms repair the solutions they find: in each bin which is not stable, the items fall until they rest on the floor or on other items, then, while the bin is still not stable, an item which can't be balanced is removed with the items resting on it. The removed items are not re-inserted, so with the objectives which require all the items to be packed, a repaired solution is often not feasible. See :ref:`the detailed description <internals_box_static_stability>`.
+
+.. _box-maximum-weight-above:
+
+Maximum weight above an item
+----------------------------
+
+Each item type may have a maximum weight above its items: the total weight that the items resting on an item, directly or not, put on its top face must not exceed it. For example, a carton which can carry 50 kg.
+
+.. tab-set::
+   :sync-group: interface
+
+   .. tab-item:: Online solver
+      :sync: web
+
+      Fill the **Weight** column of the **Item types** table; then click **More** on a row and fill its **Maximum weight above**.
+
+   .. tab-item:: JSON
+      :sync: json
+
+      In an item type: ``"maximum_weight_above": 100``.
+
+   .. tab-item:: Python
+      :sync: python
+
+      ``instance_builder.add_item_type(x, y, z, maximum_weight_above=100)``
+
+   .. tab-item:: C++
+      :sync: cpp
+
+      ``instance_builder.set_item_type_maximum_weight_above(item_type_id, 100);``
+
+When an item rests on several items, its weight and the weight that it carries are shared between them. The constraint is satisfied if there exist forces at the contacts between the items which balance the vertical forces on each item (and their moments, with the :ref:`static stability <box-static-stability>`), and for which the total force on the top face of each item is at most its maximum weight above. So, each item with a weight must rest on the floor of the bin or on other items.
+
+In the following example, 6 items of size 10 × 10 × 10 and of weight 100 are packed in bins of size 10 × 20 × 30 (:code:`bin-packing` objective). Without a maximum weight above, the 6 items fit in a single bin, as 2 stacks of 3 items. With a maximum weight above of 100, an item can carry a single item, so the stacks have at most 2 items, and 2 bins are needed.
+
+.. |box_maximum_weight_above_no| image:: img/box_maximum_weight_above_no.png
+   :scale: 50%
+
+.. |box_maximum_weight_above_yes| image:: img/box_maximum_weight_above_yes.png
+   :scale: 50%
+
+.. list-table::
+   :widths: 1 1
+   :header-rows: 1
+   :align: center
+
+   * - Without maximum weight above
+     - With maximum weight above
+   * - |box_maximum_weight_above_no|
+     - |box_maximum_weight_above_yes|
+
+.. example-tabs:: box/maximum_weight_above_no box/maximum_weight_above_yes
+
+As for the static stability, the algorithms don't take the maximum weights above into account yet: the tree search algorithms repair their solutions in the same way, and may miss the solutions in which the items which can carry more are below the others. See :ref:`the detailed description <internals_box_static_stability>`.
 

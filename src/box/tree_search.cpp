@@ -1273,10 +1273,11 @@ const packingsolver::box::TreeSearchOutput packingsolver::box::tree_search(
                     = static_cast<const treesearchsolver::IterativeBeamSearch2Output<BranchingScheme>&>(tss_output);
                 Solution solution = branching_schemes[scheme_idx].to_solution(
                         tssibs_output.solution_pool.best());
-                // The search doesn't model the static stability: let the
-                // items of the unstable bins fall, then remove the items
-                // which still can't be balanced. The bounds below are
-                // computed from the solution of the search.
+                // The search doesn't model the static stability and the
+                // maximum weights above: let the items of the bins which
+                // don't satisfy them fall, then remove the items which still
+                // can't be balanced. The bounds below are computed from the
+                // solution of the search.
                 Solution stable_solution = remove_unbalanced_items(
                         drop_items(solution));
                 std::stringstream ss;

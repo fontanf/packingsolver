@@ -103,6 +103,14 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "box" / "tests" / "knapsack_static_stability" / "bins.csv",
                 fs::path("data") / "box" / "tests" / "knapsack_static_stability" / "parameters.csv",
                 fs::path("data") / "box" / "tests" / "knapsack_static_stability" / "solution.csv",
+            }, {
+                // The two items can't carry anything: the best solution
+                // without the maximum weights above stacks them, and the
+                // repaired one keeps a single item.
+                fs::path("data") / "box" / "tests" / "knapsack_maximum_weight_above" / "items.csv",
+                fs::path("data") / "box" / "tests" / "knapsack_maximum_weight_above" / "bins.csv",
+                fs::path("data") / "box" / "tests" / "knapsack_maximum_weight_above" / "parameters.csv",
+                fs::path("data") / "box" / "tests" / "knapsack_maximum_weight_above" / "solution.csv",
             }}));
 
 #include "box/tree_search.hpp"
