@@ -471,6 +471,27 @@ void InstanceBuilder::set_item_type_weight(
     instance_.item_types_[item_type_id].weight = weight;
 }
 
+void InstanceBuilder::set_item_type_maximum_weight_above(
+        ItemTypeId item_type_id,
+        Weight maximum_weight_above)
+{
+    if (item_type_id < 0 || item_type_id >= instance_.item_types_.size()) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "invalid 'item_type_id'; "
+                "item_type_id: " + std::to_string(item_type_id) + "; "
+                "instance_.item_types_.size(): " + std::to_string(instance_.item_types_.size()) + ".");
+    }
+    if (maximum_weight_above < 0) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "'maximum_weight_above' must be non-negative; "
+                "maximum_weight_above: " + std::to_string(maximum_weight_above) + ".");
+    }
+
+    instance_.item_types_[item_type_id].maximum_weight_above = maximum_weight_above;
+}
+
 ItemTypeId InstanceBuilder::add_item_type_from_original_instance(
         ItemTypeId original_item_type_id)
 {
@@ -490,6 +511,9 @@ ItemTypeId InstanceBuilder::add_item_type_from_original_instance(
     set_item_type_weight(
             item_type_id,
             item_type.weight);
+    set_item_type_maximum_weight_above(
+            item_type_id,
+            item_type.maximum_weight_above);
     // Copy the consumption of this item type for the resources of
     // already-added bin types. Assumes the relevant bin types have already
     // been added via 'add_bin_type_from_original_instance'.
@@ -795,6 +819,7 @@ void InstanceBuilder::read_item_types(
         Length z = -1;
         Profit profit = -1;
         Weight weight = -1;
+        Weight maximum_weight_above = std::numeric_limits<Weight>::infinity();
         ItemPos copies = 1;
         ItemPos copies_min = -1;
         std::vector<Rotation> rotations;
@@ -810,6 +835,8 @@ void InstanceBuilder::read_item_types(
                 profit = (Profit)std::stod(line[i]);
             } else if (labels[i] == "WEIGHT") {
                 weight = (Weight)std::stod(line[i]);
+            } else if (labels[i] == "MAXIMUM_WEIGHT_ABOVE") {
+                maximum_weight_above = (Weight)std::stod(line[i]);
             } else if (labels[i] == "COPIES") {
                 copies = (ItemPos)std::stol(line[i]);
             } else if (labels[i] == "COPIES_MIN") {
@@ -860,6 +887,9 @@ void InstanceBuilder::read_item_types(
         set_item_type_weight(
                 item_type_id,
                 weight);
+        set_item_type_maximum_weight_above(
+                item_type_id,
+                maximum_weight_above);
     }
 }
 
@@ -986,6 +1016,8 @@ void InstanceBuilder::read(
             set_item_type_copies_min(item_type_id, json_item_type["copies_min"]);
         if (json_item_type.contains("weight"))
             set_item_type_weight(item_type_id, json_item_type["weight"]);
+        if (json_item_type.contains("maximum_weight_above") && !json_item_type["maximum_weight_above"].is_null())
+            set_item_type_maximum_weight_above(item_type_id, json_item_type["maximum_weight_above"]);
         if (json_item_type.contains("rotations")) {
             for (const auto& json_rotation: json_item_type["rotations"]) {
                 std::string rotation_string = json_rotation;
@@ -1124,6 +1156,9 @@ Instance InstanceBuilder::build()
                 / instance_.item_type(item_type_id).volume()) {
             instance_.largest_efficiency_item_type_id_ = item_type_id;
         }
+        // Update has_maximum_weight_above_.
+        if (item_type.maximum_weight_above != std::numeric_limits<Weight>::infinity())
+            instance_.has_maximum_weight_above_ = true;
         // Update all_item_types_infinite_copies_.
         ItemPos c = (bin_types_volume_max - 1) / item_type.volume() + 1;
         if (item_type.copies < c)

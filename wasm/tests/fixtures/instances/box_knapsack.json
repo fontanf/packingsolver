@@ -51,7 +51,8 @@
             "z": 2,
             "copies": 3,
             "copies_min": 1,
-            "profit": 1
+            "profit": 1,
+            "maximum_weight_above": 5
         }
     ]
 }

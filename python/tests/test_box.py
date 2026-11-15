@@ -170,6 +170,7 @@ REMOVED_METHODS = [
     "set_bin_type_copies_min",
     "add_item_type_rotation",
     "set_item_type_weight",
+    "set_item_type_maximum_weight_above",
     "set_item_type_profit",
     "set_item_type_copies",
     "set_item_type_copies_min",
@@ -483,3 +484,18 @@ def test_multiple_bins_algorithms(algorithm):
     assert output.solution.feasible()
     assert output.solution.full()
     assert output.solution.number_of_bins() >= output.bin_packing_bound
+
+
+def test_item_type_maximum_weight_above():
+    instance_builder = psb.InstanceBuilder()
+    instance_builder.set_objective(psb.Objective.Knapsack)
+    instance_builder.add_bin_type(10, 10, 20)
+    instance_builder.add_item_type(10, 10, 10, maximum_weight_above=0, copies=2)
+    instance = instance_builder.build()
+    assert instance.item_type(0).maximum_weight_above == 0
+    solution = psb.optimize(instance, quiet_parameters()).solution
+    # The items can't be stacked.
+    assert solution.feasible()
+    assert solution.maximum_weight_above_feasible()
+    assert solution.bin(0).maximum_weight_above_feasible
+    assert solution.number_of_items() == 1

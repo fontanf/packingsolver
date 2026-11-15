@@ -39,9 +39,13 @@ struct Contact
  * Solve the equilibrium linear program of the items of a bin (see
  * 'is_statically_stable').
  *
- * If 'unbalanced_items' is not null, the rows of each item may be violated at
- * a cost equal to the violation, and the items whose rows are violated in an
- * optimal solution are added to 'unbalanced_items'.
+ * Without 'with_moments', only the balances of the vertical forces are
+ * required. With 'with_maximum_weights_above', the total force on the top
+ * face of each item is at most the maximum weight above of its item type.
+ *
+ * If 'unbalanced_items' is not null, the balance rows of each item may be
+ * violated at a cost equal to the violation, and the items whose rows are
+ * violated in an optimal solution are added to 'unbalanced_items'.
  *
  * Return true iff the items are in equilibrium.
  */
@@ -49,6 +53,8 @@ bool solve_equilibrium(
         const Instance& instance,
         const BinType& bin_type,
         const std::vector<SolutionItem>& items,
+        bool with_moments,
+        bool with_maximum_weights_above,
         std::vector<ItemPos>* unbalanced_items)
 {
     ItemPos number_of_items = items.size();
@@ -118,9 +124,10 @@ bool solve_equilibrium(
     // Build the linear program. The variables are the forces at the corners
     // of the contacts. For each item, the rows are the balance of the
     // vertical forces and the balances of the moments about the axes
-    // parallel to x and y through its center. The forces are divided by the
-    // largest weight and the lever arms by the largest dimension of the bin,
-    // so that the coefficients are between -1 and 1.
+    // parallel to x and y through its center, and the total force on its top
+    // face. The forces are divided by the largest weight and the lever arms
+    // by the largest dimension of the bin, so that the coefficients are
+    // between -1 and 1.
     Weight weight_max = 0;
     for (Weight weight: weights)
         weight_max = (std::max)(weight_max, weight);
@@ -130,6 +137,8 @@ bool solve_equilibrium(
 
     std::vector<std::vector<int>> rows_variables(3 * number_of_items);
     std::vector<std::vector<double>> rows_coefficients(3 * number_of_items);
+    // Forces on the top face of each item.
+    std::vector<std::vector<int>> above_variables(number_of_items);
     int number_of_variables = 0;
     for (const Contact& contact: contacts) {
         for (Length x: {contact.x_start, contact.x_end}) {
@@ -151,6 +160,8 @@ bool solve_equilibrium(
                     rows_coefficients[3 * item_pos + 1].push_back(sign * (x - x_center) / length_max);
                     rows_variables[3 * item_pos + 2].push_back(number_of_variables);
                     rows_coefficients[3 * item_pos + 2].push_back(sign * (y - y_center) / length_max);
+                    if (side == 1)
+                        above_variables[item_pos].push_back(number_of_variables);
                 }
                 number_of_variables++;
             }
@@ -180,14 +191,38 @@ bool solve_equilibrium(
     }
     for (int row = 0; row < 3 * number_of_items; ++row) {
         ItemPos item_pos = row / 3;
-        double value = (row % 3 == 0)? weights[item_pos] / weight_max: 0.0;
         model.constraints_starts.push_back((int)model.elements_variables.size());
         for (std::size_t pos = 0; pos < rows_variables[row].size(); ++pos) {
             model.elements_variables.push_back(rows_variables[row][pos]);
             model.elements_coefficients.push_back(rows_coefficients[row][pos]);
         }
-        model.constraints_lower_bounds.push_back(value);
-        model.constraints_upper_bounds.push_back(value);
+        if (row % 3 == 0) {
+            model.constraints_lower_bounds.push_back(weights[item_pos] / weight_max);
+            model.constraints_upper_bounds.push_back(weights[item_pos] / weight_max);
+        } else if (with_moments) {
+            model.constraints_lower_bounds.push_back(0.0);
+            model.constraints_upper_bounds.push_back(0.0);
+        } else {
+            model.constraints_lower_bounds.push_back(-std::numeric_limits<double>::infinity());
+            model.constraints_upper_bounds.push_back(std::numeric_limits<double>::infinity());
+        }
+    }
+    if (with_maximum_weights_above) {
+        for (ItemPos item_pos = 0; item_pos < number_of_items; ++item_pos) {
+            Weight maximum_weight_above = instance.item_type(
+                    items[item_pos].item_type_id).maximum_weight_above;
+            if (maximum_weight_above == std::numeric_limits<Weight>::infinity()
+                    || above_variables[item_pos].empty()) {
+                continue;
+            }
+            model.constraints_starts.push_back((int)model.elements_variables.size());
+            for (int variable_id: above_variables[item_pos]) {
+                model.elements_variables.push_back(variable_id);
+                model.elements_coefficients.push_back(1.0);
+            }
+            model.constraints_lower_bounds.push_back(-std::numeric_limits<double>::infinity());
+            model.constraints_upper_bounds.push_back(maximum_weight_above / weight_max);
+        }
     }
 
 #ifdef HIGHS_FOUND
@@ -214,7 +249,7 @@ bool solve_equilibrium(
 #else
     throw std::invalid_argument(
             FUNC_SIGNATURE + ": "
-            "the static stability check requires HiGHS.");
+            "the static stability and maximum weight above checks require HiGHS.");
 #endif
 }
 
@@ -264,6 +299,32 @@ std::vector<SolutionItem> drop_bin_items(
     return new_items;
 }
 
+/**
+ * Return true iff the items of a bin satisfy the static stability and the
+ * maximum weights above, when the instance requires them.
+ */
+bool balanced(
+        const Instance& instance,
+        const BinType& bin_type,
+        const std::vector<SolutionItem>& items)
+{
+    if (instance.parameters().static_stability
+            && !is_statically_stable(instance, bin_type, items)) {
+        return false;
+    }
+    if (instance.has_maximum_weight_above()
+            && !satisfies_maximum_weights_above(instance, bin_type, items)) {
+        return false;
+    }
+    return true;
+}
+
+/** Return true iff a bin of a solution must be repaired. */
+bool unbalanced(const SolutionBin& bin)
+{
+    return !bin.stable || !bin.maximum_weight_above_feasible;
+}
+
 /** Remove the unbalanced items of a bin (see 'remove_unbalanced_items'). */
 std::vector<SolutionItem> remove_bin_unbalanced_items(
         const Instance& instance,
@@ -271,7 +332,7 @@ std::vector<SolutionItem> remove_bin_unbalanced_items(
         const std::vector<SolutionItem>& items)
 {
     std::vector<SolutionItem> new_items = items;
-    while (!is_statically_stable(instance, bin_type, new_items)) {
+    while (!balanced(instance, bin_type, new_items)) {
         ItemPos number_of_items = new_items.size();
         std::vector<Point> ends(number_of_items);
         for (ItemPos item_pos = 0; item_pos < number_of_items; ++item_pos) {
@@ -287,7 +348,13 @@ std::vector<SolutionItem> remove_bin_unbalanced_items(
         // find any, because of the tolerances, take the highest item, so
         // that an item is removed at each iteration.
         std::vector<ItemPos> unbalanced_items;
-        solve_equilibrium(instance, bin_type, new_items, &unbalanced_items);
+        solve_equilibrium(
+                instance,
+                bin_type,
+                new_items,
+                instance.parameters().static_stability,
+                instance.has_maximum_weight_above(),
+                &unbalanced_items);
         if (unbalanced_items.empty()) {
             for (ItemPos item_pos = 0; item_pos < number_of_items; ++item_pos)
                 unbalanced_items.push_back(item_pos);
@@ -334,12 +401,26 @@ bool packingsolver::box::is_statically_stable(
         const BinType& bin_type,
         const std::vector<SolutionItem>& items)
 {
-    return solve_equilibrium(instance, bin_type, items, nullptr);
+    return solve_equilibrium(instance, bin_type, items, true, false, nullptr);
+}
+
+bool packingsolver::box::satisfies_maximum_weights_above(
+        const Instance& instance,
+        const BinType& bin_type,
+        const std::vector<SolutionItem>& items)
+{
+    return solve_equilibrium(
+            instance,
+            bin_type,
+            items,
+            instance.parameters().static_stability,
+            true,
+            nullptr);
 }
 
 Solution packingsolver::box::drop_items(const Solution& solution)
 {
-    if (solution.stable())
+    if (solution.stable() && solution.maximum_weight_above_feasible())
         return solution;
 
     const Instance& instance = solution.instance();
@@ -349,7 +430,7 @@ Solution packingsolver::box::drop_items(const Solution& solution)
             ++bin_pos) {
         const SolutionBin& bin = solution.bin(bin_pos);
         BinPos new_bin_pos = solution_builder.add_bin(bin.bin_type_id, bin.copies);
-        std::vector<SolutionItem> items = (bin.stable)?
+        std::vector<SolutionItem> items = (!unbalanced(bin))?
             bin.items:
             drop_bin_items(instance, bin.items);
         for (const SolutionItem& item: items) {
@@ -365,7 +446,7 @@ Solution packingsolver::box::drop_items(const Solution& solution)
 
 Solution packingsolver::box::remove_unbalanced_items(const Solution& solution)
 {
-    if (solution.stable())
+    if (solution.stable() && solution.maximum_weight_above_feasible())
         return solution;
 
     const Instance& instance = solution.instance();
@@ -374,7 +455,7 @@ Solution packingsolver::box::remove_unbalanced_items(const Solution& solution)
             bin_pos < solution.number_of_different_bins();
             ++bin_pos) {
         const SolutionBin& bin = solution.bin(bin_pos);
-        std::vector<SolutionItem> items = (bin.stable)?
+        std::vector<SolutionItem> items = (!unbalanced(bin))?
             bin.items:
             remove_bin_unbalanced_items(
                     instance,

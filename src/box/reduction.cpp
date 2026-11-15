@@ -15,6 +15,16 @@ namespace
 {
 
 /**
+ * Return true iff the instance has the static stability or maximum weights
+ * above, the constraints which depend on how the items support each other.
+ */
+bool equilibrium_constraints(const Instance& instance)
+{
+    return instance.parameters().static_stability
+        || instance.has_maximum_weight_above();
+}
+
+/**
  * The consumption schedule 'item_type' has for 'resource_id' in bin type
  * 'bin_type_id' of 'bin_type' (see 'ItemType::resources'), or 'nullptr' if
  * it has none there. A linear scan over 'item_type.resources[bin_type_id]'
@@ -120,12 +130,12 @@ Reduction::Reduction(
         && lift_item_dimensions_applies(instance);
     bool full_bin_reduction = full_bin_reduction_applies(instance);
     bool run_full_bin_items = full_bin_reduction && parameters.reduce_full_bin_items;
-    // With the static stability, the exchange argument of the perfect pairs
-    // doesn't hold: the items moved in place of an item of the pair may not
-    // support the items which it supported.
+    // With the static stability or the maximum weights above, the exchange
+    // argument of the perfect pairs doesn't hold: the items moved in place of
+    // an item of the pair may not support the items which it supported.
     bool run_perfect_pairs = full_bin_reduction
         && parameters.reduce_perfect_pairs
-        && !instance.parameters().static_stability;
+        && !equilibrium_constraints(instance);
     while (run_lift || run_full_bin_items || run_perfect_pairs) {
         if (parameters.timer.needs_to_end())
             break;
@@ -159,9 +169,9 @@ bool Reduction::remove_negative_profit_items_applies(const Instance& instance)
     if (instance.objective() != Objective::Knapsack)
         return false;
 
-    // With the static stability, a negative-profit item may be needed to
-    // support other items.
-    if (instance.parameters().static_stability)
+    // With the static stability or the maximum weights above, a
+    // negative-profit item may be needed to support other items.
+    if (equilibrium_constraints(instance))
         return false;
 
     // A 'penalize' resource with a negative 'penalty' is a one-time profit
@@ -292,9 +302,9 @@ bool Reduction::remove_negative_profit_items(
 
 bool Reduction::remove_dominated_items_applies(const Instance& instance)
 {
-    // With the static stability, replacing an item by a smaller one may
-    // remove the support of the items above it.
-    if (instance.parameters().static_stability)
+    // With the static stability or the maximum weights above, replacing an
+    // item by a smaller one may remove the support of the items above it.
+    if (equilibrium_constraints(instance))
         return false;
     return instance.objective() == Objective::Knapsack;
 }
@@ -765,10 +775,10 @@ bool Reduction::reduce_perfect_pairs(
 
 bool Reduction::lift_item_dimensions_applies(const Instance& instance)
 {
-    // With the static stability, the compaction argument of the class-level
-    // doc comment doesn't hold: moving and enlarging the items changes their
-    // supports.
-    if (instance.parameters().static_stability)
+    // With the static stability or the maximum weights above, the compaction
+    // argument of the class-level doc comment doesn't hold: moving and
+    // enlarging the items changes their supports.
+    if (equilibrium_constraints(instance))
         return false;
     // A single bin type, so that the bin dimensions are unambiguous, and
     // no fixed items, which the compaction argument of the class-level doc
@@ -917,6 +927,8 @@ bool Reduction::items_mergeable(
             != rotation_set(reduction_item_types[item_type_id_2].rotations))
         return false;
     if (item_type_1.weight != item_type_2.weight)
+        return false;
+    if (item_type_1.maximum_weight_above != item_type_2.maximum_weight_above)
         return false;
 
     // Profit is only compared for 'Knapsack': for every other objective

@@ -1,0 +1,67 @@
+=================================
+          PackingSolver          
+=================================
+
+Problem type
+------------
+Box
+
+Instance
+--------
+Objective:             BinPacking
+Number of item types:  1
+Number of items:       6
+Number of bin types:   1
+Number of bins:        10
+Number of defects:     0
+Total item volume:     6000
+Total item profit:     6000
+Largest item profit:   1000
+Total item weight:     600
+Largest item copies:   6
+Smallest item x:       10
+Smallest item y:       10
+Smallest item z:       10
+Total bin volume:      60000
+Total bin weight:      inf
+Largest bin cost:      6000
+
+        Time    Bins  Full waste (%)                         Comment
+        ----    ----  --------------                         -------
+       0.079       2           50.00                        SVC it 0
+
+Final statistics
+----------------
+Time (s):              0.124009
+Is proven infeasible:  0
+Primal bound:          2
+Dual bound:            1
+Gap:                   50%
+
+Solution
+--------
+Number of items:                 6 / 6 (100%)
+Item volume:                     6000 / 6000 (100%)
+Item weight:                     600 / 600 (100%)
+Item profit:                     6000 / 6000 (100%)
+Number of stacks:                0
+Stack area:                      0
+Number of bins:                  2 / 10 (20%)
+Bin volume:                      12000 / 60000 (20%)
+Bin area:                        400 / 2000 (20%)
+Bin weight:                      inf / inf (-nan%)
+Bin cost:                        12000
+Waste:                           2000
+Waste (%):                       25
+Full waste:                      6000
+Full waste (%):                  50
+Volume load:                     0.1
+Area load:                       0
+Weight load:                     0
+X max:                           10
+Y max:                           10
+Z max:                           20
+Leftover value:                  4000
+Staircase leftover value:        4000
+Total leftover value:            6000
+Total staircase leftover value:  6000

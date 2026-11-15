@@ -1,0 +1,67 @@
+=================================
+          PackingSolver          
+=================================
+
+Problem type
+------------
+Box
+
+Instance
+--------
+Objective:             BinPacking
+Number of item types:  1
+Number of items:       6
+Number of bin types:   1
+Number of bins:        10
+Number of defects:     0
+Total item volume:     6000
+Total item profit:     6000
+Largest item profit:   1000
+Total item weight:     600
+Largest item copies:   6
+Smallest item x:       10
+Smallest item y:       10
+Smallest item z:       10
+Total bin volume:      60000
+Total bin weight:      inf
+Largest bin cost:      6000
+
+        Time    Bins  Full waste (%)                         Comment
+        ----    ----  --------------                         -------
+       0.001       1            0.00                  TS g 0 d X q 1
+
+Final statistics
+----------------
+Time (s):              0.00140142
+Is proven infeasible:  0
+Primal bound:          1
+Dual bound:            1
+Gap:                   0%
+
+Solution
+--------
+Number of items:                 6 / 6 (100%)
+Item volume:                     6000 / 6000 (100%)
+Item weight:                     600 / 600 (100%)
+Item profit:                     6000 / 6000 (100%)
+Number of stacks:                0
+Stack area:                      0
+Number of bins:                  1 / 10 (10%)
+Bin volume:                      6000 / 60000 (10%)
+Bin area:                        200 / 2000 (10%)
+Bin weight:                      inf / inf (-nan%)
+Bin cost:                        6000
+Waste:                           0
+Waste (%):                       0
+Full waste:                      0
+Full waste (%):                  0
+Volume load:                     0.1
+Area load:                       0
+Weight load:                     0
+X max:                           10
+Y max:                           20
+Z max:                           30
+Leftover value:                  0
+Staircase leftover value:        0
+Total leftover value:            0
+Total staircase leftover value:  0

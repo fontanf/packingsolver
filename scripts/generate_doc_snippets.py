@@ -291,7 +291,7 @@ def box(instance):
         python, cpp = optional_fields(bin_type, ["cost", "maximum_weight", "copies", "copies_min"])
         add_type(s, "bin", [bin_type["x"], bin_type["y"], bin_type["z"]], python, with_kind(cpp, "bin"))
     for item_type in instance["item_types"]:
-        python, cpp = optional_fields(item_type, ["weight", "profit", "copies", "copies_min"])
+        python, cpp = optional_fields(item_type, ["weight", "maximum_weight_above", "profit", "copies", "copies_min"])
         python_rotations, cpp_rotations = rotations(s, item_type, "Rotation")
         if python_rotations is not None:
             python.insert(0, ("rotations", python_rotations))
