@@ -225,6 +225,8 @@ export const INSTANCE_PARAMETERS = {
             options: [["xyz", "Along X, Y and Z"], ["xy", "Along X and Y"], ["xz", "Along X and Z"],
                 ["yz", "Along Y and Z"], ["x", "Along X"], ["y", "Along Y"], ["z", "Along Z"]],
             objectives: ["bin-packing-with-leftovers"]},
+        // The items of each bin must be in static mechanical equilibrium.
+        {key: "static_stability", label: "Static stability", type: "checkbox", value: false},
     ],
     boxstacks: [
         // The dimensions along which the leftover of the last bin is

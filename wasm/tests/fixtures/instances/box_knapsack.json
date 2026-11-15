@@ -1,5 +1,6 @@
 {
     "objective": "knapsack",
+    "static_stability": true,
     "bin_types": [
         {
             "x": 6,
