@@ -68,3 +68,20 @@ def test_figure_options():
 def test_figure_unknown_item_color():
     with pytest.raises(ValueError):
         figure(certificate_path(CERTIFICATES[0]), item_color="FOO")
+
+
+def test_figure_bins():
+    path = certificate_path(CERTIFICATES[1])
+    number_of_bins, _ = count_rows(path)
+    assert number_of_bins >= 2
+    with open(path, newline='') as f:
+        rows = list(csv.DictReader(f))
+    number_of_items_in_bin_1 = sum(
+            1 for row in rows if row["TYPE"] == "ITEM" and row["BIN"] == "1")
+    fig = figure(path, bins=[1])
+    # Only the traces of bin 1, with the legend entries.
+    assert len(fig.data) == 4 + number_of_items_in_bin_1
+    assert fig.data[0].name == "Bins"
+    assert fig.data[0].showlegend
+    # The scale is the one of all the bins.
+    assert fig.layout.scene.xaxis.range == figure(path).layout.scene.xaxis.range
