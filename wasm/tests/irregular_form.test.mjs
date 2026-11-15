@@ -447,3 +447,20 @@ test("irregular form: custom rotations, several shapes", async () => {
         assert.ok(result.output.Solution.NumberOfItems > 0);
     }
 });
+
+test("irregular form: rotations of all the item types", () => {
+    const rows = [
+        {...irregularForm.defaultItemRow(), rotations: "quarter"},
+        {...irregularForm.defaultItemRow(), rotations: "custom",
+            rotation_ranges: [{start: "10", end: "20", mirror: true}]},
+    ];
+    irregularForm.setRotations(rows, "any", true);
+    for (const row of rows) {
+        assert.strictEqual(row.rotations, "any");
+        assert.strictEqual(row.mirror, true);
+        assert.deepStrictEqual(irregularForm.itemRotations(row), [{start: 0, end: 360}]);
+    }
+    const instance = irregularForm.instance("knapsack", binRows, rows);
+    assert.ok(instance.item_types.every((t) => t.allow_mirroring === true));
+    assert.throws(() => irregularForm.setRotations(rows, "custom", false), /invalid rotations/);
+});

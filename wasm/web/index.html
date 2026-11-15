@@ -173,6 +173,12 @@
                             <input type="file" id="file-items-file" accept=".dxf,.svg" hidden>
                             <span id="file-items-status" class="note" role="status"></span>
                         </span>
+                        <div id="all-rotations" class="fields-inline" hidden>
+                            <label for="all-rotations-select">Rotations of all item types</label>
+                            <select id="all-rotations-select"></select>
+                            <label><input type="checkbox" id="all-rotations-mirror"> Mirror</label>
+                            <button type="button" id="all-rotations-apply">Apply to all item types</button>
+                        </div>
                         <p class="note paste-hint">Tip: paste rows copied from a spreadsheet or a CSV file
                             (Ctrl+V in a cell of the table; with a header row, the columns are found by their names).</p>
                     </div>

@@ -705,6 +705,7 @@ function renderForm() {
     delete $("add-bin-type").dataset.locked;
     $("add-bin-type").disabled = openDimension($("objective").value);
     $("file-items").hidden = !irregular;
+    $("all-rotations").hidden = !irregular;
     // Rows are pasted in the tables, except for irregular.
     for (const hint of document.querySelectorAll(".paste-hint"))
         hint.hidden = irregular;
@@ -1719,6 +1720,20 @@ async function init() {
             redo();
         else
             undo();
+    });
+    // The rotations of all the item types at once (irregular).
+    for (const [value, {label, rotations}] of Object.entries(irregularForm.ROTATIONS)) {
+        if (rotations === null)
+            continue;
+        const option = document.createElement("option");
+        option.value = value;
+        option.textContent = label;
+        $("all-rotations-select").appendChild(option);
+    }
+    $("all-rotations-apply").addEventListener("click", () => {
+        irregularForm.setRotations(state.itemTypes, $("all-rotations-select").value,
+            $("all-rotations-mirror").checked);
+        renderForm();
     });
     $("load-file-items").addEventListener("click", () => $("file-items-file").click());
     $("file-items-file").addEventListener("change", async () => {
