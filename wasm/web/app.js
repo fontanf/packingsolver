@@ -1381,6 +1381,9 @@ function solve() {
     project.progress = [];
     state.solvingProject = project;
     state.objective = instanceObject.objective;
+    // With the solution, to report it ('reportSolution').
+    state.instance = instanceObject;
+    state.parameters = parameters;
     state.totalItems = results.totalItems(instanceObject);
     state.startTime = performance.now();
     state.timeLimit = (parameters.time_limit !== undefined)? parameters.time_limit: null;
@@ -1466,6 +1469,8 @@ function renderResults() {
 // Show a solution of the current project ('{output, certificate,
 // objective}').
 function showResult(result) {
+    if (state.last !== result)
+        $("report-status").textContent = "";
     state.last = result;
     $("results").hidden = false;
     $("download-certificate").textContent = (state.current.problemType === "irregular")?
@@ -1597,7 +1602,8 @@ function onWorkerMessage(event) {
         }
         if (message.output.Solution.NumberOfItems > 0) {
             project.result = {output: message.output, certificate: message.certificate,
-                objective: state.objective, totalItems: state.totalItems};
+                objective: state.objective, totalItems: state.totalItems,
+                instance: state.instance, parameters: state.parameters};
             state.best = line.solution;
             if (project === state.current) {
                 showResult(project.result);
@@ -1612,7 +1618,8 @@ function onWorkerMessage(event) {
         state.solvingProject = null;
         if (project !== null) {
             project.result = {output: message.output, certificate: message.certificate,
-                objective: state.objective, totalItems: state.totalItems};
+                objective: state.objective, totalItems: state.totalItems,
+                instance: state.instance, parameters: state.parameters};
             saveProject(project);
             if (project === state.current) {
                 showResult(project.result);
@@ -1655,6 +1662,38 @@ function downloadInstance() {
     $("download-instance-error").textContent = "";
     download(`${state.current.name}.json`, "application/json",
         JSON.stringify(instanceObject, null, 4) + "\n");
+}
+
+// Open a GitHub issue about the solution shown, with its instance: in the body
+// of the issue if it fits, otherwise downloaded, to be attached to the issue.
+// The instance is the one solved (that of the form for the projects imported
+// without it).
+function reportSolution() {
+    const result = state.last;
+    let instance = result.instance;
+    if (instance === undefined) {
+        try {
+            instance = formInstance();
+        } catch (error) {
+            $("report-status").textContent = "Error: " + error.message;
+            return;
+        }
+    }
+    const fileName = `${state.current.name}.json`;
+    const {url, inlined} = results.issueUrl({
+        problemType: state.current.problemType,
+        objective: result.objective,
+        parameters: result.parameters || {},
+        summary: describeSolution(result.output, result.objective),
+        instance,
+        fileName,
+    });
+    if (!inlined)
+        download(fileName, "application/json", JSON.stringify(instance, null, 4) + "\n");
+    window.open(url, "_blank", "noopener");
+    $("report-status").textContent = inlined?
+        "The instance is in the issue opened on GitHub.":
+        `The instance was downloaded ("${fileName}"): attach it to the issue opened on GitHub.`;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -1807,6 +1846,7 @@ async function init() {
                 $("download-instance-error").textContent = "";
         });
     }
+    $("report-solution").addEventListener("click", reportSolution);
     $("download-output").addEventListener("click", () => {
         download(`${state.current.name}_output.json`, "application/json",
             JSON.stringify(state.last.output, null, 4));

@@ -144,3 +144,23 @@ test("results: chart of the progress", () => {
     assert.strictEqual(results.progressFigure([{time: 1, solution: "3 items", bound: ""}], result, COLORS), null);
     assert.strictEqual(results.progressFigure(progress, {...result, objective: "feasibility"}, COLORS), null);
 });
+
+test("results: issue URL", () => {
+    const report = (instance) => results.issueUrl({
+        problemType: "irregular", objective: "open-dimension-x", parameters: {time_limit: 10},
+        summary: "46 items, 1 bins, length 790.6", instance, fileName: "test part.json"});
+    const body = (url) => new URL(url).searchParams.get("body");
+
+    const small = report({objective: "open-dimension-x", item_types: [{copies: 2}]});
+    assert.strictEqual(small.inlined, true);
+    assert.ok(small.url.startsWith(results.ISSUES_URL + "?"));
+    assert.strictEqual(new URL(small.url).searchParams.get("title"),
+        "Solution not satisfying (irregular, open-dimension-x)");
+    assert.ok(body(small.url).includes('{"objective":"open-dimension-x","item_types":[{"copies":2}]}'));
+    assert.ok(body(small.url).includes("**Solution:** 46 items, 1 bins, length 790.6"));
+
+    const large = report({item_types: Array.from({length: 2000}, () => ({copies: 1}))});
+    assert.strictEqual(large.inlined, false);
+    assert.ok(large.url.length <= results.MAXIMUM_ISSUE_URL_LENGTH);
+    assert.ok(body(large.url).includes('"test part.json"'));
+});
