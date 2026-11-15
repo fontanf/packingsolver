@@ -1,0 +1,68 @@
+=================================
+          PackingSolver          
+=================================
+
+Problem type
+------------
+Box
+
+Instance
+--------
+Objective:             BinPacking
+Static stability:      1
+Number of item types:  2
+Number of items:       4
+Number of bin types:   1
+Number of bins:        10
+Number of defects:     0
+Total item volume:     1488
+Total item profit:     1488
+Largest item profit:   420
+Total item weight:     1488
+Largest item copies:   2
+Smallest item x:       9
+Smallest item y:       3
+Smallest item z:       6
+Total bin volume:      20000
+Total bin weight:      inf
+Largest bin cost:      2000
+
+        Time    Bins  Full waste (%)                         Comment
+        ----    ----  --------------                         -------
+       0.003       2           62.80                  TS g 1 d Z q 1
+
+Final statistics
+----------------
+Time (s):              0.297788
+Is proven infeasible:  0
+Primal bound:          2
+Dual bound:            1
+Gap:                   50%
+
+Solution
+--------
+Number of items:                 4 / 4 (100%)
+Item volume:                     1488 / 1488 (100%)
+Item weight:                     1488 / 1488 (100%)
+Item profit:                     1488 / 1488 (100%)
+Number of stacks:                0
+Stack area:                      0
+Number of bins:                  2 / 10 (20%)
+Bin volume:                      4000 / 20000 (20%)
+Bin area:                        200 / 1000 (20%)
+Bin weight:                      inf / inf (-nan%)
+Bin cost:                        4000
+Waste:                           836
+Waste (%):                       35.9725
+Full waste:                      2512
+Full waste (%):                  62.8
+Volume load:                     0.0744
+Area load:                       0
+Weight load:                     0
+X max:                           9
+Y max:                           3
+Z max:                           12
+Leftover value:                  1676
+Staircase leftover value:        1676
+Total leftover value:            2476
+Total staircase leftover value:  2512

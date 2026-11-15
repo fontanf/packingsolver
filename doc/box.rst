@@ -278,7 +278,45 @@ Static stability
 
 With ``"static_stability": true``, the items of each bin must be in static mechanical equilibrium: each item must rest on the floor of the bin or on items below it without falling, taking into account the weights of the items above it. The items are rigid bodies whose only external force is their weight, applied at their center; an item leaning against another one is not supported. A solution which doesn't satisfy it is not feasible.
 
+.. tab-set::
+   :sync-group: interface
+
+   .. tab-item:: JSON
+      :sync: json
+
+      ``"static_stability": true``
+
+   .. tab-item:: Python
+      :sync: python
+
+      ``instance_builder.set_static_stability(True)``
+
+   .. tab-item:: C++
+      :sync: cpp
+
+      ``instance_builder.set_static_stability(true);``
+
 The equilibrium depends on the weights of the items, which are their volumes by default.
+
+In the following example, 2 items of size 9 × 3 × 12 (pillars) and 2 items of size 10 × 7 × 6 (plates) are packed in bins of size 10 × 10 × 20 (:code:`bin-packing` objective). Without static stability, the 4 items fit in a single bin, but the top plate rests on a single pillar, whose top supports less than half of it: it tips. With static stability, no packing of the 4 items in a single bin is stable, so 2 bins are needed.
+
+.. |box_static_stability_no| image:: img/box_static_stability_no.png
+   :scale: 50%
+
+.. |box_static_stability_yes| image:: img/box_static_stability_yes.png
+   :scale: 50%
+
+.. list-table::
+   :widths: 1 1
+   :header-rows: 1
+   :align: center
+
+   * - Without static stability
+     - With static stability
+   * - |box_static_stability_no|
+     - |box_static_stability_yes|
+
+.. example-tabs:: box/static_stability_no box/static_stability_yes
 
 The algorithms don't take the static stability into account yet. The tree search algorithms repair the solutions they find: in each bin which is not stable, the items fall until they rest on the floor or on other items, then, while the bin is still not stable, an item which can't be balanced is removed with the items resting on it. The removed items are not re-inserted, so with the objectives which require all the items to be packed, a repaired solution is often not feasible. See :ref:`the detailed description <internals_box_static_stability>`.
 
