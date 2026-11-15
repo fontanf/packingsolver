@@ -134,6 +134,24 @@ INSTANTIATE_TEST_SUITE_P(
                     {{4, 10, 10}, {10, 0, 20}, 10000},
                 },
                 false,
+            }, {
+                // The center of gravity of the plank is beyond its support.
+                "plank",
+                {20, 10, 30},
+                {{{10, 10, 10}, {0, 0, 0}}, {{18, 10, 5}, {2, 0, 10}}},
+                false,
+            }, {
+                // Same plank with an item on its end above the support: the
+                // center of gravity of the plank is still beyond its support,
+                // but the item balances it.
+                "counterweight",
+                {20, 10, 30},
+                {
+                    {{10, 10, 10}, {0, 0, 0}},
+                    {{18, 10, 5}, {2, 0, 10}},
+                    {{8, 10, 10}, {2, 0, 15}},
+                },
+                true,
             }}));
 
 TEST(Box, ItemTypeWeightDefaultsToTheVolume)

@@ -219,7 +219,69 @@ def figure_static_stability():
     fig.write(SVG_DIR + "/" + PREFIX + "static_stability_repair.svg")
 
 
+################################################################################
+# Static stability: examples.
+################################################################################
+
+# Examples of the tests of the static stability, seen from the beginning of
+# the y-axis (the items span the whole bin along y): title, stable, bin
+# (length along x, height), and items (x, z, length along x, height, falls).
+# The weight of an item is its volume, except for the heavy item.
+STABILITY_EXAMPLES = [
+    ("overhang too large", False, (20, 20), [
+        (0, 0, 10, 10, False),
+        (6, 10, 10, 10, True),
+    ]),
+    ("bridge", True, (30, 20), [
+        (0, 0, 5, 10, False),
+        (25, 0, 5, 10, False),
+        (0, 10, 30, 5, False),
+    ]),
+    ("counterweight", True, (20, 30), [
+        (0, 0, 10, 10, False),
+        (2, 10, 18, 5, False),
+        (2, 15, 8, 10, False),
+    ]),
+    ("light item on an overhang", True, (20, 30), [
+        (0, 0, 10, 10, False),
+        (4, 10, 10, 10, False),
+        (10, 20, 4, 10, False),
+    ]),
+    ("heavy item on an overhang", False, (20, 30), [
+        (0, 0, 10, 10, False),
+        (4, 10, 10, 10, True),
+        (10, 20, 4, 10, True),
+    ]),
+]
+
+
+def figure_static_stability_examples():
+    fig = figure.Figure(unit=5)
+    ox = 0
+    for title, stable, (lx, lz), items in STABILITY_EXAMPLES:
+        for x, z, dx, dz, falls in items:
+            fig.rect(ox + x, z, dx, dz, "", RED if falls else BLUE)
+        # Vertical lines below the centers of gravity of the items which
+        # aren't on the floor.
+        for x, z, dx, dz, falls in items:
+            if z == 0:
+                continue
+            fig.polyline(
+                    [(ox + x + dx / 2, z + dz / 2), (ox + x + dx / 2, z - 3)],
+                    "strokeColor={};dashed=1;strokeWidth=2;".format(
+                        "#b85450" if falls else "#6c8ebf"))
+        if title.startswith("heavy"):
+            fig.text(ox + 6, 25, "heavy", w=8)
+        fig.rect(ox, 0, lx, lz, "", "fillColor=none;strokeColor=#000000;strokeWidth=2;")
+        fig.text(ox + lx / 2, -4, title, w=lx + 8)
+        fig.text(ox + lx / 2, -9, "stable" if stable else "unstable", w=lx + 8,
+                 extra="fontColor={};".format("#6c8ebf" if stable else "#b85450"))
+        ox += lx + 10
+    fig.write(SVG_DIR + "/" + PREFIX + "static_stability_examples.svg")
+
+
 if __name__ == "__main__":
     figure_tree_search()
     figure_maximal_spaces()
     figure_static_stability()
+    figure_static_stability_examples()
