@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="810.0" height="222.2" viewBox="-30.0 -160 810.0 222.2">
+<rect x="-30.0" y="-160" width="810.0" height="222.2" fill="#ffffff"/>
+<rect x="0" y="-50" width="50" height="50" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<rect x="30" y="-100" width="50" height="50" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<polyline points="55.0,-75.0 55.0,-35" fill="none" stroke="#b85450" stroke-width="2" stroke-dasharray="3 3"/>
+<rect x="0" y="-100" width="100" height="100" fill="none" stroke="#000000" stroke-width="2"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="50.0" y="24.2">overhang too large</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#b85450" text-anchor="middle"><tspan x="50.0" y="49.2">unstable</tspan></text>
+<rect x="150" y="-50" width="25" height="50" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<rect x="275" y="-50" width="25" height="50" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<rect x="150" y="-75" width="150" height="25" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<polyline points="225.0,-62.5 225.0,-35" fill="none" stroke="#6c8ebf" stroke-width="2" stroke-dasharray="3 3"/>
+<rect x="150" y="-100" width="150" height="100" fill="none" stroke="#000000" stroke-width="2"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="225.0" y="24.2">bridge</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#6c8ebf" text-anchor="middle"><tspan x="225.0" y="49.2">stable</tspan></text>
+<rect x="350" y="-50" width="50" height="50" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<rect x="360" y="-75" width="90" height="25" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<rect x="360" y="-125" width="40" height="50" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<polyline points="405.0,-62.5 405.0,-35" fill="none" stroke="#6c8ebf" stroke-width="2" stroke-dasharray="3 3"/>
+<polyline points="380.0,-100.0 380.0,-60" fill="none" stroke="#6c8ebf" stroke-width="2" stroke-dasharray="3 3"/>
+<rect x="350" y="-150" width="100" height="150" fill="none" stroke="#000000" stroke-width="2"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="400.0" y="24.2">counterweight</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#6c8ebf" text-anchor="middle"><tspan x="400.0" y="49.2">stable</tspan></text>
+<rect x="500" y="-50" width="50" height="50" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<rect x="520" y="-100" width="50" height="50" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<rect x="550" y="-150" width="20" height="50" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<polyline points="545.0,-75.0 545.0,-35" fill="none" stroke="#6c8ebf" stroke-width="2" stroke-dasharray="3 3"/>
+<polyline points="560.0,-125.0 560.0,-85" fill="none" stroke="#6c8ebf" stroke-width="2" stroke-dasharray="3 3"/>
+<rect x="500" y="-150" width="100" height="150" fill="none" stroke="#000000" stroke-width="2"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="550.0" y="17.0">light item on an</tspan><tspan x="550.0" y="31.4">overhang</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#6c8ebf" text-anchor="middle"><tspan x="550.0" y="49.2">stable</tspan></text>
+<rect x="650" y="-50" width="50" height="50" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<rect x="670" y="-100" width="50" height="50" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<rect x="700" y="-150" width="20" height="50" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<polyline points="695.0,-75.0 695.0,-35" fill="none" stroke="#b85450" stroke-width="2" stroke-dasharray="3 3"/>
+<polyline points="710.0,-125.0 710.0,-85" fill="none" stroke="#b85450" stroke-width="2" stroke-dasharray="3 3"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="680.0" y="-120.8">heavy</tspan></text>
+<rect x="650" y="-150" width="100" height="150" fill="none" stroke="#000000" stroke-width="2"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="700.0" y="17.0">heavy item on an</tspan><tspan x="700.0" y="31.4">overhang</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#b85450" text-anchor="middle"><tspan x="700.0" y="49.2">unstable</tspan></text>
+</svg>
