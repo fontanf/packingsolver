@@ -281,6 +281,11 @@ With ``"static_stability": true``, the items of each bin must be in static mecha
 .. tab-set::
    :sync-group: interface
 
+   .. tab-item:: Online solver
+      :sync: web
+
+      Check **Static stability** below the objective.
+
    .. tab-item:: JSON
       :sync: json
 
