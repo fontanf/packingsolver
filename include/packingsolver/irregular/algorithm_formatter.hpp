@@ -1,5 +1,7 @@
 #pragma once
 
+#include <atomic>
+
 #include "packingsolver/irregular/optimize.hpp"
 
 #include <mutex>
@@ -85,7 +87,7 @@ public:
     void end();
 
     /** Get end boolean. */
-    bool& end_boolean() { return end_; };
+    std::atomic<bool>& end_boolean() { return end_; };
 
 private:
 
@@ -102,7 +104,12 @@ private:
     std::unique_ptr<optimizationtools::ComposeStream> os_;
 
     /** End boolean. */
-    bool end_ = false;
+    /**
+     * Set to 'true' when the algorithms need to end. It may be read by other
+     * threads than the one setting it (see 'optimizationtools::Timer::
+     * add_end_boolean').
+     */
+    std::atomic<bool> end_{false};
 
     /** Mutex. */
     std::mutex mutex_;
