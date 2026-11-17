@@ -47,7 +47,17 @@ struct Polygon
 
     /** A point strictly inside the polygon. */
     Point interior_point = {0.0, 0.0};
+
+    /**
+     * Bounding boxes of the chunks of 'polygon_edge_chunk_size' consecutive
+     * edges (the last chunk may be shorter): the chunks far from a point or a
+     * window are skipped at once.
+     */
+    std::vector<AxisAlignedBoundingBox> edge_chunks_aabbs;
 };
+
+/** Number of consecutive edges of a chunk of a polygon. */
+const ElementPos polygon_edge_chunk_size = 8;
 
 /**
  * Build a polygon from the outer boundary of a shape whose elements are line

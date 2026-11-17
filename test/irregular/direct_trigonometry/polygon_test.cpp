@@ -36,6 +36,31 @@ Polygon build_rectangle_polygon(
             {x_min, y_max}});
 }
 
+/**
+ * Ring sector between the radii 'radius_inner' and 'radius_outer' and the
+ * angles (in degrees) 'angle_start' and 'angle_end', each arc approximated
+ * with 'number_of_segments' segments: a thin item with many edges, so that
+ * several chunks of edges are involved.
+ */
+Polygon build_ring_sector_polygon(
+        LengthDbl radius_inner,
+        LengthDbl radius_outer,
+        Angle angle_start,
+        Angle angle_end,
+        ElementPos number_of_segments)
+{
+    std::vector<Point> points;
+    for (ElementPos point_pos = 0; point_pos <= number_of_segments; ++point_pos) {
+        Angle angle = (angle_start + (angle_end - angle_start) * point_pos / number_of_segments) * M_PI / 180;
+        points.push_back({radius_outer * std::cos(angle), radius_outer * std::sin(angle)});
+    }
+    for (ElementPos point_pos = number_of_segments; point_pos >= 0; --point_pos) {
+        Angle angle = (angle_start + (angle_end - angle_start) * point_pos / number_of_segments) * M_PI / 180;
+        points.push_back({radius_inner * std::cos(angle), radius_inner * std::sin(angle)});
+    }
+    return build_polygon_from_points(points);
+}
+
 const Point origin = {0.0, 0.0};
 
 }
@@ -149,6 +174,59 @@ TEST(IrregularPolygon, IntersectNotch)
     Polygon square = build_rectangle_polygon(0, 1, 0, 1);
     EXPECT_FALSE(intersect(l_shape, origin, square, {1, 1}));
     EXPECT_TRUE(intersect(l_shape, origin, square, {0.9, 0.9}));
+}
+
+TEST(IrregularPolygon, LocatePointRingSector)
+{
+    Polygon ring_sector = build_ring_sector_polygon(100, 110, 0, 90, 40);
+    Angle angle = 45 * M_PI / 180;
+    EXPECT_EQ(locate_point({105 * std::cos(angle), 105 * std::sin(angle)}, ring_sector), PointLocation::Inside);
+    EXPECT_EQ(locate_point({95 * std::cos(angle), 95 * std::sin(angle)}, ring_sector), PointLocation::Outside);
+    EXPECT_EQ(locate_point({115 * std::cos(angle), 115 * std::sin(angle)}, ring_sector), PointLocation::Outside);
+    EXPECT_EQ(locate_point({110, 0}, ring_sector), PointLocation::Boundary);
+}
+
+TEST(IrregularPolygon, IntersectRingSectorsNested)
+{
+    // Nested ring sectors with the same angles: separated, touching or
+    // overlapping.
+    Polygon ring_sector = build_ring_sector_polygon(100, 110, 0, 90, 40);
+    Polygon ring_sector_separated = build_ring_sector_polygon(111, 121, 0, 90, 40);
+    Polygon ring_sector_touching = build_ring_sector_polygon(110, 120, 0, 90, 40);
+    Polygon ring_sector_overlapping = build_ring_sector_polygon(105, 115, 0, 90, 40);
+    for (const Polygon* polygon: {&ring_sector_separated, &ring_sector_touching}) {
+        EXPECT_FALSE(intersect(ring_sector, origin, *polygon, origin));
+        EXPECT_FALSE(intersect(*polygon, origin, ring_sector, origin));
+    }
+    EXPECT_TRUE(intersect(ring_sector, origin, ring_sector_overlapping, origin));
+    EXPECT_TRUE(intersect(ring_sector_overlapping, origin, ring_sector, origin));
+}
+
+TEST(IrregularPolygon, IntersectRingSectorsShifted)
+{
+    // Only the ends of the ring sectors overlap.
+    Polygon ring_sector_1 = build_ring_sector_polygon(100, 110, 0, 90, 40);
+    Polygon ring_sector_2 = build_ring_sector_polygon(100, 110, 80, 170, 40);
+    EXPECT_TRUE(intersect(ring_sector_1, origin, ring_sector_2, origin));
+    EXPECT_TRUE(intersect(ring_sector_2, origin, ring_sector_1, origin));
+    Polygon ring_sector_3 = build_ring_sector_polygon(100, 110, 91, 180, 40);
+    EXPECT_FALSE(intersect(ring_sector_1, origin, ring_sector_3, origin));
+    EXPECT_FALSE(intersect(ring_sector_3, origin, ring_sector_1, origin));
+}
+
+TEST(IrregularPolygon, IntersectRingSectorContained)
+{
+    // A small square inside a thick ring sector, and a square in the
+    // concave side of the ring sector, inside its convex hull.
+    Polygon ring_sector = build_ring_sector_polygon(100, 130, 0, 90, 40);
+    Polygon square = build_rectangle_polygon(-2, 2, -2, 2);
+    Angle angle = 45 * M_PI / 180;
+    Point inside = {115 * std::cos(angle), 115 * std::sin(angle)};
+    EXPECT_TRUE(intersect(ring_sector, origin, square, inside));
+    EXPECT_TRUE(intersect(square, inside, ring_sector, origin));
+    Point concave_side = {80 * std::cos(angle), 80 * std::sin(angle)};
+    EXPECT_FALSE(intersect(ring_sector, origin, square, concave_side));
+    EXPECT_FALSE(intersect(square, concave_side, ring_sector, origin));
 }
 
 TEST(IrregularPolygon, IntersectCircleDisjoint)

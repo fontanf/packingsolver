@@ -177,10 +177,30 @@ bool boundary_enters(
     static thread_local std::vector<Edge> edges_2;
     static thread_local std::vector<double> contacts;
 
+    // Chunks of edges of 'polygon_2' in the window, with the range of their
+    // edges in 'edges_2'.
+    struct EdgeChunk
+    {
+        AxisAlignedBoundingBox aabb;
+        ElementPos edge_start;
+        ElementPos edge_end;
+    };
+    static thread_local std::vector<EdgeChunk> chunks_2;
+
     // Edges of 'polygon_2' in the window.
     edges_2.clear();
+    chunks_2.clear();
     ElementPos number_of_vertices_2 = polygon_2.vertices.size();
     for (ElementPos vertex_pos = 0; vertex_pos < number_of_vertices_2; ++vertex_pos) {
+        if (vertex_pos % polygon_edge_chunk_size == 0) {
+            const AxisAlignedBoundingBox& chunk_aabb = polygon_2.edge_chunks_aabbs[vertex_pos / polygon_edge_chunk_size];
+            if (!aabbs_intersect(chunk_aabb, window)) {
+                vertex_pos += polygon_edge_chunk_size - 1;
+                continue;
+            }
+            ElementPos edge_pos = edges_2.size();
+            chunks_2.push_back({chunk_aabb, edge_pos, edge_pos});
+        }
         Edge edge;
         edge.start = polygon_2.vertices[vertex_pos];
         edge.end = polygon_2.vertices[(vertex_pos + 1) % number_of_vertices_2];
@@ -189,6 +209,7 @@ bool boundary_enters(
             continue;
         edge.length = polygon_2.edge_lengths[vertex_pos];
         edges_2.push_back(edge);
+        chunks_2.back().edge_end = edges_2.size();
     }
 
     // Location of the previous edge, if it has no contact and its end isn't
@@ -212,43 +233,50 @@ bool boundary_enters(
         contacts.push_back(1.0);
         bool start_on_boundary = false;
         bool end_on_boundary = false;
-        for (const Edge& edge_2: edges_2) {
-            if (!aabbs_intersect(edge_1_aabb, edge_2.aabb))
+        for (const EdgeChunk& chunk_2: chunks_2) {
+            if (!aabbs_intersect(edge_1_aabb, chunk_2.aabb))
                 continue;
-            LengthDbl tolerance_2 = tolerance * edge_2.length;
-            LengthDbl cross_1_start = cross_product(edge_2.start, edge_2.end, edge_1_start);
-            LengthDbl cross_1_end = cross_product(edge_2.start, edge_2.end, edge_1_end);
-            LengthDbl cross_2_start = cross_product(edge_1_start, edge_1_end, edge_2.start);
-            LengthDbl cross_2_end = cross_product(edge_1_start, edge_1_end, edge_2.end);
+            for (ElementPos edge_2_pos = chunk_2.edge_start;
+                    edge_2_pos < chunk_2.edge_end;
+                    ++edge_2_pos) {
+                const Edge& edge_2 = edges_2[edge_2_pos];
+                if (!aabbs_intersect(edge_1_aabb, edge_2.aabb))
+                    continue;
+                LengthDbl tolerance_2 = tolerance * edge_2.length;
+                LengthDbl cross_1_start = cross_product(edge_2.start, edge_2.end, edge_1_start);
+                LengthDbl cross_1_end = cross_product(edge_2.start, edge_2.end, edge_1_end);
+                LengthDbl cross_2_start = cross_product(edge_1_start, edge_1_end, edge_2.start);
+                LengthDbl cross_2_end = cross_product(edge_1_start, edge_1_end, edge_2.end);
 
-            // Proper crossing.
-            if (((cross_1_start > tolerance_2 && cross_1_end < -tolerance_2)
-                        || (cross_1_start < -tolerance_2 && cross_1_end > tolerance_2))
-                    && ((cross_2_start > tolerance_1 && cross_2_end < -tolerance_1)
-                        || (cross_2_start < -tolerance_1 && cross_2_end > tolerance_1))) {
-                return true;
-            }
+                // Proper crossing.
+                if (((cross_1_start > tolerance_2 && cross_1_end < -tolerance_2)
+                            || (cross_1_start < -tolerance_2 && cross_1_end > tolerance_2))
+                        && ((cross_2_start > tolerance_1 && cross_2_end < -tolerance_1)
+                            || (cross_2_start < -tolerance_1 && cross_2_end > tolerance_1))) {
+                    return true;
+                }
 
-            // Contacts: endpoints of the edge of 'polygon_2' on the edge of
-            // 'polygon_1'.
-            if (std::abs(cross_2_start) <= tolerance_1
-                    && point_on_segment(edge_1_start, edge_1_end, edge_2.start)) {
-                contacts.push_back(projection_parameter(edge_1_start, edge_1_end, edge_2.start));
-            }
-            if (std::abs(cross_2_end) <= tolerance_1
-                    && point_on_segment(edge_1_start, edge_1_end, edge_2.end)) {
-                contacts.push_back(projection_parameter(edge_1_start, edge_1_end, edge_2.end));
-            }
+                // Contacts: endpoints of the edge of 'polygon_2' on the edge of
+                // 'polygon_1'.
+                if (std::abs(cross_2_start) <= tolerance_1
+                        && point_on_segment(edge_1_start, edge_1_end, edge_2.start)) {
+                    contacts.push_back(projection_parameter(edge_1_start, edge_1_end, edge_2.start));
+                }
+                if (std::abs(cross_2_end) <= tolerance_1
+                        && point_on_segment(edge_1_start, edge_1_end, edge_2.end)) {
+                    contacts.push_back(projection_parameter(edge_1_start, edge_1_end, edge_2.end));
+                }
 
-            // Endpoints of the edge of 'polygon_1' on the boundary of
-            // 'polygon_2'.
-            if (std::abs(cross_1_start) <= tolerance_2
-                    && point_on_segment(edge_2.start, edge_2.end, edge_1_start)) {
-                start_on_boundary = true;
-            }
-            if (std::abs(cross_1_end) <= tolerance_2
-                    && point_on_segment(edge_2.start, edge_2.end, edge_1_end)) {
-                end_on_boundary = true;
+                // Endpoints of the edge of 'polygon_1' on the boundary of
+                // 'polygon_2'.
+                if (std::abs(cross_1_start) <= tolerance_2
+                        && point_on_segment(edge_2.start, edge_2.end, edge_1_start)) {
+                    start_on_boundary = true;
+                }
+                if (std::abs(cross_1_end) <= tolerance_2
+                        && point_on_segment(edge_2.start, edge_2.end, edge_1_end)) {
+                    end_on_boundary = true;
+                }
             }
         }
 
@@ -614,6 +642,15 @@ Polygon packingsolver::irregular::build_polygon(const Shape& shape)
                     (edge_end.x - edge_start.x) * (edge_end.x - edge_start.x)
                     + (edge_end.y - edge_start.y) * (edge_end.y - edge_start.y)));
     }
+    for (ElementPos vertex_pos = 0; vertex_pos < number_of_vertices; ++vertex_pos) {
+        if (vertex_pos % polygon_edge_chunk_size == 0)
+            polygon.edge_chunks_aabbs.push_back(AxisAlignedBoundingBox());
+        polygon.edge_chunks_aabbs.back() = merge(
+                polygon.edge_chunks_aabbs.back(),
+                segment_aabb(
+                    polygon.vertices[vertex_pos],
+                    polygon.vertices[(vertex_pos + 1) % number_of_vertices]));
+    }
     polygon.interior_point = compute_interior_point(polygon.vertices);
     polygon.convex_hull = compute_convex_hull(polygon.vertices);
     return polygon;
@@ -632,6 +669,17 @@ PointLocation packingsolver::irregular::locate_point(
     bool inside = false;
     ElementPos number_of_vertices = polygon.vertices.size();
     for (ElementPos vertex_pos = 0; vertex_pos < number_of_vertices; ++vertex_pos) {
+        // Skip the chunks of edges which can neither contain the point nor
+        // cross the horizontal ray from the point towards the right.
+        if (vertex_pos % polygon_edge_chunk_size == 0) {
+            const AxisAlignedBoundingBox& chunk_aabb = polygon.edge_chunks_aabbs[vertex_pos / polygon_edge_chunk_size];
+            if (chunk_aabb.x_max < point.x - tolerance
+                    || chunk_aabb.y_min > point.y + tolerance
+                    || chunk_aabb.y_max < point.y - tolerance) {
+                vertex_pos += polygon_edge_chunk_size - 1;
+                continue;
+            }
+        }
         const Point& edge_start = polygon.vertices[vertex_pos];
         const Point& edge_end = polygon.vertices[(vertex_pos + 1) % number_of_vertices];
         if (point_on_segment(edge_start, edge_end, point))
@@ -677,18 +725,15 @@ bool packingsolver::irregular::intersect(
 
     if (boundary_enters(polygon_1, translation, polygon_2, window))
         return true;
-    Point translation_opposite = {-translation.x, -translation.y};
-    AxisAlignedBoundingBox window_2 = translate(window, translation_opposite);
-    if (boundary_enters(polygon_2, translation_opposite, polygon_1, window_2))
-        return true;
 
-    // The boundaries don't enter the interiors: the interiors are either
-    // disjoint or equal.
-    if (locate_point(translate(polygon_1.interior_point, translation), polygon_2) == PointLocation::Inside)
-        return true;
-    if (locate_translated_point(polygon_2.interior_point, polygon_1, translation) == PointLocation::Inside)
-        return true;
-    return false;
+    // The boundary of 'polygon_1' doesn't enter the interior of 'polygon_2'.
+    // The interior of 'polygon_2' being connected, it is then either entirely
+    // inside 'polygon_1' or entirely outside: locating one of its points is
+    // enough, and the boundary of 'polygon_2' doesn't need to be checked as
+    // well. Its interior point is the center of its pole of inaccessibility,
+    // far from its boundary, so the boundary of 'polygon_1' can't pass near it
+    // without entering the interior of 'polygon_2'.
+    return (locate_translated_point(polygon_2.interior_point, polygon_1, translation) == PointLocation::Inside);
 }
 
 bool packingsolver::irregular::intersect(
