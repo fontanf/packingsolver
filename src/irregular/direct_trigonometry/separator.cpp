@@ -2009,12 +2009,26 @@ void Separator::swap_large_items()
             return;
         ItemState item_state_new;
         item_state_new.bin_pos = item_state_other.bin_pos;
-        item_state_new.orientation_id = (std::find(
-                    orientation_ids.begin(),
-                    orientation_ids.end(),
-                    item_state_old.orientation_id) != orientation_ids.end())?
-            item_state_old.orientation_id:
-            orientation_ids.front();
+        // As in Sparrow, the item takes the allowed orientation closest to the
+        // one of the other item, so that a swap can change the orientations
+        // of the items, e.g. turn an item which doesn't fit lying anymore.
+        const Orientation& orientation_other = item_types_[items_item_type_id_[item_pos_other]].orientations[item_state_other.orientation_id];
+        Angle angle_difference_best = std::numeric_limits<Angle>::infinity();
+        for (bool same_mirror: {true, false}) {
+            for (Counter orientation_id: orientation_ids) {
+                const Orientation& orientation = item_type.orientations[orientation_id];
+                if (same_mirror != (orientation.mirror == orientation_other.mirror))
+                    continue;
+                Angle angle_difference = std::abs(orientation.angle - orientation_other.angle);
+                angle_difference = (std::min)(angle_difference, 360 - angle_difference);
+                if (angle_difference < angle_difference_best) {
+                    angle_difference_best = angle_difference;
+                    item_state_new.orientation_id = orientation_id;
+                }
+            }
+            if (item_state_new.orientation_id != -1)
+                break;
+        }
         AxisAlignedBoundingBox aabb_other = item_aabb(item_pos_other, item_state_other);
         const AxisAlignedBoundingBox& aabb = item_type.orientations[item_state_new.orientation_id].aabb;
         item_state_new.position = {

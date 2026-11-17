@@ -29,8 +29,9 @@ namespace
  *
  * The initial layout is separated; then, while the separations fail, their
  * layouts are added to a population, and the next separation starts from a
- * disruption of a layout drawn from the population. It is given up early if
- * its loss doesn't get below the loss of this layout.
+ * disruption of a layout drawn from the population. It can be given up early
+ * if its loss doesn't get below the loss of this layout (see
+ * 'SeparatorParameters::maximum_number_of_strikes_above_reference').
  */
 template <typename SeparatorType>
 bool run_iterated_local_search(
@@ -104,8 +105,8 @@ bool run_iterated_local_search(
         separator.set_layout(selected_layout.layout);
         separator.disrupt();
 
-        // Separate it; the separation is given up early if its loss doesn't
-        // get below the loss of the drawn layout.
+        // Separate it; the separation can be given up early if its loss
+        // doesn't get below the loss of the drawn layout.
         separated = separator.separate(parameters.timer, selected_layout.loss);
         if (process_separation(separated, number_of_failed_separations))
             return true;

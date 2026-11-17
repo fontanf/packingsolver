@@ -460,12 +460,18 @@ void optimize_local_search(
     if (parameters.optimization_mode == OptimizationMode::NotAnytimeSequential)
         ls_parameters.separator_parameters.number_of_workers = 1;
     ls_parameters.separator_parameters.weighting_scheme = parameters.local_search_weighting_scheme;
+    // As in Sparrow, the separation of the initial layout gets the same number
+    // of strikes as the other ones: when it fails, a disruption is often more
+    // effective than more strikes.
+    if (engine == LocalSearchEngine::DirectTrigonometry)
+        ls_parameters.initial_separation_maximum_number_of_strikes = -1;
     if (instance.objective() == Objective::Knapsack) {
         // Each sub-problem of the knapsack local search consists in fitting
         // a slightly more profitable set of items: short separations, and
         // therefore more perturbations, work better.
         ls_parameters.separator_parameters.maximum_number_of_iterations_without_improvement = 2;
         ls_parameters.separator_parameters.maximum_number_of_strikes = 1;
+        ls_parameters.separator_parameters.maximum_number_of_strikes_above_reference = 1;
         ls_parameters.initial_separation_maximum_number_of_strikes = 1;
         ls_parameters.black_box_optimization_separator_parameters.maximum_number_of_iterations_without_improvement = 2;
         ls_parameters.black_box_optimization_separator_parameters.maximum_number_of_strikes = 1;
