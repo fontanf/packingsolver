@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <numeric>
+#include <random>
 #include <sstream>
 
 using namespace packingsolver;
@@ -23,6 +24,22 @@ BranchingScheme::BranchingScheme(
     parameters_(parameters)
 {
     copy_dependent_resource_consumptions_ = copy_dependent_resource_consumptions(instance_);
+
+    // Compute pos_stack_hash_keys_, from a fixed seed so that the search is
+    // reproducible.
+    {
+        std::mt19937_64 generator(0);
+        pos_stack_hash_keys_.resize(instance.number_of_stacks());
+        for (StackId stack_id = 0;
+                stack_id < instance.number_of_stacks();
+                ++stack_id) {
+            std::vector<std::size_t>& keys = pos_stack_hash_keys_[stack_id];
+            keys.resize(instance.stack_size(stack_id) + 1, 0);
+            for (ItemPos pos = 1; pos <= instance.stack_size(stack_id); ++pos)
+                keys[pos] = static_cast<std::size_t>(generator());
+        }
+    }
+
     // Compute bin_type_ids_ and previous_bins_area_.
     //
     // For the Knapsack objective, bins are considered by increasing space,
@@ -575,19 +592,20 @@ BranchingScheme::Node BranchingScheme::child_tmp(
 
     // Update pos_stack, items_area.
     node.pos_stack = parent.pos_stack;
+    node.pos_stack_hash = parent.pos_stack_hash;
     node.number_of_items = parent.number_of_items;
     node.item_area = parent.item_area;
     node.profit = parent.profit;
     if (insertion.item_type_id_1 != -1) {
         const ItemType& item_type = instance.item_type(insertion.item_type_id_1);
-        node.pos_stack[item_type.stack_id]++;
+        increment_pos_stack(node, item_type.stack_id);
         node.number_of_items++;
         node.item_area += item_type.area();
         node.profit += item_type.profit;
     }
     if (insertion.item_type_id_2 != -1) {
         const ItemType& item_type = instance.item_type(insertion.item_type_id_2);
-        node.pos_stack[item_type.stack_id]++;
+        increment_pos_stack(node, item_type.stack_id);
         node.number_of_items++;
         node.item_area += item_type.area();
         node.profit += item_type.profit;
