@@ -11,6 +11,7 @@ target_sources(PackingSolver_rectangleguillotine_test PRIVATE
     tree_search/integration_test.cpp
     tree_search/tree_search_test.cpp
     tree_search/cutting_cost_test.cpp
+    tree_search/node_hash_test.cpp
     column_generation_strips_test.cpp
     sequential_feasibility_test.cpp
     sequential_strips_onedimensional_test.cpp

@@ -185,6 +185,12 @@ public:
          */
         std::vector<ItemPos> pos_stack = {};
 
+        /**
+         * Hash of 'pos_stack', maintained incrementally (see
+         * 'BranchingScheme::pos_stack_hash_keys_').
+         */
+        std::size_t pos_stack_hash = 0;
+
         /** Number of bins used in the partial solution. */
         BinPos number_of_bins = 0;
 
@@ -304,7 +310,7 @@ public:
             const std::shared_ptr<Node>& parent,
             const Insertion& insertion) const
     {
-        return std::shared_ptr<Node>(new Node(child_tmp(parent, insertion)));
+        return std::make_shared<Node>(child_tmp(parent, insertion));
         //auto node = std::shared_ptr<Node>(new Node(child_tmp(parent, insertion)));
         //to_solution(node);
         //return node;
@@ -360,8 +366,6 @@ public:
 
     struct NodeHasher
     {
-        std::hash<ItemPos> hasher;
-
         inline bool operator()(
                 const std::shared_ptr<Node>& node_1,
                 const std::shared_ptr<Node>& node_2) const
@@ -372,10 +376,7 @@ public:
         inline std::size_t operator()(
                 const std::shared_ptr<Node>& node) const
         {
-            size_t hash = 0;
-            for (ItemPos s: node->pos_stack)
-                optimizationtools::hash_combine(hash, hasher(s));
-            return hash;
+            return node->pos_stack_hash;
         }
     };
 
@@ -455,6 +456,28 @@ private:
 
     /** Parameters. */
     Parameters parameters_;
+
+    /**
+     * Zobrist keys of 'Node::pos_stack':
+     * 'pos_stack_hash_keys_[s][k]' is the key of stack 's' at position 'k'.
+     * A node's hash is the XOR of the keys of its stacks' positions; the
+     * keys of position 0 are 0, so that the root's hash is 0. Inserting an
+     * item of stack 's' updates the hash in constant time, instead of
+     * rehashing the whole 'pos_stack' at each lookup in the beam search's
+     * history.
+     */
+    std::vector<std::vector<std::size_t>> pos_stack_hash_keys_;
+
+    /** Insert the next item of stack 'stack_id' in 'node': its position and its hash. */
+    inline void increment_pos_stack(
+            Node& node,
+            StackId stack_id) const
+    {
+        ItemPos& pos = node.pos_stack[stack_id];
+        node.pos_stack_hash ^= pos_stack_hash_keys_[stack_id][pos]
+            ^ pos_stack_hash_keys_[stack_id][pos + 1];
+        pos++;
+    }
 
     /**
      * Bin type of the bin at each position, in the order in which bins are
