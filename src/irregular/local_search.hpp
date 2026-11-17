@@ -132,8 +132,8 @@ struct LocalSearchParameters: packingsolver::Parameters<Instance, Solution, Outp
      * considered infeasible.
      *
      * After a failed separation, the next one starts from a disruption of a
-     * failed layout, selected by binary tournament in a population. It is
-     * given up early if its loss doesn't get below the loss of this failed
+     * failed layout, selected by binary tournament in a population. It can
+     * be given up early if its loss doesn't get below the loss of this failed
      * layout (see
      * 'SeparatorParameters::maximum_number_of_strikes_above_reference').
      *

@@ -59,8 +59,14 @@ struct SeparatorParameters
      * Maximum number of consecutive separation attempts without substantial
      * improvement while the loss isn't smaller than the reference loss (see
      * 'Separator::separate').
+     *
+     * By default, the same as 'maximum_number_of_strikes': as in Sparrow, the
+     * separation of a disrupted layout isn't given up early. Right after a
+     * disruption, the loss is much larger than the one of the failed layout
+     * it comes from, even when the disruption is the one which unlocks the
+     * search (e.g. when an item which doesn't fit lying anymore is turned).
      */
-    Counter maximum_number_of_strikes_above_reference = 1;
+    Counter maximum_number_of_strikes_above_reference = 3;
 
     /** Number of samples in the whole bins, for a move. */
     Counter number_of_container_samples = 50;
@@ -272,8 +278,10 @@ public:
     /**
      * Disrupt the current layout.
      *
-     * By default, swap two large items; the items covered by one of them
-     * after the swap are moved to the space it left.
+     * By default, swap two large items; each one takes the allowed
+     * orientation closest to the one of the other (preferably with the same
+     * mirror), and the items covered by one of them after the swap are moved
+     * to the space it left.
      *
      * In knapsack mode (see 'set_profit_threshold'), apply a perturbation
      * drawn at random among the ones which keep the profit of the layout
