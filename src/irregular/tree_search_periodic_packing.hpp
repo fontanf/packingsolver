@@ -4,6 +4,8 @@
 #include "irregular/periodic_packing.hpp"
 #include "irregular/empty_spaces.hpp"
 
+#include "algorithms/item_copies_hash.hpp"
+
 #include "optimizationtools/utils/utils.hpp"
 
 #include <sstream>
@@ -161,6 +163,12 @@ public:
         std::vector<ItemPos> item_number_of_copies;
 
         /**
+         * Hash of 'item_number_of_copies', maintained incrementally (see
+         * 'ItemCopiesHashKeys').
+         */
+        std::size_t item_number_of_copies_hash = 0;
+
+        /**
          * Consumption of each resource of the bin type by the fixed items and
          * the placed blocks: the sum of their consumptions. Empty iff the bin
          * type has no resources.
@@ -310,7 +318,6 @@ public:
 
     struct NodeHasher
     {
-        std::hash<ItemPos> hasher;
         const BranchingSchemePeriodicPacking& branching_scheme;
 
         NodeHasher(const BranchingSchemePeriodicPacking& bs): branching_scheme(bs) {}
@@ -325,10 +332,7 @@ public:
         inline std::size_t operator()(
                 const std::shared_ptr<Node>& node) const
         {
-            std::size_t hash = 0;
-            for (ItemPos copies: node->item_number_of_copies)
-                optimizationtools::hash_combine(hash, hasher(copies));
-            return hash;
+            return node->item_number_of_copies_hash;
         }
     };
 
@@ -363,6 +367,9 @@ private:
     const Instance& instance_;
     std::vector<PeriodicBlock> blocks_;
     Parameters parameters_;
+
+    /** Keys of the hashes of the numbers of copies of the item types. */
+    ItemCopiesHashKeys item_copies_hash_keys_;
 
     /**
      * Rectangles covering the obstacles of the bin (defects, borders and

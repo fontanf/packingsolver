@@ -22,6 +22,7 @@ BranchingScheme::BranchingScheme(
     instance_(instance),
     parameters_(parameters)
 {
+    item_copies_hash_keys_ = ItemCopiesHashKeys(instance_.number_of_item_types());
     copy_dependent_resource_consumptions_ = copy_dependent_resource_consumptions(instance_);
     // Compute bin_type_ids_ and previous_bins_length_.
     //
@@ -98,6 +99,8 @@ BranchingScheme::Node BranchingScheme::child_tmp(
     // search optimizes the same objective the final solution will report.
     node.item_number_of_copies = parent.item_number_of_copies;
     node.item_number_of_copies[insertion.item_type_id]++;
+    node.item_number_of_copies_hash = parent.item_number_of_copies_hash
+        + item_copies_hash_keys_.increment(insertion.item_type_id);
     node.number_of_items = parent.number_of_items + 1;
     node.item_length = parent.item_length + item_type.length;
     node.squared_item_length = parent.squared_item_length + item_type.length * item_type.length;

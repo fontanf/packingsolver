@@ -2,6 +2,8 @@
 
 #include "packingsolver/onedimensional/optimize.hpp"
 
+#include "algorithms/item_copies_hash.hpp"
+
 #include "optimizationtools/utils/utils.hpp"
 
 #include <limits>
@@ -69,6 +71,12 @@ public:
 
         /** For each item type, number of copies in the node. */
         std::vector<ItemPos> item_number_of_copies;
+
+        /**
+         * Hash of 'item_number_of_copies', maintained incrementally (see
+         * 'ItemCopiesHashKeys').
+         */
+        std::size_t item_number_of_copies_hash = 0;
 
         /** Number of bins in the node. */
         BinPos number_of_bins = 0;
@@ -165,7 +173,7 @@ public:
             const std::shared_ptr<Node>& parent,
             const Insertion& insertion) const
     {
-        return std::shared_ptr<Node>(new Node(child_tmp(parent, insertion)));
+        return std::make_shared<Node>(child_tmp(parent, insertion));
     }
 
     const std::shared_ptr<Node> root() const;
@@ -208,7 +216,6 @@ public:
 
     struct NodeHasher
     {
-        std::hash<ItemPos> hasher;
         const BranchingScheme& branching_scheme;
 
         NodeHasher(const BranchingScheme& branching_scheme): branching_scheme(branching_scheme) { }
@@ -225,10 +232,7 @@ public:
         {
             if (branching_scheme.instance().unbounded_knapsack())
                 return 0;
-            size_t hash = 0;
-            for (ItemPos s: node->item_number_of_copies)
-                optimizationtools::hash_combine(hash, hasher(s));
-            return hash;
+            return node->item_number_of_copies_hash;
         }
     };
 
@@ -268,6 +272,9 @@ private:
 
     /** Parameters. */
     Parameters parameters_;
+
+    /** Keys of the hashes of the numbers of copies of the item types. */
+    ItemCopiesHashKeys item_copies_hash_keys_;
 
     /**
      * Bin type of the bin at each position, in the order in which bins are

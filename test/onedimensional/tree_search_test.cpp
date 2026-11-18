@@ -189,3 +189,28 @@ TEST(OneDimensionalTreeSearch, DominanceCopyDependentResourceConsumption)
 
     EXPECT_FALSE(branching_scheme.dominates(node_1, node_2));
 }
+
+#include "../node_hash_test.hpp"
+
+TEST(OnedimensionalBranchingScheme, NodeHashFollowsItemNumberOfCopies)
+{
+    // Three item types with two copies each: the same items can be packed
+    // in several orders, so different paths reach the same numbers of
+    // copies.
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(packingsolver::Objective::Knapsack);
+    instance_builder.add_bin_type(100);
+    for (packingsolver::Length length: {10, 20, 30})
+        instance_builder.set_item_type_copies(instance_builder.add_item_type(length), 2);
+    Instance instance = instance_builder.build();
+
+    BranchingScheme branching_scheme(instance, BranchingScheme::Parameters());
+    packingsolver::check_item_copies_hashes(
+            branching_scheme.root(),
+            branching_scheme.node_hasher(),
+            [&branching_scheme](const std::shared_ptr<BranchingScheme::Node>& node)
+            {
+                return branching_scheme.children(node);
+            },
+            3);
+}

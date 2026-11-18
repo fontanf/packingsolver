@@ -6,6 +6,8 @@
 #include "irregular/empty_spaces.hpp"
 #include "irregular/shape_simplification.hpp"
 
+#include "algorithms/item_copies_hash.hpp"
+
 #include "optimizationtools/utils/utils.hpp"
 #include "optimizationtools/utils/timer.hpp"
 
@@ -252,6 +254,12 @@ public:
         std::vector<ItemPos> item_number_of_copies;
 
         /**
+         * Hash of 'item_number_of_copies', maintained incrementally (see
+         * 'ItemCopiesHashKeys').
+         */
+        std::size_t item_number_of_copies_hash = 0;
+
+        /**
          * Consumption of each resource of the bin type by the fixed items and
          * the packed blocks: the sum of their consumptions. Empty iff the bin
          * type has no resources.
@@ -402,7 +410,6 @@ public:
 
     struct NodeHasher
     {
-        std::hash<ItemPos> hasher;
 
         inline bool operator()(
                 const std::shared_ptr<Node>& node_1,
@@ -414,10 +421,7 @@ public:
         inline std::size_t operator()(
                 const std::shared_ptr<Node>& node) const
         {
-            std::size_t hash = 0;
-            for (ItemPos copies: node->item_number_of_copies)
-                optimizationtools::hash_combine(hash, hasher(copies));
-            return hash;
+            return node->item_number_of_copies_hash;
         }
     };
 
@@ -459,6 +463,9 @@ private:
 
     /** Parameters. */
     Parameters parameters_;
+
+    /** Keys of the hashes of the numbers of copies of the item types. */
+    ItemCopiesHashKeys item_copies_hash_keys_;
 
     /** Simplified instance. */
     SimplifiedInstance simplified_instance_;

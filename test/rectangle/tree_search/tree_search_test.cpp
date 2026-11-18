@@ -218,3 +218,28 @@ TEST(RectangleBranchingScheme, PredecessorsDifferentResourceConsumptions)
             b_first = true;
     EXPECT_TRUE(b_first);
 }
+
+#include "../../node_hash_test.hpp"
+
+TEST(RectangleBranchingScheme, NodeHashFollowsItemNumberOfCopies)
+{
+    // Three item types with two copies each: the same items can be packed
+    // in several orders, so different paths reach the same numbers of
+    // copies.
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(packingsolver::Objective::Knapsack);
+    instance_builder.add_bin_type(100, 100);
+    for (const std::pair<packingsolver::Length, packingsolver::Length>& rectangle: std::vector<std::pair<packingsolver::Length, packingsolver::Length>>{{10, 20}, {20, 30}, {30, 10}})
+        instance_builder.set_item_type_copies(instance_builder.add_item_type(rectangle.first, rectangle.second), 2);
+    Instance instance = instance_builder.build();
+
+    BranchingScheme branching_scheme(instance, BranchingScheme::Parameters());
+    packingsolver::check_item_copies_hashes(
+            branching_scheme.root(),
+            branching_scheme.node_hasher(),
+            [&branching_scheme](const std::shared_ptr<BranchingScheme::Node>& node)
+            {
+                return branching_scheme.children(node);
+            },
+            3);
+}

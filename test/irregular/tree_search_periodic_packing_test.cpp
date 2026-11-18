@@ -195,3 +195,32 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "irregular" / "tests" / "knapsack_fixed_item_with_hole_spacing.json",
                 fs::path("data") / "irregular" / "tests" / "knapsack_fixed_item_with_hole_spacing_solution.json"
             }}));
+
+#include "../node_hash_test.hpp"
+
+TEST(IrregularBranchingSchemePeriodicPacking, NodeHashFollowsItemNumberOfCopies)
+{
+    // Three item types with two copies each: the same items can be packed
+    // in several orders, so different paths reach the same numbers of
+    // copies.
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(packingsolver::Objective::Knapsack);
+    instance_builder.add_bin_type(shape::build_rectangle(100, 100));
+    for (const std::pair<shape::LengthDbl, shape::LengthDbl>& rectangle: std::vector<std::pair<shape::LengthDbl, shape::LengthDbl>>{{10, 20}, {20, 30}, {30, 10}}) {
+        ItemShape item_shape;
+        item_shape.shape_orig.shape = shape::build_rectangle(rectangle.first, rectangle.second);
+        instance_builder.set_item_type_copies(instance_builder.add_item_type({item_shape}), 2);
+    }
+    Instance instance = instance_builder.build();
+
+    BranchingSchemePeriodicPacking branching_scheme(instance, BranchingSchemePeriodicPacking::Parameters());
+    packingsolver::check_item_copies_hashes(
+            branching_scheme.root(),
+            branching_scheme.node_hasher(),
+            [&branching_scheme](const std::shared_ptr<BranchingSchemePeriodicPacking::Node>& node)
+            {
+                return packingsolver::next_children(branching_scheme, node);
+            },
+            2,
+            100);
+}

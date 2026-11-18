@@ -238,6 +238,7 @@ BranchingScheme::BranchingScheme(
     parameters_(parameters),
     predecessors_(instance_orig.number_of_item_types())
 {
+    item_copies_hash_keys_ = ItemCopiesHashKeys(instance_.number_of_item_types());
     Direction o = parameters_.direction;
     const Instance& instance = this->instance(o);
 
@@ -692,6 +693,8 @@ BranchingScheme::Node BranchingScheme::child_tmp(
     // squared_item_volume and profit.
     node.item_number_of_copies = parent.item_number_of_copies;
     node.item_number_of_copies[insertion.item_type_id]++;
+    node.item_number_of_copies_hash = parent.item_number_of_copies_hash
+        + item_copies_hash_keys_.increment(insertion.item_type_id);
     node.number_of_items = parent.number_of_items + 1;
     node.number_of_stacked_items = (node.new_stack)?
         parent.number_of_stacked_items + 1: parent.number_of_stacked_items;

@@ -65,6 +65,7 @@ BranchingSchemeMaximalSpaces::BranchingSchemeMaximalSpaces(
             instance,
             parameters.maximum_approximation_ratio))
 {
+    item_copies_hash_keys_ = ItemCopiesHashKeys(instance_.number_of_item_types());
     BinTypeId bin_type_id = instance.bin_type_id(0);
     const BinType& bin_type = instance.bin_type(bin_type_id);
     Direction direction = parameters_.direction;
@@ -445,6 +446,7 @@ const std::shared_ptr<BranchingSchemeMaximalSpaces::Node> BranchingSchemeMaximal
     for (const FixedItem& fixed_item: bin_type.fixed_items) {
         const ItemType& item_type = instance().item_type(fixed_item.item_type_id);
         node->item_number_of_copies[fixed_item.item_type_id]++;
+        node->item_number_of_copies_hash += item_copies_hash_keys_.increment(fixed_item.item_type_id);
         node->item_area += item_type.area_scaled;
         node->number_of_items++;
         node->profit += item_type.profit;
@@ -870,8 +872,12 @@ void BranchingSchemeMaximalSpaces::apply_insertion(
     // Update the number of copies and the valid blocks. The consumptions
     // only increase: a block which exceeds the capacity of a resource which
     // is not penalized can't be packed anymore.
-    for (const std::pair<ItemTypeId, ItemPos>& item_copies: block.item_copies)
+    for (const std::pair<ItemTypeId, ItemPos>& item_copies: block.item_copies) {
         node.item_number_of_copies[item_copies.first] += item_copies.second;
+        node.item_number_of_copies_hash += item_copies_hash_keys_.increment(
+                item_copies.first,
+                item_copies.second);
+    }
     for (ItemPos block_pos = 0; block_pos < (ItemPos)node.valid_block_ids.size(); ) {
         if (block_valid(node, blocks_[node.valid_block_ids[block_pos]])) {
             ++block_pos;

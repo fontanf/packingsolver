@@ -48,6 +48,7 @@ BranchingScheme::BranchingScheme(
     predecessors_1_(instance.number_of_item_types()),
     predecessors_2_(instance.number_of_item_types())
 {
+    item_copies_hash_keys_ = ItemCopiesHashKeys(instance_.number_of_item_types());
     copy_dependent_resource_consumptions_ = copy_dependent_resource_consumptions(instance_);
     // Compute bin_type_ids_ and previous_bins_area_.
     //
@@ -333,6 +334,8 @@ BranchingScheme::Node BranchingScheme::child_tmp(
     // squared_item_area and profit.
     node.item_number_of_copies = parent.item_number_of_copies;
     node.item_number_of_copies[insertion.item_type_id]++;
+    node.item_number_of_copies_hash = parent.item_number_of_copies_hash
+        + item_copies_hash_keys_.increment(insertion.item_type_id);
     node.number_of_items = parent.number_of_items + 1;
     node.item_area = parent.item_area + item_type.area();
     node.item_weight = parent.item_weight + item_type.weight;

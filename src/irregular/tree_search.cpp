@@ -120,6 +120,7 @@ BranchingScheme::BranchingScheme(
                 parameters.maximum_approximation_ratio)),
     parameters_(parameters)
 {
+    item_copies_hash_keys_ = ItemCopiesHashKeys(instance_.number_of_item_types());
     copy_dependent_resource_consumptions_ = copy_dependent_resource_consumptions(instance_);
     // Compute bin_type_ids_ and previous_bins_area_.
     //
@@ -718,6 +719,8 @@ BranchingScheme::Node BranchingScheme::child_tmp(
     node.item_number_of_copies = parent.item_number_of_copies;
     const ItemType& item_type = instance_.item_type(trapezoid_set.item_type_id);
     node.item_number_of_copies[trapezoid_set.item_type_id]++;
+    node.item_number_of_copies_hash = parent.item_number_of_copies_hash
+        + item_copies_hash_keys_.increment(trapezoid_set.item_type_id);
     node.number_of_items = parent.number_of_items + 1;
     node.item_area = parent.item_area + item_type.area_scaled;
     //std::cout << "parent.item_area " << parent.item_area << " item_area " << item_type.area << std::endl;
@@ -1358,6 +1361,9 @@ const std::shared_ptr<BranchingScheme::Node> BranchingScheme::root() const
         for (const FixedItem& fixed_item: bin_type.fixed_items) {
             const ItemType& item_type = instance().item_type(fixed_item.item_type_id);
             node.item_number_of_copies[fixed_item.item_type_id] += bin_type.copies;
+            node.item_number_of_copies_hash += item_copies_hash_keys_.increment(
+                    fixed_item.item_type_id,
+                    bin_type.copies);
             node.number_of_items += bin_type.copies;
             node.item_area += bin_type.copies * item_type.area_scaled;
             node.item_convex_hull_area += bin_type.copies * item_types_convex_hull_area_[fixed_item.item_type_id];

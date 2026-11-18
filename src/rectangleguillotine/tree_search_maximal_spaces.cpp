@@ -24,6 +24,7 @@ BranchingSchemeMaximalSpaces::BranchingSchemeMaximalSpaces(
     blocks_(blocks),
     parameters_(parameters)
 {
+    item_copies_hash_keys_ = ItemCopiesHashKeys(instance_.number_of_item_types());
     cut_thickness_ = instance_.parameters().cut_thickness;
     BinTypeId bin_type_id = instance_.bin_type_id(0);
     const BinType& bin_type = instance_.bin_type(bin_type_id);
@@ -423,6 +424,9 @@ void BranchingSchemeMaximalSpaces::apply_insertion(
     // Update item counts.
     for (const std::pair<ItemTypeId, ItemPos>& item_copy: block.item_copies) {
         node.item_number_of_copies[item_copy.first] += item_copy.second;
+        node.item_number_of_copies_hash += item_copies_hash_keys_.increment(
+                item_copy.first,
+                item_copy.second);
     }
     node.item_area += block.item_area;
     node.number_of_items += block.number_of_items;
