@@ -1464,6 +1464,7 @@ BranchingSchemePeriodicPacking::BranchingSchemePeriodicPacking(
     instance_(instance),
     parameters_(parameters)
 {
+    item_copies_hash_keys_ = ItemCopiesHashKeys(instance_.number_of_item_types());
     BinTypeId bin_type_id = instance_.bin_type_id(0);
 
     // Computed by 'tree_search_periodic_packing' before building the branching
@@ -1579,6 +1580,7 @@ BranchingSchemePeriodicPacking::root() const
     for (const FixedItem& fixed_item: bin_type().fixed_items) {
         const ItemType& item_type = instance_.item_type(fixed_item.item_type_id);
         node->item_number_of_copies[fixed_item.item_type_id]++;
+        node->item_number_of_copies_hash += item_copies_hash_keys_.increment(fixed_item.item_type_id);
         node->item_area += item_type.area_scaled;
         node->number_of_items++;
         node->profit += item_type.profit;
@@ -1979,8 +1981,10 @@ void BranchingSchemePeriodicPacking::apply_insertion(
     add_resource_consumption(node.resource_consumption, block.resource_consumption);
 
     // Update item copy counts.
-    for (const std::pair<ItemTypeId, ItemPos>& kv: block.item_copies)
+    for (const std::pair<ItemTypeId, ItemPos>& kv: block.item_copies) {
         node.item_number_of_copies[kv.first] += kv.second;
+        node.item_number_of_copies_hash += item_copies_hash_keys_.increment(kv.first, kv.second);
+    }
 
     // Update valid block ids: remove blocks that can no longer be placed.
     // The consumptions only increase: a block which exceeds the capacity of

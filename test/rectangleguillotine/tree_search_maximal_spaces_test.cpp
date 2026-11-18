@@ -611,3 +611,30 @@ TEST(RectangleGuillotineTreeSearchMaximalSpaces, InsertionOrderLossFactor)
         EXPECT_EQ(solution.profit(), (use_loss_factor)? 100: 84);
     }
 }
+
+#include "../node_hash_test.hpp"
+
+TEST(RectangleGuillotineBranchingSchemeMaximalSpaces, NodeHashFollowsItemNumberOfCopies)
+{
+    // Three item types with two copies each: the same blocks can be packed
+    // in several orders, so different paths reach the same numbers of
+    // copies.
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(Objective::Knapsack);
+    instance_builder.add_bin_type(100, 100);
+    for (const std::pair<packingsolver::Length, packingsolver::Length>& rectangle: std::vector<std::pair<packingsolver::Length, packingsolver::Length>>{{10, 20}, {20, 30}, {30, 10}})
+        instance_builder.set_item_type_copies(instance_builder.add_item_type(rectangle.first, rectangle.second), 2);
+    Instance instance = instance_builder.build();
+
+    std::vector<std::vector<Block>> blocks = compute_blocks(instance);
+    BranchingSchemeMaximalSpaces branching_scheme(instance, blocks, {});
+    packingsolver::check_item_copies_hashes(
+            branching_scheme.root(),
+            branching_scheme.node_hasher(),
+            [&branching_scheme](const std::shared_ptr<BranchingSchemeMaximalSpaces::Node>& node)
+            {
+                return packingsolver::next_children(branching_scheme, node);
+            },
+            2,
+            100);
+}

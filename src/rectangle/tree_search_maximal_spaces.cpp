@@ -61,6 +61,7 @@ BranchingSchemeMaximalSpaces::BranchingSchemeMaximalSpaces(
     blocks_(blocks),
     parameters_(parameters)
 {
+    item_copies_hash_keys_ = ItemCopiesHashKeys(instance_.number_of_item_types());
     max_reachable_x_ = max_reachable_lengths.x;
     max_reachable_y_ = max_reachable_lengths.y;
     BinTypeId bin_type_id = instance_.bin_type_id(0);
@@ -493,8 +494,12 @@ void BranchingSchemeMaximalSpaces::apply_insertion(
         }
     }
 
-    for (const auto& item_copy: block.item_copies)
+    for (const auto& item_copy: block.item_copies) {
         node.item_number_of_copies[item_copy.first] += item_copy.second;
+        node.item_number_of_copies_hash += item_copies_hash_keys_.increment(
+                item_copy.first,
+                item_copy.second);
+    }
     node.item_area += block.item_area;
     node.block_area += block.rect.area();
     node.weight += block.weight;

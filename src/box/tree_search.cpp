@@ -37,6 +37,7 @@ BranchingScheme::BranchingScheme(
     predecessors_(instance_orig.number_of_item_types())
 {
     copy_dependent_resource_consumptions_ = copy_dependent_resource_consumptions(instance_);
+    item_copies_hash_keys_ = ItemCopiesHashKeys(instance_orig.number_of_item_types());
     const Instance& instance = this->instance();
 
     // Compute bin_type_ids_ and previous_bins_volume_.
@@ -330,6 +331,8 @@ BranchingScheme::Node BranchingScheme::child_tmp(
         item_type.weight;
     node.item_number_of_copies = parent.item_number_of_copies;
     node.item_number_of_copies[insertion.item_type_id]++;
+    node.item_number_of_copies_hash = parent.item_number_of_copies_hash
+        + item_copies_hash_keys_.increment(insertion.item_type_id);
     node.number_of_items = parent.number_of_items + 1;
     node.item_volume = parent.item_volume + item_volume;
     node.item_weight = parent.item_weight + item_type.weight;

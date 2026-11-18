@@ -4,6 +4,8 @@
 
 #include "packingsolver/rectangleguillotine/optimize.hpp"
 
+#include "algorithms/item_copies_hash.hpp"
+
 #include "optimizationtools/utils/utils.hpp"
 
 #include <sstream>
@@ -130,6 +132,12 @@ public:
         std::vector<PlacedBlock> placed_blocks;
         std::vector<EmptySpace> empty_spaces;
         std::vector<ItemPos> item_number_of_copies;
+
+        /**
+         * Hash of 'item_number_of_copies', maintained incrementally (see
+         * 'ItemCopiesHashKeys').
+         */
+        std::size_t item_number_of_copies_hash = 0;
 
         /**
          * Consumption of each resource of the bin type by the blocks placed
@@ -291,7 +299,6 @@ public:
 
     struct NodeHasher
     {
-        std::hash<ItemPos> hasher;
         const BranchingSchemeMaximalSpaces& branching_scheme;
 
         NodeHasher(const BranchingSchemeMaximalSpaces& branching_scheme):
@@ -307,10 +314,7 @@ public:
         inline std::size_t operator()(
                 const std::shared_ptr<Node>& node) const
         {
-            std::size_t hash = 0;
-            for (ItemPos copies: node->item_number_of_copies)
-                optimizationtools::hash_combine(hash, hasher(copies));
-            return hash;
+            return node->item_number_of_copies_hash;
         }
     };
 
@@ -345,6 +349,9 @@ private:
     const Instance& instance_;
     const std::vector<std::vector<Block>>& blocks_;
     Parameters parameters_;
+
+    /** Keys of the hashes of the numbers of copies of the item types. */
+    ItemCopiesHashKeys item_copies_hash_keys_;
     Length cut_thickness_;
 
     /** Bottom-left corner of the area available for the items (after the trims). */

@@ -284,3 +284,25 @@ TEST(BoxTreeSearchMaximalSpaces, CopyDependentResourceConsumption)
     EXPECT_NE(std::find(node->valid_block_ids.begin(), node->valid_block_ids.end(), block_id),
             node->valid_block_ids.end());
 }
+
+#include "../node_hash_test.hpp"
+
+TEST(BoxBranchingSchemeMaximalSpaces, NodeHashFollowsItemNumberOfCopies)
+{
+    // Five item types with two or three copies each: the same blocks can be
+    // packed in several orders, so different paths reach the same numbers
+    // of copies.
+    Instance instance = build_instance_with_blocks();
+    std::vector<std::vector<Block>> blocks = compute_blocks(instance);
+    MaxReachableLengths max_reachable_lengths = compute_max_reachable_lengths(instance);
+    BranchingSchemeMaximalSpaces branching_scheme(instance, blocks, max_reachable_lengths, {});
+    packingsolver::check_item_copies_hashes(
+            branching_scheme.root(),
+            branching_scheme.node_hasher(),
+            [&branching_scheme](const std::shared_ptr<BranchingSchemeMaximalSpaces::Node>& node)
+            {
+                return packingsolver::next_children(branching_scheme, node);
+            },
+            2,
+            100);
+}
