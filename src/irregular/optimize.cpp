@@ -577,6 +577,9 @@ void optimize_sequential_single_knapsack(
         NodeId tree_search_periodic_packing_queue_size
             = parameters.anytime_sequential_single_knapsack_subproblem_tree_search_periodic_packing_initial_queue_size
             * growth_factor;
+        NodeId tree_search_maximal_spaces_queue_size
+            = parameters.anytime_sequential_single_knapsack_subproblem_tree_search_maximal_spaces_initial_queue_size
+            * growth_factor;
         Counter local_search_maximum_number_of_moves_factor
             = parameters.anytime_sequential_single_knapsack_subproblem_local_search_initial_maximum_number_of_moves_factor
             * growth_factor;
@@ -586,6 +589,8 @@ void optimize_sequential_single_knapsack(
                 .not_anytime_sequential_single_knapsack_subproblem_tree_search_queue_size;
             tree_search_periodic_packing_queue_size = parameters
                 .not_anytime_sequential_single_knapsack_subproblem_tree_search_periodic_packing_queue_size;
+            tree_search_maximal_spaces_queue_size = parameters
+                .not_anytime_sequential_single_knapsack_subproblem_tree_search_maximal_spaces_queue_size;
             local_search_maximum_number_of_moves_factor = parameters
                 .not_anytime_sequential_single_knapsack_subproblem_local_search_maximum_number_of_moves_factor;
             maximum_approximation_ratio = parameters.not_anytime_maximum_approximation_ratio;
@@ -600,6 +605,7 @@ void optimize_sequential_single_knapsack(
             = [&algorithm_formatter, &parameters,
             tree_search_queue_size,
             tree_search_periodic_packing_queue_size,
+            tree_search_maximal_spaces_queue_size,
             local_search_maximum_number_of_moves_factor,
             maximum_approximation_ratio](const Instance& kp_instance)
             {
@@ -616,6 +622,8 @@ void optimize_sequential_single_knapsack(
                 kp_parameters.not_anytime_tree_search_queue_size = tree_search_queue_size;
                 kp_parameters.not_anytime_tree_search_periodic_packing_queue_size
                     = tree_search_periodic_packing_queue_size;
+                kp_parameters.not_anytime_tree_search_maximal_spaces_queue_size
+                    = tree_search_maximal_spaces_queue_size;
                 kp_parameters.not_anytime_local_search_maximum_number_of_moves_factor
                     = local_search_maximum_number_of_moves_factor;
                 kp_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;

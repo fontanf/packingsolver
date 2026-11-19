@@ -486,6 +486,13 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
     NodeId anytime_sequential_single_knapsack_subproblem_tree_search_periodic_packing_initial_queue_size = 4;
 
     /**
+     * Initial size of the queue of the tree search maximal spaces in the
+     * single knapsack subproblem of the sequential single knapsack algorithm
+     * (see 'anytime_sequential_single_knapsack_subproblem_tree_search_initial_queue_size').
+     */
+    NodeId anytime_sequential_single_knapsack_subproblem_tree_search_maximal_spaces_initial_queue_size = 1;
+
+    /**
      * Initial factor of the maximum number of moves of the local search with
      * the direct trigonometry engine (see
      * 'not_anytime_local_search_maximum_number_of_moves_factor') in the
@@ -521,6 +528,12 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
      * knapsack subproblem of the sequential single knapsack algorithm.
      */
     NodeId not_anytime_sequential_single_knapsack_subproblem_tree_search_periodic_packing_queue_size = 64;
+
+    /**
+     * Size of the queue of the tree search maximal spaces in the single
+     * knapsack subproblem of the sequential single knapsack algorithm.
+     */
+    NodeId not_anytime_sequential_single_knapsack_subproblem_tree_search_maximal_spaces_queue_size = 4;
 
     /**
      * Factor of the maximum number of moves of the local search with the

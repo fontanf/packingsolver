@@ -123,8 +123,10 @@ int main(int argc, char *argv[])
             ("not-anytime-local-search-maximum-number-of-moves-factor,", po::value<Counter>(), "")
             ("anytime-sequential-single-knapsack-subproblem-tree-search-initial-queue-size,", po::value<NodeId>(), "")
             ("anytime-sequential-single-knapsack-subproblem-tree-search-periodic-packing-initial-queue-size,", po::value<NodeId>(), "")
+            ("anytime-sequential-single-knapsack-subproblem-tree-search-maximal-spaces-initial-queue-size,", po::value<NodeId>(), "")
             ("anytime-sequential-single-knapsack-subproblem-local-search-initial-maximum-number-of-moves-factor,", po::value<Counter>(), "")
             ("not-anytime-sequential-single-knapsack-subproblem-tree-search-periodic-packing-queue-size,", po::value<NodeId>(), "")
+            ("not-anytime-sequential-single-knapsack-subproblem-tree-search-maximal-spaces-queue-size,", po::value<NodeId>(), "")
             ("not-anytime-sequential-single-knapsack-subproblem-local-search-maximum-number-of-moves-factor,", po::value<Counter>(), "")
             ("not-anytime-dichotomic-search-subproblem-tree-search-queue-size,", po::value<Counter>(), "")
 
@@ -267,10 +269,14 @@ int main(int argc, char *argv[])
             parameters.anytime_sequential_single_knapsack_subproblem_tree_search_initial_queue_size = vm["anytime-sequential-single-knapsack-subproblem-tree-search-initial-queue-size"].as<NodeId>();
         if (vm.count("anytime-sequential-single-knapsack-subproblem-tree-search-periodic-packing-initial-queue-size"))
             parameters.anytime_sequential_single_knapsack_subproblem_tree_search_periodic_packing_initial_queue_size = vm["anytime-sequential-single-knapsack-subproblem-tree-search-periodic-packing-initial-queue-size"].as<NodeId>();
+        if (vm.count("anytime-sequential-single-knapsack-subproblem-tree-search-maximal-spaces-initial-queue-size"))
+            parameters.anytime_sequential_single_knapsack_subproblem_tree_search_maximal_spaces_initial_queue_size = vm["anytime-sequential-single-knapsack-subproblem-tree-search-maximal-spaces-initial-queue-size"].as<NodeId>();
         if (vm.count("anytime-sequential-single-knapsack-subproblem-local-search-initial-maximum-number-of-moves-factor"))
             parameters.anytime_sequential_single_knapsack_subproblem_local_search_initial_maximum_number_of_moves_factor = vm["anytime-sequential-single-knapsack-subproblem-local-search-initial-maximum-number-of-moves-factor"].as<Counter>();
         if (vm.count("not-anytime-sequential-single-knapsack-subproblem-tree-search-periodic-packing-queue-size"))
             parameters.not_anytime_sequential_single_knapsack_subproblem_tree_search_periodic_packing_queue_size = vm["not-anytime-sequential-single-knapsack-subproblem-tree-search-periodic-packing-queue-size"].as<NodeId>();
+        if (vm.count("not-anytime-sequential-single-knapsack-subproblem-tree-search-maximal-spaces-queue-size"))
+            parameters.not_anytime_sequential_single_knapsack_subproblem_tree_search_maximal_spaces_queue_size = vm["not-anytime-sequential-single-knapsack-subproblem-tree-search-maximal-spaces-queue-size"].as<NodeId>();
         if (vm.count("not-anytime-sequential-single-knapsack-subproblem-local-search-maximum-number-of-moves-factor"))
             parameters.not_anytime_sequential_single_knapsack_subproblem_local_search_maximum_number_of_moves_factor = vm["not-anytime-sequential-single-knapsack-subproblem-local-search-maximum-number-of-moves-factor"].as<Counter>();
         if (vm.count("not-anytime-dichotomic-search-subproblem-tree-search-queue-size"))
