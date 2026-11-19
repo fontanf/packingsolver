@@ -983,8 +983,9 @@ const packingsolver::box::TreeSearchMaximalSpacesOutput packingsolver::box::tree
     algorithm_formatter.print_header();
 
     MaxReachableLengths max_reachable_lengths = compute_max_reachable_lengths(instance);
-    const std::vector<std::vector<Block>>* blocks
-        = instance.get_blocks(algorithm_formatter.end_boolean());
+    optimizationtools::Timer blocks_timer = parameters.timer;
+    blocks_timer.add_end_boolean(&algorithm_formatter.end_boolean());
+    const std::vector<std::vector<Block>>* blocks = instance.get_blocks(blocks_timer);
     if (blocks == nullptr) {
         algorithm_formatter.end();
         return output;

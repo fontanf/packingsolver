@@ -1,6 +1,8 @@
 #pragma once
 
 #include "packingsolver/algorithms/common.hpp"
+
+#include "optimizationtools/utils/timer.hpp"
 #include "packingsolver/algorithms/resource.hpp"
 
 #include "shape/shape.hpp"
@@ -523,13 +525,14 @@ public:
      * them again. This method may be called from several threads: a call
      * waits until the simplified shapes are computed by another one.
      *
-     * Return 'nullptr' if 'end' is true before the simplified shapes are
-     * computed. In particular, if 'end' is already true, the simplified
-     * shapes are only returned if they have already been computed.
+     * Return 'nullptr' if 'timer' needs to end before the simplified shapes
+     * are computed. In particular, if 'timer' already needs to end, the
+     * simplified shapes are only returned if they have already been
+     * computed.
      */
     const SimplifiedInstance* get_simplified_instance(
             double maximum_approximation_ratio,
-            const bool& end) const;
+            const optimizationtools::Timer& timer) const;
 
     /**
      * Get the periodic packings of the item types with many copies, used by
@@ -542,12 +545,13 @@ public:
      * them again. This method may be called from several threads: a call
      * waits until the periodic packings are computed by another one.
      *
-     * Return 'nullptr' if 'end' becomes true before the periodic packings
-     * are computed. In particular, if 'end' is already true, they are only
-     * returned if they have already been computed.
+     * Return 'nullptr' if 'timer' needs to end before the periodic packings
+     * are computed; the computation stops then. In particular, if 'timer'
+     * already needs to end, they are only returned if they have already
+     * been computed.
      */
     const std::vector<PeriodicItemPacking>* get_periodic_packings(
-            const bool& end) const;
+            const optimizationtools::Timer& timer) const;
 
     /**
      * Return the scaled shape of item type 'item_type_id', shape 'item_shape_pos',

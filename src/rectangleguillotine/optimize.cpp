@@ -498,10 +498,14 @@ bool tree_search_maximal_spaces_supported(
  */
 void request_blocks(
         const Instance& instance,
+        const OptimizeParameters& parameters,
         AlgorithmFormatter& algorithm_formatter)
 {
-    if (tree_search_maximal_spaces_supported(instance))
-        instance.get_blocks(algorithm_formatter.end_boolean());
+    if (!tree_search_maximal_spaces_supported(instance))
+        return;
+    optimizationtools::Timer blocks_timer = parameters.timer;
+    blocks_timer.add_end_boolean(&algorithm_formatter.end_boolean());
+    instance.get_blocks(blocks_timer);
 }
 
 void optimize_sequential_single_knapsack(
@@ -509,7 +513,7 @@ void optimize_sequential_single_knapsack(
         const OptimizeParameters& parameters,
         AlgorithmFormatter& algorithm_formatter)
 {
-    request_blocks(instance, algorithm_formatter);
+    request_blocks(instance, parameters, algorithm_formatter);
     for (Counter iteration = 0, queue_size = 1;; ++iteration) {
         NodeId queue_size_ms = queue_size;
         if (parameters.optimization_mode != OptimizationMode::Anytime
@@ -583,7 +587,7 @@ void optimize_sequential_value_correction(
         const OptimizeParameters& parameters,
         AlgorithmFormatter& algorithm_formatter)
 {
-    request_blocks(instance, algorithm_formatter);
+    request_blocks(instance, parameters, algorithm_formatter);
     SequentialValueCorrectionFunction<Instance, Solution> kp_solve
         = [&algorithm_formatter, &parameters](const Instance& kp_instance)
         {
@@ -699,7 +703,7 @@ void optimize_column_generation(
         AlgorithmFormatter& algorithm_formatter,
         BinPos lower_bound)
 {
-    request_blocks(instance, algorithm_formatter);
+    request_blocks(instance, parameters, algorithm_formatter);
     ColumnGenerationPricingFunction<Instance, InstanceBuilder, Solution, rectangleguillotine::Output> pricing_function
         = [&algorithm_formatter, &parameters](const Instance& kp_instance, PricingType pricing_type)
         {

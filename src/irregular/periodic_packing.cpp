@@ -1378,7 +1378,8 @@ std::vector<PeriodicPacking> compute_periodic_packings_from_nfps(
 std::vector<PeriodicItemPacking> packingsolver::irregular::compute_periodic_packings_for_item_type(
         const std::vector<ShapeWithHoles>& item_shapes,
         const std::vector<ItemTypeRotation>& rotations,
-        LengthDbl item_item_minimum_spacing)
+        LengthDbl item_item_minimum_spacing,
+        const optimizationtools::Timer* timer)
 {
     std::vector<PeriodicItemPacking> output;
 
@@ -1455,6 +1456,8 @@ std::vector<PeriodicItemPacking> packingsolver::irregular::compute_periodic_pack
     for (int rot_0_pos = 0;
             rot_0_pos < (int)rotations.size();
             ++rot_0_pos) {
+        if (timer != nullptr && timer->needs_to_end())
+            return output;
         const ItemTypeRotation& rot_0 = rotations[rot_0_pos];
         ShapeWithHoles shape_0 = compute_combined_shape(item_shapes, rot_0);
 
@@ -1539,7 +1542,11 @@ std::vector<PeriodicItemPacking> packingsolver::irregular::compute_periodic_pack
                 }
             };
 
+            if (timer != nullptr && timer->needs_to_end())
+                return output;
             add_two_shape_packings(rot_0, shape_0, rot_r, shape_r);
+            if (timer != nullptr && timer->needs_to_end())
+                return output;
             add_two_shape_packings(rot_r, shape_r, rot_0, shape_0);
         }
     }
@@ -2100,7 +2107,8 @@ AreaDbl rectangle_area(const AxisAlignedBoundingBox& rectangle)
 std::vector<PeriodicItemPacking> packingsolver::irregular::compute_wrapping_periodic_packings(
         const std::vector<PeriodicPackingItemType>& item_types,
         const std::vector<PeriodicItemPacking>& periodic_packings,
-        LengthDbl item_item_minimum_spacing)
+        LengthDbl item_item_minimum_spacing,
+        const optimizationtools::Timer* timer)
 {
     // Minimum ratio between the area of the empty side rectangle of a
     // wrapper and the area of its bounding box.
@@ -2178,6 +2186,8 @@ std::vector<PeriodicItemPacking> packingsolver::irregular::compute_wrapping_peri
             ++wrapper_pos) {
         const PeriodicPackingItemType& wrapper_item_type = item_types[wrapper_pos];
         for (const ItemTypeRotation& rotation_1: wrapper_item_type.rotations) {
+            if (timer != nullptr && timer->needs_to_end())
+                return {};
             // The rotation r + 180 of the second wrapper, as given in the
             // allowed rotations.
             const ItemTypeRotation* rotation_2 = nullptr;
@@ -2274,6 +2284,8 @@ std::vector<PeriodicItemPacking> packingsolver::irregular::compute_wrapping_peri
                 }
 
                 for (const auto& sorted_base: sorted_bases) {
+                    if (timer != nullptr && timer->needs_to_end())
+                        return {};
                     const WrappingBase& base = bases[sorted_base.second];
                     Point position_1;
                     Point position_2;
@@ -2468,7 +2480,7 @@ void packingsolver::irregular::complete_periodic_packings(
         const Instance& instance,
         std::vector<bool>& item_type_periodic_packings_computed,
         std::vector<PeriodicItemPacking>& periodic_packings,
-        const bool& end)
+        const optimizationtools::Timer& timer)
 {
     item_type_periodic_packings_computed.resize(instance.number_of_item_types(), false);
     if (instance.number_of_bin_types() > 0) {
@@ -2520,11 +2532,28 @@ void packingsolver::irregular::complete_periodic_packings(
         bool item_type_rotations_computed = false;
         // Item types whose periodic packings are computed in this call.
         std::vector<bool> periodic_packings_computed_here(instance.number_of_item_types(), false);
+        // If the computation is interrupted, everything computed in this call
+        // is discarded: the wrapping periodic packings between the item
+        // types computed in this call are only computed at the end, and
+        // the next call only computes those of the item types it computes.
+        ItemPos number_of_periodic_packings_before = periodic_packings.size();
+        auto discard = [&]()
+        {
+            periodic_packings.resize(number_of_periodic_packings_before);
+            for (ItemTypeId item_type_id = 0;
+                    item_type_id < instance.number_of_item_types();
+                    ++item_type_id) {
+                if (periodic_packings_computed_here[item_type_id])
+                    item_type_periodic_packings_computed[item_type_id] = false;
+            }
+        };
         for (ItemTypeId item_type_id = 0;
                 item_type_id < instance.number_of_item_types();
                 ++item_type_id) {
-            if (end)
+            if (timer.needs_to_end()) {
+                discard();
                 return;
+            }
             const ItemType& item_type = instance.item_type(item_type_id);
             if (!item_type_periodic_packings_computed[item_type_id]) {
                 periodic_packings_computed_here[item_type_id] = true;
@@ -2559,7 +2588,12 @@ void packingsolver::irregular::complete_periodic_packings(
                             = compute_periodic_packings_for_item_type(
                                     item_shapes,
                                     item_type_rotations[item_type_id],
-                                    item_item_minimum_spacing);
+                                    item_item_minimum_spacing,
+                                    &timer);
+                        if (timer.needs_to_end()) {
+                            discard();
+                            return;
+                        }
                         for (PeriodicItemPacking& item_packing: item_type_packings) {
                             for (SolutionItem& item: item_packing.items)
                                 item.item_type_id = item_type_id;
@@ -2587,8 +2621,10 @@ void packingsolver::irregular::complete_periodic_packings(
             if (periodic_packings_computed_here[item_type_id])
                 compute_wrapping_periodic_packings_needed = true;
         }
-        if (end)
+        if (timer.needs_to_end()) {
+            discard();
             return;
+        }
         if (compute_wrapping_periodic_packings_needed
                 && number_of_wrapping_item_types >= 2) {
             if (!simplified_instance_computed) {
@@ -2626,37 +2662,43 @@ void packingsolver::irregular::complete_periodic_packings(
                 wrapping_item_types.push_back(wrapping_item_type);
             }
             std::vector<PeriodicItemPacking> single_item_type_packings = periodic_packings;
-            for (PeriodicItemPacking& packing: compute_wrapping_periodic_packings(
+            std::vector<PeriodicItemPacking> wrapping_periodic_packings
+                = compute_wrapping_periodic_packings(
                         wrapping_item_types,
                         single_item_type_packings,
-                        item_item_minimum_spacing)) {
-                periodic_packings.push_back(std::move(packing));
+                        item_item_minimum_spacing,
+                        &timer);
+            if (timer.needs_to_end()) {
+                discard();
+                return;
             }
+            for (PeriodicItemPacking& packing: wrapping_periodic_packings)
+                periodic_packings.push_back(std::move(packing));
         }
     }
 
 }
 
 const std::vector<PeriodicItemPacking>* Instance::get_periodic_packings(
-        const bool& end) const
+        const optimizationtools::Timer& timer) const
 {
     if (periodic_packings_cache_->computed.load(std::memory_order_acquire))
         return &periodic_packings_cache_->periodic_packings;
-    if (end)
+    if (timer.needs_to_end())
         return nullptr;
     // Only one thread computes the periodic packings; the other ones wait
     // for it.
     std::lock_guard<std::mutex> lock(periodic_packings_cache_->mutex);
     if (periodic_packings_cache_->computed.load(std::memory_order_acquire))
         return &periodic_packings_cache_->periodic_packings;
-    // The periodic packings computed before an interruption are kept: the
-    // next call only computes the remaining ones.
     complete_periodic_packings(
             *this,
             periodic_packings_cache_->item_type_periodic_packings_computed,
             periodic_packings_cache_->periodic_packings,
-            end);
-    if (end)
+            timer);
+    // If the computation was interrupted, 'needs_to_end' is still true
+    // ('needs_to_end' can't become false again).
+    if (timer.needs_to_end())
         return nullptr;
     periodic_packings_cache_->computed.store(true, std::memory_order_release);
     return &periodic_packings_cache_->periodic_packings;

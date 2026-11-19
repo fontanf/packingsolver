@@ -1108,8 +1108,9 @@ const packingsolver::rectangleguillotine::TreeSearchMaximalSpacesOutput packings
     algorithm_formatter.start();
     algorithm_formatter.print_header();
 
-    const std::vector<std::vector<Block>>* blocks
-        = instance.get_blocks(algorithm_formatter.end_boolean());
+    optimizationtools::Timer blocks_timer = parameters.timer;
+    blocks_timer.add_end_boolean(&algorithm_formatter.end_boolean());
+    const std::vector<std::vector<Block>>* blocks = instance.get_blocks(blocks_timer);
     if (blocks == nullptr) {
         algorithm_formatter.end();
         return output;

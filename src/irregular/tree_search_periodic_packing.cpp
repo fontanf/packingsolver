@@ -1469,8 +1469,8 @@ BranchingSchemePeriodicPacking::BranchingSchemePeriodicPacking(
 
     // Computed by 'tree_search_periodic_packing' before building the branching
     // scheme, unless the branching scheme is built directly.
-    bool end = false;
-    std::vector<PeriodicItemPacking> packings = *instance_.get_periodic_packings(end);
+    std::vector<PeriodicItemPacking> packings
+        = *instance_.get_periodic_packings(optimizationtools::Timer());
 
     // compute_item_type_rotations returns [bin_type_id][item_type_id][rotation_idx].
     // Use the first bin type's rotations. This is cheap relative to
@@ -2254,7 +2254,9 @@ packingsolver::irregular::tree_search_periodic_packing(
 
     // Compute the periodic packings before building the branching scheme, so
     // that the computation stops if the algorithm has to end.
-    if (instance.get_periodic_packings(algorithm_formatter.end_boolean()) == nullptr) {
+    optimizationtools::Timer periodic_packings_timer = parameters.timer;
+    periodic_packings_timer.add_end_boolean(&algorithm_formatter.end_boolean());
+    if (instance.get_periodic_packings(periodic_packings_timer) == nullptr) {
         algorithm_formatter.end();
         return output;
     }

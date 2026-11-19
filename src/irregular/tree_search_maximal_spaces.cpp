@@ -389,10 +389,9 @@ void BranchingSchemeMaximalSpaces::compute_blocks()
     // geometry, packing the items one by one does at least as well. The
     // blocks which exceed the capacity of a resource which is not penalized
     // are already discarded.
-    bool end = false;
     std::vector<PeriodicBlock> periodic_blocks = compute_periodic_blocks(
             instance(),
-            *instance().get_periodic_packings(end),
+            *instance().get_periodic_packings(optimizationtools::Timer()),
             compute_item_type_rotations(instance())[bin_type_id]);
     for (const PeriodicBlock& periodic_block: periodic_blocks) {
         if (periodic_block.packing_id < 0)
@@ -1121,7 +1120,9 @@ const packingsolver::irregular::TreeSearchMaximalSpacesOutput packingsolver::irr
 
     // Compute the periodic packings before building the branching schemes, so
     // that the computation stops if the algorithm has to end.
-    if (instance.get_periodic_packings(algorithm_formatter.end_boolean()) == nullptr) {
+    optimizationtools::Timer periodic_packings_timer = parameters.timer;
+    periodic_packings_timer.add_end_boolean(&algorithm_formatter.end_boolean());
+    if (instance.get_periodic_packings(periodic_packings_timer) == nullptr) {
         algorithm_formatter.end();
         return output;
     }

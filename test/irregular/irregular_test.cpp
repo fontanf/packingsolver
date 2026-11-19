@@ -400,13 +400,15 @@ TEST(Irregular, InstanceCacheSubInstance)
     packingsolver::ItemTypeId item_type_id_1 = instance_builder.add_item_type(
             {{build_shape({{0, 0}, {30, 0}, {30, 10}, {15, 12}, {0, 10}})}});
     Instance instance = instance_builder.build();
-    // With 'end' true, 'get_simplified_instance' only returns the simplified
-    // shapes already computed.
-    bool end_true = true;
-    bool end_false = false;
-    EXPECT_EQ(instance.get_simplified_instance(0.2, end_true), nullptr);
-    ASSERT_NE(instance.get_simplified_instance(0.2, end_false), nullptr);
-    const SimplifiedInstance& simplified_instance = *instance.get_simplified_instance(0.2, end_true);
+    // With a timer which already needs to end, 'get_simplified_instance'
+    // only returns the simplified shapes already computed.
+    bool end = true;
+    optimizationtools::Timer ended_timer;
+    ended_timer.add_end_boolean(&end);
+    optimizationtools::Timer timer;
+    EXPECT_EQ(instance.get_simplified_instance(0.2, ended_timer), nullptr);
+    ASSERT_NE(instance.get_simplified_instance(0.2, timer), nullptr);
+    const SimplifiedInstance& simplified_instance = *instance.get_simplified_instance(0.2, ended_timer);
 
     // Sub-instance with the item types in the reverse order: the simplified
     // shapes are carried over with the ids of the sub-instance.
@@ -418,8 +420,8 @@ TEST(Irregular, InstanceCacheSubInstance)
     sub_instance_builder.add_item_type_from_original_instance(item_type_id_1);
     sub_instance_builder.add_item_type_from_original_instance(item_type_id_0);
     Instance sub_instance = sub_instance_builder.build();
-    ASSERT_NE(sub_instance.get_simplified_instance(0.2, end_true), nullptr);
-    const SimplifiedInstance& sub_simplified_instance = *sub_instance.get_simplified_instance(0.2, end_true);
+    ASSERT_NE(sub_instance.get_simplified_instance(0.2, ended_timer), nullptr);
+    const SimplifiedInstance& sub_simplified_instance = *sub_instance.get_simplified_instance(0.2, ended_timer);
     ASSERT_EQ(sub_simplified_instance.item_types.size(), 2);
     ASSERT_EQ(sub_simplified_instance.bin_types.size(), 1);
     EXPECT_EQ(
@@ -439,7 +441,7 @@ TEST(Irregular, InstanceCacheSubInstance)
     sub_instance_builder_2.add_bin_type_from_original_instance(0);
     sub_instance_builder_2.add_item_type_from_original_instance(item_type_id_0);
     Instance sub_instance_2 = sub_instance_builder_2.build();
-    EXPECT_EQ(sub_instance_2.get_simplified_instance(0.2, end_true), nullptr);
+    EXPECT_EQ(sub_instance_2.get_simplified_instance(0.2, ended_timer), nullptr);
 
     // Sub-instance with an item type which doesn't come from the original
     // instance: the simplified shapes are not carried over.
@@ -451,7 +453,7 @@ TEST(Irregular, InstanceCacheSubInstance)
     sub_instance_builder_3.add_item_type_from_original_instance(item_type_id_0);
     sub_instance_builder_3.add_item_type({{build_rectangle(5, 5)}});
     Instance sub_instance_3 = sub_instance_builder_3.build();
-    EXPECT_EQ(sub_instance_3.get_simplified_instance(0.2, end_true), nullptr);
+    EXPECT_EQ(sub_instance_3.get_simplified_instance(0.2, ended_timer), nullptr);
 
     // Sub-instance with a cropped bin type: the simplified shapes are not
     // carried over.
@@ -464,7 +466,7 @@ TEST(Irregular, InstanceCacheSubInstance)
     sub_instance_builder_4.crop_bin_type(sub_bin_type_id_4, 50, 50);
     sub_instance_builder_4.add_item_type_from_original_instance(item_type_id_0);
     Instance sub_instance_4 = sub_instance_builder_4.build();
-    EXPECT_EQ(sub_instance_4.get_simplified_instance(0.2, end_true), nullptr);
+    EXPECT_EQ(sub_instance_4.get_simplified_instance(0.2, ended_timer), nullptr);
 }
 
 TEST(Irregular, WriteJsonRoundTripGoals)

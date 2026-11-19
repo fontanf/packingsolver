@@ -256,7 +256,7 @@ SimplifiedInstance irregular::shape_simplification(
 
 const SimplifiedInstance* Instance::get_simplified_instance(
         double maximum_approximation_ratio,
-        const bool& end) const
+        const optimizationtools::Timer& timer) const
 {
     typedef std::map<double, std::shared_ptr<const SimplifiedInstance>> SimplifiedInstances;
     std::shared_ptr<const SimplifiedInstances> simplified_instances
@@ -264,7 +264,7 @@ const SimplifiedInstance* Instance::get_simplified_instance(
     auto it = simplified_instances->find(maximum_approximation_ratio);
     if (it != simplified_instances->end())
         return it->second.get();
-    if (end)
+    if (timer.needs_to_end())
         return nullptr;
     // Only one thread computes simplified shapes; the other ones wait for it.
     std::lock_guard<std::mutex> lock(simplified_instances_cache_->mutex);

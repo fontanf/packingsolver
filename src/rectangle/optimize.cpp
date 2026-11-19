@@ -391,7 +391,9 @@ void request_blocks(
             || mean_number_of_items_in_y_section <= parameters.many_items_in_section_threshold) {
         return;
     }
-    instance.get_blocks(algorithm_formatter.end_boolean());
+    optimizationtools::Timer blocks_timer = parameters.timer;
+    blocks_timer.add_end_boolean(&algorithm_formatter.end_boolean());
+    instance.get_blocks(blocks_timer);
 }
 
 void optimize_sequential_single_knapsack(
