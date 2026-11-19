@@ -536,6 +536,22 @@ void optimize_local_search_direct_trigonometry(
             LocalSearchEngine::DirectTrigonometry);
 }
 
+/**
+ * Compute the periodic packings of 'instance' (see
+ * 'Instance::get_periodic_packings') before solving its sub-instances, so
+ * that the sub-instances get them from 'instance' instead of each
+ * computing them again.
+ */
+void request_periodic_packings(
+        const Instance& instance,
+        const OptimizeParameters& parameters,
+        AlgorithmFormatter& algorithm_formatter)
+{
+    optimizationtools::Timer periodic_packings_timer = parameters.timer;
+    periodic_packings_timer.add_end_boolean(&algorithm_formatter.end_boolean());
+    instance.get_periodic_packings(periodic_packings_timer);
+}
+
 void optimize_sequential_single_knapsack(
         const Instance& instance,
         const OptimizeParameters& parameters,
@@ -543,6 +559,7 @@ void optimize_sequential_single_knapsack(
         Counter queue_size_max,
         Counter maximum_number_of_iterations)
 {
+    request_periodic_packings(instance, parameters, algorithm_formatter);
     double maximum_approximation_ratio = parameters.initial_maximum_approximation_ratio;
     for (Counter iteration = 0, growth_factor = 1;; ++iteration) {
         // The effort of each algorithm of the subproblems grows from its own
@@ -659,6 +676,7 @@ void optimize_sequential_value_correction(
         const OptimizeParameters& parameters,
         AlgorithmFormatter& algorithm_formatter)
 {
+    request_periodic_packings(instance, parameters, algorithm_formatter);
     if (parameters.optimization_mode == OptimizationMode::Anytime
             || parameters.optimization_mode == OptimizationMode::Exact) {
         optimize_sequential_single_knapsack(
@@ -727,6 +745,7 @@ void optimize_dichotomic_search(
         const OptimizeParameters& parameters,
         AlgorithmFormatter& algorithm_formatter)
 {
+    request_periodic_packings(instance, parameters, algorithm_formatter);
     double waste_percentage_upper_bound = std::numeric_limits<double>::infinity();
     double maximum_approximation_ratio = parameters.initial_maximum_approximation_ratio;
     for (Counter queue_size = 1;;) {
@@ -802,6 +821,7 @@ void optimize_column_generation(
         const OptimizeParameters& parameters,
         AlgorithmFormatter& algorithm_formatter)
 {
+    request_periodic_packings(instance, parameters, algorithm_formatter);
     ColumnGenerationPricingFunction<Instance, InstanceBuilder, Solution, irregular::Output> pricing_function
         = [&algorithm_formatter, &parameters](const Instance& kp_instance, PricingType pricing_type)
         {
