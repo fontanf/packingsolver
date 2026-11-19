@@ -144,21 +144,22 @@ Instance build_instance_with_blocks()
     instance_builder.set_item_type_copies(instance_builder.add_item_type(2, 9), 3);
     instance_builder.set_item_type_copies(instance_builder.add_item_type(8, 3), 2);
     Instance instance = instance_builder.build();
-    bool end = false;
-    instance.get_blocks(end);
+    instance.get_blocks(optimizationtools::Timer());
     return instance;
 }
 
 /**
  * Blocks of 'instance' if they have already been computed (or copied from
- * an original instance), 'nullptr' otherwise: with 'end' already true,
- * 'Instance::get_blocks' doesn't compute them.
+ * an original instance), 'nullptr' otherwise: with a timer which already
+ * needs to end, 'Instance::get_blocks' doesn't compute them.
  */
 const std::vector<std::vector<Block>>* computed_blocks(
         const Instance& instance)
 {
     bool end = true;
-    return instance.get_blocks(end);
+    optimizationtools::Timer timer;
+    timer.add_end_boolean(&end);
+    return instance.get_blocks(timer);
 }
 
 using BlockKey = std::pair<std::pair<Length, Length>, std::vector<std::pair<ItemTypeId, ItemPos>>>;

@@ -54,11 +54,15 @@ std::vector<PeriodicPacking> compute_periodic_packings(
  * The returned PeriodicItemPacking::items do not have item_type_id set
  * (this function has no item type identity to give them); the caller is
  * responsible for filling it in.
+ *
+ * If 'timer' needs to end, the computation stops and the returned periodic
+ * packings may be missing some.
  */
 std::vector<PeriodicItemPacking> compute_periodic_packings_for_item_type(
         const std::vector<ShapeWithHoles>& item_shapes,
         const std::vector<ItemTypeRotation>& rotations,
-        LengthDbl item_item_minimum_spacing = 0.0);
+        LengthDbl item_item_minimum_spacing = 0.0,
+        const optimizationtools::Timer* timer = nullptr);
 
 std::vector<PeriodicItemPacking> compute_periodic_packings(
         const Instance& instance,
@@ -74,15 +78,15 @@ std::vector<PeriodicItemPacking> compute_periodic_packings(
  * The periodic packings are only computed for the item types with more than
  * 16 copies whose simplified shapes have at most 300 vertices.
  *
- * If 'end' becomes true, the computation stops: the item types whose
- * periodic packings are not computed keep
- * 'item_type_periodic_packings_computed' false.
+ * If 'timer' needs to end, the computation stops and the periodic packings
+ * computed in this call are discarded: 'periodic_packings' and
+ * 'item_type_periodic_packings_computed' are left unchanged.
  */
 void complete_periodic_packings(
         const Instance& instance,
         std::vector<bool>& item_type_periodic_packings_computed,
         std::vector<PeriodicItemPacking>& periodic_packings,
-        const bool& end);
+        const optimizationtools::Timer& timer);
 
 /** Side of an axis-aligned bounding box. */
 enum class BoundingBoxSide
@@ -163,11 +167,15 @@ struct PeriodicPackingItemType
  *
  * The returned PeriodicItemPacking::items have the item type ids of
  * 'item_types'.
+ *
+ * If 'timer' needs to end, the computation stops and the returned periodic
+ * packings may be missing some.
  */
 std::vector<PeriodicItemPacking> compute_wrapping_periodic_packings(
         const std::vector<PeriodicPackingItemType>& item_types,
         const std::vector<PeriodicItemPacking>& periodic_packings,
-        LengthDbl item_item_minimum_spacing);
+        LengthDbl item_item_minimum_spacing,
+        const optimizationtools::Timer* timer = nullptr);
 
 /** Return true iff all the items of 'packing' have the same item type. */
 bool periodic_packing_has_single_item_type(

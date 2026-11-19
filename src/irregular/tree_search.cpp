@@ -100,10 +100,14 @@ SimplifiedInstance compute_simplified_instance(
         const Instance& instance,
         double maximum_approximation_ratio)
 {
+    // Already ended, so that the simplified shapes are only returned if
+    // they have already been computed.
     bool end = true;
+    optimizationtools::Timer timer;
+    timer.add_end_boolean(&end);
     const SimplifiedInstance* simplified_instance = instance.get_simplified_instance(
             maximum_approximation_ratio,
-            end);
+            timer);
     if (simplified_instance != nullptr)
         return *simplified_instance;
     return shape_simplification(instance, maximum_approximation_ratio);

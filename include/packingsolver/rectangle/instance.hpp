@@ -1,6 +1,8 @@
 #pragma once
 
 #include "packingsolver/algorithms/common.hpp"
+
+#include "optimizationtools/utils/timer.hpp"
 #include "packingsolver/algorithms/resource.hpp"
 #include "packingsolver/algorithms/truck.hpp"
 
@@ -420,11 +422,13 @@ public:
      * them again. This method may be called from several threads: a call
      * waits until the blocks are computed by another one.
      *
-     * Return 'nullptr' if 'end' becomes true before the blocks are computed;
-     * they are then not stored. In particular, if 'end' is already true, the
-     * blocks are only returned if they have already been computed.
+     * Return 'nullptr' if 'timer' needs to end before the blocks are
+     * computed; the computation stops then, and they are not stored. In
+     * particular, if 'timer' already needs to end, the blocks are only
+     * returned if they have already been computed.
      */
-    const std::vector<std::vector<Block>>* get_blocks(const bool& end) const;
+    const std::vector<std::vector<Block>>* get_blocks(
+            const optimizationtools::Timer& timer) const;
 
     /** Get unloading constraint type. */
     inline UnloadingConstraint unloading_constraint() const { return parameters_.unloading_constraint; }

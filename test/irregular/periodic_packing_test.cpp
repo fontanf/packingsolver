@@ -30,20 +30,22 @@ namespace
 const std::vector<PeriodicItemPacking>& periodic_packings(
         const Instance& instance)
 {
-    bool end = false;
-    return *instance.get_periodic_packings(end);
+    return *instance.get_periodic_packings(optimizationtools::Timer());
 }
 
 /**
  * Periodic packings of 'instance' if they have already been computed (or
- * copied from an original instance), 'nullptr' otherwise: with 'end' already
- * true, 'Instance::get_periodic_packings' doesn't compute them.
+ * copied from an original instance), 'nullptr' otherwise: with a timer
+ * which already needs to end, 'Instance::get_periodic_packings' doesn't
+ * compute them.
  */
 const std::vector<PeriodicItemPacking>* computed_periodic_packings(
         const Instance& instance)
 {
     bool end = true;
-    return instance.get_periodic_packings(end);
+    optimizationtools::Timer timer;
+    timer.add_end_boolean(&end);
+    return instance.get_periodic_packings(timer);
 }
 
 }

@@ -102,13 +102,13 @@ std::vector<Block> compute_simple_blocks(
  *
  * Returns one vector of blocks per bin type (indexed by BinTypeId).
  *
- * If 'end' is not 'nullptr' and becomes true, the generation stops and the
+ * If 'timer' is not 'nullptr' and needs to end, the generation stops and the
  * blocks returned are incomplete.
  */
 std::vector<std::vector<Block>> compute_blocks(
         const Instance& instance,
         const BlockParameters& parameters = {},
-        const bool* end = nullptr);
+        const optimizationtools::Timer* timer = nullptr);
 
 } // namespace rectangleguillotine
 } // namespace packingsolver

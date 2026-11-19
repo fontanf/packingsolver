@@ -169,7 +169,7 @@ std::vector<Block> compute_blocks_for_bin(
         const Instance& instance,
         BinTypeId bin_type_id,
         const BlockParameters& parameters,
-        const bool* end)
+        const optimizationtools::Timer* timer)
 {
     const BinType& bin_type = instance.bin_type(bin_type_id);
     Box bin_box = bin_type.box;
@@ -219,7 +219,7 @@ std::vector<Block> compute_blocks_for_bin(
         if (parameters.maximum_number_of_blocks != -1
                 && (ItemPos)returned_blocks.size() >= parameters.maximum_number_of_blocks)
             break;
-        if (end != nullptr && *end)
+        if (timer != nullptr && timer->needs_to_end())
             break;
 
         auto it = std::prev(blocks_to_process.end());
@@ -608,18 +608,18 @@ std::vector<Block> packingsolver::box::copy_blocks(
 }
 
 const std::vector<std::vector<Block>>* Instance::get_blocks(
-        const bool& end) const
+        const optimizationtools::Timer& timer) const
 {
     if (blocks_cache_->computed.load(std::memory_order_acquire))
         return &blocks_cache_->blocks;
-    if (end)
+    if (timer.needs_to_end())
         return nullptr;
     // Only one thread computes the blocks; the other ones wait for it.
     std::lock_guard<std::mutex> lock(blocks_cache_->mutex);
     if (blocks_cache_->computed.load(std::memory_order_acquire))
         return &blocks_cache_->blocks;
-    std::vector<std::vector<Block>> blocks = compute_blocks(*this, BlockParameters(), &end);
-    if (end)
+    std::vector<std::vector<Block>> blocks = compute_blocks(*this, BlockParameters(), &timer);
+    if (timer.needs_to_end())
         return nullptr;
     blocks_cache_->blocks = std::move(blocks);
     blocks_cache_->computed.store(true, std::memory_order_release);
@@ -629,7 +629,7 @@ const std::vector<std::vector<Block>>* Instance::get_blocks(
 std::vector<std::vector<Block>> packingsolver::box::compute_blocks(
     const Instance& instance,
     const BlockParameters& parameters,
-    const bool* end)
+    const optimizationtools::Timer* timer)
 {
     std::vector<std::vector<Block>> result(instance.number_of_bin_types());
     for (BinTypeId bin_type_id = 0;
@@ -639,7 +639,7 @@ std::vector<std::vector<Block>> packingsolver::box::compute_blocks(
                 instance,
                 bin_type_id,
                 parameters,
-                end);
+                timer);
     }
     return result;
 }
