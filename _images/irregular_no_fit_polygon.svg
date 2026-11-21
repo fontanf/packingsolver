@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="826.0" height="223.6" viewBox="-75.0 -114.0 826.0 223.6">
+<defs><marker id="arrow0" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#b85450"/></marker></defs>
+<rect x="-75.0" y="-114.0" width="826.0" height="223.6" fill="#ffffff"/>
+<polygon points="0,0 104,0 104,-52 0,-52" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="52.0" y="-21.8">A</tspan></text>
+<polygon points="67.6,-31.2 119.6,-31.2 93.6,-83.2" fill="#f8cecc" stroke="#b85450" stroke-width="1" opacity="0.8"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="93.6" y="-44.33">B</tspan></text>
+<ellipse cx="67.6" cy="-31.2" rx="2.08" ry="2.08" fill="#000000" stroke="#000000" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="52.0" y="82.2">the items overlap</tspan></text>
+<polygon points="234,0 260,52 364,52 390,0 390,-52 234,-52" fill="#fff2cc" stroke="#d6b656" stroke-width="1"/>
+<polygon points="286,0 390,0 390,-52 286,-52" fill="none" stroke="#6c8ebf" stroke-width="1" stroke-dasharray="3 3"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="338.0" y="-21.8">A</tspan></text>
+<polyline points="353.6,-31.2 353.6,-52.0" fill="none" stroke="#b85450" stroke-width="2" marker-end="url(#arrow0)"/>
+<ellipse cx="353.6" cy="-31.2" rx="2.08" ry="2.08" fill="#000000" stroke="#000000" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="338.0" y="67.8">no-fit polygon: the reference point of B</tspan><tspan x="338.0" y="82.2">is inside, at the penetration depth from</tspan><tspan x="338.0" y="96.6">its boundary</tspan></text>
+<polygon points="572,0 676,0 676,-52 572,-52" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="624.0" y="-21.8">A</tspan></text>
+<polygon points="639.6,-52.0 691.6,-52.0 665.6,-104.0" fill="#f8cecc" stroke="#b85450" stroke-width="1" opacity="0.8"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="665.6" y="-65.13">B</tspan></text>
+<ellipse cx="639.6" cy="-52.0" rx="2.08" ry="2.08" fill="#000000" stroke="#000000" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="624.0" y="75.0">B moved by the penetration depth: the</tspan><tspan x="624.0" y="89.4">items touch</tspan></text>
+</svg>

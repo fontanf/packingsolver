@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="628" height="404" viewBox="-10 -106 628 404">
+<rect x="-10" y="-106" width="628" height="404" fill="#ffffff"/>
+<polygon points="240.0,0 256.0,0 256.0,-16 272.0,-16 272.0,-32 256.0,-32 256.0,-48 240.0,-48" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<polygon points="256.0,0 304.0,0 304.0,-32 288.0,-32 288.0,-16 256.0,-16" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<rect x="240.0" y="-96" width="128" height="96" fill="none" stroke="#000000" stroke-width="2"/>
+<polygon points="299.0,8.0 309.0,8.0 309.0,34.0 315.0,34.0 304.0,48.0 293.0,34.0 299.0,34.0" fill="#ffffff" stroke="#000000"/>
+<polygon points="0,160 16,160 16,144 32,144 32,128 16,128 16,112 0,112" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<polygon points="16,160 64,160 64,128 48,128 48,144 16,144" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<polygon points="0,112 16,112 16,128 32,128 32,112 48,112 48,96 32,96 32,80 16,80 16,96 0,96" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<rect x="0" y="64" width="128" height="96" fill="none" stroke="#000000" stroke-width="2"/>
+<polygon points="160,160 176,160 176,144 192,144 192,128 176,128 176,112 160,112" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<polygon points="176,160 224,160 224,128 208,128 208,144 176,144" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<polygon points="176,128 192,128 192,144 208,144 208,128 224,128 224,112 208,112 208,96 192,96 192,112 176,112" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<rect x="160" y="64" width="128" height="96" fill="none" stroke="#000000" stroke-width="2"/>
+<polygon points="320,160 336,160 336,144 352,144 352,128 336,128 336,112 320,112" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<polygon points="336,160 384,160 384,128 368,128 368,144 336,144" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<polygon points="368,128 384,128 384,144 400,144 400,128 416,128 416,112 400,112 400,96 384,96 384,112 368,112" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<rect x="320" y="64" width="128" height="96" fill="none" stroke="#000000" stroke-width="2"/>
+<polygon points="480,160 496,160 496,144 512,144 512,128 496,128 496,112 480,112" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<polygon points="496,160 544,160 544,128 528,128 528,144 496,144" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<polygon points="544,144 560,144 560,160 576,160 576,144 592,144 592,128 576,128 576,112 560,112 560,128 544,128" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<rect x="480" y="64" width="128" height="96" fill="none" stroke="#000000" stroke-width="2"/>
+<polygon points="80.0,288 96.0,288 96.0,272 112.0,272 112.0,256 96.0,256 96.0,240 80.0,240" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<polygon points="96.0,288 144.0,288 144.0,256 128.0,256 128.0,272 96.0,272" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<polygon points="80.0,240 128.0,240 80.0,192" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<rect x="80.0" y="192" width="128" height="96" fill="none" stroke="#000000" stroke-width="2"/>
+<polygon points="240.0,288 256.0,288 256.0,272 272.0,272 272.0,256 256.0,256 256.0,240 240.0,240" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<polygon points="256.0,288 304.0,288 304.0,256 288.0,256 288.0,272 256.0,272" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<polygon points="256.0,256 304.0,256 256.0,208" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<rect x="240.0" y="192" width="128" height="96" fill="none" stroke="#000000" stroke-width="2"/>
+<polygon points="400.0,288 416.0,288 416.0,272 432.0,272 432.0,256 416.0,256 416.0,240 400.0,240" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<polygon points="416.0,288 464.0,288 464.0,256 448.0,256 448.0,272 416.0,272" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<polygon points="464.0,288 512.0,288 464.0,240" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<rect x="400.0" y="192" width="128" height="96" fill="none" stroke="#000000" stroke-width="2"/>
+</svg>

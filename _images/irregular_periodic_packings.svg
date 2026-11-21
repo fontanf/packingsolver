@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="452.0" height="508.4" viewBox="-34.0 -202 452.0 508.4">
+<defs><marker id="arrow0" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#000000"/></marker></defs>
+<rect x="-34.0" y="-202" width="452.0" height="508.4" fill="#ffffff"/>
+<polygon points="12,-48 36,-48 48,-72 36,-96 12,-96 0,-72" fill="#f8cecc" stroke="#b85450" stroke-width="1" opacity="0.55"/>
+<polygon points="12,-96 36,-96 48,-120 36,-144 12,-144 0,-120" fill="#f8cecc" stroke="#b85450" stroke-width="1" opacity="0.55"/>
+<polygon points="60,0 84,0 96,-24 84,-48 60,-48 48,-24" fill="#f8cecc" stroke="#b85450" stroke-width="1" opacity="0.55"/>
+<polygon points="60,-48 84,-48 96,-72 84,-96 60,-96 48,-72" fill="#f8cecc" stroke="#b85450" stroke-width="1" opacity="0.55"/>
+<polygon points="60,-96 84,-96 96,-120 84,-144 60,-144 48,-120" fill="#f8cecc" stroke="#b85450" stroke-width="1" opacity="0.55"/>
+<polygon points="108,0 132,0 144,-24 132,-48 108,-48 96,-24" fill="#f8cecc" stroke="#b85450" stroke-width="1" opacity="0.55"/>
+<polygon points="108,-48 132,-48 144,-72 132,-96 108,-96 96,-72" fill="#f8cecc" stroke="#b85450" stroke-width="1" opacity="0.55"/>
+<polygon points="108,-96 132,-96 144,-120 132,-144 108,-144 96,-120" fill="#f8cecc" stroke="#b85450" stroke-width="1" opacity="0.55"/>
+<polygon points="12,0 36,0 48,-24 36,-48 12,-48 0,-24" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<polyline points="0,0 48,0" fill="none" stroke="#000000" stroke-width="2" marker-end="url(#arrow0)"/>
+<polyline points="0,0 0,-48" fill="none" stroke="#000000" stroke-width="2" marker-end="url(#arrow0)"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="78.0" y="34.2">a single item, horizontal lattice</tspan></text>
+<polygon points="276,-24 300,-24 312,-48 300,-72 276,-72 264,-48" fill="#f8cecc" stroke="#b85450" stroke-width="1" opacity="0.55"/>
+<polygon points="312,-48 336,-48 348,-72 336,-96 312,-96 300,-72" fill="#f8cecc" stroke="#b85450" stroke-width="1" opacity="0.55"/>
+<polygon points="240,-48 264,-48 276,-72 264,-96 240,-96 228,-72" fill="#f8cecc" stroke="#b85450" stroke-width="1" opacity="0.55"/>
+<polygon points="276,-72 300,-72 312,-96 300,-120 276,-120 264,-96" fill="#f8cecc" stroke="#b85450" stroke-width="1" opacity="0.55"/>
+<polygon points="312,-96 336,-96 348,-120 336,-144 312,-144 300,-120" fill="#f8cecc" stroke="#b85450" stroke-width="1" opacity="0.55"/>
+<polygon points="240,-96 264,-96 276,-120 264,-144 240,-144 228,-120" fill="#f8cecc" stroke="#b85450" stroke-width="1" opacity="0.55"/>
+<polygon points="276,-120 300,-120 312,-144 300,-168 276,-168 264,-144" fill="#f8cecc" stroke="#b85450" stroke-width="1" opacity="0.55"/>
+<polygon points="312,-144 336,-144 348,-168 336,-192 312,-192 300,-168" fill="#f8cecc" stroke="#b85450" stroke-width="1" opacity="0.55"/>
+<polygon points="240,0 264,0 276,-24 264,-48 240,-48 228,-24" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<polyline points="228,0 228,-48" fill="none" stroke="#000000" stroke-width="2" marker-end="url(#arrow0)"/>
+<polyline points="228,0 264,-24" fill="none" stroke="#000000" stroke-width="2" marker-end="url(#arrow0)"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="306.0" y="34.2">a single item, vertical lattice</tspan></text>
+<polygon points="0,216 36,216 0,180" fill="#f8cecc" stroke="#b85450" stroke-width="1" opacity="0.55"/>
+<polygon points="36,180 0,180 36,216" fill="#fff2cc" stroke="#d6b656" stroke-width="1" opacity="0.55"/>
+<polygon points="0,180 36,180 0,144" fill="#f8cecc" stroke="#b85450" stroke-width="1" opacity="0.55"/>
+<polygon points="36,144 0,144 36,180" fill="#fff2cc" stroke="#d6b656" stroke-width="1" opacity="0.55"/>
+<polygon points="36,252 72,252 36,216" fill="#f8cecc" stroke="#b85450" stroke-width="1" opacity="0.55"/>
+<polygon points="72,216 36,216 72,252" fill="#fff2cc" stroke="#d6b656" stroke-width="1" opacity="0.55"/>
+<polygon points="36,216 72,216 36,180" fill="#f8cecc" stroke="#b85450" stroke-width="1" opacity="0.55"/>
+<polygon points="72,180 36,180 72,216" fill="#fff2cc" stroke="#d6b656" stroke-width="1" opacity="0.55"/>
+<polygon points="36,180 72,180 36,144" fill="#f8cecc" stroke="#b85450" stroke-width="1" opacity="0.55"/>
+<polygon points="72,144 36,144 72,180" fill="#fff2cc" stroke="#d6b656" stroke-width="1" opacity="0.55"/>
+<polygon points="72,252 108,252 72,216" fill="#f8cecc" stroke="#b85450" stroke-width="1" opacity="0.55"/>
+<polygon points="108,216 72,216 108,252" fill="#fff2cc" stroke="#d6b656" stroke-width="1" opacity="0.55"/>
+<polygon points="72,216 108,216 72,180" fill="#f8cecc" stroke="#b85450" stroke-width="1" opacity="0.55"/>
+<polygon points="108,180 72,180 108,216" fill="#fff2cc" stroke="#d6b656" stroke-width="1" opacity="0.55"/>
+<polygon points="72,180 108,180 72,144" fill="#f8cecc" stroke="#b85450" stroke-width="1" opacity="0.55"/>
+<polygon points="108,144 72,144 108,180" fill="#fff2cc" stroke="#d6b656" stroke-width="1" opacity="0.55"/>
+<polygon points="0,252 36,252 0,216" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<polygon points="36,216 0,216 36,252" fill="#fff2cc" stroke="#d6b656" stroke-width="1"/>
+<polyline points="0,252 36,252" fill="none" stroke="#000000" stroke-width="2" marker-end="url(#arrow0)"/>
+<polyline points="0,252 0,216" fill="none" stroke="#000000" stroke-width="2" marker-end="url(#arrow0)"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="78.0" y="286.2">two items, in rotations 0° and 180°</tspan></text>
+<polygon points="228,192 288,192 288,156 228,156" fill="#d5e8d4" stroke="#82b366" stroke-width="1" opacity="0.55"/>
+<polygon points="216,204 288,204 288,192 228,192 228,144 216,144" fill="#f8cecc" stroke="#b85450" stroke-width="1" opacity="0.55"/>
+<polygon points="300,144 228,144 228,156 288,156 288,204 300,204" fill="#fff2cc" stroke="#d6b656" stroke-width="1" opacity="0.55"/>
+<polygon points="312,252 372,252 372,216 312,216" fill="#d5e8d4" stroke="#82b366" stroke-width="1" opacity="0.55"/>
+<polygon points="300,264 372,264 372,252 312,252 312,204 300,204" fill="#f8cecc" stroke="#b85450" stroke-width="1" opacity="0.55"/>
+<polygon points="384,204 312,204 312,216 372,216 372,264 384,264" fill="#fff2cc" stroke="#d6b656" stroke-width="1" opacity="0.55"/>
+<polygon points="312,192 372,192 372,156 312,156" fill="#d5e8d4" stroke="#82b366" stroke-width="1" opacity="0.55"/>
+<polygon points="300,204 372,204 372,192 312,192 312,144 300,144" fill="#f8cecc" stroke="#b85450" stroke-width="1" opacity="0.55"/>
+<polygon points="384,144 312,144 312,156 372,156 372,204 384,204" fill="#fff2cc" stroke="#d6b656" stroke-width="1" opacity="0.55"/>
+<polygon points="228,252 288,252 288,216 228,216" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<polygon points="216,264 288,264 288,252 228,252 228,204 216,204" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<polygon points="300,204 228,204 228,216 288,216 288,264 300,264" fill="#fff2cc" stroke="#d6b656" stroke-width="1"/>
+<polyline points="228,252 312,252" fill="none" stroke="#000000" stroke-width="2" marker-end="url(#arrow0)"/>
+<polyline points="228,252 228,192" fill="none" stroke="#000000" stroke-width="2" marker-end="url(#arrow0)"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="306.0" y="279.0">two L-shapes, in rotations 0° and</tspan><tspan x="306.0" y="293.4">180°, wrapping around a rectangle</tspan></text>
+</svg>

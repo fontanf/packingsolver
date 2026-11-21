@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="590.0" height="299.2" viewBox="-60.0 -170.0 590.0 299.2">
+<rect x="-60.0" y="-170.0" width="590.0" height="299.2" fill="#ffffff"/>
+<polygon points="0.0,-0.0 173.21,100.0 277.13,40.0 103.92,-60.0" fill="#f5f5f5" stroke="#999999" stroke-width="1"/>
+<polygon points="0.0,-0.0 103.92,-60.0 103.92,-160.0 0.0,-100.0" fill="#f5f5f5" stroke="#999999" stroke-width="1"/>
+<polygon points="103.92,-60.0 277.13,40.0 277.13,-60.0 103.92,-160.0" fill="#f5f5f5" stroke="#999999" stroke-width="1"/>
+<polygon points="51.96,-70.0 103.92,-40.0 155.88,-70.0 103.92,-100.0" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<polygon points="103.92,-0.0 155.88,-30.0 155.88,-70.0 103.92,-40.0" fill="#b4cbe8" stroke="#6c8ebf" stroke-width="1"/>
+<polygon points="51.96,-30.0 103.92,-0.0 103.92,-40.0 51.96,-70.0" fill="#c7d9f1" stroke="#6c8ebf" stroke-width="1"/>
+<polygon points="51.96,-130.0 86.6,-110.0 138.56,-140.0 103.92,-160.0" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<polygon points="86.6,-50.0 138.56,-80.0 138.56,-140.0 86.6,-110.0" fill="#b4cbe8" stroke="#6c8ebf" stroke-width="1"/>
+<polygon points="51.96,-70.0 86.6,-50.0 86.6,-110.0 51.96,-130.0" fill="#c7d9f1" stroke="#6c8ebf" stroke-width="1"/>
+<polygon points="86.6,-90.0 138.56,-60.0 190.53,-90.0 138.56,-120.0" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<polygon points="138.56,-20.0 190.53,-50.0 190.53,-90.0 138.56,-60.0" fill="#e0a8a5" stroke="#b85450" stroke-width="1"/>
+<polygon points="86.6,-50.0 138.56,-20.0 138.56,-60.0 86.6,-90.0" fill="#ecbbb8" stroke="#b85450" stroke-width="1"/>
+<polygon points="0.0,-100.0 69.28,-60.0 121.24,-90.0 51.96,-130.0" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<polygon points="69.28,40.0 121.24,10.0 121.24,-90.0 69.28,-60.0" fill="#b4cbe8" stroke="#6c8ebf" stroke-width="1"/>
+<polygon points="0.0,-0.0 69.28,40.0 69.28,-60.0 0.0,-100.0" fill="#c7d9f1" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="95.26" y="-20.8">A</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="142.03" y="-37.8">B</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="112.58" y="-110.8">C</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="69.28" y="64.2">x</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="242.49" y="84.2">y</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="-12.12" y="-38.8">z</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="110.0" y="116.2">the items packed, and an item inserted (in red)</tspan></text>
+<rect x="320" y="-70.0" width="60" height="100" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="350.0" y="-15.8">A: x = 4</tspan></text>
+<rect x="380" y="-10.0" width="60" height="40" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="410.0" y="14.2">B: x = 3</tspan></text>
+<rect x="380" y="-70.0" width="60" height="60" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="410.0" y="-35.8">C: x = 2</tspan></text>
+<rect x="380" y="-50.0" width="60" height="40" fill="none" stroke="#b85450" stroke-width="2" stroke-dasharray="3 3"/>
+<rect x="320" y="-70.0" width="120" height="100" fill="none" stroke="#000000" stroke-width="2"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="380.0" y="46.2">y</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="308.0" y="-15.8">z</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="380.0" y="116.2">the skyline, seen from the end of the x-axis</tspan></text>
+</svg>

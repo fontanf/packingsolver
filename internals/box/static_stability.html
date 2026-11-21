@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Static stability and maximum weight above &#8212; PackingSolver</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../_static/classic.css?v=14e077c0" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=6a604523" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=a00afc7f" />
+    
+    <script src="../../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script data-sd-tabs-storage-prefix="sphinx-design-tab-id-" src="../../_static/design-tabs.js?v=fcb327ea"></script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="box-stacks algorithms" href="../boxstacks.html" />
+    <link rel="prev" title="Dual feasible functions" href="dual_feasible_functions.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../boxstacks.html" title="box-stacks algorithms"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="dual_feasible_functions.html" title="Dual feasible functions"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../overview.html" >Solver internals</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../box.html" accesskey="U"><code class="code docutils literal notranslate"><span class="pre">box</span></code> algorithms</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Static stability and maximum weight above</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="static-stability-and-maximum-weight-above">
+<span id="internals-box-static-stability"></span><h1>Static stability and maximum weight above<a class="headerlink" href="#static-stability-and-maximum-weight-above" title="Link to this heading">¶</a></h1>
+<p>With the <a class="reference internal" href="../../box.html#box-static-stability"><span class="std std-ref">static stability</span></a> constraint, the items of each bin must be in static mechanical equilibrium. With the <a class="reference internal" href="../../box.html#box-maximum-weight-above"><span class="std std-ref">maximum weights above</span></a>, the items must not carry more than the maximum weights above of their item types. This page describes how they are checked, and how the tree search algorithms, which don’t model them, repair their solutions so that they satisfy them.</p>
+<section id="feasibility-criterion">
+<h2>Feasibility criterion<a class="headerlink" href="#feasibility-criterion" title="Link to this heading">¶</a></h2>
+<p>The criterion is the static mechanical equilibrium of Galrão Ramos, Oliveira, Gonçalves and Lopes (2016). The items are rigid bodies whose only external force is their weight, applied at their center. An item is supported through the contacts between its bottom face and the floor of the bin or the top faces of the items whose top is at the height of its bottom. Each contact is a rectangle, the intersection of the two faces. Lateral contacts are not taken into account: an item leaning against another one is not supported.</p>
+<p>Any pressure on a contact rectangle which only pushes is equivalent to non-negative vertical forces at its four corners. The items are in equilibrium if and only if there exist such forces for which the vertical forces and the moments about the horizontal axes through the center of each item are balanced. This is a linear program, without objective: the bin is stable if and only if it is feasible.</p>
+<p>Unlike the rules which check the support of each item alone, the forces that an item transmits to the items below it are taken into account. Two such rules are common: a minimum supported fraction of the bottom face of each item, and the center of gravity of each item above the convex hull of its contacts. The examples below, seen from the beginning of the y-axis (the items span the whole bin along y), are scenarios of the tests. The dashed lines are below the centers of gravity of the items, and the items in red fall. The weight of an item is its volume, except for the heavy item:</p>
+<img alt="../../_images/box_static_stability_examples.svg" class="align-center" src="../../_images/box_static_stability_examples.svg" />
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Example</p></th>
+<th class="head"><p>Equilibrium</p></th>
+<th class="head"><p>Center of gravity above the contacts</p></th>
+<th class="head"><p>Supported fraction at least 50%</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>overhang too large</p></td>
+<td><p>unstable</p></td>
+<td><p>unstable</p></td>
+<td><p>unstable</p></td>
+</tr>
+<tr class="row-odd"><td><p>bridge</p></td>
+<td><p>stable</p></td>
+<td><p>stable</p></td>
+<td><p>unstable</p></td>
+</tr>
+<tr class="row-even"><td><p>counterweight</p></td>
+<td><p>stable</p></td>
+<td><p>unstable</p></td>
+<td><p>unstable</p></td>
+</tr>
+<tr class="row-odd"><td><p>light item on an overhang</p></td>
+<td><p>stable</p></td>
+<td><p>stable</p></td>
+<td><p>stable</p></td>
+</tr>
+<tr class="row-even"><td><p>heavy item on an overhang</p></td>
+<td><p>unstable</p></td>
+<td><p>stable</p></td>
+<td><p>stable</p></td>
+</tr>
+</tbody>
+</table>
+<ul class="simple">
+<li><p><strong>Overhang too large.</strong> The center of gravity of the top item is beyond its contact with the bottom item, which supports 40% of its bottom face: all the rules agree.</p></li>
+<li><p><strong>Bridge.</strong> The plank rests on two pillars which support a third of its bottom face. The supported fraction rule rejects it, while it is stable: its center of gravity is between the pillars.</p></li>
+<li><p><strong>Counterweight.</strong> The center of gravity of the plank is beyond its support, so both rules reject it. But the item on the end of the plank above the support balances it: the center of gravity of the plank and the item together is above the support.</p></li>
+<li><p><strong>Light and heavy item on an overhang.</strong> The middle item is stable on the bottom item, and the top item is stable on the middle item, so both rules accept both examples. But a heavy top item, whose center of gravity is beyond the support of the middle item, tips the middle item: only the equilibrium detects it.</p></li>
+</ul>
+<p>The criterion is checked by <code class="code docutils literal notranslate"><span class="pre">Solution</span></code> on each bin, for every solution, whichever algorithm built it. A solution with a bin which is not stable is not feasible.</p>
+<p>The algorithms don’t model it, so they only prove an infeasibility, and only compute a bound from the value of a solution, with the constraints they model: the copies, the minimum copies and the resources (<code class="code docutils literal notranslate"><span class="pre">Solution::feasible_without_unmodeled_constraints</span></code>).</p>
+</section>
+<section id="model">
+<h2>Model<a class="headerlink" href="#model" title="Link to this heading">¶</a></h2>
+<p><strong>Input</strong>:</p>
+<ul class="simple">
+<li><p>the items <span class="math notranslate nohighlight">\(i = 1, \ldots, n\)</span> of the bin; for each item <span class="math notranslate nohighlight">\(i\)</span>: its weight <span class="math notranslate nohighlight">\(w_i\)</span>, and the coordinates <span class="math notranslate nohighlight">\((\bar{x}_i, \bar{y}_i)\)</span> of its center in the horizontal plane</p></li>
+<li><p>the contacts <span class="math notranslate nohighlight">\(c\)</span>; for each contact <span class="math notranslate nohighlight">\(c\)</span>: the item <span class="math notranslate nohighlight">\(u(c)\)</span> it supports, the item <span class="math notranslate nohighlight">\(l(c)\)</span> which supports it (none if <span class="math notranslate nohighlight">\(u(c)\)</span> is on the floor of the bin), and <span class="math notranslate nohighlight">\(K(c)\)</span> the four corners of its rectangle; for each corner <span class="math notranslate nohighlight">\(k\)</span>: its coordinates <span class="math notranslate nohighlight">\((x_k, y_k)\)</span> in the horizontal plane</p></li>
+</ul>
+<p><strong>Variables</strong>:</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(f_k \ge 0\)</span>: vertical force at corner <span class="math notranslate nohighlight">\(k\)</span> of a contact; it pushes the item <span class="math notranslate nohighlight">\(u(c)\)</span> up and the item <span class="math notranslate nohighlight">\(l(c)\)</span> down</p></li>
+</ul>
+<p><strong>Objective</strong>: none</p>
+<p><strong>Constraints</strong>:</p>
+<ul class="simple">
+<li><p>Vertical forces: for each item, the forces of the contacts below it minus the forces of the contacts above it equal its weight</p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[\forall i \qquad \sum_{c : u(c) = i} \; \sum_{k \in K(c)} f_k
+- \sum_{c : l(c) = i} \; \sum_{k \in K(c)} f_k = w_i\]</div>
+<ul class="simple">
+<li><p>Moments about the axis parallel to y through the center of the item</p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[\forall i \qquad \sum_{c : u(c) = i} \; \sum_{k \in K(c)} (x_k - \bar{x}_i) \, f_k
+- \sum_{c : l(c) = i} \; \sum_{k \in K(c)} (x_k - \bar{x}_i) \, f_k = 0\]</div>
+<ul class="simple">
+<li><p>Moments about the axis parallel to x through the center of the item</p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[\forall i \qquad \sum_{c : u(c) = i} \; \sum_{k \in K(c)} (y_k - \bar{y}_i) \, f_k
+- \sum_{c : l(c) = i} \; \sum_{k \in K(c)} (y_k - \bar{y}_i) \, f_k = 0\]</div>
+<p>The model has 4 variables per contact and 3 rows per item. The forces are divided by the largest weight of the items and the lever arms by the largest dimension of the bin, so that the coefficients are between -1 and 1. It is solved with HiGHS.</p>
+<p>The linear program is not solved when all the items are on the floor of the bin (the bin is stable), or when an item with a weight has no support (the bin is not stable).</p>
+</section>
+<section id="maximum-weight-above">
+<h2>Maximum weight above<a class="headerlink" href="#maximum-weight-above" title="Link to this heading">¶</a></h2>
+<p>The weight that an item carries depends on how the items above it share their weights between their supports, which the same forces describe. The maximum weights above are satisfied if and only if there exist forces which satisfy the constraints of the equilibrium model and, for each item <span class="math notranslate nohighlight">\(i\)</span> whose item type has a maximum weight above <span class="math notranslate nohighlight">\(W_i\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[\sum_{c : l(c) = i} \; \sum_{k \in K(c)} f_k \le W_i\]</div>
+<p>Without the static stability, only the constraints of the vertical forces are kept, not the constraints of the moments: the weights flow down through the contacts, in any proportions. With the static stability, the three constraints of each item are kept, so a single force distribution must both balance the items and satisfy the maximum weights above. In both cases, each item with a weight must rest on the floor of the bin or on other items.</p>
+<p>Since the forces aren’t unique, the check is optimistic: it accepts a bin if some force distribution satisfies the maximum weights above, while the actual forces also depend on the stiffness of the items.</p>
+<p>The criterion is checked by <code class="code docutils literal notranslate"><span class="pre">Solution</span></code> on the bins of the instances in which an item type has a maximum weight above (<code class="code docutils literal notranslate"><span class="pre">SolutionBin::maximum_weight_above_feasible</span></code>), and is part of the feasibility of the solutions. Like the static stability, the algorithms don’t model it.</p>
+</section>
+<section id="repair-of-the-solutions">
+<h2>Repair of the solutions<a class="headerlink" href="#repair-of-the-solutions" title="Link to this heading">¶</a></h2>
+<p>The tree search algorithms often generate solutions with floating items, especially the <a class="reference internal" href="tree_search_maximal_spaces.html#internals-box-tree-search-maximal-spaces"><span class="std std-ref">tree search with maximal spaces</span></a>, which places a block on the floor of a maximal space, while the space can extend beyond the items supporting it. Without repair, with this constraint, they may find no stable solution at all.</p>
+<p>So, before passing a new solution to the algorithm formatter, <a class="reference internal" href="tree_search.html#internals-box-tree-search"><span class="std std-ref">tree search</span></a> and <a class="reference internal" href="tree_search_maximal_spaces.html#internals-box-tree-search-maximal-spaces"><span class="std std-ref">tree search with maximal spaces</span></a> repair it in two steps. Only the bins which are not stable, or which don’t satisfy the maximum weights above, are changed.</p>
+<p><strong>Drop.</strong> The items fall until they rest on the floor or on another item. They are processed in a single pass, from the lowest to the highest one: an item lands on the highest top face of the items already processed whose footprints intersect its footprint, or on the floor. The items which may stop an item are below it, so they are already at their final positions. The items only move down, and the items whose footprints intersect keep their vertical order, so the solution remains valid, with the same items in the same bins.</p>
+<p><strong>Removal of the unbalanced items.</strong> After the drop, no item floats, but an item may still tip, when its center of gravity is beyond its support, or because of the weight of the items above it, and an item may carry too much. While a bin is not stable, or doesn’t satisfy the maximum weights above:</p>
+<ul class="simple">
+<li><p>the items which can’t be balanced are found by solving the equilibrium linear program in which each row may be violated, at a cost equal to the violation (see below); the items whose rows are violated in an optimal solution are the unbalanced items;</p></li>
+<li><p>the highest of them is removed, with the items which rest on it, directly or not;</p></li>
+<li><p>the other items keep their positions, so they remain supported.</p></li>
+</ul>
+<p>In the example below, seen from the beginning of the y-axis (the items span the whole bin along y), the items C, E and F float in the solution of the search. After the drop, C rests on A, E on C and F on E. The center of gravity of E (dashed line) is beyond its contact with C, so E tips: it is removed, with F which rests on it:</p>
+<img alt="../../_images/box_static_stability_repair.svg" class="align-center" src="../../_images/box_static_stability_repair.svg" />
+<p>The linear program which finds the unbalanced items has the input and the variables of the equilibrium model, the constraints of the maximum weights above (which may not be violated), and:</p>
+<p><strong>Variables</strong>, in addition:</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(s_{i,r}^+ \ge 0\)</span>, <span class="math notranslate nohighlight">\(s_{i,r}^- \ge 0\)</span>: violations of the row <span class="math notranslate nohighlight">\(r \in \{1, 2, 3\}\)</span> of the equilibrium model for item <span class="math notranslate nohighlight">\(i\)</span> (vertical forces, moments about the axes parallel to y and to x), in both directions</p></li>
+</ul>
+<p><strong>Objective</strong>: minimize the violations</p>
+<div class="math notranslate nohighlight">
+\[\min \sum_i \sum_{r = 1}^{3} \left( s_{i,r}^+ + s_{i,r}^- \right)\]</div>
+<p><strong>Constraints</strong>: the rows of the equilibrium model, with the violations; for the vertical forces, for example:</p>
+<div class="math notranslate nohighlight">
+\[\forall i \qquad \sum_{c : u(c) = i} \; \sum_{k \in K(c)} f_k
+- \sum_{c : l(c) = i} \; \sum_{k \in K(c)} f_k
++ s_{i,1}^+ - s_{i,1}^- = w_i\]</div>
+<p>It always has a solution: the null forces, with the violations of the vertical forces equal to the weights. Its optimal value is zero if and only if the bin satisfies the constraints. With the maximum weights above, the items whose weight can’t be carried are unbalanced, so the items above an item which carries too much are removed first. An item <span class="math notranslate nohighlight">\(i\)</span> is unbalanced if <span class="math notranslate nohighlight">\(\sum_r (s_{i,r}^+ + s_{i,r}^-) &gt; 10^{-7}\)</span> in the optimal solution found.</p>
+<p>The removed items are not re-inserted. With the <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code> objective, the repaired solution is feasible. With the objectives which require all the items to be packed, it often isn’t.</p>
+<p>The infeasibility proofs and the bounds of the tree searches are computed from the solution of the search, not from the repaired one, since the repair may remove items.</p>
+</section>
+<section id="source-files">
+<h2>Source files<a class="headerlink" href="#source-files" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">src/box/static_stability.hpp</span></code>, <code class="code docutils literal notranslate"><span class="pre">src/box/static_stability.cpp</span></code>: the equilibrium linear program, with the maximum weights above, the drop and the removal of the unbalanced items</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">src/box/solution.cpp</span></code>: the check of the criteria on each bin</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">src/box/tree_search.cpp</span></code>, <code class="code docutils literal notranslate"><span class="pre">src/box/tree_search_maximal_spaces.cpp</span></code>: the calls to the repair</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">scripts/doc_figures/box.py</span></code>: the figure of this page</p></li>
+</ul>
+<p>References:</p>
+<ul class="simple">
+<li><p>“A container loading algorithm with static mechanical equilibrium stability constraints” (Galrão Ramos, Oliveira, Gonçalves and Lopes, 2016)</p>
+<ul>
+<li><p><a class="reference external" href="https://doi.org/10.1016/j.trb.2016.06.003">https://doi.org/10.1016/j.trb.2016.06.003</a></p></li>
+</ul>
+</li>
+<li><p>“Standing on a common ground: a comparison of static stability approaches for pallet loading” (Mazur, Gamer, Ramos and Schoder, 2027)</p>
+<ul>
+<li><p><a class="reference external" href="https://doi.org/10.1111/itor.70059">https://doi.org/10.1111/itor.70059</a></p></li>
+</ul>
+</li>
+</ul>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+<h3><a href="../../index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">PackingSolver’s documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../objectives.html">Objectives</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../optimization_modes.html">Optimization modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> solver</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../overview.html">Solver internals</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../tree_search.html">Tree search</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> algorithms</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> algorithms</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="tree_search.html">Tree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tree_search_maximal_spaces.html">Tree search with maximal spaces</a></li>
+<li class="toctree-l3"><a class="reference internal" href="dual_feasible_functions.html">Dual feasible functions</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Static stability and maximum weight above</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../box.html#trivial-bounds">Trivial bounds</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generic_algorithms.html">Generic algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../algorithm_selection.html">Algorithm selection</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../boxstacks.html" title="box-stacks algorithms"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="dual_feasible_functions.html" title="Dual feasible functions"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../overview.html" >Solver internals</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../box.html" ><code class="code docutils literal notranslate"><span class="pre">box</span></code> algorithms</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Static stability and maximum weight above</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2019-2024, Florian Fontan.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.2.0.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="596.0" height="196.4" viewBox="-46.0 -154 596.0 196.4">
+<defs><marker id="arrow0" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#000000"/></marker></defs>
+<rect x="-46.0" y="-154" width="596.0" height="196.4" fill="#ffffff"/>
+<rect x="0" y="-72" width="108" height="72" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="54.0" y="-31.8">A</tspan></text>
+<rect x="108" y="-36" width="108" height="36" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="162.0" y="-13.8">B</tspan></text>
+<rect x="108" y="-144" width="72" height="108" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="144.0" y="-85.8">C</tspan></text>
+<rect x="0" y="-144" width="72" height="72" fill="#fff2cc" stroke="#d6b656" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="36.0" y="-103.8">D</tspan></text>
+<rect x="0" y="-144" width="216" height="144" fill="none" stroke="#000000" stroke-width="2"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="108.0" y="25.8">packing</tspan></text>
+<ellipse cx="270.0" cy="-108.0" rx="12.6" ry="12.6" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="270.0" y="-103.8">A</tspan></text>
+<ellipse cx="342.0" cy="-108.0" rx="12.6" ry="12.6" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="342.0" y="-103.8">B</tspan></text>
+<ellipse cx="342.0" cy="-36.0" rx="12.6" ry="12.6" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="342.0" y="-31.8">C</tspan></text>
+<ellipse cx="270.0" cy="-36.0" rx="12.6" ry="12.6" fill="#fff2cc" stroke="#d6b656" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="270.0" y="-31.8">D</tspan></text>
+<polyline points="282.6,-108.0 329.4,-108.0" fill="none" stroke="#000000" stroke-width="1" marker-end="url(#arrow0)"/>
+<polyline points="278.91,-99.09 333.09,-44.91" fill="none" stroke="#000000" stroke-width="1" marker-end="url(#arrow0)"/>
+<polyline points="278.91,-44.91 333.09,-99.09" fill="none" stroke="#000000" stroke-width="1" marker-end="url(#arrow0)"/>
+<polyline points="282.6,-36.0 329.4,-36.0" fill="none" stroke="#000000" stroke-width="1" marker-end="url(#arrow0)"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="306.0" y="4.2">disjoint along x</tspan></text>
+<ellipse cx="414.0" cy="-108.0" rx="12.6" ry="12.6" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="414.0" y="-103.8">A</tspan></text>
+<ellipse cx="486.0" cy="-108.0" rx="12.6" ry="12.6" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="486.0" y="-103.8">B</tspan></text>
+<ellipse cx="486.0" cy="-36.0" rx="12.6" ry="12.6" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="486.0" y="-31.8">C</tspan></text>
+<ellipse cx="414.0" cy="-36.0" rx="12.6" ry="12.6" fill="#fff2cc" stroke="#d6b656" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="414.0" y="-31.8">D</tspan></text>
+<polyline points="414.0,-95.4 414.0,-48.6" fill="none" stroke="#000000" stroke-width="1" marker-end="url(#arrow0)"/>
+<polyline points="486.0,-95.4 486.0,-48.6" fill="none" stroke="#000000" stroke-width="1" marker-end="url(#arrow0)"/>
+<polyline points="477.09,-99.09 422.91,-44.91" fill="none" stroke="#000000" stroke-width="1" marker-end="url(#arrow0)"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="450.0" y="4.2">disjoint along y</tspan></text>
+</svg>
