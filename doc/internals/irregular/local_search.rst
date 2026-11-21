@@ -29,7 +29,7 @@ The engines share the search on top of the separator, described below.
 Initial layout
 --------------
 
-The initial layout is built by the separator from a solution, possibly infeasible and partial: the solution found for the previous sub-problem of the sequential feasibility algorithm, or an empty solution. The items missing from it are inserted by the separator.
+The initial layout is built by the separator from a solution, possibly infeasible and partial: the solution found for the previous sub-problem of the sequential feasibility algorithm, the initial solution of the parameters (:code:`initial_solution`, :code:`--initial-solution`), or an empty solution. The items missing from it are inserted by the separator.
 
 The solution of the previous sub-problem uses more space than available, since the space has been shrunk. Its bins are mapped to the bins of the sub-problem with the same bin types; the bins which don't fit anymore are dropped, and their items are inserted again. The items which stick out of their bin are repaired by the separator.
 
@@ -52,7 +52,7 @@ Knapsack
 
 For the :code:`knapsack` objective, the layouts don't contain all the items, but a set of items whose profit is strictly greater than a *profit threshold*. Each sub-problem consists in finding a solution whose profit is strictly greater than the profit of the best solution found so far, with the iterated local search above:
 
-1. the profit threshold is set to the profit of the best solution found so far (0 at the start, from an empty layout);
+1. the profit threshold is set to the profit of the best solution found so far (at the start, the profit of the initial solution, from its layout, or 0, from an empty layout);
 2. items which are not in the layout are inserted, each one at the best of sampled positions, until the profit of the layout is above the threshold; they are drawn by binary tournament on their profit per unit area;
 3. the layout is separated, and disrupted as long as the separations fail.
 
