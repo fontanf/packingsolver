@@ -97,6 +97,7 @@ int main(int argc, char *argv[])
             ("use-column-generation,", po::value<bool>(), "enable column-generation")
             ("use-benders-decomposition,", po::value<bool>(), "enable Benders decomposition algorithm")
             ("benders-decomposition-use-tree-search-relative-positions,", po::value<bool>(), "use the tree search on relative positions in the subproblems of the Benders decomposition algorithm")
+            ("tree-search-maximal-spaces-use-sequential-feasibility,", po::value<bool>(), "solve the open dimension and bin packing with leftovers objectives with the tree search maximal spaces algorithm through the sequential feasibility algorithm")
             ("benders-decomposition-bottom-up-maximum-number-of-subproblem-solves,", po::value<Counter>(), "maximum number of subproblem solves of the bottom-up enumeration of the minimal infeasible subsets of a bin in the Benders decomposition algorithm (0 disables it)")
             ("benders-decomposition-bottom-up-maximum-number-of-cuts,", po::value<Counter>(), "maximum number of cuts of the bottom-up enumeration of the minimal infeasible subsets of a bin in the Benders decomposition algorithm")
             ("benders-decomposition-use-lifting,", po::value<bool>(), "lift the no-good cuts of the Benders decomposition algorithm")
@@ -214,6 +215,8 @@ int main(int argc, char *argv[])
             parameters.use_benders_decomposition = vm["use-benders-decomposition"].as<bool>();
         if (vm.count("benders-decomposition-use-tree-search-relative-positions"))
             parameters.benders_decomposition_use_tree_search_relative_positions = vm["benders-decomposition-use-tree-search-relative-positions"].as<bool>();
+        if (vm.count("tree-search-maximal-spaces-use-sequential-feasibility"))
+            parameters.tree_search_maximal_spaces_use_sequential_feasibility = vm["tree-search-maximal-spaces-use-sequential-feasibility"].as<bool>();
         if (vm.count("benders-decomposition-bottom-up-maximum-number-of-subproblem-solves"))
             parameters.benders_decomposition_bottom_up_maximum_number_of_subproblem_solves = vm["benders-decomposition-bottom-up-maximum-number-of-subproblem-solves"].as<Counter>();
         if (vm.count("benders-decomposition-bottom-up-maximum-number-of-cuts"))

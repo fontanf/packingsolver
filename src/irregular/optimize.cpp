@@ -922,6 +922,8 @@ void optimize_tree_search_maximal_spaces(
         = parameters.not_anytime_tree_search_maximal_spaces_queue_size;
     ts_ms_parameters.maximum_approximation_ratio
         = parameters.not_anytime_maximum_approximation_ratio;
+    ts_ms_parameters.use_sequential_feasibility
+        = parameters.tree_search_maximal_spaces_use_sequential_feasibility;
     ts_ms_parameters.new_solution_callback = [&algorithm_formatter](
             const packingsolver::Output<Instance, Solution>& ts_output)
     {

@@ -6,6 +6,7 @@
 
 #include "packingsolver/algorithms/resource.hpp"
 #include "irregular/rotations.hpp"
+#include "irregular/leftover.hpp"
 #include "irregular/solution_builder.hpp"
 #include "irregular/tree_search_periodic_packing.hpp"
 #include "algorithms/thread_pool.hpp"
@@ -54,6 +55,84 @@ GeneralizedTrapezoid shifted(
     return trapezoid;
 }
 
+using Corner = BranchingSchemeMaximalSpaces::Corner;
+
+/** Mirror a point from the frame of corner 0 to the frame of a corner. */
+Point mirrored(
+        const Point& point,
+        Corner corner)
+{
+    return {
+        ((corner & 1) != 0)? -point.x: point.x,
+        ((corner & 2) != 0)? -point.y: point.y};
+}
+
+/** Mirror a trapezoid from the frame of corner 0 to the frame of a corner. */
+GeneralizedTrapezoid mirrored(
+        const GeneralizedTrapezoid& trapezoid,
+        Corner corner)
+{
+    GeneralizedTrapezoid mirrored_trapezoid = trapezoid;
+    if ((corner & 1) != 0) {
+        mirrored_trapezoid = GeneralizedTrapezoid(
+                mirrored_trapezoid.y_bottom(),
+                mirrored_trapezoid.y_top(),
+                -mirrored_trapezoid.x_bottom_right(),
+                -mirrored_trapezoid.x_bottom_left(),
+                -mirrored_trapezoid.x_top_right(),
+                -mirrored_trapezoid.x_top_left());
+    }
+    if ((corner & 2) != 0) {
+        mirrored_trapezoid = GeneralizedTrapezoid(
+                -mirrored_trapezoid.y_top(),
+                -mirrored_trapezoid.y_bottom(),
+                mirrored_trapezoid.x_top_left(),
+                mirrored_trapezoid.x_top_right(),
+                mirrored_trapezoid.x_bottom_left(),
+                mirrored_trapezoid.x_bottom_right());
+    }
+    return mirrored_trapezoid;
+}
+
+/** Mirror an empty space from the frame of corner 0 to the frame of a corner. */
+EmptySpace mirrored(
+        const EmptySpace& space,
+        Corner corner)
+{
+    EmptySpace mirrored_space = space;
+    if ((corner & 1) != 0)
+        mirrored_space.bl_corner.x = -space.xe();
+    if ((corner & 2) != 0)
+        mirrored_space.bl_corner.y = -space.ye();
+    return mirrored_space;
+}
+
+/**
+ * Direction of the frame of a corner: the frame of 'direction' with its
+ * x-axis (resp. y-axis) mirrored if 'corner & 1' (resp. 'corner & 2').
+ */
+Direction corner_direction(
+        Direction direction,
+        Corner corner)
+{
+    Point point = mirrored(convert_point({1.0, 2.0}, direction), corner);
+    for (Direction corner_direction: {
+            Direction::LeftToRightThenBottomToTop,
+            Direction::LeftToRightThenTopToBottom,
+            Direction::RightToLeftThenBottomToTop,
+            Direction::RightToLeftThenTopToBottom,
+            Direction::BottomToTopThenLeftToRight,
+            Direction::BottomToTopThenRightToLeft,
+            Direction::TopToBottomThenLeftToRight,
+            Direction::TopToBottomThenRightToLeft}) {
+        Point corner_point = convert_point({1.0, 2.0}, corner_direction);
+        if (corner_point.x == point.x && corner_point.y == point.y)
+            return corner_direction;
+    }
+    throw std::logic_error(FUNC_SIGNATURE);
+    return direction;
+}
+
 }
 
 BranchingSchemeMaximalSpaces::BranchingSchemeMaximalSpaces(
@@ -72,23 +151,72 @@ BranchingSchemeMaximalSpaces::BranchingSchemeMaximalSpaces(
     copy_dependent_resource_consumptions_
         = copy_dependent_resource_consumptions(instance)[bin_type_id];
 
-    bin_type_ = build_trapezoid_bin_type(
-            instance,
-            simplified_instance_,
-            compute_item_type_rotations(instance)[bin_type_id],
-            bin_type_id,
-            direction);
-    trapezoid_sets_ = bin_type_.trapezoid_sets;
-    supporting_parts_ = bin_type_.supporting_parts;
-    supported_parts_ = bin_type_.supported_parts;
-    for (const TrapezoidSet& trapezoid_set: trapezoid_sets_)
-        trapezoid_sets_rectangles_.push_back(compute_rectangles(trapezoid_set));
+    minimize_extent_ = (instance.objective() == Objective::OpenDimensionX
+            || instance.objective() == Objective::OpenDimensionY
+            || instance.objective() == Objective::BinPackingWithLeftovers);
 
+    // Corners.
+    corner_ids_ = {0};
+    if (parameters_.use_multiple_corners) {
+        LeftoverMode leftover_mode = instance.parameters().leftover_mode;
+        if (instance.objective() == Objective::Knapsack
+                || instance.objective() == Objective::Feasibility) {
+            corner_ids_ = {0, 1, 2, 3};
+        } else if (instance.objective() == Objective::OpenDimensionX
+                || instance.objective() == Objective::OpenDimensionY
+                || (instance.objective() == Objective::BinPackingWithLeftovers
+                    && (leftover_mode == LeftoverMode::Left
+                        || leftover_mode == LeftoverMode::Right
+                        || leftover_mode == LeftoverMode::Bottom
+                        || leftover_mode == LeftoverMode::Top))) {
+            corner_ids_ = {0, 2};
+        }
+    }
+
+    // Geometry of the bin and of the items in the frame of each corner.
+    std::vector<std::vector<std::vector<ItemTypeRotation>>> item_type_rotations
+        = compute_item_type_rotations(instance);
     LengthDbl bin_spacing = instance.bin_spacing_scaled(bin_type_id);
-    bin_aabb_.x_min = bin_type_.x_min + bin_spacing;
-    bin_aabb_.x_max = bin_type_.x_max - bin_spacing;
-    bin_aabb_.y_min = bin_type_.y_min + bin_spacing;
-    bin_aabb_.y_max = bin_type_.y_max - bin_spacing;
+    corners_.resize(4);
+    for (Corner corner: corner_ids_) {
+        CornerData& corner_data = corners_[corner];
+        corner_data.direction = corner_direction(direction, corner);
+        corner_data.bin_type = build_trapezoid_bin_type(
+                instance,
+                simplified_instance_,
+                item_type_rotations[bin_type_id],
+                bin_type_id,
+                corner_data.direction);
+        corner_data.trapezoid_sets = corner_data.bin_type.trapezoid_sets;
+        corner_data.supporting_parts = corner_data.bin_type.supporting_parts;
+        corner_data.supported_parts = corner_data.bin_type.supported_parts;
+        corner_data.bin_aabb.x_min = corner_data.bin_type.x_min + bin_spacing;
+        corner_data.bin_aabb.x_max = corner_data.bin_type.x_max - bin_spacing;
+        corner_data.bin_aabb.y_min = corner_data.bin_type.y_min + bin_spacing;
+        corner_data.bin_aabb.y_max = corner_data.bin_type.y_max - bin_spacing;
+
+        // The trapezoid sets of the corners must correspond.
+        if (corner_data.trapezoid_sets.size() != corners_[0].trapezoid_sets.size()) {
+            throw std::logic_error(
+                    std::string(FUNC_SIGNATURE) + ": "
+                    "inconsistent trapezoid sets between the corners.");
+        }
+        for (TrapezoidSetId trapezoid_set_id = 0;
+                trapezoid_set_id < (TrapezoidSetId)corner_data.trapezoid_sets.size();
+                ++trapezoid_set_id) {
+            const TrapezoidSet& trapezoid_set = corner_data.trapezoid_sets[trapezoid_set_id];
+            const TrapezoidSet& trapezoid_set_0 = corners_[0].trapezoid_sets[trapezoid_set_id];
+            if (trapezoid_set.item_type_id != trapezoid_set_0.item_type_id
+                    || trapezoid_set.angle != trapezoid_set_0.angle
+                    || trapezoid_set.mirror != trapezoid_set_0.mirror) {
+                throw std::logic_error(
+                        std::string(FUNC_SIGNATURE) + ": "
+                        "inconsistent trapezoid sets between the corners.");
+            }
+        }
+    }
+    for (const TrapezoidSet& trapezoid_set: corners_[0].trapezoid_sets)
+        corners_[0].trapezoid_sets_rectangles.push_back(compute_rectangles(trapezoid_set));
 
     // Approximate the obstacles by rectangles, in the original frame, then
     // convert them. The empty spaces span the bounding box of the bin: the
@@ -113,6 +241,15 @@ BranchingSchemeMaximalSpaces::BranchingSchemeMaximalSpaces(
             obstacle.shape = obstacle.shape.rotate(fixed_item.angle);
             obstacle.shape.shift(bl_corner.x, bl_corner.y);
             obstacles.push_back(obstacle);
+
+            ShapeWithHoles shape = item_shape.shape_scaled;
+            if (fixed_item.mirror)
+                shape = shape.axial_symmetry_y_axis();
+            shape = shape.rotate(fixed_item.angle);
+            shape.shift(bl_corner.x, bl_corner.y);
+            fixed_items_aabb_ = shape::merge(
+                    fixed_items_aabb_,
+                    convert_rectangle(shape.shape.compute_min_max(), direction));
         }
     }
     if (!obstacles.empty()) {
@@ -183,40 +320,47 @@ std::vector<AxisAlignedBoundingBox> BranchingSchemeMaximalSpaces::compute_rectan
 }
 
 TrapezoidSetId BranchingSchemeMaximalSpaces::trapezoid_set_id(
+        Corner corner,
         ItemTypeId item_type_id,
         Angle angle,
         bool mirror)
 {
+    CornerData& corner_data = corners_[corner];
     for (TrapezoidSetId trapezoid_set_id = 0;
-            trapezoid_set_id < (TrapezoidSetId)trapezoid_sets_.size();
+            trapezoid_set_id < (TrapezoidSetId)corner_data.trapezoid_sets.size();
             ++trapezoid_set_id) {
-        const TrapezoidSet& trapezoid_set = trapezoid_sets_[trapezoid_set_id];
+        const TrapezoidSet& trapezoid_set = corner_data.trapezoid_sets[trapezoid_set_id];
         if (trapezoid_set.item_type_id == item_type_id
                 && shape::equal(trapezoid_set.angle, angle)
                 && trapezoid_set.mirror == mirror) {
             return trapezoid_set_id;
         }
     }
-    TrapezoidSetId trapezoid_set_id = trapezoid_sets_.size();
+    TrapezoidSetId trapezoid_set_id = corner_data.trapezoid_sets.size();
     ItemTypeRotation rotation;
     rotation.angle = angle;
     rotation.mirror = mirror;
-    trapezoid_sets_.push_back(build_trapezoid_set(
+    corner_data.trapezoid_sets.push_back(build_trapezoid_set(
                 instance(),
                 simplified_instance_,
                 item_type_id,
                 rotation,
-                parameters_.direction,
+                corner_data.direction,
                 trapezoid_set_id,
-                supporting_parts_,
-                supported_parts_));
-    trapezoid_sets_rectangles_.push_back(compute_rectangles(trapezoid_sets_.back()));
+                corner_data.supporting_parts,
+                corner_data.supported_parts));
+    if (corner == 0) {
+        corner_data.trapezoid_sets_rectangles.push_back(
+                compute_rectangles(corner_data.trapezoid_sets.back()));
+    }
     return trapezoid_set_id;
 }
 
 BranchingSchemeMaximalSpaces::Block BranchingSchemeMaximalSpaces::build_block(
+        Corner corner,
         const std::vector<BlockItem>& items) const
 {
+    const CornerData& corner_data = corners_[corner];
     Block block;
     block.items = items;
     TrapezoidSet& block_trapezoid_set = block.trapezoid_set;
@@ -232,7 +376,7 @@ BranchingSchemeMaximalSpaces::Block BranchingSchemeMaximalSpaces::build_block(
     std::vector<ItemPos> shapes_item_pos;
     for (ItemPos item_pos = 0; item_pos < (ItemPos)items.size(); ++item_pos) {
         const BlockItem& item = items[item_pos];
-        const TrapezoidSet& trapezoid_set = trapezoid_sets_[item.trapezoid_set_id];
+        const TrapezoidSet& trapezoid_set = corner_data.trapezoid_sets[item.trapezoid_set_id];
         const ItemType& item_type = instance().item_type(trapezoid_set.item_type_id);
         for (const auto& item_shape_trapezoids: trapezoid_set.shapes) {
             block_trapezoid_set.shapes.push_back({});
@@ -249,8 +393,10 @@ BranchingSchemeMaximalSpaces::Block BranchingSchemeMaximalSpaces::build_block(
         block_trapezoid_set.x_max = (std::max)(block_trapezoid_set.x_max, item.x + trapezoid_set.x_max);
         block_trapezoid_set.y_min = (std::min)(block_trapezoid_set.y_min, item.y + trapezoid_set.y_min);
         block_trapezoid_set.y_max = (std::max)(block_trapezoid_set.y_max, item.y + trapezoid_set.y_max);
-        for (AxisAlignedBoundingBox rectangle: trapezoid_sets_rectangles_[item.trapezoid_set_id])
-            block.rectangles.push_back(rectangle.shift(item.x, item.y));
+        if (corner == 0) {
+            for (AxisAlignedBoundingBox rectangle: corner_data.trapezoid_sets_rectangles[item.trapezoid_set_id])
+                block.rectangles.push_back(rectangle.shift(item.x, item.y));
+        }
 
         block.number_of_items++;
         block.item_area += item_type.area_scaled;
@@ -310,9 +456,9 @@ BranchingSchemeMaximalSpaces::Block BranchingSchemeMaximalSpaces::build_block(
     // Supporting parts: the ones not covered by another item of the block.
     for (ItemPos item_pos = 0; item_pos < (ItemPos)items.size(); ++item_pos) {
         const BlockItem& item = items[item_pos];
-        const TrapezoidSet& trapezoid_set = trapezoid_sets_[item.trapezoid_set_id];
+        const TrapezoidSet& trapezoid_set = corner_data.trapezoid_sets[item.trapezoid_set_id];
         for (ShapePos supporting_part_pos: trapezoid_set.supporting_parts) {
-            Support support = supporting_parts_[supporting_part_pos];
+            Support support = corner_data.supporting_parts[supporting_part_pos];
             support.shape.shift(item.x, item.y);
             support.aabb = support.shape.compute_min_max();
             if (covered(item_pos, support.aabb, true))
@@ -329,13 +475,13 @@ BranchingSchemeMaximalSpaces::Block BranchingSchemeMaximalSpaces::build_block(
     ItemPos lowest_item_pos = -1;
     for (ItemPos item_pos = 0; item_pos < (ItemPos)items.size(); ++item_pos) {
         const BlockItem& item = items[item_pos];
-        const TrapezoidSet& trapezoid_set = trapezoid_sets_[item.trapezoid_set_id];
+        const TrapezoidSet& trapezoid_set = corner_data.trapezoid_sets[item.trapezoid_set_id];
         if (lowest_item_pos == -1) {
             lowest_item_pos = item_pos;
             continue;
         }
         const BlockItem& lowest_item = items[lowest_item_pos];
-        const TrapezoidSet& lowest_trapezoid_set = trapezoid_sets_[lowest_item.trapezoid_set_id];
+        const TrapezoidSet& lowest_trapezoid_set = corner_data.trapezoid_sets[lowest_item.trapezoid_set_id];
         LengthDbl y = item.y + trapezoid_set.y_min;
         LengthDbl y_lowest = lowest_item.y + lowest_trapezoid_set.y_min;
         if (shape::strictly_lesser(y, y_lowest)
@@ -348,9 +494,9 @@ BranchingSchemeMaximalSpaces::Block BranchingSchemeMaximalSpaces::build_block(
     }
     {
         const BlockItem& item = items[lowest_item_pos];
-        const TrapezoidSet& trapezoid_set = trapezoid_sets_[item.trapezoid_set_id];
+        const TrapezoidSet& trapezoid_set = corner_data.trapezoid_sets[item.trapezoid_set_id];
         for (ShapePos supported_part_pos: trapezoid_set.supported_parts) {
-            Support support = supported_parts_[supported_part_pos];
+            Support support = corner_data.supported_parts[supported_part_pos];
             support.shape.shift(item.x, item.y);
             support.aabb = support.shape.compute_min_max();
             if (covered(lowest_item_pos, support.aabb, false))
@@ -369,14 +515,18 @@ void BranchingSchemeMaximalSpaces::compute_blocks()
 
     // Single items.
     for (TrapezoidSetId trapezoid_set_id = 0;
-            trapezoid_set_id < (TrapezoidSetId)bin_type_.trapezoid_sets.size();
+            trapezoid_set_id < (TrapezoidSetId)corners_[0].bin_type.trapezoid_sets.size();
             ++trapezoid_set_id) {
         BlockItem item;
         item.trapezoid_set_id = trapezoid_set_id;
-        Block block = build_block({item});
+        Block block = build_block(0, {item});
         if (!resource_feasible(instance(), bin_type_id, {}, block.resource_consumption))
             continue;
-        blocks_.push_back(block);
+        for (Corner corner: corner_ids_) {
+            corners_[corner].blocks.push_back((corner == 0)?
+                    block:
+                    build_block(corner, {item}));
+        }
     }
 
     if (!parameters_.use_periodic_blocks)
@@ -398,22 +548,29 @@ void BranchingSchemeMaximalSpaces::compute_blocks()
             continue;
         if (periodic_block.number_of_items <= 1)
             continue;
-        std::vector<BlockItem> items;
-        for (const SolutionItem& solution_item: periodic_block.items) {
-            BlockItem item;
-            item.trapezoid_set_id = trapezoid_set_id(
-                    solution_item.item_type_id,
-                    solution_item.angle,
-                    solution_item.mirror);
-            Point position = convert_point(solution_item.bl_corner, parameters_.direction);
-            item.x = position.x;
-            item.y = position.y;
-            items.push_back(item);
+        std::vector<Block> corner_blocks(4);
+        for (Corner corner: corner_ids_) {
+            std::vector<BlockItem> items;
+            for (const SolutionItem& solution_item: periodic_block.items) {
+                BlockItem item;
+                item.trapezoid_set_id = trapezoid_set_id(
+                        corner,
+                        solution_item.item_type_id,
+                        solution_item.angle,
+                        solution_item.mirror);
+                Point position = convert_point(
+                        solution_item.bl_corner,
+                        corners_[corner].direction);
+                item.x = position.x;
+                item.y = position.y;
+                items.push_back(item);
+            }
+            corner_blocks[corner] = build_block(corner, items);
         }
-        Block block = build_block(items);
-        if (block.supported_parts.empty())
+        if (corner_blocks[0].supported_parts.empty())
             continue;
-        blocks_.push_back(block);
+        for (Corner corner: corner_ids_)
+            corners_[corner].blocks.push_back(corner_blocks[corner]);
     }
 }
 
@@ -423,13 +580,14 @@ const std::shared_ptr<BranchingSchemeMaximalSpaces::Node> BranchingSchemeMaximal
     node->id = node_id_++;
     node->item_number_of_copies.assign(instance().number_of_item_types(), 0);
 
-    for (const DefectTrapezoid& defect: bin_type_.defects)
+    for (const DefectTrapezoid& defect: corners_[0].bin_type.defects)
         node->trapezoids.push_back(defect.trapezoid);
 
     EmptySpace space;
-    space.bl_corner = {bin_aabb_.x_min, bin_aabb_.y_min};
-    space.bx = bin_aabb_.x_max - bin_aabb_.x_min;
-    space.by = bin_aabb_.y_max - bin_aabb_.y_min;
+    const AxisAlignedBoundingBox& bin_aabb = corners_[0].bin_aabb;
+    space.bl_corner = {bin_aabb.x_min, bin_aabb.y_min};
+    space.bx = bin_aabb.x_max - bin_aabb.x_min;
+    space.by = bin_aabb.y_max - bin_aabb.y_min;
     node->empty_spaces.push_back(space);
     for (const AxisAlignedBoundingBox& rectangle: obstacles_rectangles_) {
         cut_empty_spaces(
@@ -470,32 +628,96 @@ const std::shared_ptr<BranchingSchemeMaximalSpaces::Node> BranchingSchemeMaximal
             fixed_items_resource_consumption);
     node->resource_consumption = fixed_items_resource_consumption;
 
-    for (ItemPos block_id = 0; block_id < (ItemPos)blocks_.size(); ++block_id)
-        if (block_valid(*node, blocks_[block_id]))
+    for (ItemPos block_id = 0; block_id < (ItemPos)blocks().size(); ++block_id)
+        if (block_valid(*node, blocks()[block_id]))
             node->valid_block_ids.push_back(block_id);
+    node->items_aabb = fixed_items_aabb_;
     remove_unusable_spaces(*node);
     node->greedy_value = node->profit;
+    node->greedy_number_of_items = node->number_of_items;
+    if (minimize_extent_)
+        node->greedy_extent = extent(*node);
     return node;
 }
 
-ItemPos BranchingSchemeMaximalSpaces::select_empty_space(const Node& node) const
+double BranchingSchemeMaximalSpaces::extent(const Node& node) const
 {
+    if (node.items_aabb.x_min > node.items_aabb.x_max)
+        return -std::numeric_limits<double>::infinity();
+    Point point_1 = convert_point_back(
+            {node.items_aabb.x_min, node.items_aabb.y_min},
+            parameters_.direction);
+    Point point_2 = convert_point_back(
+            {node.items_aabb.x_max, node.items_aabb.y_max},
+            parameters_.direction);
+    AxisAlignedBoundingBox items_aabb;
+    items_aabb.x_min = (std::min)(point_1.x, point_2.x);
+    items_aabb.x_max = (std::max)(point_1.x, point_2.x);
+    items_aabb.y_min = (std::min)(point_1.y, point_2.y);
+    items_aabb.y_max = (std::max)(point_1.y, point_2.y);
+    switch (instance().objective()) {
+    case Objective::OpenDimensionX: {
+        return items_aabb.x_max;
+    } case Objective::OpenDimensionY: {
+        return items_aabb.y_max;
+    } default: {
+        const BinType& bin_type = instance().bin_type(instance().bin_type_id(0));
+        return -leftover_value(
+                instance().parameters().leftover_mode,
+                bin_type.aabb_scaled,
+                items_aabb);
+    }
+    }
+}
+
+ItemPos BranchingSchemeMaximalSpaces::select_empty_space(
+        const Node& node,
+        Corner& corner) const
+{
+    const AxisAlignedBoundingBox& bin_aabb = corners_[0].bin_aabb;
     ItemPos best_space_pos = -1;
+    Corner best_corner = 0;
+    LengthDbl best_distance_x = std::numeric_limits<LengthDbl>::infinity();
     LengthDbl best_distance = std::numeric_limits<LengthDbl>::infinity();
     AreaDbl best_area = 0.0;
     for (ItemPos space_pos = 0;
             space_pos < (ItemPos)node.empty_spaces.size();
             ++space_pos) {
         const EmptySpace& space = node.empty_spaces[space_pos];
-        LengthDbl distance = (space.xs() - bin_aabb_.x_min) + (space.ys() - bin_aabb_.y_min);
+        LengthDbl distance_left = space.xs() - bin_aabb.x_min;
+        LengthDbl distance_right = bin_aabb.x_max - space.xe();
+        LengthDbl distance_bottom = space.ys() - bin_aabb.y_min;
+        LengthDbl distance_top = bin_aabb.y_max - space.ye();
         AreaDbl area = space.area();
-        if (shape::strictly_lesser(distance, best_distance)
-                || (shape::equal(distance, best_distance) && shape::strictly_greater(area, best_area))) {
-            best_space_pos = space_pos;
-            best_distance = distance;
-            best_area = area;
+        for (Corner space_corner: corner_ids_) {
+            LengthDbl distance_x = ((space_corner & 1) != 0)? distance_right: distance_left;
+            LengthDbl distance_y = ((space_corner & 2) != 0)? distance_top: distance_bottom;
+            bool better = false;
+            if (minimize_extent_) {
+                // Closest to the left side of the bin, then to one of its
+                // left corners.
+                better = shape::strictly_lesser(distance_x, best_distance_x)
+                    || (shape::equal(distance_x, best_distance_x)
+                        && (shape::strictly_lesser(distance_y, best_distance)
+                            || (shape::equal(distance_y, best_distance)
+                                && shape::strictly_greater(area, best_area))));
+            } else {
+                // Closest to a corner of the bin.
+                LengthDbl distance = distance_x + distance_y;
+                better = shape::strictly_lesser(distance, best_distance)
+                    || (shape::equal(distance, best_distance)
+                        && shape::strictly_greater(area, best_area));
+            }
+            if (best_space_pos == -1 || better) {
+                best_space_pos = space_pos;
+                best_corner = space_corner;
+                best_distance_x = distance_x;
+                best_distance = (minimize_extent_)? distance_y: distance_x + distance_y;
+                best_area = area;
+            }
         }
     }
+    corner = best_corner;
     return best_space_pos;
 }
 
@@ -515,10 +737,10 @@ bool BranchingSchemeMaximalSpaces::may_fit(
             space.by * factor)
         && !shape::strictly_greater(
             block.trapezoid_set.x_max - block.trapezoid_set.x_min,
-            bin_aabb_.x_max - bin_aabb_.x_min)
+            corners_[0].bin_aabb.x_max - corners_[0].bin_aabb.x_min)
         && !shape::strictly_greater(
             block.trapezoid_set.y_max - block.trapezoid_set.y_min,
-            bin_aabb_.y_max - bin_aabb_.y_min);
+            corners_[0].bin_aabb.y_max - corners_[0].bin_aabb.y_min);
 }
 
 void BranchingSchemeMaximalSpaces::select_empty_space(
@@ -526,13 +748,16 @@ void BranchingSchemeMaximalSpaces::select_empty_space(
         InsertionGenerator& generator) const
 {
     generator.space_selected = true;
-    generator.space_pos = select_empty_space(node);
+    generator.space_pos = select_empty_space(node, generator.corner);
     generator.supporting_shapes.clear();
     generator.supporting_shapes_obstacles.clear();
     generator.candidates.clear();
     generator.next_candidate_pos = 0;
     generator.insertions.clear();
-    const EmptySpace& space = node.empty_spaces[generator.space_pos];
+    Corner corner = generator.corner;
+    const CornerData& corner_data = corners_[corner];
+    generator.space = mirrored(node.empty_spaces[generator.space_pos], corner);
+    const EmptySpace& space = generator.space;
 
     // Supporting parts touching the bottom side of the empty space.
     auto touches_bottom = [&space](const AxisAlignedBoundingBox& aabb)
@@ -542,24 +767,26 @@ void BranchingSchemeMaximalSpaces::select_empty_space(
             && !shape::strictly_greater(aabb.y_min, space.ys())
             && !shape::strictly_lesser(aabb.y_max, space.ys());
     };
-    for (ShapePos supporting_part_pos: bin_type_.bin_supporting_part_ids) {
-        const Support& support = bin_type_.supporting_parts[supporting_part_pos];
+    for (ShapePos supporting_part_pos: corner_data.bin_type.bin_supporting_part_ids) {
+        const Support& support = corner_data.bin_type.supporting_parts[supporting_part_pos];
         if (touches_bottom(support.aabb))
             generator.supporting_shapes.push_back(support.shape);
     }
     for (const Node::PlacedBlock& placed_block: node.placed_blocks) {
-        const Block& block = blocks_[placed_block.block_id];
+        // Position of the block in the frame of the corner.
+        Point position = mirrored(Point{placed_block.x, placed_block.y}, corner);
+        const Block& block = corner_data.blocks[placed_block.block_id];
         AxisAlignedBoundingBox block_aabb = block.supporting_parts_aabb;
-        block_aabb.shift(placed_block.x, placed_block.y);
+        block_aabb.shift(position.x, position.y);
         if (!touches_bottom(block_aabb))
             continue;
         for (const Support& support: block.supporting_parts) {
             AxisAlignedBoundingBox support_aabb = support.aabb;
-            support_aabb.shift(placed_block.x, placed_block.y);
+            support_aabb.shift(position.x, position.y);
             if (!touches_bottom(support_aabb))
                 continue;
             generator.supporting_shapes.push_back(support.shape);
-            generator.supporting_shapes.back().shift(placed_block.x, placed_block.y);
+            generator.supporting_shapes.back().shift(position.x, position.y);
         }
     }
 
@@ -574,7 +801,7 @@ void BranchingSchemeMaximalSpaces::select_empty_space(
             valid_block_pos < (ItemPos)node.valid_block_ids.size();
             ++valid_block_pos) {
         ItemPos block_id = node.valid_block_ids[valid_block_pos];
-        const Block& block = blocks_[block_id];
+        const Block& block = blocks()[block_id];
         if (!may_fit(block, space))
             continue;
         LengthDbl block_width = block.trapezoid_set.x_max - block.trapezoid_set.x_min;
@@ -622,18 +849,25 @@ void BranchingSchemeMaximalSpaces::select_empty_space(
 
     // For each supporting part, the trapezoids a block resting on it
     // may overlap.
-    generator.x_wall_min = (std::max)(bin_aabb_.x_min, space.xs() - blocks_width);
+    // The trapezoids of the node are mirrored into the frame of the corner.
+    generator.x_wall_min = (std::max)(corner_data.bin_aabb.x_min, space.xs() - blocks_width);
+    bool mirror_x = ((corner & 1) != 0);
+    bool mirror_y = ((corner & 2) != 0);
     for (const Shape& supporting_shape: generator.supporting_shapes) {
         AxisAlignedBoundingBox aabb = supporting_shape.compute_min_max();
         generator.supporting_shapes_obstacles.push_back({});
         for (const GeneralizedTrapezoid& trapezoid: node.trapezoids) {
-            if (!shape::strictly_greater(trapezoid.x_max(), generator.x_wall_min))
+            LengthDbl x_max = (mirror_x)? -trapezoid.x_min(): trapezoid.x_max();
+            LengthDbl y_top = (mirror_y)? -trapezoid.y_bottom(): trapezoid.y_top();
+            LengthDbl y_bottom = (mirror_y)? -trapezoid.y_top(): trapezoid.y_bottom();
+            if (!shape::strictly_greater(x_max, generator.x_wall_min))
                 continue;
-            if (!shape::strictly_greater(trapezoid.y_top(), aabb.y_min - blocks_height))
+            if (!shape::strictly_greater(y_top, aabb.y_min - blocks_height))
                 continue;
-            if (!shape::strictly_lesser(trapezoid.y_bottom(), aabb.y_max + blocks_height))
+            if (!shape::strictly_lesser(y_bottom, aabb.y_max + blocks_height))
                 continue;
-            generator.supporting_shapes_obstacles.back().push_back(trapezoid);
+            generator.supporting_shapes_obstacles.back().push_back(
+                    mirrored(trapezoid, corner));
         }
     }
 }
@@ -643,13 +877,14 @@ BranchingSchemeMaximalSpaces::Insertion BranchingSchemeMaximalSpaces::best_inser
         const InsertionGenerator& generator,
         ItemPos block_id) const
 {
-    const EmptySpace& space = node.empty_spaces[generator.space_pos];
-    LengthDbl bin_width = bin_type_.x_max - bin_type_.x_min;
-    const Block& block = blocks_[block_id];
+    const EmptySpace& space = generator.space;
+    const CornerData& corner_data = corners_[generator.corner];
+    LengthDbl bin_width = corner_data.bin_type.x_max - corner_data.bin_type.x_min;
+    const Block& block = corner_data.blocks[block_id];
     const TrapezoidSet& block_trapezoid_set = block.trapezoid_set;
     LengthDbl block_width = block_trapezoid_set.x_max - block_trapezoid_set.x_min;
     LengthDbl block_height = block_trapezoid_set.y_max - block_trapezoid_set.y_min;
-    LengthDbl x_wall = (std::max)(bin_aabb_.x_min, space.xs() - block_width);
+    LengthDbl x_wall = (std::max)(corner_data.bin_aabb.x_min, space.xs() - block_width);
 
     Insertion best_insertion;
     for (ShapePos supporting_shape_pos = 0;
@@ -661,7 +896,7 @@ BranchingSchemeMaximalSpaces::Insertion BranchingSchemeMaximalSpaces::best_inser
                     block_trapezoid_set,
                     supporting_shape,
                     supported_part.shape,
-                    bin_aabb_.x_max);
+                    corner_data.bin_aabb.x_max);
             SlidePosition position = slider.initial_position();
             if (slider.out_of_bounds(position))
                 continue;
@@ -669,8 +904,8 @@ BranchingSchemeMaximalSpaces::Insertion BranchingSchemeMaximalSpaces::best_inser
                         position,
                         x_wall,
                         x_wall - bin_width,
-                        bin_type_.y_min,
-                        bin_type_.y_max)) {
+                        corner_data.bin_type.y_min,
+                        corner_data.bin_type.y_max)) {
                 continue;
             }
             if (!slider.slide(
@@ -705,6 +940,7 @@ BranchingSchemeMaximalSpaces::Insertion BranchingSchemeMaximalSpaces::best_inser
             if (best_insertion.block_id == -1
                     || guide > best_insertion.guide) {
                 best_insertion.block_id = block_id;
+                best_insertion.corner = generator.corner;
                 best_insertion.x = position.x;
                 best_insertion.y = position.y;
                 best_insertion.guide = guide;
@@ -848,17 +1084,21 @@ void BranchingSchemeMaximalSpaces::apply_insertion(
     node.insertion_generator = nullptr;
     node.next_child_pos = 0;
 
-    const Block& block = blocks_[insertion.block_id];
+    // The block in the frame of the corner is the block in the frame of
+    // corner 0 mirrored: mirroring its position gives its position in the
+    // frame of corner 0.
+    const Block& block = blocks()[insertion.block_id];
+    Point position = mirrored(Point{insertion.x, insertion.y}, insertion.corner);
 
     Node::PlacedBlock placed_block;
     placed_block.block_id = insertion.block_id;
-    placed_block.x = insertion.x;
-    placed_block.y = insertion.y;
+    placed_block.x = position.x;
+    placed_block.y = position.y;
     node.placed_blocks.push_back(placed_block);
 
     for (const auto& item_shape_trapezoids: block.trapezoid_set.shapes_inflated)
         for (const GeneralizedTrapezoid& trapezoid: item_shape_trapezoids)
-            node.trapezoids.push_back(shifted(trapezoid, insertion.x, insertion.y));
+            node.trapezoids.push_back(shifted(trapezoid, position.x, position.y));
 
     // Update the profit before the resource consumptions: the penalties
     // depend on the previous consumptions. Both depend on the copies already
@@ -878,7 +1118,7 @@ void BranchingSchemeMaximalSpaces::apply_insertion(
                 item_copies.second);
     }
     for (ItemPos block_pos = 0; block_pos < (ItemPos)node.valid_block_ids.size(); ) {
-        if (block_valid(node, blocks_[node.valid_block_ids[block_pos]])) {
+        if (block_valid(node, blocks()[node.valid_block_ids[block_pos]])) {
             ++block_pos;
         } else {
             node.valid_block_ids[block_pos] = node.valid_block_ids.back();
@@ -889,16 +1129,23 @@ void BranchingSchemeMaximalSpaces::apply_insertion(
     node.item_area += block.item_area;
     node.number_of_items += block.number_of_items;
     node.number_of_blocks++;
+    AxisAlignedBoundingBox block_aabb;
+    block_aabb.x_min = block.trapezoid_set.x_min;
+    block_aabb.x_max = block.trapezoid_set.x_max;
+    block_aabb.y_min = block.trapezoid_set.y_min;
+    block_aabb.y_max = block.trapezoid_set.y_max;
+    block_aabb.shift(position.x, position.y);
+    node.items_aabb = shape::merge(node.items_aabb, block_aabb);
 
     // Update the empty spaces. The new ones too small for all the valid
     // blocks are discarded (see 'may_fit').
     std::vector<AxisAlignedBoundingBox> rectangles = block.rectangles;
     for (AxisAlignedBoundingBox& rectangle: rectangles)
-        rectangle.shift(insertion.x, insertion.y);
+        rectangle.shift(position.x, position.y);
     LengthDbl minimum_width = std::numeric_limits<LengthDbl>::infinity();
     LengthDbl minimum_height = std::numeric_limits<LengthDbl>::infinity();
     for (ItemPos block_id: node.valid_block_ids) {
-        const AxisAlignedBoundingBox& core_rectangle = blocks_[block_id].core_rectangle;
+        const AxisAlignedBoundingBox& core_rectangle = blocks()[block_id].core_rectangle;
         minimum_width = (std::min)(minimum_width, core_rectangle.x_max - core_rectangle.x_min);
         minimum_height = (std::min)(minimum_height, core_rectangle.y_max - core_rectangle.y_min);
     }
@@ -917,7 +1164,7 @@ void BranchingSchemeMaximalSpaces::remove_unusable_spaces(Node& node) const
         const EmptySpace& space = node.empty_spaces[space_pos];
         bool usable = false;
         for (ItemPos block_id: node.valid_block_ids) {
-            if (may_fit(blocks_[block_id], space)) {
+            if (may_fit(blocks()[block_id], space)) {
                 usable = true;
                 break;
             }
@@ -962,7 +1209,23 @@ std::shared_ptr<BranchingSchemeMaximalSpaces::Node> BranchingSchemeMaximalSpaces
     Node greedy_node = *node;
     complete_greedily(greedy_node);
     node->greedy_value = greedy_node.profit;
+    node->greedy_number_of_items = greedy_node.number_of_items;
+    if (minimize_extent_)
+        node->greedy_extent = extent(greedy_node);
     return node;
+}
+
+bool BranchingSchemeMaximalSpaces::greedy_better(
+        const Node& node_1,
+        const Node& node_2) const
+{
+    bool complete_1 = (node_1.greedy_number_of_items == instance().number_of_items());
+    bool complete_2 = (node_2.greedy_number_of_items == instance().number_of_items());
+    if (complete_1 != complete_2)
+        return complete_1;
+    if (complete_1)
+        return shape::strictly_lesser(node_1.greedy_extent, node_2.greedy_extent);
+    return node_1.greedy_value > node_2.greedy_value;
 }
 
 bool BranchingSchemeMaximalSpaces::better(
@@ -972,6 +1235,13 @@ bool BranchingSchemeMaximalSpaces::better(
     switch (instance().objective()) {
     case Objective::Knapsack: case Objective::Feasibility: {
         return node_2->greedy_value < node_1->greedy_value;
+    } case Objective::OpenDimensionX:
+    case Objective::OpenDimensionY:
+    case Objective::BinPackingWithLeftovers: {
+        // Only the solutions packing all the items are feasible.
+        if (node_1->greedy_number_of_items != instance().number_of_items())
+            return false;
+        return greedy_better(*node_1, *node_2);
     } default: {
         std::stringstream ss;
         ss << FUNC_SIGNATURE << ": "
@@ -984,12 +1254,20 @@ bool BranchingSchemeMaximalSpaces::better(
 }
 
 bool BranchingSchemeMaximalSpaces::bound(
-        const std::shared_ptr<Node>&,
+        const std::shared_ptr<Node>& node_1,
         const std::shared_ptr<Node>& node_2) const
 {
     switch (instance().objective()) {
     case Objective::Knapsack: case Objective::Feasibility: {
         return leaf(node_2);
+    } case Objective::OpenDimensionX:
+    case Objective::OpenDimensionY:
+    case Objective::BinPackingWithLeftovers: {
+        // The extent of a node is a lower bound of the ones of its
+        // descendants.
+        if (node_2->greedy_number_of_items != instance().number_of_items())
+            return false;
+        return !shape::strictly_lesser(extent(*node_1), node_2->greedy_extent);
     } default: {
         std::stringstream ss;
         ss << FUNC_SIGNATURE << ": "
@@ -1012,9 +1290,9 @@ Solution BranchingSchemeMaximalSpaces::to_solution(
     BinPos bin_pos = solution_builder.add_bin(bin_type_id, 1);
     double scale = 1.0 / instance().parameters().scale_value;
     for (const Node::PlacedBlock& placed_block: greedy_node.placed_blocks) {
-        const Block& block = blocks_[placed_block.block_id];
+        const Block& block = blocks()[placed_block.block_id];
         for (const BlockItem& item: block.items) {
-            const TrapezoidSet& trapezoid_set = trapezoid_sets_[item.trapezoid_set_id];
+            const TrapezoidSet& trapezoid_set = corners_[0].trapezoid_sets[item.trapezoid_set_id];
             Point bl_corner = convert_point_back(
                     {placed_block.x + item.x, placed_block.y + item.y},
                     parameters_.direction);
@@ -1066,10 +1344,11 @@ const packingsolver::irregular::TreeSearchMaximalSpacesOutput packingsolver::irr
     algorithm_formatter.print_header();
 
     if (instance.objective() == Objective::BinPacking
-            || instance.objective() == Objective::BinPackingWithLeftovers
-            || instance.objective() == Objective::OpenDimensionX
-            || instance.objective() == Objective::OpenDimensionY
-            || instance.objective() == Objective::OpenDimensionXY) {
+            || instance.objective() == Objective::OpenDimensionXY
+            || (parameters.use_sequential_feasibility
+                && (instance.objective() == Objective::BinPackingWithLeftovers
+                    || instance.objective() == Objective::OpenDimensionX
+                    || instance.objective() == Objective::OpenDimensionY))) {
         SequentialFeasibilitySolver solver = [&parameters, &algorithm_formatter](
                 const Instance& sub_instance,
                 const Solution*)
@@ -1082,6 +1361,7 @@ const packingsolver::irregular::TreeSearchMaximalSpacesOutput packingsolver::irr
             inner_parameters.maximum_approximation_ratio = parameters.maximum_approximation_ratio;
             inner_parameters.not_anytime_tree_search_queue_size
                 = parameters.not_anytime_tree_search_queue_size;
+            inner_parameters.use_multiple_corners = parameters.use_multiple_corners;
             return tree_search_maximal_spaces(sub_instance, inner_parameters).solution_pool;
         };
 
@@ -1102,10 +1382,92 @@ const packingsolver::irregular::TreeSearchMaximalSpacesOutput packingsolver::irr
         return output;
     }
 
-    std::vector<Direction> directions = {
-        Direction::LeftToRightThenBottomToTop,
-        Direction::BottomToTopThenLeftToRight,
-    };
+    // When minimizing the extent of the items, the x-axis of the direction
+    // frame is the one along which the items progress (see
+    // 'BranchingSchemeMaximalSpaces::select_empty_space').
+    std::vector<Direction> directions;
+    // With multiple corners, the second direction of the open dimension
+    // objectives and of the side leftover modes is the first one with the
+    // y-axis mirrored: it is covered by its corners (see
+    // 'BranchingSchemeMaximalSpaces::Parameters::use_multiple_corners').
+    if (instance.objective() == Objective::OpenDimensionX) {
+        directions = {
+            Direction::LeftToRightThenBottomToTop,
+            Direction::LeftToRightThenTopToBottom,
+        };
+    } else if (instance.objective() == Objective::OpenDimensionY) {
+        directions = {
+            Direction::BottomToTopThenLeftToRight,
+            Direction::BottomToTopThenRightToLeft,
+        };
+    } else if (instance.objective() == Objective::BinPackingWithLeftovers) {
+        switch (instance.parameters().leftover_mode) {
+        case LeftoverMode::BottomLeft: {
+            directions = {
+                Direction::LeftToRightThenBottomToTop,
+                Direction::BottomToTopThenLeftToRight,
+            };
+            break;
+        } case LeftoverMode::BottomRight: {
+            directions = {
+                Direction::RightToLeftThenBottomToTop,
+                Direction::BottomToTopThenRightToLeft,
+            };
+            break;
+        } case LeftoverMode::TopLeft: {
+            directions = {
+                Direction::LeftToRightThenTopToBottom,
+                Direction::TopToBottomThenLeftToRight,
+            };
+            break;
+        } case LeftoverMode::TopRight: {
+            directions = {
+                Direction::RightToLeftThenTopToBottom,
+                Direction::TopToBottomThenRightToLeft,
+            };
+            break;
+        } case LeftoverMode::Left: {
+            directions = {
+                Direction::LeftToRightThenBottomToTop,
+                Direction::LeftToRightThenTopToBottom,
+            };
+            break;
+        } case LeftoverMode::Right: {
+            directions = {
+                Direction::RightToLeftThenBottomToTop,
+                Direction::RightToLeftThenTopToBottom,
+            };
+            break;
+        } case LeftoverMode::Bottom: {
+            directions = {
+                Direction::BottomToTopThenLeftToRight,
+                Direction::BottomToTopThenRightToLeft,
+            };
+            break;
+        } case LeftoverMode::Top: {
+            directions = {
+                Direction::TopToBottomThenLeftToRight,
+                Direction::TopToBottomThenRightToLeft,
+            };
+            break;
+        }
+        }
+    } else {
+        directions = {
+            Direction::LeftToRightThenBottomToTop,
+            Direction::BottomToTopThenLeftToRight,
+        };
+    }
+    if (parameters.use_multiple_corners
+            && (instance.objective() == Objective::OpenDimensionX
+                || instance.objective() == Objective::OpenDimensionY
+                || (instance.objective() == Objective::BinPackingWithLeftovers
+                    && (instance.parameters().leftover_mode == LeftoverMode::Left
+                        || instance.parameters().leftover_mode == LeftoverMode::Right
+                        || instance.parameters().leftover_mode == LeftoverMode::Bottom
+                        || instance.parameters().leftover_mode == LeftoverMode::Top)))) {
+        directions.resize(1);
+    }
 
     // In 'NotAnytimeDeterministic' mode, each scheme reports to its own
     // algorithm formatter, writing into its own output, instead of the shared
@@ -1160,6 +1522,7 @@ const packingsolver::irregular::TreeSearchMaximalSpacesOutput packingsolver::irr
 
                 BranchingSchemeMaximalSpaces::Parameters branching_scheme_parameters;
                 branching_scheme_parameters.direction = direction;
+                branching_scheme_parameters.use_multiple_corners = parameters.use_multiple_corners;
                 branching_scheme_parameters.maximum_approximation_ratio = parameters.maximum_approximation_ratio;
                 branching_scheme_parameters.timer = ibs_parameters.timer;
                 BranchingSchemeMaximalSpaces branching_scheme(instance, branching_scheme_parameters);

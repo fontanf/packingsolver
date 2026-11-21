@@ -315,6 +315,13 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
     bool benders_decomposition_use_tree_search_relative_positions = false;
 
     /**
+     * Solve the open dimension X, open dimension Y and bin packing with
+     * leftovers objectives with the tree search maximal spaces algorithm
+     * through the sequential feasibility algorithm, instead of directly.
+     */
+    bool tree_search_maximal_spaces_use_sequential_feasibility = true;
+
+    /**
      * Use the tree search on relative positions (only for the 'Feasibility'
      * objective with a single bin, and for the open dimension objectives;
      * only selected automatically in 'Exact' mode).
