@@ -26,12 +26,26 @@ namespace irregular
  * 'BranchingSchemePeriodicPacking':
  * - like the latter, a node stores the maximal empty spaces of the bin, an
  *   insertion packs a block of items (a single item or a periodic block) in
- *   the empty space closest to the bottom-left corner of the bin, and a node
- *   is evaluated by completing it greedily;
+ *   the empty space closest to a corner of the bin, and a node is evaluated
+ *   by completing it greedily;
  * - like the former, the items are described by their trapezoids, and a
  *   block is inserted by resting one of its supported parts on a supporting
- *   part of the bin or of a block already packed and by sliding it to the
- *   right until it doesn't overlap the items already packed.
+ *   part of the bin or of a block already packed and by sliding it towards
+ *   the side of the corner until it doesn't overlap the items already
+ *   packed.
+ *
+ * The corners are the ones of the direction frame: corner 0 is its
+ * bottom-left corner; in corner 1 (resp. 2), the x-axis (resp. y-axis) is
+ * mirrored; in corner 3, both are. An insertion at a corner is computed in
+ * the frame of the corner, in which it is the bottom-left corner: the blocks
+ * are built in each of these frames, and the trapezoids of the node, stored
+ * in the frame of corner 0, are mirrored into it.
+ *
+ * When minimizing the extent of the items (see 'minimize_extent'), the
+ * selected empty space is the one closest to the left side of the bin, then
+ * to one of its left corners, so that the packed items progress along the
+ * x-axis of the direction frame, and the nodes are compared on the extent of
+ * their greedy completions.
  *
  * The empty spaces are only used to select where to insert a block: they
  * are computed from rectangles covering the items, while the overlaps are
@@ -46,6 +60,9 @@ class BranchingSchemeMaximalSpaces
 {
 
 public:
+
+    /** Corner of the bin (see the description of the class). */
+    using Corner = int;
 
     /*
      * Sub-structures
@@ -139,10 +156,13 @@ public:
         /** Inserted block. */
         ItemPos block_id = -1;
 
-        /** x-coordinate of the block. */
+        /** Corner of the insertion. */
+        Corner corner = 0;
+
+        /** x-coordinate of the block, in the frame of the corner. */
         LengthDbl x = 0.0;
 
-        /** y-coordinate of the block. */
+        /** y-coordinate of the block, in the frame of the corner. */
         LengthDbl y = 0.0;
 
         /** Score of the insertion, the larger the better. */
@@ -191,6 +211,12 @@ public:
         /** Position of the selected empty space in the node. */
         ItemPos space_pos = -1;
 
+        /** Corner at which the blocks are inserted in the empty space. */
+        Corner corner = 0;
+
+        /** Selected empty space, in the frame of the corner. */
+        EmptySpace space;
+
         /** Supporting parts touching the bottom side of the empty space. */
         std::vector<Shape> supporting_shapes;
 
@@ -228,10 +254,13 @@ public:
             /** Block. */
             ItemPos block_id = -1;
 
-            /** x-coordinate of the block. */
+            /**
+             * x-coordinate of the block, in the frame of corner 0: its items
+             * are the ones of the block in this frame, shifted.
+             */
             LengthDbl x = 0.0;
 
-            /** y-coordinate of the block. */
+            /** y-coordinate of the block, in the frame of corner 0. */
             LengthDbl y = 0.0;
         };
 
@@ -243,11 +272,12 @@ public:
 
         /**
          * Trapezoids that a new block must not overlap: the obstacles of the
-         * bin and the inflated trapezoids of the packed items.
+         * bin and the inflated trapezoids of the packed items, in the frame
+         * of corner 0.
          */
         std::vector<GeneralizedTrapezoid> trapezoids;
 
-        /** Maximal empty spaces. */
+        /** Maximal empty spaces, in the frame of corner 0. */
         std::vector<EmptySpace> empty_spaces;
 
         /** For each item type, number of copies in the node. */
@@ -287,6 +317,18 @@ public:
         /** Profit of the greedy completion of the node. */
         Profit greedy_value = 0;
 
+        /** Bounding box of the packed items, in the direction frame. */
+        AxisAlignedBoundingBox items_aabb;
+
+        /** Number of items of the greedy completion of the node. */
+        ItemPos greedy_number_of_items = 0;
+
+        /**
+         * Extent of the greedy completion of the node (see 'extent'); only
+         * used when minimizing the extent.
+         */
+        double greedy_extent = 0.0;
+
         /**
          * Insertions of the node, created when its first child is, and reset
          * once they are all generated.
@@ -319,6 +361,15 @@ public:
 
         /** Use the periodic blocks, and not only the single items. */
         bool use_periodic_blocks = true;
+
+        /**
+         * Insert the blocks at several corners of the bin, and not only at
+         * corner 0: at the 4 corners for the knapsack and feasibility
+         * objectives, at the 2 left ones when minimizing the extent along
+         * the x-axis of the direction frame (open dimension objectives, and
+         * bin packing with leftovers objective with a side leftover mode).
+         */
+        bool use_multiple_corners = true;
 
         /**
          * Exponent of the density of an insertion in its score:
@@ -361,8 +412,29 @@ public:
     /** Get parameters. */
     inline const Parameters& parameters() const { return parameters_; }
 
-    /** Get the blocks. */
-    inline const std::vector<Block>& blocks() const { return blocks_; }
+    /** Get the blocks, in the frame of corner 0. */
+    inline const std::vector<Block>& blocks() const { return corners_[0].blocks; }
+
+    /** Get the corners at which the blocks may be inserted. */
+    inline const std::vector<Corner>& corner_ids() const { return corner_ids_; }
+
+    /**
+     * Return 'true' iff the objective is to pack all the items while
+     * minimizing their extent (see 'extent'): open dimension X or Y, or bin
+     * packing with leftovers in a single bin.
+     */
+    inline bool minimize_extent() const { return minimize_extent_; }
+
+    /**
+     * Extent of the items of a node, to minimize:
+     * - their x_max for the open dimension X objective;
+     * - their y_max for the open dimension Y objective;
+     * - minus the leftover value of the bin for the bin packing with
+     *   leftovers objective.
+     *
+     * It doesn't decrease when items are added.
+     */
+    double extent(const Node& node) const;
 
     /*
      * Branching scheme methods
@@ -435,6 +507,8 @@ public:
             const std::shared_ptr<Node>& node_1,
             const std::shared_ptr<Node>& node_2) const
     {
+        if (minimize_extent_)
+            return !greedy_better(*node_2, *node_1);
         return node_1->greedy_value >= node_2->greedy_value;
     }
 
@@ -445,7 +519,11 @@ public:
     std::string display(const std::shared_ptr<Node>& node) const
     {
         std::stringstream ss;
-        ss << node->greedy_value;
+        if (minimize_extent_) {
+            ss << node->greedy_number_of_items << " " << node->greedy_extent;
+        } else {
+            ss << node->greedy_value;
+        }
         return ss.str();
     }
 
@@ -470,26 +548,49 @@ private:
     /** Simplified instance. */
     SimplifiedInstance simplified_instance_;
 
-    /** Trapezoid bin type of the (single) bin type, in the direction frame. */
-    TrapezoidBinType bin_type_;
+    /** Geometry of the bin and of the blocks in the frame of a corner. */
+    struct CornerData
+    {
+        /** Direction of the frame of the corner. */
+        Direction direction = Direction::LeftToRightThenBottomToTop;
 
-    /**
-     * Trapezoid sets of the items: the ones of 'bin_type_', then the ones of
-     * the orientations used by the periodic blocks only.
-     */
-    std::vector<TrapezoidSet> trapezoid_sets_;
+        /** Trapezoid bin type of the (single) bin type. */
+        TrapezoidBinType bin_type;
 
-    /** Supporting parts of the trapezoid sets. */
-    std::vector<Support> supporting_parts_;
+        /**
+         * Trapezoid sets of the items: the ones of 'bin_type', then the ones
+         * of the orientations used by the periodic blocks only. They are
+         * the same in all the corners.
+         */
+        std::vector<TrapezoidSet> trapezoid_sets;
 
-    /** Supported parts of the trapezoid sets. */
-    std::vector<Support> supported_parts_;
+        /** Supporting parts of the trapezoid sets. */
+        std::vector<Support> supporting_parts;
 
-    /** Rectangles covering the inflated shape of each trapezoid set. */
-    std::vector<std::vector<AxisAlignedBoundingBox>> trapezoid_sets_rectangles_;
+        /** Supported parts of the trapezoid sets. */
+        std::vector<Support> supported_parts;
 
-    /** Blocks. */
-    std::vector<Block> blocks_;
+        /**
+         * Rectangles covering the inflated shape of each trapezoid set; only
+         * computed for corner 0.
+         */
+        std::vector<std::vector<AxisAlignedBoundingBox>> trapezoid_sets_rectangles;
+
+        /**
+         * Blocks: the same in all the corners, the ones of a corner being the
+         * ones of corner 0 mirrored.
+         */
+        std::vector<Block> blocks;
+
+        /** Usable part of the bin. */
+        AxisAlignedBoundingBox bin_aabb;
+    };
+
+    /** Data of each corner, only built for the corners of 'corner_ids_'. */
+    std::vector<CornerData> corners_;
+
+    /** Corners at which the blocks may be inserted. */
+    std::vector<Corner> corner_ids_;
 
     /**
      * For each item type, true iff its consumption of a resource of the bin
@@ -506,8 +607,11 @@ private:
      */
     std::vector<AxisAlignedBoundingBox> obstacles_rectangles_;
 
-    /** Usable part of the bin, in the direction frame. */
-    AxisAlignedBoundingBox bin_aabb_;
+    /** See 'minimize_extent'. */
+    bool minimize_extent_ = false;
+
+    /** Bounding box of the fixed items, in the direction frame. */
+    AxisAlignedBoundingBox fixed_items_aabb_;
 
     mutable NodeId node_id_ = 0;
 
@@ -520,22 +624,33 @@ private:
      * if needed.
      */
     TrapezoidSetId trapezoid_set_id(
+            Corner corner,
             ItemTypeId item_type_id,
             Angle angle,
             bool mirror);
 
-    /** Compute the rectangles covering the inflated shape of a trapezoid set. */
+    /**
+     * Compute the rectangles covering the inflated shape of a trapezoid set
+     * of corner 0.
+     */
     std::vector<AxisAlignedBoundingBox> compute_rectangles(
             const TrapezoidSet& trapezoid_set) const;
 
-    /** Build a block from its items. */
-    Block build_block(const std::vector<BlockItem>& items) const;
+    /** Build a block from its items, in the frame of a corner. */
+    Block build_block(
+            Corner corner,
+            const std::vector<BlockItem>& items) const;
 
     /** Build the blocks. */
     void compute_blocks();
 
-    /** Select the empty space in which to insert the next block. */
-    ItemPos select_empty_space(const Node& node) const;
+    /**
+     * Select the empty space in which to insert the next block, and the
+     * corner at which to insert it.
+     */
+    ItemPos select_empty_space(
+            const Node& node,
+            Corner& corner) const;
 
     /** Return 'true' iff the block may be inserted in the empty space. */
     bool may_fit(
@@ -626,6 +741,17 @@ private:
     /** Complete a node greedily. */
     void complete_greedily(Node& node) const;
 
+    /**
+     * Return 'true' iff the greedy completion of 'node_1' is strictly better
+     * than the one of 'node_2' when minimizing the extent: it packs all the
+     * items and the one of 'node_2' doesn't, or both pack all the items and
+     * its extent is smaller, or none pack all the items and its profit is
+     * larger.
+     */
+    bool greedy_better(
+            const Node& node_1,
+            const Node& node_2) const;
+
 };
 
 inline bool BranchingSchemeMaximalSpaces::operator()(
@@ -636,6 +762,12 @@ inline bool BranchingSchemeMaximalSpaces::operator()(
         return true;
     if (node_2->number_of_blocks == 0)
         return false;
+    if (minimize_extent_) {
+        if (greedy_better(*node_1, *node_2))
+            return true;
+        if (greedy_better(*node_2, *node_1))
+            return false;
+    }
     if (node_1->greedy_value != node_2->greedy_value)
         return node_1->greedy_value > node_2->greedy_value;
     if (node_1->profit != node_2->profit)
@@ -665,14 +797,30 @@ struct TreeSearchMaximalSpacesParameters: packingsolver::Parameters<Instance, So
     double maximum_approximation_ratio = 0.05;
 
     NodeId not_anytime_tree_search_queue_size = 1;
+
+    /**
+     * Solve the open dimension X, open dimension Y and bin packing with
+     * leftovers objectives through the sequential feasibility algorithm,
+     * instead of directly. The bin packing and open dimension XY objectives
+     * are always solved through it.
+     */
+    bool use_sequential_feasibility = true;
+
+    /**
+     * Insert the blocks at several corners of the bin (see
+     * 'BranchingSchemeMaximalSpaces::Parameters::use_multiple_corners').
+     */
+    bool use_multiple_corners = true;
 };
 
 /**
  * Tree search with maximal empty spaces on the actual geometry of the items.
  *
- * It only handles instances with a single bin. The knapsack and feasibility
- * objectives are solved directly; the bin packing and open dimension ones
- * through the sequential feasibility algorithm.
+ * It only handles instances with a single bin. The knapsack, feasibility,
+ * open dimension X, open dimension Y and bin packing with leftovers
+ * objectives are solved directly; the bin packing and open dimension XY ones
+ * through the sequential feasibility algorithm, as well as the other ones if
+ * 'use_sequential_feasibility' is set.
  */
 const TreeSearchMaximalSpacesOutput tree_search_maximal_spaces(
         const Instance& instance,
