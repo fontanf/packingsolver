@@ -57,7 +57,7 @@ struct Output: packingsolver::Output<Instance, Solution>
                 && (bin_packing_bound == solution_pool.best().number_of_bins()
                         || solution_pool.best().number_of_bins() <= bin_packing_goal);
         }
-        case Objective::VariableSizedBinPacking: {
+        case Objective::VariableSizedBinPacking: case Objective::VariableSizedBinPackingWithLeftovers: {
             Profit variable_sized_bin_packing_goal
                 = solution_pool.best().instance().variable_sized_bin_packing_goal();
             return solution_pool.best().feasible()
@@ -94,7 +94,7 @@ struct Output: packingsolver::Output<Instance, Solution>
             if (output.bin_packing_bound > bin_packing_bound)
                 bin_packing_bound = output.bin_packing_bound;
             break;
-        case Objective::VariableSizedBinPacking:
+        case Objective::VariableSizedBinPacking: case Objective::VariableSizedBinPackingWithLeftovers:
             if (output.variable_sized_bin_packing_bound > variable_sized_bin_packing_bound)
                 variable_sized_bin_packing_bound = output.variable_sized_bin_packing_bound;
             break;
@@ -125,7 +125,7 @@ struct Output: packingsolver::Output<Instance, Solution>
         case Objective::BinPacking:
             write_bound(os, width, solution_pool.best().number_of_bins(), bin_packing_bound);
             break;
-        case Objective::VariableSizedBinPacking:
+        case Objective::VariableSizedBinPacking: case Objective::VariableSizedBinPackingWithLeftovers:
             write_bound(os, width, solution_pool.best().cost(), variable_sized_bin_packing_bound);
             break;
         case Objective::Feasibility:

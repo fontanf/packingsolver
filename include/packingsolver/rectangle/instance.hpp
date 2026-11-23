@@ -6,6 +6,7 @@
 #include "packingsolver/algorithms/resource.hpp"
 #include "packingsolver/algorithms/truck.hpp"
 
+#include <array>
 #include <functional>
 #include <memory>
 
@@ -24,20 +25,41 @@ std::ostream& operator<<(
         std::ostream& os,
         Direction o);
 
+/**
+ * Leftover of a bin, for the BinPackingWithLeftovers objective.
+ *
+ * The leftover mode defines the shape of the leftover: the bin minus the
+ * rectangle used by the items. The value of the leftover is computed from
+ * its shape (see 'leftover_value').
+ */
 enum class LeftoverMode
 {
-    /** Leftover value is bin_area - x_max * y_max (default). */
+    /**
+     * The leftover is the L-shape between the top-right corner of the bin
+     * and the rectangle [0, x_max] x [0, y_max] (default).
+     */
     Area,
     /**
-     * Leftover value is (bin_width - x_max) * bin_height; forces
-     * Direction::X.
+     * The leftover is the rectangle [x_max, bin_width] x [0, bin_height];
+     * forces Direction::X.
      */
     X,
     /**
-     * Leftover value is bin_width * (bin_height - y_max); forces
-     * Direction::Y.
+     * The leftover is the rectangle [0, bin_width] x [y_max, bin_height];
+     * forces Direction::Y.
      */
     Y,
+    /**
+     * As 'Area', but the L-shape is cut into two rectangles, along the best
+     * of the two cuts at x_max and at y_max.
+     */
+    AreaCut,
+    /**
+     * The leftover is the bin minus the union of the rectangles between the
+     * bottom-left corner of the bin and the top-right corner of each item: a
+     * staircase.
+     */
+    Staircase,
 };
 
 std::istream& operator>>(
@@ -65,6 +87,43 @@ std::istream& operator>>(
 std::ostream& operator<<(
         std::ostream& os,
         UnloadingConstraint unloading_constraint);
+
+/**
+ * Get the value of the leftover of a bin of dimensions 'bin_x' x 'bin_y'
+ * whose items are in [0, x_max] x [0, y_max], for a leftover value type and
+ * a leftover mode.
+ *
+ * With 'LeftoverValueType::SquaredArea', the value of a leftover is the
+ * square of its area (the sum of the squares of the areas of its pieces if it
+ * is cut). With
+ * 'LeftoverValueType::Depth', it is the integral, over its points, of their
+ * distance to its edge (see 'algorithms/leftover.hpp'): its area times the
+ * average distance of its points to its edge, so a compact leftover is worth
+ * more than a thin one of the same area. An empty bin is worth
+ * 'leftover_value(leftover_value_type, leftover_mode, bin_x, bin_y, 0, 0)'.
+ *
+ * For 'LeftoverMode::Staircase', the value depends on the staircase of the
+ * items (see 'staircase_leftover_value'); this function returns the value of
+ * the L-shape of 'Area', which is the same for an empty bin.
+ */
+double leftover_value(
+        LeftoverValueType leftover_value_type,
+        LeftoverMode leftover_mode,
+        Length bin_x,
+        Length bin_y,
+        Length x_max,
+        Length y_max);
+
+/**
+ * Get the value of the leftover of a bin of dimensions 'bin_x' x 'bin_y' for
+ * 'LeftoverMode::Staircase': the bin minus the union of the rectangles
+ * [0, x] x [0, y] of the extents given, for a leftover value type.
+ */
+double staircase_leftover_value(
+        LeftoverValueType leftover_value_type,
+        Length bin_x,
+        Length bin_y,
+        const std::vector<std::array<Length, 2>>& extents);
 
 struct Point
 {
@@ -319,6 +378,12 @@ struct Parameters
     LeftoverMode leftover_mode = LeftoverMode::Area;
 
     /**
+     * How the value of the leftover of a bin is computed, for the
+     * BinPackingWithLeftovers objective (see 'LeftoverValueType').
+     */
+    LeftoverValueType leftover_value_type = LeftoverValueType::SquaredArea;
+
+    /**
      * For the BinPackingWithLeftovers objective, also compare the solutions
      * on the sum of the leftover values of the bins and on the sum of their
      * staircase leftover values, after the leftover value and the staircase
@@ -444,6 +509,32 @@ public:
 
     /** Get a bin type. */
     inline const BinType& bin_type(BinTypeId bin_type_id) const { return bin_types_[bin_type_id]; }
+
+    /**
+     * Get the factor which converts a leftover value into a space, for the
+     * 'VariableSizedBinPackingWithLeftovers' objective: the minimum, over the
+     * bin types, of the area of the bin divided by its leftover
+     * value when it is empty.
+     */
+    inline double leftover_value_factor() const { return leftover_value_factor_; }
+
+    /**
+     * Get the refund of a leftover of a bin, for the
+     * 'VariableSizedBinPackingWithLeftovers' objective: the price of the bin
+     * per unit of area, times the space equivalent to the value of
+     * the leftover.
+     *
+     * The refund of an empty bin is at most its cost; it is equal for the
+     * bin types which define 'leftover_value_factor()'.
+     */
+    inline Profit leftover_refund(
+            BinTypeId bin_type_id,
+            double leftover_value) const
+    {
+        const BinType& bin_type = this->bin_type(bin_type_id);
+        double space = (double)bin_type.area();
+        return bin_type.cost / space * leftover_value_factor_ * leftover_value;
+    }
 
     /** Get the number of bins. */
     inline BinPos number_of_bins() const { return bin_type_ids_.size(); }
@@ -623,6 +714,9 @@ private:
 
     /** Bin types. */
     std::vector<BinType> bin_types_;
+
+    /** Factor which converts a leftover value into a space. */
+    double leftover_value_factor_ = 0;
 
     /** Item types. */
     std::vector<ItemType> item_types_;

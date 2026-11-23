@@ -197,7 +197,7 @@ public:
         AreaDbl last_bin_staircase_leftover_value = 0;
 
         /** Sum of the leftover values of the bins but the last one. */
-        AreaDbl previous_bins_leftover_value = 0;
+        double previous_bins_leftover_value = 0;
 
         /** Sum of the staircase leftover values of the bins but the last one. */
         AreaDbl previous_bins_staircase_leftover_value = 0;
@@ -393,8 +393,8 @@ public:
         // Check leftover values.
         if (instance().objective() == Objective::BinPackingWithLeftovers) {
             if (shape::strictly_greater(
-                        std::sqrt(node_2->leftover_value),
-                        std::sqrt(node_1->leftover_value))) {
+                        leftover_value_length_2d(instance().parameters().leftover_value_type, node_2->leftover_value),
+                        leftover_value_length_2d(instance().parameters().leftover_value_type, node_1->leftover_value))) {
                 return false;
             }
             if (shape::strictly_greater(
@@ -404,8 +404,8 @@ public:
             }
             if (instance().parameters().leftover_all_bins) {
                 if (shape::strictly_greater(
-                            std::sqrt(node_2->previous_bins_leftover_value),
-                            std::sqrt(node_1->previous_bins_leftover_value))) {
+                            leftover_value_length_2d(instance().parameters().leftover_value_type, node_2->previous_bins_leftover_value),
+                            leftover_value_length_2d(instance().parameters().leftover_value_type, node_1->previous_bins_leftover_value))) {
                     return false;
                 }
                 if (shape::strictly_greater(

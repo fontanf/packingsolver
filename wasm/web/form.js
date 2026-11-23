@@ -26,6 +26,15 @@ export function detailsNumber(key, label, placeholder, options = {}) {
     return {key, label, type: "number", value: "", optional: true, details: true, placeholder, ...options};
 }
 
+// Objectives optimized as variable-sized bin packing: the bin types have a
+// cost and a minimum number of copies.
+export const VARIABLE_SIZED_BIN_PACKING_OBJECTIVES = [
+    "variable-sized-bin-packing", "variable-sized-bin-packing-with-leftovers"];
+
+// Objectives for which the leftovers of the bins are valued.
+export const LEFTOVER_OBJECTIVES = [
+    "bin-packing-with-leftovers", "variable-sized-bin-packing-with-leftovers"];
+
 // Copies of a bin or item type, which can be unlimited ('copies' -1, with a
 // checkbox next to them): bin types except for the knapsack objective, item
 // types only for the knapsack objective. And the minimum number of copies to
@@ -39,7 +48,7 @@ export function copiesColumns(isItem) {
     copies.unlimited = isItem?
         (objective) => objective === "knapsack":
         (objective) => objective !== "knapsack" && !openDimension(objective);
-    const objectives = isItem? ["knapsack"]: ["variable-sized-bin-packing"];
+    const objectives = isItem? ["knapsack"]: VARIABLE_SIZED_BIN_PACKING_OBJECTIVES;
     return [copies, detailsNumber("copies_min", "Minimum copies", "0", {objectives})];
 }
 
@@ -102,7 +111,7 @@ export function binColumns(problemType) {
         ...DIMENSIONS[problemType].map((d) => numberColumn(d, 100)),
         ...copiesColumns(false),
         // The cost of the bins only matters for variable-sized bin packing.
-        {...numberColumn(["cost", "Cost"], "", true), objectives: ["variable-sized-bin-packing"]},
+        {...numberColumn(["cost", "Cost"], "", true), objectives: VARIABLE_SIZED_BIN_PACKING_OBJECTIVES},
     ];
     if (WEIGHTS.includes(problemType))
         columns.push({...numberColumn(["maximum_weight", "Maximum weight"], "", true), placeholder: "none"});
@@ -226,8 +235,14 @@ export const INSTANCE_PARAMETERS = {
         // measured (see 'box::LeftoverMode').
         {key: "leftover_mode", label: "Leftover", type: "select", value: "xyz",
             options: [["xyz", "Along X, Y and Z"], ["xy", "Along X and Y"], ["xz", "Along X and Z"],
-                ["yz", "Along Y and Z"], ["x", "Along X"], ["y", "Along Y"], ["z", "Along Z"]],
-            objectives: ["bin-packing-with-leftovers"]},
+                ["yz", "Along Y and Z"], ["x", "Along X"], ["y", "Along Y"], ["z", "Along Z"],
+                ["xyz-cut", "Along X, Y and Z, cut"], ["xy-cut", "Along X and Y, cut"],
+                ["xz-cut", "Along X and Z, cut"], ["yz-cut", "Along Y and Z, cut"], ["staircase", "Staircase"]],
+            objectives: LEFTOVER_OBJECTIVES},
+        // How the value of the leftover is computed (see 'LeftoverValueType').
+        {key: "leftover_value_type", label: "Leftover value", type: "select", value: "squared-area",
+            options: [["squared-area", "Squared area"], ["depth", "Depth (favors compact leftovers)"]],
+            objectives: LEFTOVER_OBJECTIVES},
         // The items of each bin must be in static mechanical equilibrium.
         {key: "static_stability", label: "Static stability", type: "checkbox", value: false},
     ],
@@ -235,8 +250,13 @@ export const INSTANCE_PARAMETERS = {
         // The dimensions along which the leftover of the last bin is
         // measured (see 'boxstacks::LeftoverMode').
         {key: "leftover_mode", label: "Leftover", type: "select", value: "xy",
-            options: [["xy", "Along X and Y"], ["x", "Along X"], ["y", "Along Y"]],
-            objectives: ["bin-packing-with-leftovers"]},
+            options: [["xy", "Along X and Y"], ["x", "Along X"], ["y", "Along Y"],
+                ["xy-cut", "Along X and Y, cut"], ["staircase", "Staircase"]],
+            objectives: LEFTOVER_OBJECTIVES},
+        // How the value of the leftover is computed (see 'LeftoverValueType').
+        {key: "leftover_value_type", label: "Leftover value", type: "select", value: "squared-area",
+            options: [["squared-area", "Squared area"], ["depth", "Depth (favors compact leftovers)"]],
+            objectives: LEFTOVER_OBJECTIVES},
         {key: "unloading_constraint", label: "Unloading constraint", type: "select", value: "none",
             options: UNLOADING_CONSTRAINTS, structural: true},
         // The weight constraints are not checked for the items of these
@@ -246,8 +266,13 @@ export const INSTANCE_PARAMETERS = {
     ],
     rectangle: [
         {key: "leftover_mode", label: "Leftover", type: "select", value: "area",
-            options: [["area", "Area"], ["x", "Along X"], ["y", "Along Y"]],
-            objectives: ["bin-packing-with-leftovers"]},
+            options: [["area", "Area"], ["x", "Along X"], ["y", "Along Y"], ["area-cut", "Area, cut"],
+                ["staircase", "Staircase"]],
+            objectives: LEFTOVER_OBJECTIVES},
+        // How the value of the leftover is computed (see 'LeftoverValueType').
+        {key: "leftover_value_type", label: "Leftover value", type: "select", value: "squared-area",
+            options: [["squared-area", "Squared area"], ["depth", "Depth (favors compact leftovers)"]],
+            objectives: LEFTOVER_OBJECTIVES},
         {key: "unloading_constraint", label: "Unloading constraint", type: "select", value: "none",
             options: UNLOADING_CONSTRAINTS, structural: true},
     ],
@@ -280,14 +305,26 @@ export const INSTANCE_PARAMETERS = {
         {key: "maximum_number_2_cuts", label: "Maximum number of 2-cuts", type: "number", unlimited: true,
             integer: true, shown: TWO_CUTS},
         {key: "cut_through_defects", label: "Cut through defects", type: "checkbox", value: false},
+        // How the value of the leftovers is computed (see 'LeftoverValueType');
+        // the leftovers are the plates left after the last cuts of each bin.
+        {key: "leftover_value_type", label: "Leftover value", type: "select", value: "squared-area",
+            options: [["squared-area", "Squared area"], ["depth", "Depth (favors compact leftovers)"]],
+            objectives: ["variable-sized-bin-packing-with-leftovers"]},
     ],
     irregular: [
         // The corner or side from which the leftover is measured.
         {key: "leftover_mode", label: "Leftover", type: "select", value: "bottom-left", inParameters: true,
             options: [["bottom-left", "Bottom left"], ["bottom-right", "Bottom right"], ["top-left", "Top left"],
                 ["top-right", "Top right"], ["left", "Left"], ["right", "Right"], ["bottom", "Bottom"],
-                ["top", "Top"]],
-            objectives: ["bin-packing-with-leftovers"]},
+                ["top", "Top"], ["bottom-left-cut", "Bottom left, cut"], ["bottom-right-cut", "Bottom right, cut"],
+                ["top-left-cut", "Top left, cut"], ["top-right-cut", "Top right, cut"],
+                ["bottom-left-staircase", "Bottom left, staircase"], ["bottom-right-staircase", "Bottom right, staircase"],
+                ["top-left-staircase", "Top left, staircase"], ["top-right-staircase", "Top right, staircase"]],
+            objectives: LEFTOVER_OBJECTIVES},
+        // How the value of the leftover is computed (see 'LeftoverValueType').
+        {key: "leftover_value_type", label: "Leftover value", type: "select", value: "squared-area", inParameters: true,
+            options: [["squared-area", "Squared area"], ["depth", "Depth (favors compact leftovers)"]],
+            objectives: LEFTOVER_OBJECTIVES},
         // Required: the objective isn't supported without it.
         {key: "open_dimension_xy_aspect_ratio", label: "Aspect ratio (height / width)",
             type: "number", value: "1", required: true, positive: true, inParameters: true,
@@ -412,6 +449,9 @@ export const OBJECTIVES = [
     ["bin-packing", "Bin packing: minimize the number of bins"],
     ["bin-packing-with-leftovers", "Bin packing with leftovers"],
     ["variable-sized-bin-packing", "Variable-sized bin packing: minimize the cost of the bins"],
+    ["variable-sized-bin-packing-with-leftovers",
+        "Variable-sized bin packing with leftovers: minimize the cost of the bins minus the value of their leftovers",
+        ["rectangleguillotine", "rectangle", "box", "boxstacks", "irregular"]],
     ["bin-packing-cutting-cost", "Bin packing with cutting costs: minimize the cost of the cuts",
         ["rectangleguillotine"]],
     ["open-dimension-x", "Open dimension X: minimize the length",
@@ -521,7 +561,8 @@ export function resourceConsumptions(resource, itemRows) {
 
 // Objectives for which the bin types created have unlimited copies.
 export const UNLIMITED_BINS_OBJECTIVES = [
-    "bin-packing", "bin-packing-with-leftovers", "variable-sized-bin-packing", "bin-packing-cutting-cost"];
+    "bin-packing", "bin-packing-with-leftovers", "variable-sized-bin-packing",
+    "variable-sized-bin-packing-with-leftovers", "bin-packing-cutting-cost"];
 
 export function newBinRow(type, objective) {
     const row = (type === "irregular")? irregularForm.defaultBinRow(): defaultRow(binColumns(type));
@@ -767,6 +808,7 @@ const OBJECTIVE_SPELLINGS = Object.fromEntries([
     ["open-dimension-xy", "OpenDimensionXY", "ODXY"],
     ["knapsack", "Knapsack", "KP"],
     ["variable-sized-bin-packing", "VariableSizedBinPacking", "VBPP"],
+    ["variable-sized-bin-packing-with-leftovers", "VariableSizedBinPackingWithLeftovers", "VBPPL"],
     ["bin-packing-cutting-cost", "BinPackingCuttingCost", "BPPCC"],
 ].flatMap((spellings) => spellings.map((spelling) => [spelling, spellings[0]])));
 
@@ -780,7 +822,16 @@ const SELECT_SPELLINGS = {
     leftover_mode: {area: "area", x: "x", y: "y", z: "z", xy: "xy", xz: "xz", yz: "yz", xyz: "xyz",
         bottomleft: "bottom-left", bl: "bottom-left", bottomright: "bottom-right", br: "bottom-right",
         topleft: "top-left", tl: "top-left", topright: "top-right", tr: "top-right",
-        left: "left", l: "left", right: "right", r: "right", bottom: "bottom", b: "bottom", top: "top", t: "top"},
+        left: "left", l: "left", right: "right", r: "right", bottom: "bottom", b: "bottom", top: "top", t: "top",
+        areacut: "area-cut", xycut: "xy-cut", xzcut: "xz-cut", yzcut: "yz-cut", xyzcut: "xyz-cut",
+        bottomleftcut: "bottom-left-cut", blc: "bottom-left-cut", bottomrightcut: "bottom-right-cut",
+        brc: "bottom-right-cut", topleftcut: "top-left-cut", tlc: "top-left-cut",
+        toprightcut: "top-right-cut", trc: "top-right-cut", staircase: "staircase",
+        bottomleftstaircase: "bottom-left-staircase", bls: "bottom-left-staircase",
+        bottomrightstaircase: "bottom-right-staircase", brs: "bottom-right-staircase",
+        topleftstaircase: "top-left-staircase", tls: "top-left-staircase",
+        toprightstaircase: "top-right-staircase", trs: "top-right-staircase"},
+    leftover_value_type: {squaredarea: "squared-area", depth: "depth"},
     trim_type: {h: "hard", hard: "hard", 0: "hard", s: "soft", soft: "soft", 1: "soft"},
 };
 

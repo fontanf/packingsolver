@@ -23,7 +23,9 @@ void bind_rectangle(nb::module_& m)
     nb::enum_<LeftoverMode>(m, "LeftoverMode")
         .value("Area", LeftoverMode::Area)
         .value("X", LeftoverMode::X)
-        .value("Y", LeftoverMode::Y);
+        .value("Y", LeftoverMode::Y)
+        .value("AreaCut", LeftoverMode::AreaCut)
+        .value("Staircase", LeftoverMode::Staircase);
 
     // 'None' is a Python keyword.
     nb::enum_<UnloadingConstraint>(m, "UnloadingConstraint")
@@ -115,6 +117,7 @@ void bind_rectangle(nb::module_& m)
                 nb::arg("group_id"), nb::arg("check_weight_constraints"))
         .def("set_unloading_constraint", &InstanceBuilder::set_unloading_constraint, nb::arg("unloading_constraint"))
         .def("set_leftover_mode", &InstanceBuilder::set_leftover_mode, nb::arg("leftover_mode"))
+        .def("set_leftover_value_type", &InstanceBuilder::set_leftover_value_type, nb::arg("leftover_value_type"))
         .def("set_leftover_all_bins", &InstanceBuilder::set_leftover_all_bins, nb::arg("leftover_all_bins"))
         // Bin types.
         .def("add_bin_type",

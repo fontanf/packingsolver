@@ -70,6 +70,13 @@ struct SolutionBin
 
     /** Resource consumption, indexed by resource_id. */
     std::vector<double> resource_consumption;
+
+    /**
+     * Value of the leftovers of the bin: the plate after its last 1-cut and
+     * the sub-plate after the last 2-cut of its last first-level sub-plate,
+     * when they are not used (see 'Parameters::leftover_value_type').
+     */
+    double leftover_value = 0;
 };
 
 bool operator==(const SolutionBin& solution_bin_1, const SolutionBin& solution_bin_2);
@@ -260,6 +267,21 @@ public:
     /** Get the second leftover value. */
     inline Area second_leftover_value() const { return second_leftover_value_; }
 
+    /**
+     * Get the sum of the leftover values of all the bins of the instance:
+     * the leftover values of the bins of the solution (see
+     * 'SolutionBin::leftover_value'), and the values of the bins which are
+     * not used.
+     */
+    double total_leftover_value() const;
+
+    /**
+     * Get the net cost of the solution, for the
+     * 'VariableSizedBinPackingWithLeftovers' objective: the cost of its bins
+     * minus the refunds of their leftovers (see 'Instance::leftover_refund').
+     */
+    inline Profit net_cost() const { return net_cost_; }
+
     /*
      * Others
      */
@@ -417,6 +439,15 @@ private:
 
     /** Value (area) of the second leftover. */
     Area second_leftover_value_ = 0;
+
+    /**
+     * Sum, over the bins of the solution, of the value of the bin minus its
+     * leftover value.
+     */
+    double leftover_value_loss_ = 0;
+
+    /** Net cost of the solution. */
+    Profit net_cost_ = 0;
 
     friend class SolutionBuilder;
 

@@ -489,7 +489,7 @@ onedimensional::Instance build_master_instance(
         Profit variable_sized_bin_packing_goal)
 {
     onedimensional::InstanceBuilder master_instance_builder;
-    master_instance_builder.set_objective(instance.objective());
+    master_instance_builder.set_objective(onedimensional_subproblem_objective(instance.objective()));
     master_instance_builder.set_bin_packing_goal(bin_packing_goal);
     master_instance_builder.set_knapsack_goal(knapsack_goal);
     master_instance_builder.set_variable_sized_bin_packing_goal(variable_sized_bin_packing_goal);
@@ -925,7 +925,7 @@ BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
                 algorithm_formatter.update_knapsack_bound(master_output.knapsack_bound);
             } else if (instance.objective() == Objective::BinPacking) {
                 algorithm_formatter.update_bin_packing_bound(master_output.bin_packing_bound);
-            } else if (instance.objective() == Objective::VariableSizedBinPacking) {
+            } else if (is_variable_sized_bin_packing(instance.objective())) {
                 algorithm_formatter.update_variable_sized_bin_packing_bound(
                         master_output.variable_sized_bin_packing_bound);
             }
@@ -943,7 +943,7 @@ BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
             master_knapsack_goal = (std::min)(
                     master_knapsack_goal,
                     master_output.knapsack_bound);
-        } else if (instance.objective() == Objective::VariableSizedBinPacking) {
+        } else if (is_variable_sized_bin_packing(instance.objective())) {
             master_variable_sized_bin_packing_goal = (std::max)(
                     master_variable_sized_bin_packing_goal,
                     master_output.variable_sized_bin_packing_bound);
@@ -994,7 +994,7 @@ BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
             } else if (instance.objective() == Objective::BinPacking) {
                 if (master_solution.number_of_bins() >= output.solution_pool.best().number_of_bins())
                     break;
-            } else if (instance.objective() == Objective::VariableSizedBinPacking) {
+            } else if (is_variable_sized_bin_packing(instance.objective())) {
                 if (master_solution.cost() >= output.solution_pool.best().cost())
                     break;
             }

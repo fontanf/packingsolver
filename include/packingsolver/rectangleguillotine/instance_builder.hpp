@@ -100,6 +100,9 @@ public:
     /** Set cut thickness. */
     void set_cut_thickness(Length cut_thickness) { instance_.parameters_.cut_thickness = cut_thickness; }
 
+    /** Set the value of the leftovers. */
+    void set_leftover_value_type(LeftoverValueType leftover_value_type) { instance_.parameters_.leftover_value_type = leftover_value_type; }
+
     /**
      * Set the fixed cost of stage 'stage_id' (0 for the bin, 1 to
      * number_of_stages + 1 for cuts), for the 'BinPackingCuttingCost'

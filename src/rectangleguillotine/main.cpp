@@ -95,6 +95,7 @@ int main(int argc, char *argv[])
             ("maximum-number-2-cuts,", po::value<Counter>(), "")
             ("cut-through-defects", po::value<bool>(), "")
             ("cut-thickness", po::value<Length>(), "")
+            ("leftover-value-type,", po::value<LeftoverValueType>(), "Leftover value type (variable-sized-bin-packing-with-leftovers): squared-area, depth")
             ("fixed-cutting-costs", po::value<std::vector<CuttingCost>>()->multitoken(), "")
             ("variable-cutting-costs", po::value<std::vector<CuttingCost>>()->multitoken(), "")
             ("waste-cost", po::value<CuttingCost>(), "")
@@ -265,6 +266,8 @@ int main(int argc, char *argv[])
             instance_builder.set_cut_through_defects(vm["cut-through-defects"].as<bool>());
         if (vm.count("cut-thickness"))
             instance_builder.set_cut_thickness(vm["cut-thickness"].as<Length>());
+        if (vm.count("leftover-value-type"))
+            instance_builder.set_leftover_value_type(vm["leftover-value-type"].as<LeftoverValueType>());
         if (vm.count("fixed-cutting-costs")) {
             const auto& fixed_cutting_costs = vm["fixed-cutting-costs"].as<std::vector<CuttingCost>>();
             for (Counter stage_id = 0;

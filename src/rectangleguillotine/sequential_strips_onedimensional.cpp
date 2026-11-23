@@ -220,7 +220,7 @@ void run_phase2_and_reconstruct(
     std::vector<Strip> strips = split_into_strips(instance, phase1_solution, orientation);
 
     onedimensional::InstanceBuilder phase2_instance_builder;
-    phase2_instance_builder.set_objective(instance.objective());
+    phase2_instance_builder.set_objective(onedimensional_subproblem_objective(instance.objective()));
     BinTypeId phase2_bin_type_id = phase2_instance_builder.add_bin_type(
             first_stage_length + cut_thickness);
     phase2_instance_builder.set_bin_type_cost(phase2_bin_type_id, bin_type.cost);

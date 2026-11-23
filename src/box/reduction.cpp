@@ -318,7 +318,7 @@ bool Reduction::remove_dominated_bin_types_applies(const Instance& instance)
     // available earlier than the original instance allows.
     if (instance.objective() != Objective::Knapsack
             && instance.objective() != Objective::Feasibility
-            && instance.objective() != Objective::VariableSizedBinPacking) {
+            && !is_variable_sized_bin_packing(instance.objective())) {
         return false;
     }
     return instance.number_of_bin_types() > 1;
@@ -801,18 +801,9 @@ bool Reduction::lift_item_dimensions_applies_axis(
         return false;
     if (instance.objective() == Objective::BinPackingWithLeftovers) {
         LeftoverMode leftover_mode = instance.parameters().leftover_mode;
-        bool x = (leftover_mode == LeftoverMode::X
-                || leftover_mode == LeftoverMode::XY
-                || leftover_mode == LeftoverMode::XZ
-                || leftover_mode == LeftoverMode::XYZ);
-        bool y = (leftover_mode == LeftoverMode::Y
-                || leftover_mode == LeftoverMode::XY
-                || leftover_mode == LeftoverMode::YZ
-                || leftover_mode == LeftoverMode::XYZ);
-        bool z = (leftover_mode == LeftoverMode::Z
-                || leftover_mode == LeftoverMode::XZ
-                || leftover_mode == LeftoverMode::YZ
-                || leftover_mode == LeftoverMode::XYZ);
+        bool x = leftover_mode_along_x(leftover_mode);
+        bool y = leftover_mode_along_y(leftover_mode);
+        bool z = leftover_mode_along_z(leftover_mode);
         if ((axis == 0 && x) || (axis == 1 && y) || (axis == 2 && z))
             return false;
     }

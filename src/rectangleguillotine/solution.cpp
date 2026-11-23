@@ -2,6 +2,8 @@
 
 #include "rectangleguillotine/solution_builder.hpp"
 
+#include "algorithms/leftover.hpp"
+
 #include "optimizationtools/utils/utils.hpp"
 
 #include <fstream>
@@ -43,6 +45,108 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
 ////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////// Solution ///////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
+
+namespace
+{
+
+/**
+ * Value of a rectangular leftover of a bin, restricted to the part of the bin
+ * inside the trims.
+ */
+double rectangle_leftover_value(
+        LeftoverValueType leftover_value_type,
+        const BinType& bin_type,
+        Length l,
+        Length r,
+        Length b,
+        Length t)
+{
+    l = (std::max)(l, bin_type.left_trim);
+    r = (std::min)(r, bin_type.rect.w - bin_type.right_trim);
+    b = (std::max)(b, bin_type.bottom_trim);
+    t = (std::min)(t, bin_type.rect.h - bin_type.top_trim);
+    if (l >= r || b >= t)
+        return 0.0;
+    return packingsolver::leftover_value<2>(
+            leftover_value_type,
+            {(double)(r - l), (double)(t - b)},
+            {0.0, 0.0},
+            false);
+}
+
+/** Value of a bin which is not used. */
+double bin_leftover_value(
+        LeftoverValueType leftover_value_type,
+        const BinType& bin_type)
+{
+    return rectangle_leftover_value(
+            leftover_value_type,
+            bin_type,
+            0,
+            bin_type.rect.w,
+            0,
+            bin_type.rect.h);
+}
+
+/** Return 'true' iff a node is a sub-plate which is not used. */
+bool unused_node(const SolutionNode& node)
+{
+    return node.children.empty()
+        && (node.item_type_id == -1 || node.item_type_id == -3);
+}
+
+/**
+ * Value of the leftovers of a bin: the plate after its last 1-cut and the
+ * sub-plate after the last 2-cut of its last first-level sub-plate, when they
+ * are not used.
+ */
+double bin_leftover_value(
+        LeftoverValueType leftover_value_type,
+        const BinType& bin_type,
+        const SolutionBin& bin)
+{
+    if (bin.nodes.empty())
+        return bin_leftover_value(leftover_value_type, bin_type);
+    const SolutionNode& root = bin.nodes[0];
+    if (root.children.empty()) {
+        return (unused_node(root))?
+            bin_leftover_value(leftover_value_type, bin_type):
+            0.0;
+    }
+    double value = 0.0;
+    SolutionNodeId plate_pos = (SolutionNodeId)root.children.size() - 1;
+    // Plate after the last 1-cut.
+    const SolutionNode& last_plate = bin.nodes[root.children[plate_pos]];
+    if (unused_node(last_plate)) {
+        value += rectangle_leftover_value(
+                leftover_value_type,
+                bin_type,
+                last_plate.l,
+                last_plate.r,
+                last_plate.b,
+                last_plate.t);
+        --plate_pos;
+    }
+    // Sub-plate after the last 2-cut of the last first-level sub-plate.
+    if (plate_pos >= 0) {
+        const SolutionNode& plate = bin.nodes[root.children[plate_pos]];
+        if (plate.children.size() >= 2) {
+            const SolutionNode& sub_plate = bin.nodes[plate.children.back()];
+            if (unused_node(sub_plate)) {
+                value += rectangle_leftover_value(
+                        leftover_value_type,
+                        bin_type,
+                        sub_plate.l,
+                        sub_plate.r,
+                        sub_plate.b,
+                        sub_plate.t);
+            }
+        }
+    }
+    return value;
+}
+
+}
 
 void Solution::update_indicators(
         BinPos bin_pos)
@@ -365,6 +469,16 @@ void Solution::update_indicators(
             }
         }
     }
+    // Update the leftover values.
+    LeftoverValueType leftover_value_type = instance().parameters().leftover_value_type;
+    bin.leftover_value = bin_leftover_value(leftover_value_type, bin_type, bin);
+    leftover_value_loss_ += bin.copies * (
+            bin_leftover_value(leftover_value_type, bin_type)
+            - bin.leftover_value);
+    net_cost_ += bin.copies * (
+            bin_type.cost
+            - instance().leftover_refund(bin.bin_type_id, bin.leftover_value));
+
     // Staging analysis.
     //
     // First pass: compute the maximum depth of any CUT node in this bin.
@@ -548,6 +662,20 @@ void Solution::append_empty_bin(
     append_bins(solution_builder.build(), {}, {});
 }
 
+double Solution::total_leftover_value() const
+{
+    double value = 0;
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < instance().number_of_bin_types();
+            ++bin_type_id) {
+        const BinType& bin_type = instance().bin_type(bin_type_id);
+        value += bin_type.copies * bin_leftover_value(
+                instance().parameters().leftover_value_type,
+                bin_type);
+    }
+    return value - leftover_value_loss_;
+}
+
 bool Solution::operator<(const Solution& solution) const
 {
     // Check feasibility.
@@ -575,6 +703,10 @@ bool Solution::operator<(const Solution& solution) const
         return strictly_greater_profit(solution.profit(), profit());
     } case Objective::VariableSizedBinPacking: {
         return strictly_lesser_cost(solution.cost(), cost());
+    } case Objective::VariableSizedBinPackingWithLeftovers: {
+        // The net cost: the cost of the bins minus the refunds of their
+        // leftovers (see 'Instance::leftover_refund').
+        return strictly_lesser_cost(solution.net_cost(), net_cost());
     } default: {
         std::stringstream ss;
         ss << FUNC_SIGNATURE << ": "
@@ -661,6 +793,8 @@ nlohmann::json Solution::to_json() const
         {"Width", width()},
         {"Height", height()},
         {"SecondLeftoverValue", second_leftover_value()},
+        {"TotalLeftoverValue", total_leftover_value()},
+        {"NetCost", net_cost()},
         {"NumberOfStages", number_of_stages()},
         {"Feasible", {
             {"Feasible", feasible()},
@@ -700,6 +834,8 @@ void Solution::format(
             << "Width:                     " << width() << std::endl
             << "Height:                    " << height() << std::endl
             << "Second leftover value:     " << second_leftover_value() << std::endl
+            << "Total leftover value:      " << total_leftover_value() << std::endl
+            << "Net cost:                  " << net_cost() << std::endl
             << "Number of stages:          " << number_of_stages() << std::endl
             << "Feasible:                  " << feasible() << std::endl
             << "    Number of stages:      " << number_of_stages_feasible() << std::endl

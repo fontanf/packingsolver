@@ -732,7 +732,7 @@ packingsolver::onedimensional::Output packingsolver::onedimensional::optimize(
                 }
             }
         }
-    } else if (instance.objective() == Objective::VariableSizedBinPacking) {
+    } else if (is_variable_sized_bin_packing(instance.objective())) {
         // Disable algorithms which are not available for this objective.
         if (instance.number_of_bin_types() == 1) {
             if (use_dichotomic_search) {

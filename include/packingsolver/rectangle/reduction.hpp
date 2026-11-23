@@ -260,7 +260,8 @@ struct ReductionParameters: optimizationtools::Parameters
  *   measures how far items extend along a given axis
  *   ('Objective::OpenDimensionX'/'OpenDimensionY', or
  *   'Objective::BinPackingWithLeftovers' with a 'LeftoverMode' that
- *   depends on that axis - 'X'/'Y' for their own axis, 'Area' for both)
+ *   depends on that axis - 'X'/'Y' for their own axis, 'Area',
+ *   'AreaCut' and 'Staircase' for both)
  *   must never lift on that axis. Lifting only ever grows an item type's
  *   *declared* dimension in the reduced instance the downstream solve
  *   actually runs on ('reduction_to_instance' carries 'item.rect' over
@@ -559,9 +560,11 @@ private:
      * axis, i.e. 'Objective::OpenDimensionX' (for the 'x' axis) /
      * 'OpenDimensionY' (for 'y'), or 'Objective::BinPackingWithLeftovers'
      * with a 'LeftoverMode' that depends on this axis ('LeftoverMode::X'
-     * for 'x', 'LeftoverMode::Y' for 'y', 'LeftoverMode::Area' for
-     * either); and 'false' when the compaction along this axis could break
-     * a constraint: along 'x' with a semi-trailer truck, or with an
+     * for 'x', 'LeftoverMode::Y' for 'y', 'LeftoverMode::Area',
+     * 'LeftoverMode::AreaCut' and 'LeftoverMode::Staircase' for either); and
+     * 'false' when the
+     * compaction along this axis could break a constraint: along 'x' with
+     * a semi-trailer truck, or with an
      * unloading constraint 'OnlyYMovements'/'IncreasingX' (resp.
      * 'OnlyXMovements'/'IncreasingY' along 'y') - see the class-level doc
      * comment. Independent of 'lift_item_dimensions_applies()' - both

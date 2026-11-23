@@ -1,0 +1,4 @@
+NAME,VALUE
+objective,bin-packing-with-leftovers
+leftover_mode,Area
+leftover_value_type,Depth

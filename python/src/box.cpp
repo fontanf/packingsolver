@@ -38,7 +38,12 @@ void bind_box(nb::module_& m)
         .value("XY", LeftoverMode::XY)
         .value("XZ", LeftoverMode::XZ)
         .value("YZ", LeftoverMode::YZ)
-        .value("XYZ", LeftoverMode::XYZ);
+        .value("XYZ", LeftoverMode::XYZ)
+        .value("XYCut", LeftoverMode::XYCut)
+        .value("XZCut", LeftoverMode::XZCut)
+        .value("YZCut", LeftoverMode::YZCut)
+        .value("XYZCut", LeftoverMode::XYZCut)
+        .value("Staircase", LeftoverMode::Staircase);
 
     /*
      * Instance
@@ -146,6 +151,7 @@ void bind_box(nb::module_& m)
         .def("read_item_types", &InstanceBuilder::read_item_types, nb::arg("items_path"))
         .def("set_weight_tolerance", &InstanceBuilder::set_weight_tolerance, nb::arg("weight_tolerance"))
         .def("set_leftover_mode", &InstanceBuilder::set_leftover_mode, nb::arg("leftover_mode"))
+        .def("set_leftover_value_type", &InstanceBuilder::set_leftover_value_type, nb::arg("leftover_value_type"))
         .def("set_leftover_all_bins", &InstanceBuilder::set_leftover_all_bins, nb::arg("leftover_all_bins"))
         .def("set_static_stability", &InstanceBuilder::set_static_stability, nb::arg("static_stability"))
         // Bin types.

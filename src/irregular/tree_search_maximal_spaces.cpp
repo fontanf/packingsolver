@@ -158,7 +158,7 @@ BranchingSchemeMaximalSpaces::BranchingSchemeMaximalSpaces(
     // Corners.
     corner_ids_ = {0};
     if (parameters_.use_multiple_corners) {
-        LeftoverMode leftover_mode = instance.parameters().leftover_mode;
+        LeftoverMode leftover_mode = leftover_mode_base(instance.parameters().leftover_mode);
         if (instance.objective() == Objective::Knapsack
                 || instance.objective() == Objective::Feasibility) {
             corner_ids_ = {0, 1, 2, 3};
@@ -663,6 +663,7 @@ double BranchingSchemeMaximalSpaces::extent(const Node& node) const
     } default: {
         const BinType& bin_type = instance().bin_type(instance().bin_type_id(0));
         return -leftover_value(
+                instance().parameters().leftover_value_type,
                 instance().parameters().leftover_mode,
                 bin_type.aabb_scaled,
                 items_aabb);
@@ -1330,7 +1331,7 @@ const packingsolver::irregular::TreeSearchMaximalSpacesOutput packingsolver::irr
             << "does not support instances with more than one bin.";
         throw std::logic_error(ss.str());
     }
-    if (instance.objective() == Objective::VariableSizedBinPacking) {
+    if (is_variable_sized_bin_packing(instance.objective())) {
         std::stringstream ss;
         ss << FUNC_SIGNATURE << ": "
             << "algorithm 'irregular::tree_search_maximal_spaces' "
@@ -1401,7 +1402,7 @@ const packingsolver::irregular::TreeSearchMaximalSpacesOutput packingsolver::irr
             Direction::BottomToTopThenRightToLeft,
         };
     } else if (instance.objective() == Objective::BinPackingWithLeftovers) {
-        switch (instance.parameters().leftover_mode) {
+        switch (leftover_mode_base(instance.parameters().leftover_mode)) {
         case LeftoverMode::BottomLeft: {
             directions = {
                 Direction::LeftToRightThenBottomToTop,
@@ -1462,10 +1463,10 @@ const packingsolver::irregular::TreeSearchMaximalSpacesOutput packingsolver::irr
             && (instance.objective() == Objective::OpenDimensionX
                 || instance.objective() == Objective::OpenDimensionY
                 || (instance.objective() == Objective::BinPackingWithLeftovers
-                    && (instance.parameters().leftover_mode == LeftoverMode::Left
-                        || instance.parameters().leftover_mode == LeftoverMode::Right
-                        || instance.parameters().leftover_mode == LeftoverMode::Bottom
-                        || instance.parameters().leftover_mode == LeftoverMode::Top)))) {
+                    && (leftover_mode_base(instance.parameters().leftover_mode) == LeftoverMode::Left
+                        || leftover_mode_base(instance.parameters().leftover_mode) == LeftoverMode::Right
+                        || leftover_mode_base(instance.parameters().leftover_mode) == LeftoverMode::Bottom
+                        || leftover_mode_base(instance.parameters().leftover_mode) == LeftoverMode::Top)))) {
         directions.resize(1);
     }
 

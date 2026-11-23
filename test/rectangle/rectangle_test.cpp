@@ -3,6 +3,8 @@
 #include "packingsolver/rectangle/post_process.hpp"
 #include "rectangle/solution_builder.hpp"
 
+#include "algorithms/leftover.hpp"
+
 #include <gtest/gtest.h>
 #include <boost/filesystem.hpp>
 
@@ -39,10 +41,104 @@ TEST(Rectangle, ReoptimizeNonLastBins)
     const Solution new_solution = reoptimize_non_last_bins(solution, parameters);
     ASSERT_TRUE(new_solution.feasible());
     EXPECT_EQ(new_solution.number_of_bins(), 2);
-    EXPECT_EQ(new_solution.bin(0).leftover_value, 50);
+    EXPECT_EQ(new_solution.bin(0).leftover_value, 50 * 50);
     EXPECT_EQ(new_solution.bin(0).staircase_leftover_value, 50);
     EXPECT_EQ(new_solution.leftover_value(), solution.leftover_value());
     EXPECT_TRUE(solution < new_solution);
+}
+
+TEST(Rectangle, LeftoverModeStaircase)
+{
+    // A 12 x 10 bin with a 6 x 4 item at the origin and a 3 x 4 item above
+    // it: the staircase is the union of the rectangles 6 x 4 and 3 x 8, so the
+    // leftover area is 120 - 24 - 12 = 84, against 120 - 6 x 8 = 72 for the
+    // L-shape of the bounding box of the items.
+    for (packingsolver::LeftoverValueType leftover_value_type: {
+            packingsolver::LeftoverValueType::SquaredArea,
+            packingsolver::LeftoverValueType::Depth}) {
+        InstanceBuilder instance_builder;
+        instance_builder.set_objective(packingsolver::Objective::BinPackingWithLeftovers);
+        instance_builder.set_leftover_mode(LeftoverMode::Staircase);
+        instance_builder.set_leftover_value_type(leftover_value_type);
+        packingsolver::BinTypeId bin_type_id = instance_builder.add_bin_type(12, 10);
+        packingsolver::ItemTypeId item_type_id_1 = instance_builder.add_item_type(6, 4);
+        packingsolver::ItemTypeId item_type_id_2 = instance_builder.add_item_type(3, 4);
+        const Instance instance = instance_builder.build();
+
+        SolutionBuilder solution_builder(instance);
+        solution_builder.add_bin(bin_type_id, 1);
+        solution_builder.add_item(0, item_type_id_1, {0, 0}, false);
+        solution_builder.add_item(0, item_type_id_2, {0, 4}, false);
+        const Solution solution = solution_builder.build();
+        ASSERT_TRUE(solution.feasible());
+        double expected_leftover_value = (leftover_value_type == packingsolver::LeftoverValueType::SquaredArea)?
+            84.0 * 84.0:
+            packingsolver::staircase_leftover_value<2>(leftover_value_type, {12, 10}, {{6, 4}, {3, 8}});
+        EXPECT_NEAR(solution.leftover_value(), expected_leftover_value, 1e-9 * expected_leftover_value)
+            << leftover_value_type;
+        EXPECT_GT(
+                solution.leftover_value(),
+                packingsolver::rectangle::leftover_value(leftover_value_type, LeftoverMode::Area, 12, 10, 6, 8));
+        // The waste is measured in the staircase.
+        EXPECT_EQ(solution.waste(), 0);
+    }
+}
+
+TEST(Rectangle, VariableSizedBinPackingWithLeftovers)
+{
+    // A 100 x 100 bin, a 50 x 50 bin and a 50 x 50 item. In the first
+    // solution, the item is in the small bin, which is used entirely: the
+    // large bin is kept whole. In the second one, the item is in the large
+    // bin, which leaves an L-shape of area 7500, and the small bin is kept.
+    // The leftover value factor is 1 / 10000: the L-shape is refunded
+    // 7500^2 / 10000 = 5625 units of area, at the price of the large bin.
+    for (bool costs: {false, true}) {
+        InstanceBuilder instance_builder;
+        instance_builder.set_objective(packingsolver::Objective::VariableSizedBinPackingWithLeftovers);
+        packingsolver::BinTypeId large_bin_type_id = instance_builder.add_bin_type(100, 100);
+        packingsolver::BinTypeId small_bin_type_id = instance_builder.add_bin_type(50, 50);
+        if (costs) {
+            instance_builder.set_bin_type_cost(large_bin_type_id, 1);
+            instance_builder.set_bin_type_cost(small_bin_type_id, 10);
+        }
+        packingsolver::ItemTypeId item_type_id = instance_builder.add_item_type(50, 50);
+        const Instance instance = instance_builder.build();
+        EXPECT_DOUBLE_EQ(instance.leftover_value_factor(), 1.0 / 10000);
+
+        SolutionBuilder small_solution_builder(instance);
+        small_solution_builder.add_bin(small_bin_type_id, 1);
+        small_solution_builder.add_item(0, item_type_id, {0, 0}, false);
+        const Solution small_solution = small_solution_builder.build();
+        SolutionBuilder large_solution_builder(instance);
+        large_solution_builder.add_bin(large_bin_type_id, 1);
+        large_solution_builder.add_item(0, item_type_id, {0, 0}, false);
+        const Solution large_solution = large_solution_builder.build();
+
+        // The stock left: 10000^2 against 7500^2 + 2500^2.
+        EXPECT_EQ(small_solution.total_leftover_value(), 10000.0 * 10000.0);
+        EXPECT_EQ(large_solution.total_leftover_value(), 7500.0 * 7500.0 + 2500.0 * 2500.0);
+        if (costs) {
+            // The large bin is much cheaper: 1 - 5625 / 10000 against 10.
+            EXPECT_DOUBLE_EQ(small_solution.net_cost(), 10);
+            EXPECT_DOUBLE_EQ(large_solution.net_cost(), 1 - 0.5625);
+            EXPECT_TRUE(small_solution < large_solution);
+            EXPECT_FALSE(large_solution < small_solution);
+        } else {
+            // 10000 - 5625 against 2500: the large bin is kept whole.
+            EXPECT_DOUBLE_EQ(small_solution.net_cost(), 2500);
+            EXPECT_DOUBLE_EQ(large_solution.net_cost(), 10000 - 5625);
+            EXPECT_TRUE(large_solution < small_solution);
+            EXPECT_FALSE(small_solution < large_solution);
+        }
+
+        OptimizeParameters parameters;
+        parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytimeSequential;
+        const Output output = optimize(instance, parameters);
+        ASSERT_TRUE(output.solution_pool.best().feasible());
+        EXPECT_EQ(output.solution_pool.best().number_of_bins(), 1);
+        EXPECT_EQ(output.solution_pool.best().bin(0).bin_type_id,
+                (costs)? large_bin_type_id: small_bin_type_id);
+    }
 }
 
 TEST(Rectangle, BinCopies)

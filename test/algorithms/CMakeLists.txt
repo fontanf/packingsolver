@@ -1,6 +1,7 @@
 add_executable(PackingSolver_algorithms_test)
 target_sources(PackingSolver_algorithms_test PRIVATE
     common_test.cpp
+    leftover_test.cpp
     meet_in_the_middle_test.cpp
     staircase_test.cpp
     truck_test.cpp)

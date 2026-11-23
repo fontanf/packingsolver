@@ -184,7 +184,7 @@ void optimize_onedimensional_bound(
         AlgorithmFormatter& algorithm_formatter)
 {
     onedimensional::InstanceBuilder onedim_instance_builder;
-    onedim_instance_builder.set_objective(instance.objective());
+    onedim_instance_builder.set_objective(onedimensional_subproblem_objective(instance.objective()));
     for (BinTypeId bin_type_id = 0;
             bin_type_id < instance.number_of_bin_types();
             ++bin_type_id) {
@@ -292,7 +292,7 @@ void optimize_onedimensional_bound(
         algorithm_formatter.update_knapsack_bound(
                 onedim_output.knapsack_bound + negative_penalty_sum(instance));
         break;
-    } case Objective::VariableSizedBinPacking: {
+    } case Objective::VariableSizedBinPacking: case Objective::VariableSizedBinPackingWithLeftovers: {
         algorithm_formatter.update_variable_sized_bin_packing_bound(
                 onedim_output.variable_sized_bin_packing_bound);
         break;
@@ -1233,7 +1233,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
     if (instance.objective() == Objective::BinPacking
             || instance.objective() == Objective::BinPackingWithLeftovers
             || instance.objective() == Objective::Knapsack
-            || instance.objective() == Objective::VariableSizedBinPacking
+            || is_variable_sized_bin_packing(instance.objective())
             || instance.objective() == Objective::Feasibility) {
         optimize_onedimensional_bound(
                 instance,
@@ -1286,7 +1286,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
     // Benders decomposition only supports these objectives.
     if (instance.objective() != Objective::Knapsack
             && instance.objective() != Objective::BinPacking
-            && instance.objective() != Objective::VariableSizedBinPacking) {
+            && !is_variable_sized_bin_packing(instance.objective())) {
         use_benders_decomposition = false;
     }
     if (instance.number_of_bins() <= 1) {
@@ -1514,7 +1514,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
                 }
             }
         }
-    } else if (instance.objective() == Objective::VariableSizedBinPacking) {
+    } else if (is_variable_sized_bin_packing(instance.objective())) {
         // Disable algorithms which are not available for this objective.
         use_milp_raster = false;
         use_local_search_linear_programming = false;

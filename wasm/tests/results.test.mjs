@@ -66,7 +66,15 @@ test("results: tiles", () => {
         output: output({YMax: 60, DensityX: 0.8, DensityY: 0.5, FullWastePercentage: 0.9}),
         objective: "open-dimension-y", totalItems: 3});
     assert.strictEqual(tiles.find((tile) => tile.label === "Density").value, "50%");
-    // Irregular, bin packing with leftovers: items over bins minus leftover.
+    // Irregular, bin packing with leftovers: items over bins minus the area
+    // of the leftover (the leftover value isn't an area).
+    tiles = results.summaryTiles({
+        output: output({ItemArea: 600, BinArea: 2000, LeftoverArea: 1200, LeftoverValue: 5000,
+            DensityX: 0.8, FullWastePercentage: 0.7}),
+        objective: "bin-packing-with-leftovers", totalItems: 3});
+    assert.strictEqual(tiles.find((tile) => tile.label === "Density").value, "75%");
+    // A solution stored before 'LeftoverArea' was added, when the leftover
+    // value was an area.
     tiles = results.summaryTiles({
         output: output({ItemArea: 600, BinArea: 2000, LeftoverValue: 1200, DensityX: 0.8, FullWastePercentage: 0.7}),
         objective: "bin-packing-with-leftovers", totalItems: 3});

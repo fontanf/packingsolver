@@ -1,5 +1,6 @@
 #include "packingsolver/rectangle/solution.hpp"
 
+#include "algorithms/leftover.hpp"
 #include "algorithms/staircase.hpp"
 
 #include "optimizationtools/utils/utils.hpp"
@@ -105,7 +106,7 @@ void Solution::update_indicators(
         bin_x_max = std::max(bin_x_max, xe);
         bin_y_max = std::max(bin_y_max, ye);
         switch (instance().parameters().leftover_mode) {
-        case LeftoverMode::Area: {
+        case LeftoverMode::Area: case LeftoverMode::AreaCut: case LeftoverMode::Staircase: {
             staircase.add(xe, ye);
             break;
         } case LeftoverMode::X: {
@@ -118,12 +119,14 @@ void Solution::update_indicators(
         }
     }
 
-    // Update the leftover values. The area used in a bin is the rest of the
-    // bin being the leftover.
+    // Update the leftover values.
     Area used_area = 0;
     switch (instance().parameters().leftover_mode) {
-    case LeftoverMode::Area: {
+    case LeftoverMode::Area: case LeftoverMode::AreaCut: {
         used_area = bin_x_max * bin_y_max;
+        break;
+    } case LeftoverMode::Staircase: {
+        used_area = staircase.area();
         break;
     } case LeftoverMode::X: {
         used_area = bin_x_max * bin_type.rect.y;
@@ -133,14 +136,37 @@ void Solution::update_indicators(
         break;
     }
     }
-    bin.leftover_value = bin_type.area() - used_area;
+    bin.leftover_value = (instance().parameters().leftover_mode == LeftoverMode::Staircase)?
+        rectangle::staircase_leftover_value(
+            instance().parameters().leftover_value_type,
+            bin_type.rect.x,
+            bin_type.rect.y,
+            staircase.extents()):
+        rectangle::leftover_value(
+            instance().parameters().leftover_value_type,
+            instance().parameters().leftover_mode,
+            bin_type.rect.x,
+            bin_type.rect.y,
+            bin_x_max,
+            bin_y_max);
     bin.staircase_leftover_value = bin_type.area() - staircase.area();
-    this->total_leftover_value_ += bin.copies * bin.leftover_value;
-    this->total_staircase_leftover_value_ += bin.copies * bin.staircase_leftover_value;
+    this->leftover_value_loss_ += bin.copies * (
+            rectangle::leftover_value(
+                instance().parameters().leftover_value_type,
+                instance().parameters().leftover_mode,
+                bin_type.rect.x,
+                bin_type.rect.y,
+                0,
+                0)
+            - bin.leftover_value);
+    net_cost_ += bin.copies * (
+            bin_type.cost
+            - instance().leftover_refund(bin.bin_type_id, bin.leftover_value));
+    this->staircase_dominated_area_ += bin.copies * staircase.area();
     if (bin_pos == (BinPos)this->bins_.size() - 1) {
         this->x_max_ = bin_x_max;
         this->y_max_ = bin_y_max;
-        this->area_ = this->bin_area_ - bin.leftover_value;
+        this->area_ = this->bin_area_ - (bin_type.area() - used_area);
         this->leftover_value_ = bin.leftover_value;
         this->staircase_leftover_value_ = bin.staircase_leftover_value;
     }
@@ -229,6 +255,24 @@ double Solution::least_load() const
     return least_load;
 }
 
+double Solution::total_leftover_value() const
+{
+    double value = 0;
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < instance().number_of_bin_types();
+            ++bin_type_id) {
+        const BinType& bin_type = instance().bin_type(bin_type_id);
+        value += bin_type.copies * rectangle::leftover_value(
+                instance().parameters().leftover_value_type,
+                instance().parameters().leftover_mode,
+                bin_type.rect.x,
+                bin_type.rect.y,
+                0,
+                0);
+    }
+    return value - leftover_value_loss_;
+}
+
 bool Solution::operator<(const Solution& solution) const
 {
     // Check feasibility.
@@ -243,8 +287,11 @@ bool Solution::operator<(const Solution& solution) const
     } case Objective::BinPackingWithLeftovers: {
         if (solution.number_of_bins() != number_of_bins())
             return solution.number_of_bins() < number_of_bins();
-        if (solution.leftover_value() != leftover_value())
-            return solution.leftover_value() > leftover_value();
+        LeftoverValueType leftover_value_type = instance().parameters().leftover_value_type;
+        if (strictly_greater_leftover_value(leftover_value_type, solution.leftover_value(), leftover_value()))
+            return true;
+        if (strictly_greater_leftover_value(leftover_value_type, leftover_value(), solution.leftover_value()))
+            return false;
         // Tie-breaks: the staircase leftover value of the last bin, then, if
         // 'leftover_all_bins', the leftover value and the staircase leftover
         // value of all the bins.
@@ -252,9 +299,14 @@ bool Solution::operator<(const Solution& solution) const
             return solution.staircase_leftover_value() > staircase_leftover_value();
         if (!instance().parameters().leftover_all_bins)
             return false;
-        if (solution.total_leftover_value() != total_leftover_value())
-            return solution.total_leftover_value() > total_leftover_value();
-        return solution.total_staircase_leftover_value() > total_staircase_leftover_value();
+        // The leftover values of all the bins, used or not, are compared
+        // through the value lost in the used bins, the values of the bins
+        // being the same for both solutions.
+        if (strictly_greater_leftover_value(leftover_value_type, leftover_value_loss_, solution.leftover_value_loss_))
+            return true;
+        if (strictly_greater_leftover_value(leftover_value_type, solution.leftover_value_loss_, leftover_value_loss_))
+            return false;
+        return solution.staircase_dominated_area_ < staircase_dominated_area_;
     } case Objective::OpenDimensionX: {
         return solution.x_max() < x_max();
     } case Objective::OpenDimensionY: {
@@ -265,6 +317,15 @@ bool Solution::operator<(const Solution& solution) const
         return strictly_greater_profit(solution.profit(), profit());
     } case Objective::VariableSizedBinPacking: {
         return strictly_lesser_cost(solution.cost(), cost());
+    } case Objective::VariableSizedBinPackingWithLeftovers: {
+        // The net cost: the cost of the bins minus the refunds of their
+        // leftovers (see 'Instance::leftover_refund'), and then the staircase
+        // leftover values.
+        if (strictly_lesser_cost(solution.net_cost(), net_cost()))
+            return true;
+        if (strictly_lesser_cost(net_cost(), solution.net_cost()))
+            return false;
+        return solution.staircase_dominated_area_ < staircase_dominated_area_;
     } case Objective::SequentialOneDimensionalRectangleSubproblem: {
         if (!equal_profit(solution.profit(), profit()))
             return strictly_greater_profit(solution.profit(), profit());
@@ -370,6 +431,7 @@ nlohmann::json Solution::to_json() const
         {"LeftoverValue", leftover_value()},
         {"StaircaseLeftoverValue", staircase_leftover_value()},
         {"TotalLeftoverValue", total_leftover_value()},
+        {"NetCost", net_cost()},
         {"TotalStaircaseLeftoverValue", total_staircase_leftover_value()},
     };
 }
@@ -399,6 +461,7 @@ void Solution::format(
             << "Leftover value:                  " << leftover_value() << std::endl
             << "Staircase leftover value:        " << staircase_leftover_value() << std::endl
             << "Total leftover value:            " << total_leftover_value() << std::endl
+            << "Net cost:                        " << net_cost() << std::endl
             << "Total staircase leftover value:  " << total_staircase_leftover_value() << std::endl
             ;
     }

@@ -1,5 +1,7 @@
 #include "packingsolver/boxstacks/instance.hpp"
 
+#include "algorithms/leftover.hpp"
+
 #include <cmath>
 #include <fstream>
 #include <iomanip>
@@ -121,6 +123,10 @@ std::istream& boxstacks::operator>>(
         leftover_mode = LeftoverMode::Y;
     } else if (token == "xy" || token == "XY") {
         leftover_mode = LeftoverMode::XY;
+    } else if (token == "xy-cut" || token == "XYCut") {
+        leftover_mode = LeftoverMode::XYCut;
+    } else if (token == "staircase" || token == "Staircase") {
+        leftover_mode = LeftoverMode::Staircase;
     } else {
         in.setstate(std::ios_base::failbit);
     }
@@ -141,9 +147,45 @@ std::ostream& boxstacks::operator<<(
     } case LeftoverMode::XY: {
         os << "XY";
         break;
+    } case LeftoverMode::XYCut: {
+        os << "XYCut";
+        break;
+    } case LeftoverMode::Staircase: {
+        os << "Staircase";
+        break;
     }
     }
     return os;
+}
+
+double boxstacks::leftover_value(
+        LeftoverValueType leftover_value_type,
+        LeftoverMode leftover_mode,
+        const Box& bin,
+        Length x_max,
+        Length y_max)
+{
+    Box used_box = leftover_mode_used_box(leftover_mode, bin, x_max, y_max);
+    return packingsolver::leftover_value<3>(
+            leftover_value_type,
+            {(double)bin.x, (double)bin.y, (double)bin.z},
+            {(double)used_box.x, (double)used_box.y, (double)used_box.z},
+            leftover_mode == LeftoverMode::XYCut);
+}
+
+double boxstacks::staircase_leftover_value(
+        LeftoverValueType leftover_value_type,
+        const Box& bin,
+        const std::vector<std::array<Length, 2>>& extents)
+{
+    std::vector<std::array<double, 3>> extents_dbl;
+    extents_dbl.reserve(extents.size());
+    for (const auto& extent: extents)
+        extents_dbl.push_back({(double)extent[0], (double)extent[1], (double)bin.z});
+    return packingsolver::staircase_leftover_value<3>(
+            leftover_value_type,
+            {(double)bin.x, (double)bin.y, (double)bin.z},
+            extents_dbl);
 }
 
 std::ostream& Instance::format(
@@ -157,6 +199,7 @@ std::ostream& Instance::format(
         if (objective() == Objective::BinPackingWithLeftovers) {
             os
                 << "Leftover mode:         " << parameters_.leftover_mode << std::endl
+                << "Leftover value type:   " << parameters_.leftover_value_type << std::endl
                 << "Leftover all bins:     " << parameters_.leftover_all_bins << std::endl
                 ;
         }
@@ -384,6 +427,11 @@ void Instance::write_json(
         ss << parameters_.leftover_mode;
         j["leftover_mode"] = ss.str();
     }
+    {
+        std::stringstream ss;
+        ss << parameters_.leftover_value_type;
+        j["leftover_value_type"] = ss.str();
+    }
     j["leftover_all_bins"] = parameters_.leftover_all_bins;
     j["no_check_weight_constraints"] = nlohmann::json::array();
     for (GroupId group_id = 0;
@@ -595,6 +643,7 @@ void Instance::write_parameters(
         << "objective," << objective() << std::endl
         << "unloading-constraint," << parameters_.unloading_constraint << std::endl
         << "leftover-mode," << parameters_.leftover_mode << std::endl
+        << "leftover-value-type," << parameters_.leftover_value_type << std::endl
         << "leftover-all-bins," << parameters_.leftover_all_bins << std::endl
         ;
     for (GroupId group_id = 0;

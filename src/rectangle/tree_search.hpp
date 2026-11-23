@@ -205,8 +205,8 @@ public:
         /** Waste. */
         Area waste = 0;
 
-        /** Leftover value. */
-        Profit leftover_value = 0;
+        /** Leftover value of the last bin (see 'leftover_value'). */
+        double leftover_value = 0;
 
         /** Staircase of the items of the last bin. */
         Staircase2D last_bin_staircase;
@@ -214,8 +214,14 @@ public:
         /** Staircase leftover value of the last bin. */
         Area last_bin_staircase_leftover_value = 0;
 
-        /** Sum of the leftover values of the bins but the last one. */
-        Area previous_bins_leftover_value = 0;
+        /**
+         * Sum of the leftover values of the bins but the last one.
+         *
+         * Two nodes with the same number of bins have the same bin types, so
+         * comparing these sums is the same as comparing the leftover values
+         * of all the bins of the instance.
+         */
+        double previous_bins_leftover_value = 0;
 
         /** Sum of the staircase leftover values of the bins but the last one. */
         Area previous_bins_staircase_leftover_value = 0;

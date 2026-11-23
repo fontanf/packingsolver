@@ -242,7 +242,7 @@ public:
          * 'BinPackingWithLeftovers' objective (see 'LeftoverMode'). It can
          * only decrease when items are added to the last bin.
          */
-        Volume leftover_value = 0;
+        double leftover_value = 0;
 
         /**
          * Staircase of the stacks of the last bin, in the frame of the
@@ -256,8 +256,14 @@ public:
          */
         Volume last_bin_staircase_leftover_value = 0;
 
-        /** Sum of the leftover values of the bins but the last one. */
-        Volume previous_bins_leftover_value = 0;
+        /**
+         * Sum of the leftover values of the bins but the last one.
+         *
+         * Two nodes with the same number of bins have the same bin types, so
+         * comparing these sums is the same as comparing the leftover values
+         * of all the bins of the instance.
+         */
+        double previous_bins_leftover_value = 0;
 
         /** Sum of the staircase leftover values of the bins but the last one. */
         Volume previous_bins_staircase_leftover_value = 0;

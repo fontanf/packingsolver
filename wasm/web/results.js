@@ -20,6 +20,7 @@ export const OBJECTIVE_VALUES = {
     "bin-packing": {label: "Bins", value: (s) => s.NumberOfBins},
     "variable-sized-bin-packing": {label: "Cost", value: (s) => s.BinCost},
     "bin-packing-with-leftovers": {label: "Leftover", value: (s) => s.LeftoverValue},
+    "variable-sized-bin-packing-with-leftovers": {label: "Net cost", value: (s) => s.NetCost},
     "bin-packing-cutting-cost": {label: "Cutting cost", value: (s) => s.CuttingCost},
     "open-dimension-x": {label: "Length", value: (s) => (s.XMax !== undefined)? s.XMax: s.Width},
     "open-dimension-y": {label: "Length", value: (s) => (s.YMax !== undefined)? s.YMax: s.Height},
@@ -92,7 +93,9 @@ export function formatPercent(ratio) {
 // along the open dimension: 'DensityX' / 'DensityY' (only the irregular
 // solutions have them). Otherwise, the space used is the items plus 'Waste'
 // (the space used minus the items), or for irregular, which has no 'Waste',
-// 'BinArea' minus 'LeftoverValue'. With nesting lengths (onedimensional), the
+// 'BinArea' minus 'LeftoverArea' ('LeftoverValue' for the solutions stored
+// before 'LeftoverArea' was added, when it was an area). With nesting lengths
+// (onedimensional), the
 // items occupy less than their length: 'ItemNestedLength'.
 function density(solution, objective) {
     const openDimensionDensity = {"open-dimension-x": solution.DensityX, "open-dimension-y": solution.DensityY}[objective];
@@ -106,6 +109,8 @@ function density(solution, objective) {
     let used = null;
     if (finite(solution.Waste) !== null)
         used = occupied + solution.Waste;
+    else if (finite(solution.BinArea) !== null && finite(solution.LeftoverArea) !== null)
+        used = solution.BinArea - solution.LeftoverArea;
     else if (finite(solution.BinArea) !== null && finite(solution.LeftoverValue) !== null)
         used = solution.BinArea - solution.LeftoverValue;
     return (used !== null && used > 0)? occupied / used: null;

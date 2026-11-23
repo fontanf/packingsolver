@@ -426,7 +426,7 @@ bool BranchingScheme::better(
         const std::shared_ptr<Node>& node_2) const
 {
     switch (instance_.objective()) {
-    case Objective::BinPacking: case Objective::VariableSizedBinPacking: {
+    case Objective::BinPacking: case Objective::VariableSizedBinPacking: case Objective::VariableSizedBinPackingWithLeftovers: {
         if (!leaf(node_1))
             return false;
         if (!leaf(node_2))
@@ -458,7 +458,7 @@ bool BranchingScheme::bound(
         const std::shared_ptr<Node>& node_2) const
 {
     switch (instance_.objective()) {
-    case Objective::BinPacking: case Objective::VariableSizedBinPacking: {
+    case Objective::BinPacking: case Objective::VariableSizedBinPacking: case Objective::VariableSizedBinPackingWithLeftovers: {
         if (!leaf(node_2))
             return false;
         BinPos bin_pos = -1;

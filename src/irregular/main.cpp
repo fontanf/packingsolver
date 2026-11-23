@@ -64,6 +64,7 @@ int main(int argc, char *argv[])
             ("item-bin-minimum-spacing", po::value<LengthDbl>(), "Item-bin minimum spacing")
             ("item-item-minimum-spacing", po::value<LengthDbl>(), "Item-item minimum spacing")
             ("leftover-mode", po::value<LeftoverMode>(), "set leftover mode")
+            ("leftover-value-type,", po::value<LeftoverValueType>(), "Leftover value type (bin-packing-with-leftovers): area, depth")
             ("leftover-all-bins", po::value<bool>(), "also compare the leftover values of all the bins")
             ("bin-unweighted", "")
             ("unweighted", "")
@@ -160,6 +161,8 @@ int main(int argc, char *argv[])
             instance_builder.set_item_item_minimum_spacing(vm["item-item-minimum-spacing"].as<LengthDbl>());
         if (vm.count("leftover-mode"))
             instance_builder.set_leftover_mode(vm["leftover-mode"].as<LeftoverMode>());
+        if (vm.count("leftover-value-type"))
+            instance_builder.set_leftover_value_type(vm["leftover-value-type"].as<LeftoverValueType>());
         if (vm.count("leftover-all-bins"))
             instance_builder.set_leftover_all_bins(vm["leftover-all-bins"].as<bool>());
         if (vm.count("unweighted"))

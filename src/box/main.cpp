@@ -76,7 +76,8 @@ int main(int argc, char *argv[])
             ("no-item-rotation", "")
 
             ("objective,f", po::value<Objective>(), "Objective")
-            ("leftover-mode,", po::value<box::LeftoverMode>(), "Leftover mode (bin-packing-with-leftovers): X, Y, Z, XY, XZ, YZ, XYZ")
+            ("leftover-mode,", po::value<box::LeftoverMode>(), "Leftover mode (bin-packing-with-leftovers): X, Y, Z, XY, XZ, YZ, XYZ, XYCut, XZCut, YZCut, XYZCut, Staircase")
+            ("leftover-value-type,", po::value<LeftoverValueType>(), "Leftover value type (bin-packing-with-leftovers): area, depth")
             ("leftover-all-bins", po::value<bool>(), "also compare the leftover values of all the bins")
             ("static-stability", po::value<bool>(), "require the solutions to be in static mechanical equilibrium")
 
@@ -196,6 +197,8 @@ int main(int argc, char *argv[])
             instance_builder.set_objective(vm["objective"].as<Objective>());
         if (vm.count("leftover-mode"))
             instance_builder.set_leftover_mode(vm["leftover-mode"].as<box::LeftoverMode>());
+        if (vm.count("leftover-value-type"))
+            instance_builder.set_leftover_value_type(vm["leftover-value-type"].as<LeftoverValueType>());
         if (vm.count("leftover-all-bins"))
             instance_builder.set_leftover_all_bins(vm["leftover-all-bins"].as<bool>());
         if (vm.count("static-stability"))

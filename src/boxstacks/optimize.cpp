@@ -34,7 +34,7 @@ void optimize_onedimensional_bound(
     // cheaply (dichotomic search), so this stays fast regardless of how
     // hard the geometric relaxation would be to search.
     onedimensional::InstanceBuilder onedim_instance_builder;
-    onedim_instance_builder.set_objective(box_instance.objective());
+    onedim_instance_builder.set_objective(onedimensional_subproblem_objective(box_instance.objective()));
     for (BinTypeId bin_type_id = 0;
             bin_type_id < box_instance.number_of_bin_types();
             ++bin_type_id) {
@@ -90,7 +90,7 @@ void optimize_onedimensional_bound(
     case Objective::BinPacking:
         algorithm_formatter.update_bin_packing_bound(onedim_output.bin_packing_bound);
         break;
-    case Objective::VariableSizedBinPacking:
+    case Objective::VariableSizedBinPacking: case Objective::VariableSizedBinPackingWithLeftovers:
         algorithm_formatter.update_variable_sized_bin_packing_bound(onedim_output.variable_sized_bin_packing_bound);
         break;
     default:
@@ -618,7 +618,7 @@ packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
             && (instance.objective() == Objective::Knapsack
                 || instance.objective() == Objective::BinPacking
                 || instance.objective() == Objective::BinPackingWithLeftovers
-                || instance.objective() == Objective::VariableSizedBinPacking
+                || is_variable_sized_bin_packing(instance.objective())
                 || instance.objective() == Objective::Feasibility)) {
         optimize_box_bound(instance, parameters, algorithm_formatter);
     }

@@ -21,6 +21,7 @@ Features:
   * Open dimension X
   * Open dimension Y
   * Variable-sized bin packing
+  * Variable-sized bin packing with leftovers
 
 * Item types
 
@@ -97,13 +98,15 @@ An instance is a JSON object with the following fields:
    * - Field
      - Description
    * - ``objective``
-     - **Mandatory**. One of ``knapsack``, ``bin-packing``, ``bin-packing-with-leftovers``, ``open-dimension-x``, ``open-dimension-y``, ``variable-sized-bin-packing``; see :ref:`objectives`
+     - **Mandatory**. One of ``knapsack``, ``bin-packing``, ``bin-packing-with-leftovers``, ``open-dimension-x``, ``open-dimension-y``, ``variable-sized-bin-packing``, ``variable-sized-bin-packing-with-leftovers``; see :ref:`objectives`
    * - ``knapsack_goal``
      - For the ``knapsack`` objective, the search stops as soon as a solution reaches this profit. Default: none
    * - ``knapsack_cutoff``
      - For the ``knapsack`` objective, the solutions whose profit is below this value are not useful: the search stops as soon as the bound proves that no solution reaches it. Default: none
    * - ``leftover_mode``
-     - How the leftover of the last bin is measured, for the ``bin-packing-with-leftovers`` objective: the volume of the bin minus the volume used, which is the whole height of the bin, times the rectangle from the origin of the bin to the stacks along the dimensions of the mode, and the whole bin along the other dimension. One of ``XY`` (default), ``X``, ``Y``
+     - The shape of the leftover of a bin, for the ``bin-packing-with-leftovers`` objective (see :ref:`leftovers`): the bin minus the used box, which covers the whole height of the bin, goes from the origin of the bin to the stacks along the dimensions of the mode, and covers the whole bin along the other dimension. One of ``XY`` (default), ``XYCut`` (the leftover of ``XY``, cut into two boxes), ``Staircase`` (the bin minus the boxes between its origin and the opposite corner of each stack, over the whole height), ``X``, ``Y``
+   * - ``leftover_value_type``
+     - How the value of the leftover is computed, for the ``bin-packing-with-leftovers`` objective (see :ref:`leftovers`): ``squared-area`` (default) or ``depth``
    * - ``unloading_constraint``
      - See :ref:`boxstacks-unloading-constraints`. Default: ``none``
    * - ``no_check_weight_constraints``

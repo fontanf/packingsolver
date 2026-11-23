@@ -118,6 +118,9 @@ struct Output: packingsolver::Output<Instance, Solution>
         case Objective::VariableSizedBinPacking:
             return solution_pool.best().feasible()
                 && equal_cost(variable_sized_bin_packing_bound, solution_pool.best().cost());
+        case Objective::VariableSizedBinPackingWithLeftovers:
+            // There is no bound on the value of the leftovers.
+            return false;
         case Objective::OpenDimensionX:
             return solution_pool.best().feasible()
                 && equal(open_dimension_x_bound, solution_pool.best().x_max());
@@ -159,7 +162,7 @@ struct Output: packingsolver::Output<Instance, Solution>
             if (output.bin_packing_bound > bin_packing_bound)
                 bin_packing_bound = output.bin_packing_bound;
             break;
-        case Objective::VariableSizedBinPacking:
+        case Objective::VariableSizedBinPacking: case Objective::VariableSizedBinPackingWithLeftovers:
             if (output.variable_sized_bin_packing_bound > variable_sized_bin_packing_bound)
                 variable_sized_bin_packing_bound = output.variable_sized_bin_packing_bound;
             break;
@@ -207,7 +210,7 @@ struct Output: packingsolver::Output<Instance, Solution>
         case Objective::BinPacking:
             write_bound(os, width, solution_pool.best().number_of_bins(), bin_packing_bound);
             break;
-        case Objective::VariableSizedBinPacking:
+        case Objective::VariableSizedBinPacking: case Objective::VariableSizedBinPackingWithLeftovers:
             write_bound(os, width, solution_pool.best().cost(), variable_sized_bin_packing_bound);
             break;
         case Objective::OpenDimensionX:

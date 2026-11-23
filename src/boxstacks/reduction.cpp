@@ -173,7 +173,7 @@ bool Reduction::remove_dominated_bin_types_applies(const Instance& instance)
     // available earlier than the original instance allows.
     if (instance.objective() != Objective::Knapsack
             && instance.objective() != Objective::Feasibility
-            && instance.objective() != Objective::VariableSizedBinPacking) {
+            && !is_variable_sized_bin_packing(instance.objective())) {
         return false;
     }
     return instance.number_of_bin_types() > 1;
@@ -432,7 +432,9 @@ bool Reduction::lift_item_dimensions_applies_axis(
             return false;
         if (instance.objective() == Objective::BinPackingWithLeftovers
                 && (leftover_mode == LeftoverMode::X
-                    || leftover_mode == LeftoverMode::XY)) {
+                    || leftover_mode == LeftoverMode::XY
+                    || leftover_mode == LeftoverMode::XYCut
+                    || leftover_mode == LeftoverMode::Staircase)) {
             return false;
         }
         if (instance.bin_type(0).semi_trailer_truck_data.is)
@@ -446,7 +448,9 @@ bool Reduction::lift_item_dimensions_applies_axis(
             return false;
         if (instance.objective() == Objective::BinPackingWithLeftovers
                 && (leftover_mode == LeftoverMode::Y
-                    || leftover_mode == LeftoverMode::XY)) {
+                    || leftover_mode == LeftoverMode::XY
+                    || leftover_mode == LeftoverMode::XYCut
+                    || leftover_mode == LeftoverMode::Staircase)) {
             return false;
         }
         if (unloading_constraint == rectangle::UnloadingConstraint::OnlyXMovements

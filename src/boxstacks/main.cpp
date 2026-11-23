@@ -75,7 +75,8 @@ int main(int argc, char *argv[])
             ("no-item-rotation", "")
 
             ("objective,f", po::value<Objective>(), "Objective")
-            ("leftover-mode,", po::value<boxstacks::LeftoverMode>(), "Leftover mode (bin-packing-with-leftovers): X, Y, XY")
+            ("leftover-mode,", po::value<boxstacks::LeftoverMode>(), "Leftover mode (bin-packing-with-leftovers): X, Y, XY, XYCut, Staircase")
+            ("leftover-value-type,", po::value<LeftoverValueType>(), "Leftover value type (bin-packing-with-leftovers): area, depth")
             ("leftover-all-bins", po::value<bool>(), "also compare the leftover values of all the bins")
 
             ("unloading-constraint,", po::value<rectangle::UnloadingConstraint>(), "")
@@ -197,6 +198,8 @@ int main(int argc, char *argv[])
             instance_builder.set_objective(vm["objective"].as<Objective>());
         if (vm.count("leftover-mode"))
             instance_builder.set_leftover_mode(vm["leftover-mode"].as<boxstacks::LeftoverMode>());
+        if (vm.count("leftover-value-type"))
+            instance_builder.set_leftover_value_type(vm["leftover-value-type"].as<LeftoverValueType>());
         if (vm.count("leftover-all-bins"))
             instance_builder.set_leftover_all_bins(vm["leftover-all-bins"].as<bool>());
         if (vm.count("unloading-constraint"))

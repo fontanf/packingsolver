@@ -1439,7 +1439,7 @@ SequentialOneDimensionalRectangleOutput sequential_onedimensional_rectangle_x(
         if (instance.number_of_items() > 0)
             x_algorithm_formatter.update_bin_packing_bound(1);
         break;
-    } case Objective::VariableSizedBinPacking: {
+    } case Objective::VariableSizedBinPacking: case Objective::VariableSizedBinPackingWithLeftovers: {
         if (instance.number_of_items() > 0) {
             Profit cost = std::numeric_limits<Profit>::infinity();
             for (BinTypeId bin_type_id = 0;

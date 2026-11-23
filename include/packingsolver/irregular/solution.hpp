@@ -33,8 +33,8 @@ struct SolutionBin
     /** Maximum y of the items in this bin. */
     LengthDbl y_max = -std::numeric_limits<LengthDbl>::infinity();
 
-    /** Leftover value of the bin (see 'LeftoverMode'). */
-    AreaDbl leftover_value = 0;
+    /** Leftover value of the bin (see 'leftover_value'). */
+    double leftover_value = 0;
 
     /**
      * Area of the bin which is not dominated by an item, an item dominating
@@ -184,19 +184,44 @@ public:
     /** Get the area of the (last bin of the) solution. */
     AreaDbl open_dimension_xy_area() const;
 
-    /** Get the area of the solution. */
-    inline Profit leftover_value_orig() const { return leftover_value_orig_; }
+    /**
+     * Get the value of the leftover of the last bin, in original coordinates
+     * (see 'LeftoverMode' and 'leftover_value').
+     */
+    inline double leftover_value_orig() const { return leftover_value_orig_; }
 
-    inline Profit leftover_value_scaled() const { return leftover_value_scaled_; }
+    /**
+     * Get the area of the leftover of the last bin, in original coordinates
+     * (see 'LeftoverMode').
+     */
+    inline AreaDbl leftover_area() const { return leftover_area_; }
+
+    /** Get the value of the leftover of the last bin, in scaled coordinates. */
+    inline double leftover_value_scaled() const { return leftover_value_scaled_; }
 
     /** Get the staircase leftover value of the last bin of the solution. */
     inline AreaDbl staircase_leftover_value() const { return staircase_leftover_value_; }
 
-    /** Get the sum of the leftover values of the bins. */
-    inline AreaDbl total_leftover_value() const { return total_leftover_value_; }
+    /**
+     * Get the sum of the leftover values of all the bins of the instance:
+     * the leftover values of the bins of the solution, and the values of the
+     * bins which are not used.
+     */
+    double total_leftover_value() const;
 
-    /** Get the sum of the staircase leftover values of the bins. */
-    inline AreaDbl total_staircase_leftover_value() const { return total_staircase_leftover_value_; }
+    /**
+     * Get the net cost of the solution, for the
+     * 'VariableSizedBinPackingWithLeftovers' objective: the cost of its bins
+     * minus the refunds of their leftovers (see 'Instance::leftover_refund').
+     */
+    inline Profit net_cost() const { return net_cost_; }
+
+    /**
+     * Get the sum of the staircase leftover values of all the bins of the
+     * instance: the staircase leftover values of the bins of the solution,
+     * and the areas of the bounding boxes of the bins which are not used.
+     */
+    AreaDbl total_staircase_leftover_value() const;
 
     /** Get the waste of the solution including the residual. */
     inline AreaDbl full_waste() const { return bin_area() - item_area(); }
@@ -306,20 +331,32 @@ private:
     /** Number of items. */
     ItemPos number_of_items_ = 0;
 
-    /** Value of the leftover in original coordinates. */
-    Profit leftover_value_orig_ = 0.0;
+    /** Value of the leftover of the last bin in original coordinates. */
+    double leftover_value_orig_ = 0.0;
 
-    /** Value of the leftover in scaled coordinates. */
-    Profit leftover_value_scaled_ = 0.0;
+    /** Area of the leftover of the last bin in original coordinates. */
+    AreaDbl leftover_area_ = 0.0;
+
+    /** Value of the leftover of the last bin in scaled coordinates. */
+    double leftover_value_scaled_ = 0.0;
 
     /** Staircase leftover value of the last bin. */
     AreaDbl staircase_leftover_value_ = 0;
 
-    /** Sum of the leftover values of the bins. */
-    AreaDbl total_leftover_value_ = 0;
+    /**
+     * Sum, over the bins of the solution, of the value of the bin minus its
+     * leftover value.
+     */
+    double leftover_value_loss_ = 0;
 
-    /** Sum of the staircase leftover values of the bins. */
-    AreaDbl total_staircase_leftover_value_ = 0;
+    /** Net cost of the solution. */
+    Profit net_cost_ = 0;
+
+    /**
+     * Sum, over the bins of the solution, of the area dominated by the
+     * staircase of their items.
+     */
+    AreaDbl staircase_dominated_area_ = 0;
 
     /** Total area of the bins of the solution. */
     AreaDbl bin_area_ = 0;

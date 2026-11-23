@@ -174,7 +174,7 @@ void optimize_onedimensional_bound(
     // same cost), so the bound the onedimensional solver finds for it
     // (which runs the same dichotomic search) is a valid lower bound here.
     onedimensional::InstanceBuilder onedim_instance_builder;
-    onedim_instance_builder.set_objective(instance.objective());
+    onedim_instance_builder.set_objective(onedimensional_subproblem_objective(instance.objective()));
     for (BinTypeId bin_type_id = 0;
             bin_type_id < instance.number_of_bin_types();
             ++bin_type_id) {
@@ -237,7 +237,7 @@ void optimize_onedimensional_bound(
         algorithm_formatter.update_knapsack_bound(
                 onedim_output.knapsack_bound + negative_penalty_sum(instance));
         break;
-    } case Objective::VariableSizedBinPacking: {
+    } case Objective::VariableSizedBinPacking: case Objective::VariableSizedBinPackingWithLeftovers: {
         algorithm_formatter.update_variable_sized_bin_packing_bound(
                 onedim_output.variable_sized_bin_packing_bound);
         break;
@@ -947,7 +947,7 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
     if (instance.objective() == Objective::BinPacking
             || instance.objective() == Objective::BinPackingWithLeftovers
             || instance.objective() == Objective::Knapsack
-            || instance.objective() == Objective::VariableSizedBinPacking
+            || is_variable_sized_bin_packing(instance.objective())
             || instance.objective() == Objective::Feasibility) {
         optimize_onedimensional_bound(
                 instance,
@@ -1012,7 +1012,7 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
         // single bin but 'VariableSizedBinPacking' (through the sequential
         // feasibility algorithm for the objectives other than 'Knapsack' and
         // 'Feasibility').
-        if (instance.objective() == Objective::VariableSizedBinPacking)
+        if (is_variable_sized_bin_packing(instance.objective()))
             use_tree_search_maximal_spaces = false;
         // 'tree_search_maximal_spaces' doesn't implement unloading
         // constraints at all (unlike 'tree_search'): force it off even if
@@ -1217,7 +1217,7 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
                 }
             }
         }
-    } else if (instance.objective() == Objective::VariableSizedBinPacking) {
+    } else if (is_variable_sized_bin_packing(instance.objective())) {
         // Disable algorithms which are not available for this objective.
         use_tree_search_maximal_spaces = false;
         // 'benders_decomposition_contiguity' only supports 'Knapsack'/

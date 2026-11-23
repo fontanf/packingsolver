@@ -85,7 +85,7 @@ void AlgorithmFormatter::print_header()
                 << std::setw(32) << "-------"
                 << std::endl;
         break;
-    } case Objective::VariableSizedBinPacking: {
+    } case Objective::VariableSizedBinPacking: case Objective::VariableSizedBinPackingWithLeftovers: {
         *os_
                 << std::setw(12) << "Time"
                 << std::setw(14) << "Cost"
@@ -150,7 +150,7 @@ void AlgorithmFormatter::print(
                 << std::setw(32) << s
                 << std::endl;
         break;
-    } case Objective::VariableSizedBinPacking: {
+    } case Objective::VariableSizedBinPacking: case Objective::VariableSizedBinPackingWithLeftovers: {
         *os_
                 << std::setw(12) << std::fixed << std::setprecision(3) << output_.time << std::defaultfloat << std::setprecision(precision)
                 << std::setw(14) << output_.solution_pool.best().cost()
@@ -267,7 +267,7 @@ void AlgorithmFormatter::update_bounds(
     case Objective::BinPacking:
         update_bin_packing_bound(output.bin_packing_bound);
         break;
-    case Objective::VariableSizedBinPacking:
+    case Objective::VariableSizedBinPacking: case Objective::VariableSizedBinPackingWithLeftovers:
         update_variable_sized_bin_packing_bound(output.variable_sized_bin_packing_bound);
         break;
     default:

@@ -1,5 +1,7 @@
 #include "packingsolver/rectangleguillotine/instance_builder.hpp"
 
+#include "algorithms/leftover.hpp"
+
 #include "rectangleguillotine/block.hpp"
 #include "rectangleguillotine/instance_cache.hpp"
 
@@ -952,6 +954,8 @@ void InstanceBuilder::read_parameters(
             set_cut_through_defects(std::stol(value));
         } else if (name == "cut_thickness") {
             set_cut_thickness(std::stol(value));
+        } else if (name == "leftover_value_type") {
+            set_leftover_value_type(read_enum<LeftoverValueType>(value, name));
         } else if (name.rfind("cuts_fixed_cost_", 0) == 0) {
             Counter stage_id = std::stol(name.substr(16));
             set_fixed_cutting_cost(stage_id, std::stoll(value));
@@ -1281,6 +1285,11 @@ void InstanceBuilder::read(
         set_cut_through_defects(j["cut_through_defects"]);
     if (j.contains("cut_thickness"))
         set_cut_thickness(j["cut_thickness"]);
+    if (j.contains("leftover_value_type")) {
+        set_leftover_value_type(read_enum<LeftoverValueType>(
+                    j["leftover_value_type"].get<std::string>(),
+                    "leftover_value_type"));
+    }
     if (j.contains("cutting_costs")) {
         Counter stage_id = 0;
         for (const auto& json_cutting_cost: j["cutting_costs"]) {
@@ -1785,6 +1794,24 @@ Instance InstanceBuilder::build()
     instance_.blocks_cache_ = std::make_shared<BlocksCache>();
     if (original_instance_ != nullptr)
         copy_cache_from_original_instance();
+
+    // Compute the factor which converts a leftover value into a space.
+    instance_.leftover_value_factor_ = 0;
+    for (const BinType& bin_type: instance_.bin_types_) {
+        double space = (double)bin_type.area();
+        double value = packingsolver::leftover_value<2>(
+                instance_.parameters_.leftover_value_type,
+                {(double)(bin_type.rect.w - bin_type.left_trim - bin_type.right_trim),
+                 (double)(bin_type.rect.h - bin_type.bottom_trim - bin_type.top_trim)},
+                {0.0, 0.0},
+                false);
+        if (value <= 0)
+            continue;
+        if (instance_.leftover_value_factor_ == 0
+                || space / value < instance_.leftover_value_factor_) {
+            instance_.leftover_value_factor_ = space / value;
+        }
+    }
 
     return std::move(instance_);
 }

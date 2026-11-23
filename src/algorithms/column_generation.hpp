@@ -259,7 +259,7 @@ columngenerationsolver::Model get_model(
 {
     columngenerationsolver::Model model;
 
-    if (instance.objective() == Objective::VariableSizedBinPacking
+    if (is_variable_sized_bin_packing(instance.objective())
             || instance.objective() == Objective::BinPacking
             || instance.objective() == Objective::Feasibility) {
         model.objective_sense = optimizationtools::ObjectiveDirection::Minimize;
@@ -278,7 +278,7 @@ columngenerationsolver::Model get_model(
         row.coefficient_upper_bound = 1;
         model.rows.push_back(row);
     }
-    if (instance.objective() == Objective::VariableSizedBinPacking
+    if (is_variable_sized_bin_packing(instance.objective())
             || instance.objective() == Objective::BinPacking
             || instance.objective() == Objective::Feasibility
             || instance.objective() == Objective::Knapsack) {
@@ -317,7 +317,7 @@ std::vector<std::shared_ptr<const Column>> solution_to_columns(
         Solution extra_solution(instance);
         extra_solution.append_bin(solution, bin_pos, 1);
         Column column;
-        if (instance.objective() == Objective::VariableSizedBinPacking
+        if (is_variable_sized_bin_packing(instance.objective())
                 || instance.objective() == Objective::BinPacking) {
             column.objective_coefficient = extra_solution.cost() / multiplier_cost;
         } else if (instance.objective() == Objective::Feasibility) {
@@ -413,7 +413,7 @@ PricingOutput ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution,
     if (instance_.objective() == Objective::BinPacking
             && output_.solution_pool.best().feasible()) {
         maximum_number_of_bins = output_.solution_pool.best().number_of_bins();
-    } else if (instance_.objective() == Objective::VariableSizedBinPacking
+    } else if (is_variable_sized_bin_packing(instance_.objective())
             && output_.solution_pool.best().feasible()) {
         maximum_number_of_bins = (std::min)(
                 maximum_number_of_bins,
@@ -446,7 +446,7 @@ PricingOutput ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution,
             const auto& item_type = instance_.item_type(item_type_id);
 
             Profit profit = 0;
-            if (instance_.objective() == Objective::VariableSizedBinPacking
+            if (is_variable_sized_bin_packing(instance_.objective())
                     || instance_.objective() == Objective::BinPacking
                     || instance_.objective() == Objective::Feasibility) {
                 profit = duals[instance_.number_of_bin_types() + item_type_id];
@@ -675,7 +675,7 @@ PricingOutput ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution,
         // errors).
         {
             Profit threshold = std::numeric_limits<Profit>::infinity();
-            if (instance_.objective() == Objective::VariableSizedBinPacking
+            if (is_variable_sized_bin_packing(instance_.objective())
                     || instance_.objective() == Objective::BinPacking) {
                 threshold = (solve_feasibility? 0: bin_type.cost / multiplier_cost)
                     - duals[bin_type_id];
@@ -706,7 +706,7 @@ PricingOutput ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution,
             Profit cutoff = -std::numeric_limits<Profit>::infinity();
             if (std::isfinite(overcost_goal) && maximum_number_of_bins > 0) {
                 Profit overcost_target = -std::numeric_limits<Profit>::infinity();
-                if (instance_.objective() == Objective::VariableSizedBinPacking
+                if (is_variable_sized_bin_packing(instance_.objective())
                         || instance_.objective() == Objective::BinPacking
                         || instance_.objective() == Objective::Feasibility) {
                     // The reduced cost bound is at most 0.
@@ -749,7 +749,7 @@ PricingOutput ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution,
         // only holds the trivial 0-bin solution), leaving 'reduced_cost_
         // bound' at its useless default and letting the caller wrongly
         // conclude infeasibility from 'overcost' alone.
-        if (instance_.objective() == Objective::VariableSizedBinPacking
+        if (is_variable_sized_bin_packing(instance_.objective())
                 || instance_.objective() == Objective::BinPacking) {
             // Real bin cost zeroed during the feasibility phase, same
             // reasoning as the item profit above; 'kp_output.
@@ -788,7 +788,7 @@ PricingOutput ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution,
                     kp2vbpp);
             column.extra = std::shared_ptr<void>(new Solution(extra_solution));
 
-            if (instance_.objective() == Objective::VariableSizedBinPacking
+            if (is_variable_sized_bin_packing(instance_.objective())
                     || instance_.objective() == Objective::BinPacking) {
                 column.objective_coefficient = extra_solution.cost() / multiplier_cost;
             } else if (instance_.objective() == Objective::Feasibility) {
@@ -1820,7 +1820,7 @@ Output column_generation(
             (cgslds_output.bound == std::numeric_limits<double>::infinity());
         if (bound_proves_infeasible) {
             algorithm_formatter.update_is_proven_infeasible();
-        } else if (instance.objective() == Objective::VariableSizedBinPacking) {
+        } else if (is_variable_sized_bin_packing(instance.objective())) {
             double multiplier_cost = largest_power_of_two_lesser_or_equal(instance.largest_bin_cost());
             algorithm_formatter.update_variable_sized_bin_packing_bound(
                     cgslds_output.bound * multiplier_cost);

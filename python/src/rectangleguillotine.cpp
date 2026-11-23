@@ -109,6 +109,7 @@ void bind_rectangleguillotine(nb::module_& m)
         .def_ro("maximum_number_2_cuts", &rectangleguillotine::Parameters::maximum_number_2_cuts)
         .def_ro("cut_through_defects", &rectangleguillotine::Parameters::cut_through_defects)
         .def_ro("cut_thickness", &rectangleguillotine::Parameters::cut_thickness)
+        .def_ro("leftover_value_type", &rectangleguillotine::Parameters::leftover_value_type)
         .def_ro("cutting_costs", &rectangleguillotine::Parameters::cutting_costs)
         .def_ro("waste_cost", &rectangleguillotine::Parameters::waste_cost);
 
@@ -257,6 +258,7 @@ void bind_rectangleguillotine(nb::module_& m)
         .def("set_cut_through_defects", &InstanceBuilder::set_cut_through_defects,
                 nb::arg("cut_through_defects"))
         .def("set_cut_thickness", &InstanceBuilder::set_cut_thickness, nb::arg("cut_thickness"))
+        .def("set_leftover_value_type", &InstanceBuilder::set_leftover_value_type, nb::arg("leftover_value_type"))
         .def("set_fixed_cutting_cost", &InstanceBuilder::set_fixed_cutting_cost,
                 nb::arg("stage_id"), nb::arg("fixed_cost"))
         .def("set_variable_cutting_cost", &InstanceBuilder::set_variable_cutting_cost,

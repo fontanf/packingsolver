@@ -21,6 +21,7 @@ Features:
   * Open dimension X
   * Open dimension Y
   * Variable-sized bin packing
+  * Variable-sized bin packing with leftovers
 
 * With or without item rotations
 
@@ -58,13 +59,15 @@ An instance is a JSON object with the following fields:
    * - Field
      - Description
    * - ``objective``
-     - **Mandatory**. One of ``knapsack``, ``bin-packing``, ``bin-packing-with-leftovers``, ``open-dimension-x``, ``open-dimension-y``, ``variable-sized-bin-packing``; see :ref:`objectives`
+     - **Mandatory**. One of ``knapsack``, ``bin-packing``, ``bin-packing-with-leftovers``, ``open-dimension-x``, ``open-dimension-y``, ``variable-sized-bin-packing``, ``variable-sized-bin-packing-with-leftovers``; see :ref:`objectives`
    * - ``knapsack_goal``
      - For the ``knapsack`` objective, the search stops as soon as a solution reaches this profit. Default: none
    * - ``knapsack_cutoff``
      - For the ``knapsack`` objective, the solutions whose profit is below this value are not useful: the search stops as soon as the bound proves that no solution reaches it. Default: none
    * - ``leftover_mode``
-     - How the leftover of the last bin is measured, for the ``bin-packing-with-leftovers`` objective: ``area`` (default; the area of the bin minus the area of the rectangle containing its items), ``x`` (the width of the bin on the right of the items, times the height of the bin), or ``y`` (the height of the bin above the items, times the width of the bin)
+     - The shape of the leftover of a bin, for the ``bin-packing-with-leftovers`` objective (see :ref:`leftovers`): ``area`` (default; the L-shape between the top-right corner of the bin and the rectangle containing its items), ``area-cut`` (the same L-shape, cut into two rectangles), ``staircase`` (the bin minus the rectangles between its bottom-left corner and the top-right corner of each item), ``x`` (the rectangle on the right of the items), or ``y`` (the rectangle above the items)
+   * - ``leftover_value_type``
+     - How the value of the leftover is computed, for the ``bin-packing-with-leftovers`` objective (see :ref:`leftovers`): ``squared-area`` (default) or ``depth``
    * - ``unloading_constraint``
      - See :ref:`rectangle-unloading-constraints`. Default: ``none``
    * - ``bin_types``
