@@ -79,6 +79,7 @@ int main(int argc, char *argv[])
 
             ("unloading-constraint,", po::value<rectangle::UnloadingConstraint>(), "")
             ("leftover-mode,", po::value<rectangle::LeftoverMode>(), "")
+            ("leftover-value-type,", po::value<LeftoverValueType>(), "Leftover value type (bin-packing-with-leftovers): area, depth")
             ("leftover-all-bins", po::value<bool>(), "also compare the leftover values of all the bins")
 
             ("output,o", po::value<std::string>(), "Output path")
@@ -210,6 +211,8 @@ int main(int argc, char *argv[])
             instance_builder.set_unloading_constraint(vm["unloading-constraint"].as<UnloadingConstraint>());
         if (vm.count("leftover-mode"))
             instance_builder.set_leftover_mode(vm["leftover-mode"].as<LeftoverMode>());
+        if (vm.count("leftover-value-type"))
+            instance_builder.set_leftover_value_type(vm["leftover-value-type"].as<LeftoverValueType>());
         if (vm.count("leftover-all-bins"))
             instance_builder.set_leftover_all_bins(vm["leftover-all-bins"].as<bool>());
 

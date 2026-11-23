@@ -2,6 +2,7 @@
 
 from ._packingsolver import (
     InstanceFormat,
+    LeftoverValueType,
     LinearProgrammingSolver,
     Objective,
     OptimizationMode,

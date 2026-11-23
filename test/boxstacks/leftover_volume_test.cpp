@@ -2,6 +2,7 @@
 #include "packingsolver/boxstacks/solution.hpp"
 #include "packingsolver/boxstacks/post_process.hpp"
 #include "boxstacks/solution_builder.hpp"
+#include "algorithms/leftover.hpp"
 
 #include <gtest/gtest.h>
 
@@ -84,30 +85,62 @@ TEST(BoxStacks, LeftoverVolumeOnlyLastPhysicalBin)
 
 TEST(BoxStacks, LeftoverModes)
 {
-    // A 100 x 50 x 40 bin whose stacks end at x 60 and y 20: the volume used
-    // is the box from the origin to the stacks along the dimensions of the
-    // mode, the whole bin along the others, and the whole height.
-    struct Case { LeftoverMode leftover_mode; Volume used; };
+    // A 100 x 50 x 40 bin whose stacks end at x 60 and y 20: the box used is
+    // the box from the origin to the stacks along the dimensions of the
+    // mode, the whole bin along the others, and the whole height. The
+    // leftover is the bin minus this box, cut into two boxes for 'XYCut'.
+    // Its value is its squared volume, or its depth-weighted value.
+    struct Case { LeftoverMode leftover_mode; std::array<double, 3> used; bool cut; };
     for (Case c: std::vector<Case>{
-            {LeftoverMode::X, 60 * 50 * 40},
-            {LeftoverMode::Y, 100 * 20 * 40},
-            {LeftoverMode::XY, 60 * 20 * 40}}) {
-        InstanceBuilder ib;
-        ib.set_objective(Objective::BinPackingWithLeftovers);
-        ib.set_leftover_mode(c.leftover_mode);
-        ib.add_bin_type(100, 50, 40);
-        auto item = ib.add_item_type(30, 20, 10);
-        ib.set_item_type_copies(item, 2);
-        const Instance instance = ib.build();
-        SolutionBuilder sb(instance);
-        sb.add_bin(0, 1);
-        sb.add_stack(0, 0, 30, 0, 20);
-        sb.add_item(0, 0, item, Rotation::XYZ);
-        sb.add_stack(0, 30, 60, 0, 20);
-        sb.add_item(0, 1, item, Rotation::XYZ);
-        const Solution solution = sb.build();
-        EXPECT_TRUE(solution.feasible());
-        EXPECT_EQ(solution.leftover_value(), 100 * 50 * 40 - c.used) << c.leftover_mode;
+            {LeftoverMode::X, {60, 50, 40}, false},
+            {LeftoverMode::Y, {100, 20, 40}, false},
+            {LeftoverMode::XY, {60, 20, 40}, false},
+            {LeftoverMode::XYCut, {60, 20, 40}, true},
+            // The two stacks form a single step.
+            {LeftoverMode::Staircase, {60, 20, 40}, false}}) {
+        for (LeftoverValueType leftover_value_type: {
+                LeftoverValueType::SquaredArea,
+                LeftoverValueType::Depth}) {
+            InstanceBuilder ib;
+            ib.set_objective(Objective::BinPackingWithLeftovers);
+            ib.set_leftover_mode(c.leftover_mode);
+            ib.set_leftover_value_type(leftover_value_type);
+            ib.add_bin_type(100, 50, 40);
+            auto item = ib.add_item_type(30, 20, 10);
+            ib.set_item_type_copies(item, 2);
+            const Instance instance = ib.build();
+            SolutionBuilder sb(instance);
+            sb.add_bin(0, 1);
+            sb.add_stack(0, 0, 30, 0, 20);
+            sb.add_item(0, 0, item, Rotation::XYZ);
+            sb.add_stack(0, 30, 60, 0, 20);
+            sb.add_item(0, 1, item, Rotation::XYZ);
+            const Solution solution = sb.build();
+            EXPECT_TRUE(solution.feasible());
+            double expected_leftover_value = 0;
+            if (leftover_value_type == LeftoverValueType::SquaredArea) {
+                if (c.cut) {
+                    // The best cut into two boxes for the squared volumes.
+                    expected_leftover_value = packingsolver::cut_leftover_value<3>(
+                            {100, 50, 40},
+                            c.used,
+                            [](const std::array<double, 3>& box)
+                            {
+                                double volume = box[0] * box[1] * box[2];
+                                return volume * volume;
+                            });
+                } else {
+                    double volume = 100.0 * 50 * 40 - c.used[0] * c.used[1] * c.used[2];
+                    expected_leftover_value = volume * volume;
+                }
+            } else {
+                expected_leftover_value = (c.cut)?
+                    packingsolver::cut_leftover_value<3>({100, 50, 40}, c.used):
+                    packingsolver::leftover_value<3>({100, 50, 40}, c.used);
+            }
+            EXPECT_NEAR(solution.leftover_value(), expected_leftover_value, 1e-6 * expected_leftover_value)
+                << c.leftover_mode << " " << leftover_value_type;
+        }
     }
 }
 
@@ -133,8 +166,8 @@ TEST(BoxStacks, LeftoverModeRanksSolutions)
     };
     const Solution along_x = build(10, 0);
     const Solution along_y = build(0, 10);
-    EXPECT_EQ(along_x.leftover_value(), 100 * 90 * 100);
-    EXPECT_EQ(along_y.leftover_value(), 100 * 80 * 100);
+    EXPECT_EQ(along_x.leftover_value(), (100.0 * 90 * 100) * (100.0 * 90 * 100));
+    EXPECT_EQ(along_y.leftover_value(), (100.0 * 80 * 100) * (100.0 * 80 * 100));
     EXPECT_TRUE(along_y < along_x);  // operator< means the right solution is better.
 }
 
@@ -170,7 +203,7 @@ TEST(BoxStacks, ReoptimizeNonLastBins)
     const Solution new_solution = reoptimize_non_last_bins(solution, parameters);
     ASSERT_TRUE(new_solution.feasible());
     EXPECT_EQ(new_solution.number_of_bins(), 2);
-    EXPECT_EQ(new_solution.bin(0).leftover_value, (100 - 50) * 10);
+    EXPECT_EQ(new_solution.bin(0).leftover_value, ((100.0 - 50) * 10) * ((100.0 - 50) * 10));
     EXPECT_EQ(new_solution.bin(0).staircase_leftover_value, (100 - 50) * 10);
     EXPECT_EQ(new_solution.leftover_value(), solution.leftover_value());
     EXPECT_TRUE(solution < new_solution);

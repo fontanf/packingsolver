@@ -21,6 +21,7 @@ Features:
   * Open dimension X
   * Open dimension Y
   * Variable-sized bin packing
+  * Variable-sized bin packing with leftovers
 
 * Item types
 
@@ -102,7 +103,7 @@ An instance is a JSON object with the following fields:
    * - Field
      - Description
    * - ``objective``
-     - **Mandatory**. One of ``knapsack``, ``bin-packing``, ``bin-packing-with-leftovers``, ``open-dimension-x``, ``open-dimension-y``, ``variable-sized-bin-packing``; see :ref:`objectives`
+     - **Mandatory**. One of ``knapsack``, ``bin-packing``, ``bin-packing-with-leftovers``, ``open-dimension-x``, ``open-dimension-y``, ``variable-sized-bin-packing``, ``variable-sized-bin-packing-with-leftovers``; see :ref:`objectives`
    * - ``knapsack_goal``
      - For the ``knapsack`` objective, the search stops as soon as a solution reaches this profit. Default: none
    * - ``knapsack_cutoff``
@@ -117,6 +118,8 @@ An instance is a JSON object with the following fields:
      - See :ref:`rectangleguillotine-cut-thickness`. Default: ``0``
    * - ``cut_through_defects``
      - See :ref:`rectangleguillotine-cut-through-defects`. Default: ``false``
+   * - ``leftover_value_type``
+     - How the value of the leftovers is computed, for the ``variable-sized-bin-packing-with-leftovers`` objective (see :ref:`leftovers`): ``squared-area`` (default) or ``depth``
    * - ``minimum_distance_1_cuts``, ``maximum_distance_1_cuts``, ``minimum_distance_2_cuts``, ``maximum_distance_2_cuts``, ``minimum_waste_length``
      - See :ref:`rectangleguillotine-distances`
    * - ``maximum_number_1_cuts``, ``maximum_number_2_cuts``

@@ -164,6 +164,16 @@ struct Parameters
     Length cut_thickness = 0;
 
     /**
+     * Value of the leftovers, for the 'VariableSizedBinPackingWithLeftovers'
+     * objective.
+     *
+     * The leftovers of a bin are the plate after its last 1-cut and the
+     * sub-plate after the last 2-cut of its last first-level sub-plate,
+     * when they are not used.
+     */
+    LeftoverValueType leftover_value_type = LeftoverValueType::SquaredArea;
+
+    /**
      * Costs for the 'BinPackingCuttingCost' objective, indexed by stage
      * number: index 0 is the cost of a bin (fixed cost per bin, variable
      * cost per unit of bin area); index s (1 <= s <= number_of_stages) is
@@ -471,6 +481,32 @@ public:
     /** Get bin type i. */
     inline const BinType& bin_type(BinTypeId bin_type_id) const { return bin_types_[bin_type_id]; }
 
+    /**
+     * Get the factor which converts a leftover value into a space, for the
+     * 'VariableSizedBinPackingWithLeftovers' objective: the minimum, over the
+     * bin types, of the area inside the trims of the bin divided by its leftover
+     * value when it is empty.
+     */
+    inline double leftover_value_factor() const { return leftover_value_factor_; }
+
+    /**
+     * Get the refund of a leftover of a bin, for the
+     * 'VariableSizedBinPackingWithLeftovers' objective: the price of the bin
+     * per unit of area inside the trims, times the space equivalent to the value of
+     * the leftover.
+     *
+     * The refund of an empty bin is at most its cost; it is equal for the
+     * bin types which define 'leftover_value_factor()'.
+     */
+    inline Profit leftover_refund(
+            BinTypeId bin_type_id,
+            double leftover_value) const
+    {
+        const BinType& bin_type = this->bin_type(bin_type_id);
+        double space = (double)bin_type.area();
+        return bin_type.cost / space * leftover_value_factor_ * leftover_value;
+    }
+
     /** Get the number of bins. */
     inline BinPos number_of_bins() const { return bin_type_ids_.size(); }
 
@@ -697,6 +733,9 @@ private:
 
     /** Bin types. */
     std::vector<BinType> bin_types_;
+
+    /** Factor which converts a leftover value into a space. */
+    double leftover_value_factor_ = 0;
 
     /** Item types. */
     std::vector<ItemType> item_types_;

@@ -327,7 +327,7 @@ bool Reduction::remove_dominated_bin_types_applies(const Instance& instance)
     // available earlier than the original instance allows.
     if (instance.objective() != Objective::Knapsack
             && instance.objective() != Objective::Feasibility
-            && instance.objective() != Objective::VariableSizedBinPacking) {
+            && !is_variable_sized_bin_packing(instance.objective())) {
         return false;
     }
     return instance.number_of_bin_types() > 1;

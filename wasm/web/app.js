@@ -1412,8 +1412,12 @@ function describeSolution(output, objective) {
         parts.push(`${solution.NumberOfBins} bins`);
     if (objective === "knapsack" && solution.ItemProfit !== undefined)
         parts.push(`profit ${format(solution.ItemProfit)}`);
-    if (objective === "variable-sized-bin-packing" && solution.BinCost !== undefined)
+    if ((objective === "variable-sized-bin-packing"
+                || objective === "variable-sized-bin-packing-with-leftovers")
+            && solution.BinCost !== undefined)
         parts.push(`cost ${format(solution.BinCost)}`);
+    if (objective === "variable-sized-bin-packing-with-leftovers" && solution.NetCost !== undefined)
+        parts.push(`net cost ${format(solution.NetCost)}`);
     if (objective === "bin-packing-with-leftovers" && solution.LeftoverValue !== undefined)
         parts.push(`leftover ${format(solution.LeftoverValue)}`);
     if (objective === "bin-packing-cutting-cost" && solution.CuttingCost !== undefined)

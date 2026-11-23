@@ -47,8 +47,8 @@ struct SolutionBin
     /** Resource consumption, indexed by resource_id. */
     std::vector<double> resource_consumption;
 
-    /** Leftover value of the bin (see 'LeftoverMode'). */
-    Area leftover_value = 0;
+    /** Leftover value of the bin (see 'leftover_value'). */
+    double leftover_value = 0;
 
     /**
      * Staircase leftover value of the bin: the area of the bin which is not
@@ -199,22 +199,34 @@ public:
     inline Length y_max() const { return y_max_; }
 
     /**
-     * Get the value of the leftover: the area of the last bin which is not
-     * used (see 'LeftoverMode').
+     * Get the value of the leftover of the last bin (see 'LeftoverMode' and
+     * 'leftover_value').
      */
-    inline Profit leftover_value() const { return leftover_value_; }
+    inline double leftover_value() const { return leftover_value_; }
 
     /** Get the staircase leftover value of the last bin of the solution. */
     inline Area staircase_leftover_value() const { return staircase_leftover_value_; }
 
-    /** Get the sum of the leftover values of the bins of the solution. */
-    inline Area total_leftover_value() const { return total_leftover_value_; }
+    /**
+     * Get the sum of the leftover values of all the bins of the instance:
+     * the leftover values of the bins of the solution, and the values of the
+     * bins which are not used.
+     */
+    double total_leftover_value() const;
 
     /**
-     * Get the sum of the staircase leftover values of the bins of the
-     * solution.
+     * Get the net cost of the solution, for the
+     * 'VariableSizedBinPackingWithLeftovers' objective: the cost of its bins
+     * minus the refunds of their leftovers (see 'Instance::leftover_refund').
      */
-    inline Area total_staircase_leftover_value() const { return total_staircase_leftover_value_; }
+    inline Profit net_cost() const { return net_cost_; }
+
+    /**
+     * Get the sum of the staircase leftover values of all the bins of the
+     * instance: the staircase leftover values of the bins of the solution,
+     * and the areas of the bins which are not used.
+     */
+    inline Area total_staircase_leftover_value() const { return instance().bin_area() - staircase_dominated_area_; }
 
     /**
      * Get the area used by the solution: the area of the bins minus the
@@ -314,17 +326,26 @@ private:
     /** Area used by the solution: the area of the bins minus the leftover. */
     Area area_ = 0;
 
-    /** Value of the leftover: an area (see 'LeftoverMode'). */
-    Profit leftover_value_ = 0.0;
+    /** Value of the leftover of the last bin. */
+    double leftover_value_ = 0.0;
 
     /** Staircase leftover value of the last bin. */
     Area staircase_leftover_value_ = 0;
 
-    /** Sum of the leftover values of the bins. */
-    Area total_leftover_value_ = 0;
+    /**
+     * Sum, over the bins of the solution, of the value of the bin minus its
+     * leftover value.
+     */
+    double leftover_value_loss_ = 0;
 
-    /** Sum of the staircase leftover values of the bins. */
-    Area total_staircase_leftover_value_ = 0;
+    /** Net cost of the solution. */
+    Profit net_cost_ = 0;
+
+    /**
+     * Sum, over the bins of the solution, of the area dominated by the
+     * staircase of their items.
+     */
+    Area staircase_dominated_area_ = 0;
 
     /** Total area of the bins of the solution. */
     Area bin_area_ = 0;

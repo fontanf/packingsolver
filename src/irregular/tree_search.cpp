@@ -54,7 +54,7 @@ Direction default_direction(
 {
     const BinType& bin_type = instance.bin_type(bin_type_id);
     bool lengthwise = (bin_type.aabb_scaled.x_max - bin_type.aabb_scaled.x_min) >= (bin_type.aabb_scaled.y_max - bin_type.aabb_scaled.y_min);
-    switch (instance.parameters().leftover_mode) {
+    switch (leftover_mode_base(instance.parameters().leftover_mode)) {
     case LeftoverMode::BottomLeft: {
         return (lengthwise)?
             Direction::LeftToRightThenBottomToTop:
@@ -818,6 +818,7 @@ BranchingScheme::Node BranchingScheme::child_tmp(
     items_aabb.x_max = node.x_max;
     items_aabb.y_max = node.y_max;
     node.leftover_value = leftover_value(
+            instance().parameters().leftover_value_type,
             instance().parameters().leftover_mode,
             bin_type.aabb_orig,
             items_aabb);
@@ -848,6 +849,11 @@ BranchingScheme::Node BranchingScheme::child_tmp(
             item_aabb);
     node.last_bin_staircase_leftover_value
         = node.last_bin_staircase.leftover_value(bin_type.aabb_orig);
+    if (leftover_mode_staircase(instance().parameters().leftover_mode)) {
+        node.leftover_value = node.last_bin_staircase.value(
+                instance().parameters().leftover_value_type,
+                bin_type.aabb_orig);
+    }
 
     node.id = node_id_++;
     //std::cout << "node.id " << node.id << std::endl;
@@ -1384,7 +1390,7 @@ bool BranchingScheme::better(
         const std::shared_ptr<Node>& node_2) const
 {
     switch (instance().objective()) {
-    case Objective::BinPacking: case Objective::VariableSizedBinPacking: {
+    case Objective::BinPacking: case Objective::VariableSizedBinPacking: case Objective::VariableSizedBinPackingWithLeftovers: {
         if (!leaf(node_1))
             return false;
         if (!leaf(node_2))
@@ -1399,13 +1405,13 @@ bool BranchingScheme::better(
             return node_2->number_of_bins > node_1->number_of_bins;
         // Same comparison as 'Solution::operator<'.
         if (shape::strictly_greater(
-                    std::sqrt(node_1->leftover_value),
-                    std::sqrt(node_2->leftover_value))) {
+                    leftover_value_length_2d(instance().parameters().leftover_value_type, node_1->leftover_value),
+                    leftover_value_length_2d(instance().parameters().leftover_value_type, node_2->leftover_value))) {
             return true;
         }
         if (shape::strictly_greater(
-                    std::sqrt(node_2->leftover_value),
-                    std::sqrt(node_1->leftover_value))) {
+                    leftover_value_length_2d(instance().parameters().leftover_value_type, node_2->leftover_value),
+                    leftover_value_length_2d(instance().parameters().leftover_value_type, node_1->leftover_value))) {
             return false;
         }
         if (shape::strictly_greater(
@@ -1421,13 +1427,13 @@ bool BranchingScheme::better(
         if (!instance().parameters().leftover_all_bins)
             return false;
         if (shape::strictly_greater(
-                    std::sqrt(node_1->previous_bins_leftover_value + node_1->leftover_value),
-                    std::sqrt(node_2->previous_bins_leftover_value + node_2->leftover_value))) {
+                    leftover_value_length_2d(instance().parameters().leftover_value_type, node_1->previous_bins_leftover_value + node_1->leftover_value),
+                    leftover_value_length_2d(instance().parameters().leftover_value_type, node_2->previous_bins_leftover_value + node_2->leftover_value))) {
             return true;
         }
         if (shape::strictly_greater(
-                    std::sqrt(node_2->previous_bins_leftover_value + node_2->leftover_value),
-                    std::sqrt(node_1->previous_bins_leftover_value + node_1->leftover_value))) {
+                    leftover_value_length_2d(instance().parameters().leftover_value_type, node_2->previous_bins_leftover_value + node_2->leftover_value),
+                    leftover_value_length_2d(instance().parameters().leftover_value_type, node_1->previous_bins_leftover_value + node_1->leftover_value))) {
             return false;
         }
         return shape::strictly_greater(
@@ -1465,7 +1471,7 @@ bool BranchingScheme::bound(
         const std::shared_ptr<Node>& node_2) const
 {
     switch (instance().objective()) {
-    case Objective::BinPacking: case Objective::VariableSizedBinPacking: {
+    case Objective::BinPacking: case Objective::VariableSizedBinPacking: case Objective::VariableSizedBinPackingWithLeftovers: {
         if (!leaf(node_2))
             return false;
         return (node_1->number_of_bins >= node_2->number_of_bins);
@@ -1480,13 +1486,13 @@ bool BranchingScheme::bound(
         // The leftover values and the staircase leftover values of a node
         // are upper bounds of the ones of its descendants in the same bin.
         if (shape::strictly_greater(
-                    std::sqrt(node_1->leftover_value),
-                    std::sqrt(node_2->leftover_value))) {
+                    leftover_value_length_2d(instance().parameters().leftover_value_type, node_1->leftover_value),
+                    leftover_value_length_2d(instance().parameters().leftover_value_type, node_2->leftover_value))) {
             return false;
         }
         if (shape::strictly_greater(
-                    std::sqrt(node_2->leftover_value),
-                    std::sqrt(node_1->leftover_value))) {
+                    leftover_value_length_2d(instance().parameters().leftover_value_type, node_2->leftover_value),
+                    leftover_value_length_2d(instance().parameters().leftover_value_type, node_1->leftover_value))) {
             return true;
         }
         if (shape::strictly_greater(
@@ -1502,13 +1508,13 @@ bool BranchingScheme::bound(
         if (!instance().parameters().leftover_all_bins)
             return true;
         if (shape::strictly_greater(
-                    std::sqrt(node_1->previous_bins_leftover_value + node_1->leftover_value),
-                    std::sqrt(node_2->previous_bins_leftover_value + node_2->leftover_value))) {
+                    leftover_value_length_2d(instance().parameters().leftover_value_type, node_1->previous_bins_leftover_value + node_1->leftover_value),
+                    leftover_value_length_2d(instance().parameters().leftover_value_type, node_2->previous_bins_leftover_value + node_2->leftover_value))) {
             return false;
         }
         if (shape::strictly_greater(
-                    std::sqrt(node_2->previous_bins_leftover_value + node_2->leftover_value),
-                    std::sqrt(node_1->previous_bins_leftover_value + node_1->leftover_value))) {
+                    leftover_value_length_2d(instance().parameters().leftover_value_type, node_2->previous_bins_leftover_value + node_2->leftover_value),
+                    leftover_value_length_2d(instance().parameters().leftover_value_type, node_1->previous_bins_leftover_value + node_1->leftover_value))) {
             return true;
         }
         return !shape::strictly_greater(
@@ -2105,7 +2111,7 @@ const packingsolver::irregular::TreeSearchOutput packingsolver::irregular::tree_
         };
     } else if (instance.number_of_bins() == 1) {
         if (instance.objective() == Objective::BinPackingWithLeftovers) {
-            switch (instance.parameters().leftover_mode) {
+            switch (leftover_mode_base(instance.parameters().leftover_mode)) {
             case LeftoverMode::BottomLeft: {
                 directions = {
                     Direction::LeftToRightThenBottomToTop,
@@ -2173,7 +2179,7 @@ const packingsolver::irregular::TreeSearchOutput packingsolver::irregular::tree_
             };
         }
     } else {
-        switch (instance.parameters().leftover_mode) {
+        switch (leftover_mode_base(instance.parameters().leftover_mode)) {
         case LeftoverMode::BottomLeft: {
             directions = {Direction::LeftToRightThenBottomToTop};
             break;

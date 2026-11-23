@@ -7,6 +7,12 @@
 import * as dxf from "./dxf.js";
 import * as svg from "./svg.js";
 
+// Objectives optimized as variable-sized bin packing: the bin types have a
+// cost and a minimum number of copies (as 'VARIABLE_SIZED_BIN_PACKING_OBJECTIVES'
+// of 'form.js', which imports this module).
+const VARIABLE_SIZED_BIN_PACKING_OBJECTIVES = [
+    "variable-sized-bin-packing", "variable-sized-bin-packing-with-leftovers"];
+
 // Shapes of a row, and the fields of their dimensions.
 export const SHAPES = {
     rectangle: "Rectangle",
@@ -1031,16 +1037,16 @@ function rowCopies(row, objective, isItem) {
 }
 
 // Whether the minimum number of copies of the items (bins) is used for an
-// objective: only for the knapsack (variable-sized bin packing) objective
+// objective: only for the knapsack (variable-sized bin packing) objectives
 // (all the items must be packed with the other objectives).
 export function copiesMinUsed(objective, isItem) {
-    return objective === (isItem? "knapsack": "variable-sized-bin-packing");
+    return isItem? objective === "knapsack": VARIABLE_SIZED_BIN_PACKING_OBJECTIVES.includes(objective);
 }
 
 // Whether the profit of the items (cost of the bins) is used for an
-// objective: only for the knapsack (variable-sized bin packing) objective.
+// objective: only for the knapsack (variable-sized bin packing) objectives.
 export function valueUsed(objective, isItem) {
-    return objective === (isItem? "knapsack": "variable-sized-bin-packing");
+    return isItem? objective === "knapsack": VARIABLE_SIZED_BIN_PACKING_OBJECTIVES.includes(objective);
 }
 
 // The copies of a row, and if they can be unlimited, a checkbox which

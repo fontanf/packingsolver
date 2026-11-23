@@ -555,17 +555,17 @@ BranchingScheme::Node BranchingScheme::child_tmp(
                 "node.waste: " + std::to_string(node.waste) + ".");
     }
 
-    switch (instance.parameters().leftover_mode) {
-    case LeftoverMode::Area: {
-        node.leftover_value = bin_type.area() - node.xe_max * node.ye_max;
-        break;
-    } case LeftoverMode::X: case LeftoverMode::Y: {
-        // The leftover along the direction of the bin (Y on the flipped
-        // instance), as an area.
-        node.leftover_value = (bin_type.rect.x - node.xe_max) * bin_type.rect.y;
-        break;
-    }
-    }
+    // For 'LeftoverMode::Y', the leftover along the direction of the bin is
+    // the one along x on the flipped instance.
+    node.leftover_value = leftover_value(
+            instance.parameters().leftover_value_type,
+            (instance.parameters().leftover_mode == LeftoverMode::Y)?
+                LeftoverMode::X:
+                instance.parameters().leftover_mode,
+            bin_type.rect.x,
+            bin_type.rect.y,
+            node.xe_max,
+            node.ye_max);
 
     // Update the staircase of the last bin, in the same frame as the
     // leftover value.
@@ -584,7 +584,7 @@ BranchingScheme::Node BranchingScheme::child_tmp(
         node.previous_bins_staircase_leftover_value = parent.previous_bins_staircase_leftover_value;
     }
     switch (instance.parameters().leftover_mode) {
-    case LeftoverMode::Area: {
+    case LeftoverMode::Area: case LeftoverMode::AreaCut: case LeftoverMode::Staircase: {
         node.last_bin_staircase.add(xe, ye);
         break;
     } case LeftoverMode::X: case LeftoverMode::Y: {
@@ -594,6 +594,13 @@ BranchingScheme::Node BranchingScheme::child_tmp(
     }
     node.last_bin_staircase_leftover_value
         = bin_type.area() - node.last_bin_staircase.area();
+    if (instance.parameters().leftover_mode == LeftoverMode::Staircase) {
+        node.leftover_value = staircase_leftover_value(
+                instance.parameters().leftover_value_type,
+                bin_type.rect.x,
+                bin_type.rect.y,
+                node.last_bin_staircase.extents());
+    }
 
     if (instance.unloading_constraint() == rectangle::UnloadingConstraint::IncreasingX) {
         if (node.groups[item_type.group_id].x_min > insertion.x)
@@ -1192,7 +1199,7 @@ bool BranchingScheme::better(
         const std::shared_ptr<Node>& node_2) const
 {
     switch (instance().objective()) {
-    case Objective::BinPacking: case Objective::VariableSizedBinPacking: {
+    case Objective::BinPacking: case Objective::VariableSizedBinPacking: case Objective::VariableSizedBinPackingWithLeftovers: {
         if (!leaf(node_1))
             return false;
         if (!leaf(node_2))
@@ -1260,7 +1267,7 @@ bool BranchingScheme::bound(
         const std::shared_ptr<Node>& node_2) const
 {
     switch (instance().objective()) {
-    case Objective::BinPacking: case Objective::VariableSizedBinPacking: {
+    case Objective::BinPacking: case Objective::VariableSizedBinPacking: case Objective::VariableSizedBinPackingWithLeftovers: {
         if (!leaf(node_2))
             return false;
         BinPos bin_pos = -1;

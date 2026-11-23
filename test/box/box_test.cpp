@@ -2,6 +2,7 @@
 #include "packingsolver/box/optimize.hpp"
 #include "packingsolver/box/post_process.hpp"
 #include "box/solution_builder.hpp"
+#include "algorithms/leftover.hpp"
 
 #include <gtest/gtest.h>
 #include <boost/filesystem.hpp>
@@ -110,33 +111,106 @@ TEST(Box, UnlimitedItemCopies)
 
 TEST(Box, LeftoverModes)
 {
-    // A 100 x 50 x 40 bin whose items end at x 60, y 20, z 10: the volume
-    // used in each leftover mode is the box from the origin to the items
-    // along the dimensions of the mode, and the whole bin along the others.
-    struct Case { LeftoverMode leftover_mode; packingsolver::Volume used; };
+    // A 100 x 50 x 40 bin whose items end at x 60, y 20, z 10: the box used
+    // in each leftover mode is the box from the origin to the items along
+    // the dimensions of the mode, and the whole bin along the others. The
+    // leftover is the bin minus this box, cut into boxes for the 'Cut'
+    // modes. Its value is its squared volume, or its depth-weighted value.
+    struct Case { LeftoverMode leftover_mode; std::array<double, 3> used; bool cut; };
     for (Case c: std::vector<Case>{
-            {LeftoverMode::X, 60 * 50 * 40},
-            {LeftoverMode::Y, 100 * 20 * 40},
-            {LeftoverMode::Z, 100 * 50 * 10},
-            {LeftoverMode::XY, 60 * 20 * 40},
-            {LeftoverMode::XZ, 60 * 50 * 10},
-            {LeftoverMode::YZ, 100 * 20 * 10},
-            {LeftoverMode::XYZ, 60 * 20 * 10}}) {
+            {LeftoverMode::X, {60, 50, 40}, false},
+            {LeftoverMode::Y, {100, 20, 40}, false},
+            {LeftoverMode::Z, {100, 50, 10}, false},
+            {LeftoverMode::XY, {60, 20, 40}, false},
+            {LeftoverMode::XZ, {60, 50, 10}, false},
+            {LeftoverMode::YZ, {100, 20, 10}, false},
+            {LeftoverMode::XYZ, {60, 20, 10}, false},
+            {LeftoverMode::XYCut, {60, 20, 40}, true},
+            {LeftoverMode::XZCut, {60, 50, 10}, true},
+            {LeftoverMode::YZCut, {100, 20, 10}, true},
+            {LeftoverMode::XYZCut, {60, 20, 10}, true},
+            // The two items form a single step.
+            {LeftoverMode::Staircase, {60, 20, 10}, false}}) {
+        for (packingsolver::LeftoverValueType leftover_value_type: {
+                packingsolver::LeftoverValueType::SquaredArea,
+                packingsolver::LeftoverValueType::Depth}) {
+            InstanceBuilder instance_builder;
+            instance_builder.set_objective(packingsolver::Objective::BinPackingWithLeftovers);
+            instance_builder.set_leftover_mode(c.leftover_mode);
+            instance_builder.set_leftover_value_type(leftover_value_type);
+            instance_builder.add_bin_type(100, 50, 40);
+            packingsolver::ItemTypeId item_type_id = instance_builder.add_item_type(30, 20, 10);
+            instance_builder.set_item_type_copies(item_type_id, 2);
+            const Instance instance = instance_builder.build();
+            SolutionBuilder solution_builder(instance);
+            solution_builder.add_bin(0, 1);
+            solution_builder.add_item(0, item_type_id, {0, 0, 0}, Rotation::XYZ);
+            solution_builder.add_item(0, item_type_id, {30, 0, 0}, Rotation::XYZ);
+            const Solution solution = solution_builder.build();
+            EXPECT_TRUE(solution.feasible());
+            packingsolver::Volume used = (packingsolver::Volume)(c.used[0] * c.used[1] * c.used[2]);
+            double expected_leftover_value = 0;
+            if (leftover_value_type == packingsolver::LeftoverValueType::SquaredArea) {
+                if (c.cut) {
+                    // The best cut into boxes for the squared volumes.
+                    expected_leftover_value = packingsolver::cut_leftover_value<3>(
+                            {100, 50, 40},
+                            c.used,
+                            [](const std::array<double, 3>& box)
+                            {
+                                double volume = box[0] * box[1] * box[2];
+                                return volume * volume;
+                            });
+                } else {
+                    double volume = 100 * 50 * 40 - used;
+                    expected_leftover_value = volume * volume;
+                }
+            } else {
+                expected_leftover_value = (c.cut)?
+                    packingsolver::cut_leftover_value<3>({100, 50, 40}, c.used):
+                    packingsolver::leftover_value<3>({100, 50, 40}, c.used);
+            }
+            EXPECT_NEAR(solution.leftover_value(), expected_leftover_value, 1e-6 * expected_leftover_value)
+                << c.leftover_mode << " " << leftover_value_type;
+            EXPECT_EQ(solution.waste(), used - 2 * 30 * 20 * 10) << c.leftover_mode;
+        }
+    }
+}
+
+TEST(Box, LeftoverModeStaircase)
+{
+    // A 10 x 10 x 10 bin with a 5 x 5 x 10 item at the origin and a 5 x 5 x 5
+    // item next to it along x: the staircase is the union of the boxes
+    // 5 x 5 x 10 and 10 x 5 x 5, of volume 375, so the leftover is 625; with
+    // 'XYZ', the used box is the bounding box 10 x 5 x 10 of the items.
+    for (packingsolver::LeftoverValueType leftover_value_type: {
+            packingsolver::LeftoverValueType::SquaredArea,
+            packingsolver::LeftoverValueType::Depth}) {
         InstanceBuilder instance_builder;
         instance_builder.set_objective(packingsolver::Objective::BinPackingWithLeftovers);
-        instance_builder.set_leftover_mode(c.leftover_mode);
-        instance_builder.add_bin_type(100, 50, 40);
-        packingsolver::ItemTypeId item_type_id = instance_builder.add_item_type(30, 20, 10);
-        instance_builder.set_item_type_copies(item_type_id, 2);
+        instance_builder.set_leftover_mode(LeftoverMode::Staircase);
+        instance_builder.set_leftover_value_type(leftover_value_type);
+        instance_builder.add_bin_type(10, 10, 10);
+        packingsolver::ItemTypeId item_type_id_1 = instance_builder.add_item_type(5, 5, 10);
+        packingsolver::ItemTypeId item_type_id_2 = instance_builder.add_item_type(5, 5, 5);
         const Instance instance = instance_builder.build();
         SolutionBuilder solution_builder(instance);
         solution_builder.add_bin(0, 1);
-        solution_builder.add_item(0, item_type_id, {0, 0, 0}, Rotation::XYZ);
-        solution_builder.add_item(0, item_type_id, {30, 0, 0}, Rotation::XYZ);
+        solution_builder.add_item(0, item_type_id_1, {0, 0, 0}, Rotation::XYZ);
+        solution_builder.add_item(0, item_type_id_2, {5, 0, 0}, Rotation::XYZ);
         const Solution solution = solution_builder.build();
         EXPECT_TRUE(solution.feasible());
-        EXPECT_EQ(solution.leftover_value(), 100 * 50 * 40 - c.used) << c.leftover_mode;
-        EXPECT_EQ(solution.waste(), c.used - 2 * 30 * 20 * 10) << c.leftover_mode;
+        double expected_leftover_value = (leftover_value_type == packingsolver::LeftoverValueType::SquaredArea)?
+            625.0 * 625.0:
+            packingsolver::staircase_leftover_value<3>(
+                    leftover_value_type, {10, 10, 10}, {{5, 5, 10}, {10, 5, 5}});
+        EXPECT_NEAR(solution.leftover_value(), expected_leftover_value, 1e-9 * expected_leftover_value)
+            << leftover_value_type;
+        EXPECT_GT(
+                solution.leftover_value(),
+                packingsolver::box::leftover_value(leftover_value_type, LeftoverMode::XYZ, {10, 10, 10}, 10, 5, 10));
+        // The waste is measured in the staircase.
+        EXPECT_EQ(solution.waste(), 0);
     }
 }
 
@@ -174,7 +248,7 @@ TEST(Box, ReoptimizeNonLastBins)
         const Solution new_solution = reoptimize_non_last_bins(solution, parameters);
         ASSERT_TRUE(new_solution.feasible());
         EXPECT_EQ(new_solution.number_of_bins(), 2);
-        EXPECT_EQ(new_solution.bin(0).leftover_value, 1000 - 250)
+        EXPECT_EQ(new_solution.bin(0).leftover_value, (1000.0 - 250) * (1000.0 - 250))
             << "use_tree_search_maximal_spaces " << use_tree_search_maximal_spaces;
         EXPECT_EQ(new_solution.bin(0).staircase_leftover_value, 1000 - 250)
             << "use_tree_search_maximal_spaces " << use_tree_search_maximal_spaces;

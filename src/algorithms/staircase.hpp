@@ -61,6 +61,12 @@ public:
     /** Get the area of the union of the rectangles. */
     inline Area area() const { return area_; }
 
+    /**
+     * Get the non-dominated extents (x, y) of the rectangles, by decreasing
+     * x.
+     */
+    inline const std::vector<std::array<Length, 2>>& extents() const { return extents_; }
+
 private:
 
     /**
@@ -128,6 +134,9 @@ public:
 
     /** Get the volume of the union of the boxes. */
     inline Volume volume() const { return volume_; }
+
+    /** Get the non-dominated extents (x, y, z) of the boxes. */
+    inline const std::vector<std::array<Length, 3>>& extents() const { return extents_; }
 
 private:
 

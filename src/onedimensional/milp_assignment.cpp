@@ -109,7 +109,7 @@ BinPos compute_bin_instance_upper_bound(
         algorithm_formatter.update_solution(solution, "single bin type");
         if (instance.objective() == Objective::BinPacking) {
             algorithm_formatter.update_bin_packing_bound(sub_output.bin_packing_bound);
-        } else if (instance.objective() == Objective::VariableSizedBinPacking) {
+        } else if (is_variable_sized_bin_packing(instance.objective())) {
             // A single bin type: cost is exactly bins used * that type's
             // cost, so a lower bound on bins used gives one on cost too.
             algorithm_formatter.update_variable_sized_bin_packing_bound(
@@ -557,7 +557,7 @@ MilpModel build_milp_model(
     // many bins to use via a 'y' variable (the former to minimize cost, the
     // latter to minimize count, additionally constrained to use bin types in
     // the order they are provided).
-    bool needs_y = (instance.objective() == Objective::VariableSizedBinPacking
+    bool needs_y = (is_variable_sized_bin_packing(instance.objective())
             || is_bin_packing);
 
     MilpModel milp_model;
@@ -1382,7 +1382,7 @@ std::vector<BinPos> compute_bin_type_upper_bounds(
         const MilpAssignmentParameters& parameters,
         AlgorithmFormatter& algorithm_formatter)
 {
-    if (instance.objective() == Objective::VariableSizedBinPacking) {
+    if (is_variable_sized_bin_packing(instance.objective())) {
         return compute_bin_type_upper_bounds_variable_sized_bin_packing(
                 instance, parameters, algorithm_formatter);
     }
@@ -1456,7 +1456,7 @@ MilpAssignmentOutput packingsolver::onedimensional::milp_assignment(
     algorithm_formatter.start();
     algorithm_formatter.print_header();
 
-    if (instance.objective() != Objective::VariableSizedBinPacking
+    if (!is_variable_sized_bin_packing(instance.objective())
             && instance.objective() != Objective::Knapsack
             && instance.objective() != Objective::Feasibility
             && instance.objective() != Objective::BinPacking) {
@@ -1659,7 +1659,7 @@ MilpAssignmentOutput packingsolver::onedimensional::milp_assignment(
                     // the most up-to-date reporting - including from
                     // 'kCallbackMipImprovingSolution', not just
                     // 'kCallbackMipInterrupt'.
-                    if (instance.objective() == Objective::VariableSizedBinPacking) {
+                    if (is_variable_sized_bin_packing(instance.objective())) {
                         algorithm_formatter.update_variable_sized_bin_packing_bound(
                                 highs_output->mip_dual_bound);
                     } else if (instance.objective() == Objective::Knapsack) {
@@ -1719,7 +1719,7 @@ MilpAssignmentOutput packingsolver::onedimensional::milp_assignment(
         number_of_nodes = mathoptsolverscmake::get_number_of_nodes(highs);
         if (!milp_solution.empty()) {
             double bound = mathoptsolverscmake::get_bound(highs);
-            if (instance.objective() == Objective::VariableSizedBinPacking) {
+            if (is_variable_sized_bin_packing(instance.objective())) {
                 algorithm_formatter.update_variable_sized_bin_packing_bound(bound);
             } else if (instance.objective() == Objective::Knapsack) {
                 algorithm_formatter.update_knapsack_bound(bound * milp_model.multiplier_profit);

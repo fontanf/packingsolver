@@ -2187,7 +2187,7 @@ void validate_tree_search_periodic_packing_instance(const Instance& instance)
             << "does not support instances with more than one bin.";
         throw std::logic_error(ss.str());
     }
-    if (instance.objective() == Objective::VariableSizedBinPacking) {
+    if (is_variable_sized_bin_packing(instance.objective())) {
         std::stringstream ss;
         ss << FUNC_SIGNATURE << ": "
             << "algorithm 'irregular::tree_search_periodic_packing' "

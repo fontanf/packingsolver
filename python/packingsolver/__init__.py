@@ -19,6 +19,7 @@ https://github.com/fontanf/packingsolver#note-for-ai-coding-agents
 from ._version import __version__
 from ._packingsolver import (
     InstanceFormat,
+    LeftoverValueType,
     LinearProgrammingSolver,
     Objective,
     OptimizationMode,
@@ -27,6 +28,7 @@ from ._packingsolver import (
 __all__ = [
     "__version__",
     "InstanceFormat",
+    "LeftoverValueType",
     "LinearProgrammingSolver",
     "Objective",
     "OptimizationMode",

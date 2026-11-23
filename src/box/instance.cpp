@@ -1,5 +1,7 @@
 #include "packingsolver/box/instance.hpp"
 
+#include "algorithms/leftover.hpp"
+
 #include <cmath>
 #include <fstream>
 #include <iomanip>
@@ -109,6 +111,16 @@ std::istream& box::operator>>(
         leftover_mode = LeftoverMode::YZ;
     } else if (token == "xyz" || token == "XYZ") {
         leftover_mode = LeftoverMode::XYZ;
+    } else if (token == "xy-cut" || token == "XYCut") {
+        leftover_mode = LeftoverMode::XYCut;
+    } else if (token == "xz-cut" || token == "XZCut") {
+        leftover_mode = LeftoverMode::XZCut;
+    } else if (token == "yz-cut" || token == "YZCut") {
+        leftover_mode = LeftoverMode::YZCut;
+    } else if (token == "xyz-cut" || token == "XYZCut") {
+        leftover_mode = LeftoverMode::XYZCut;
+    } else if (token == "staircase" || token == "Staircase") {
+        leftover_mode = LeftoverMode::Staircase;
     } else {
         in.setstate(std::ios_base::failbit);
     }
@@ -141,9 +153,55 @@ std::ostream& box::operator<<(
     } case LeftoverMode::XYZ: {
         os << "XYZ";
         break;
+    } case LeftoverMode::XYCut: {
+        os << "XYCut";
+        break;
+    } case LeftoverMode::XZCut: {
+        os << "XZCut";
+        break;
+    } case LeftoverMode::YZCut: {
+        os << "YZCut";
+        break;
+    } case LeftoverMode::XYZCut: {
+        os << "XYZCut";
+        break;
+    } case LeftoverMode::Staircase: {
+        os << "Staircase";
+        break;
     }
     }
     return os;
+}
+
+double box::leftover_value(
+        LeftoverValueType leftover_value_type,
+        LeftoverMode leftover_mode,
+        const Box& bin,
+        Length x_max,
+        Length y_max,
+        Length z_max)
+{
+    Box used_box = leftover_mode_used_box(leftover_mode, bin, x_max, y_max, z_max);
+    return packingsolver::leftover_value<3>(
+            leftover_value_type,
+            {(double)bin.x, (double)bin.y, (double)bin.z},
+            {(double)used_box.x, (double)used_box.y, (double)used_box.z},
+            leftover_mode_cut(leftover_mode));
+}
+
+double box::staircase_leftover_value(
+        LeftoverValueType leftover_value_type,
+        const Box& bin,
+        const std::vector<std::array<Length, 3>>& extents)
+{
+    std::vector<std::array<double, 3>> extents_dbl;
+    extents_dbl.reserve(extents.size());
+    for (const auto& extent: extents)
+        extents_dbl.push_back({(double)extent[0], (double)extent[1], (double)extent[2]});
+    return packingsolver::staircase_leftover_value<3>(
+            leftover_value_type,
+            {(double)bin.x, (double)bin.y, (double)bin.z},
+            extents_dbl);
 }
 
 std::ostream& box::operator<<(
@@ -237,6 +295,7 @@ std::ostream& Instance::format(
         if (this->objective() == Objective::BinPackingWithLeftovers) {
             os
                 << "Leftover mode:         " << this->parameters().leftover_mode << std::endl
+                << "Leftover value type:   " << this->parameters().leftover_value_type << std::endl
                 << "Leftover all bins:     " << this->parameters().leftover_all_bins << std::endl
                 ;
         }
@@ -401,6 +460,11 @@ void Instance::write_json(
         std::stringstream ss;
         ss << parameters().leftover_mode;
         j["leftover_mode"] = ss.str();
+    }
+    {
+        std::stringstream ss;
+        ss << parameters().leftover_value_type;
+        j["leftover_value_type"] = ss.str();
     }
     j["leftover_all_bins"] = parameters().leftover_all_bins;
     j["static_stability"] = parameters().static_stability;

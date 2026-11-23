@@ -7,6 +7,7 @@ PackingSolver's documentation
 
    self
    objectives
+   leftovers
    optimization_modes
    onedimensional
    rectangle

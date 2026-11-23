@@ -85,8 +85,8 @@ struct SolutionBin
     /** Profit. */
     Profit profit = 0.0;
 
-    /** Leftover value of the bin (see 'LeftoverMode'). */
-    Volume leftover_value = 0;
+    /** Leftover value of the bin (see 'leftover_value'). */
+    double leftover_value = 0;
 
     /**
      * Staircase leftover value of the bin: the volume of the bin which is not
@@ -284,22 +284,34 @@ public:
     inline Area waste() const { return volume_ - item_volume_; }
 
     /**
-     * Get the value of the leftover of the last bin of the solution: a volume
-     * (see 'LeftoverMode').
+     * Get the value of the leftover of the last bin (see 'LeftoverMode' and
+     * 'leftover_value').
      */
-    inline Volume leftover_value() const { return bin_volume_ - volume_; }
+    inline double leftover_value() const { return leftover_value_; }
 
     /** Get the staircase leftover value of the last bin of the solution. */
     inline Volume staircase_leftover_value() const { return staircase_leftover_value_; }
 
-    /** Get the sum of the leftover values of the bins of the solution. */
-    inline Volume total_leftover_value() const { return total_leftover_value_; }
+    /**
+     * Get the sum of the leftover values of all the bins of the instance:
+     * the leftover values of the bins of the solution, and the values of the
+     * bins which are not used.
+     */
+    double total_leftover_value() const;
 
     /**
-     * Get the sum of the staircase leftover values of the bins of the
-     * solution.
+     * Get the net cost of the solution, for the
+     * 'VariableSizedBinPackingWithLeftovers' objective: the cost of its bins
+     * minus the refunds of their leftovers (see 'Instance::leftover_refund').
      */
-    inline Volume total_staircase_leftover_value() const { return total_staircase_leftover_value_; }
+    inline Profit net_cost() const { return net_cost_; }
+
+    /**
+     * Get the sum of the staircase leftover values of all the bins of the
+     * instance: the staircase leftover values of the bins of the solution,
+     * and the volumes of the bins which are not used.
+     */
+    inline Volume total_staircase_leftover_value() const { return instance().bin_volume() - staircase_dominated_volume_; }
 
     /** Get the fraction of waste of the solution. */
     inline double waste_percentage() const { return (volume() == 0)? 0: (double)waste() / volume(); }
@@ -421,14 +433,26 @@ private:
     /** Total volume of the solution. */
     Volume volume_ = 0;
 
+    /** Value of the leftover of the last bin. */
+    double leftover_value_ = 0.0;
+
     /** Staircase leftover value of the last bin. */
     Volume staircase_leftover_value_ = 0;
 
-    /** Sum of the leftover values of the bins. */
-    Volume total_leftover_value_ = 0;
+    /**
+     * Sum, over the bins of the solution, of the value of the bin minus its
+     * leftover value.
+     */
+    double leftover_value_loss_ = 0;
 
-    /** Sum of the staircase leftover values of the bins. */
-    Volume total_staircase_leftover_value_ = 0;
+    /** Net cost of the solution. */
+    Profit net_cost_ = 0;
+
+    /**
+     * Sum, over the bins of the solution, of the volume dominated by the
+     * staircase of their stacks.
+     */
+    Volume staircase_dominated_volume_ = 0;
 
     /** Total volume of the bins of the solution. */
     Volume bin_volume_ = 0;

@@ -390,7 +390,7 @@ bool Reduction::lift_item_dimensions_applies(const Instance& instance)
     // other axis (see 'lift_item_dimensions_applies_axis').
     if (instance.objective() != Objective::Knapsack
             && instance.objective() != Objective::BinPacking
-            && instance.objective() != Objective::VariableSizedBinPacking
+            && !is_variable_sized_bin_packing(instance.objective())
             && instance.objective() != Objective::Feasibility
             && instance.objective() != Objective::OpenDimensionX
             && instance.objective() != Objective::OpenDimensionY) {
@@ -516,7 +516,7 @@ bool Reduction::remove_dominated_bin_types_applies(const Instance& instance)
     // available earlier than the original instance allows.
     if (instance.objective() != Objective::Knapsack
             && instance.objective() != Objective::Feasibility
-            && instance.objective() != Objective::VariableSizedBinPacking) {
+            && !is_variable_sized_bin_packing(instance.objective())) {
         return false;
     }
     return instance.number_of_bin_types() > 1;

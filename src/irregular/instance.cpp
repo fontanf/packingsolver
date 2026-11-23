@@ -44,6 +44,38 @@ std::istream& packingsolver::irregular::operator>>(
             || token == "Top"
             || token == "t") {
         leftover_mode = LeftoverMode::Top;
+    } else if (token == "bottom-left-cut"
+            || token == "BottomLeftCut"
+            || token == "blc") {
+        leftover_mode = LeftoverMode::BottomLeftCut;
+    } else if (token == "bottom-right-cut"
+            || token == "BottomRightCut"
+            || token == "brc") {
+        leftover_mode = LeftoverMode::BottomRightCut;
+    } else if (token == "top-left-cut"
+            || token == "TopLeftCut"
+            || token == "tlc") {
+        leftover_mode = LeftoverMode::TopLeftCut;
+    } else if (token == "top-right-cut"
+            || token == "TopRightCut"
+            || token == "trc") {
+        leftover_mode = LeftoverMode::TopRightCut;
+    } else if (token == "bottom-left-staircase"
+            || token == "BottomLeftStaircase"
+            || token == "bls") {
+        leftover_mode = LeftoverMode::BottomLeftStaircase;
+    } else if (token == "bottom-right-staircase"
+            || token == "BottomRightStaircase"
+            || token == "brs") {
+        leftover_mode = LeftoverMode::BottomRightStaircase;
+    } else if (token == "top-left-staircase"
+            || token == "TopLeftStaircase"
+            || token == "tls") {
+        leftover_mode = LeftoverMode::TopLeftStaircase;
+    } else if (token == "top-right-staircase"
+            || token == "TopRightStaircase"
+            || token == "trs") {
+        leftover_mode = LeftoverMode::TopRightStaircase;
     } else  {
         in.setstate(std::ios_base::failbit);
     }
@@ -78,6 +110,30 @@ std::ostream& packingsolver::irregular::operator<<(
         break;
     } case LeftoverMode::Top: {
         os << "Top";
+        break;
+    } case LeftoverMode::BottomLeftCut: {
+        os << "BottomLeftCut";
+        break;
+    } case LeftoverMode::BottomRightCut: {
+        os << "BottomRightCut";
+        break;
+    } case LeftoverMode::TopLeftCut: {
+        os << "TopLeftCut";
+        break;
+    } case LeftoverMode::TopRightCut: {
+        os << "TopRightCut";
+        break;
+    } case LeftoverMode::BottomLeftStaircase: {
+        os << "BottomLeftStaircase";
+        break;
+    } case LeftoverMode::BottomRightStaircase: {
+        os << "BottomRightStaircase";
+        break;
+    } case LeftoverMode::TopLeftStaircase: {
+        os << "TopLeftStaircase";
+        break;
+    } case LeftoverMode::TopRightStaircase: {
+        os << "TopRightStaircase";
         break;
     }
     }
@@ -435,6 +491,7 @@ std::ostream& Instance::format(
         if (objective() == Objective::BinPackingWithLeftovers) {
             os
                 << "Leftover mode:                " << parameters().leftover_mode << std::endl
+                << "Leftover value type:          " << parameters().leftover_value_type << std::endl
                 << "Leftover all bins:            " << parameters().leftover_all_bins << std::endl
                 ;
         }
@@ -899,6 +956,9 @@ void Instance::write(
     std::stringstream leftover_mode_ss;
     leftover_mode_ss << parameters().leftover_mode;
     json["parameters"]["leftover_mode"] = leftover_mode_ss.str();
+    std::stringstream leftover_value_type_ss;
+    leftover_value_type_ss << parameters().leftover_value_type;
+    json["parameters"]["leftover_value_type"] = leftover_value_type_ss.str();
     json["parameters"]["leftover_all_bins"] = parameters().leftover_all_bins;
 
     file << std::setw(4) << json << std::endl;

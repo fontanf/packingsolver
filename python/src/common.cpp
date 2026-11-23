@@ -47,6 +47,7 @@ void packingsolver::python::bind_common(nb::module_& m)
         .value("OpenDimensionXY", Objective::OpenDimensionXY)
         .value("Knapsack", Objective::Knapsack)
         .value("VariableSizedBinPacking", Objective::VariableSizedBinPacking)
+        .value("VariableSizedBinPackingWithLeftovers", Objective::VariableSizedBinPackingWithLeftovers)
         .value("SequentialOneDimensionalRectangleSubproblem", Objective::SequentialOneDimensionalRectangleSubproblem)
         .value("Feasibility", Objective::Feasibility)
         .value("BinPackingCuttingCost", Objective::BinPackingCuttingCost);
@@ -57,6 +58,10 @@ void packingsolver::python::bind_common(nb::module_& m)
         .value("NotAnytimeDeterministic", OptimizationMode::NotAnytimeDeterministic)
         .value("NotAnytimeSequential", OptimizationMode::NotAnytimeSequential)
         .value("Exact", OptimizationMode::Exact);
+
+    nb::enum_<LeftoverValueType>(m, "LeftoverValueType")
+        .value("SquaredArea", LeftoverValueType::SquaredArea)
+        .value("Depth", LeftoverValueType::Depth);
 
     nb::enum_<InstanceFormat>(m, "InstanceFormat")
         .value("Csv", InstanceFormat::Csv)

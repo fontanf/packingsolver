@@ -1,5 +1,7 @@
 #include "packingsolver/rectangle/instance.hpp"
 
+#include "algorithms/leftover.hpp"
+
 #include <algorithm>
 #include <cmath>
 #include <fstream>
@@ -65,6 +67,12 @@ std::istream& rectangle::operator>>(
     } else if (token == "y"
             || token == "Y") {
         leftover_mode = LeftoverMode::Y;
+    } else if (token == "area-cut"
+            || token == "AreaCut") {
+        leftover_mode = LeftoverMode::AreaCut;
+    } else if (token == "staircase"
+            || token == "Staircase") {
+        leftover_mode = LeftoverMode::Staircase;
     } else {
         in.setstate(std::ios_base::failbit);
     }
@@ -85,9 +93,59 @@ std::ostream& rectangle::operator<<(
     } case LeftoverMode::Y: {
         os << "Y";
         break;
+    } case LeftoverMode::AreaCut: {
+        os << "AreaCut";
+        break;
+    } case LeftoverMode::Staircase: {
+        os << "Staircase";
+        break;
     }
     }
     return os;
+}
+
+double rectangle::leftover_value(
+        LeftoverValueType leftover_value_type,
+        LeftoverMode leftover_mode,
+        Length bin_x,
+        Length bin_y,
+        Length x_max,
+        Length y_max)
+{
+    std::array<double, 2> bin = {(double)bin_x, (double)bin_y};
+    std::array<double, 2> used = {(double)x_max, (double)y_max};
+    switch (leftover_mode) {
+    case LeftoverMode::Area: case LeftoverMode::AreaCut: case LeftoverMode::Staircase: {
+        break;
+    } case LeftoverMode::X: {
+        used[1] = (double)bin_y;
+        break;
+    } case LeftoverMode::Y: {
+        used[0] = (double)bin_x;
+        break;
+    }
+    }
+    return packingsolver::leftover_value(
+            leftover_value_type,
+            bin,
+            used,
+            leftover_mode == LeftoverMode::AreaCut);
+}
+
+double rectangle::staircase_leftover_value(
+        LeftoverValueType leftover_value_type,
+        Length bin_x,
+        Length bin_y,
+        const std::vector<std::array<Length, 2>>& extents)
+{
+    std::vector<std::array<double, 2>> extents_dbl;
+    extents_dbl.reserve(extents.size());
+    for (const auto& extent: extents)
+        extents_dbl.push_back({(double)extent[0], (double)extent[1]});
+    return packingsolver::staircase_leftover_value<2>(
+            leftover_value_type,
+            {(double)bin_x, (double)bin_y},
+            extents_dbl);
 }
 
 std::istream& rectangle::operator>>(
@@ -306,6 +364,7 @@ std::ostream& Instance::format(
         if (objective() == Objective::BinPackingWithLeftovers) {
             os
                 << "Leftover mode:         " << parameters().leftover_mode << std::endl
+                << "Leftover value type:   " << parameters().leftover_value_type << std::endl
                 << "Leftover all bins:     " << parameters().leftover_all_bins << std::endl
                 ;
         }
@@ -628,6 +687,7 @@ void Instance::write_csv(
         << "objective," << objective() << std::endl
         << "unloading_constraint," << unloading_constraint() << std::endl
         << "leftover_mode," << parameters().leftover_mode << std::endl
+        << "leftover_value_type," << parameters().leftover_value_type << std::endl
         << "leftover_all_bins," << parameters().leftover_all_bins << std::endl;
     if (std::isfinite(knapsack_goal())) {
         f_parameters << "knapsack_goal,"
@@ -664,6 +724,11 @@ void Instance::write_json(
         std::stringstream ss;
         ss << parameters().leftover_mode;
         j["leftover_mode"] = ss.str();
+    }
+    {
+        std::stringstream ss;
+        ss << parameters().leftover_value_type;
+        j["leftover_value_type"] = ss.str();
     }
     j["leftover_all_bins"] = parameters().leftover_all_bins;
 

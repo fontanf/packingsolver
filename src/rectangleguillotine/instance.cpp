@@ -377,7 +377,8 @@ void Instance::write_csv(
         << "minimum_waste_length," << parameters().minimum_waste_length << std::endl
         << "maximum_number_1_cuts," << parameters().maximum_number_1_cuts << std::endl
         << "maximum_number_2_cuts," << parameters().maximum_number_2_cuts << std::endl
-        << "cut_thickness," << parameters().cut_thickness << std::endl;
+        << "cut_thickness," << parameters().cut_thickness << std::endl
+        << "leftover_value_type," << parameters().leftover_value_type << std::endl;
     for (Counter stage_id = 0;
             stage_id < (Counter)parameters().cutting_costs.size();
             ++stage_id) {
@@ -435,6 +436,11 @@ void Instance::write_json(
     j["maximum_number_2_cuts"] = parameters().maximum_number_2_cuts;
     j["cut_through_defects"] = parameters().cut_through_defects;
     j["cut_thickness"] = parameters().cut_thickness;
+    {
+        std::stringstream ss;
+        ss << parameters().leftover_value_type;
+        j["leftover_value_type"] = ss.str();
+    }
     if (!parameters().cutting_costs.empty()) {
         j["cutting_costs"] = nlohmann::json::array();
         for (const CutCost& cutting_cost: parameters().cutting_costs) {
@@ -577,6 +583,7 @@ std::ostream& Instance::format(
             << "Maximum number of consecutive 2-cuts:  " << parameters().maximum_number_2_cuts << std::endl
             << "Cut through defects:                   " << parameters().cut_through_defects << std::endl
             << "Cut thickness:                         " << parameters().cut_thickness << std::endl
+            << "Leftover value type:                   " << parameters().leftover_value_type << std::endl
             << "Total item area:                       " << item_area() << std::endl
             << "Total item profit:                     " << item_profit() << std::endl
             << "Largest item profit:                   " << largest_item_profit() << std::endl

@@ -5,8 +5,10 @@
 #include "optimizationtools/utils/timer.hpp"
 #include "packingsolver/algorithms/resource.hpp"
 
+#include <array>
 #include <functional>
 #include <memory>
+#include <vector>
 
 namespace packingsolver
 {
@@ -45,12 +47,19 @@ enum class Rotation
 constexpr int NUMBER_OF_ROTATIONS = 6;
 
 /**
- * How the leftover of the last bin of a solution is measured, for the
- * 'BinPackingWithLeftovers' objective: the volume of the bin minus the volume
- * used, the volume used being the box from the origin of the bin to the
- * items along the dimensions of the mode, and the whole bin along the other
- * dimensions. For example, with 'X', the volume used is
- * 'x_max * bin.y * bin.z', and with 'XYZ', 'x_max * y_max * z_max'.
+ * Leftover of a bin, for the 'BinPackingWithLeftovers' objective.
+ *
+ * The leftover is the bin minus the box used by the items, the used box being
+ * the box from the origin of the bin to the items along the dimensions of the
+ * mode, and the whole bin along the other dimensions. For example, with 'X',
+ * the used box is 'x_max * bin.y * bin.z', and the leftover is a box; with
+ * 'XYZ', it is 'x_max * y_max * z_max'. The modes ending with 'Cut' cut the
+ * leftover into boxes along the faces of the used box, with the best order of
+ * the cuts. With 'Staircase', the leftover is the bin minus the union of the
+ * boxes between the origin of the bin and the opposite corner of each item.
+ *
+ * The value of the leftover is computed from its shape (see
+ * 'leftover_value').
  */
 enum class LeftoverMode
 {
@@ -61,7 +70,60 @@ enum class LeftoverMode
     XZ,
     YZ,
     XYZ,
+    XYCut,
+    XZCut,
+    YZCut,
+    XYZCut,
+    Staircase,
 };
+
+/** Return 'true' iff the used box of a leftover mode stops at the items along x. */
+inline bool leftover_mode_along_x(LeftoverMode leftover_mode)
+{
+    return (leftover_mode == LeftoverMode::X
+            || leftover_mode == LeftoverMode::XY
+            || leftover_mode == LeftoverMode::XZ
+            || leftover_mode == LeftoverMode::XYZ
+            || leftover_mode == LeftoverMode::XYCut
+            || leftover_mode == LeftoverMode::XZCut
+            || leftover_mode == LeftoverMode::XYZCut
+            || leftover_mode == LeftoverMode::Staircase);
+}
+
+/** Return 'true' iff the used box of a leftover mode stops at the items along y. */
+inline bool leftover_mode_along_y(LeftoverMode leftover_mode)
+{
+    return (leftover_mode == LeftoverMode::Y
+            || leftover_mode == LeftoverMode::XY
+            || leftover_mode == LeftoverMode::YZ
+            || leftover_mode == LeftoverMode::XYZ
+            || leftover_mode == LeftoverMode::XYCut
+            || leftover_mode == LeftoverMode::YZCut
+            || leftover_mode == LeftoverMode::XYZCut
+            || leftover_mode == LeftoverMode::Staircase);
+}
+
+/** Return 'true' iff the used box of a leftover mode stops at the items along z. */
+inline bool leftover_mode_along_z(LeftoverMode leftover_mode)
+{
+    return (leftover_mode == LeftoverMode::Z
+            || leftover_mode == LeftoverMode::XZ
+            || leftover_mode == LeftoverMode::YZ
+            || leftover_mode == LeftoverMode::XYZ
+            || leftover_mode == LeftoverMode::XZCut
+            || leftover_mode == LeftoverMode::YZCut
+            || leftover_mode == LeftoverMode::XYZCut
+            || leftover_mode == LeftoverMode::Staircase);
+}
+
+/** Return 'true' iff the leftover of a leftover mode is cut into boxes. */
+inline bool leftover_mode_cut(LeftoverMode leftover_mode)
+{
+    return (leftover_mode == LeftoverMode::XYCut
+            || leftover_mode == LeftoverMode::XZCut
+            || leftover_mode == LeftoverMode::YZCut
+            || leftover_mode == LeftoverMode::XYZCut);
+}
 
 std::istream& operator>>(
         std::istream& in,
@@ -155,18 +217,9 @@ inline Box leftover_mode_used_box(
         Length y_max,
         Length z_max)
 {
-    bool along_x = (leftover_mode == LeftoverMode::X
-            || leftover_mode == LeftoverMode::XY
-            || leftover_mode == LeftoverMode::XZ
-            || leftover_mode == LeftoverMode::XYZ);
-    bool along_y = (leftover_mode == LeftoverMode::Y
-            || leftover_mode == LeftoverMode::XY
-            || leftover_mode == LeftoverMode::YZ
-            || leftover_mode == LeftoverMode::XYZ);
-    bool along_z = (leftover_mode == LeftoverMode::Z
-            || leftover_mode == LeftoverMode::XZ
-            || leftover_mode == LeftoverMode::YZ
-            || leftover_mode == LeftoverMode::XYZ);
+    bool along_x = leftover_mode_along_x(leftover_mode);
+    bool along_y = leftover_mode_along_y(leftover_mode);
+    bool along_z = leftover_mode_along_z(leftover_mode);
     return {
         (along_x? x_max: bin.x),
         (along_y? y_max: bin.y),
@@ -179,6 +232,42 @@ inline bool operator!=(const Box& box_1, const Box& box_2) { return !(box_1 == b
 std::ostream& operator<<(
         std::ostream& os,
         Box box);
+
+/**
+ * Get the value of the leftover of a bin of dimensions 'bin' for
+ * 'LeftoverMode::Staircase': the bin minus the union of the boxes
+ * [0, x] x [0, y] x [0, z] of the extents given, for a leftover value type.
+ */
+double staircase_leftover_value(
+        LeftoverValueType leftover_value_type,
+        const Box& bin,
+        const std::vector<std::array<Length, 3>>& extents);
+
+/**
+ * Get the value of the leftover of a bin of dimensions 'bin' whose items end
+ * at 'x_max', 'y_max', 'z_max', for a leftover value type and a leftover
+ * mode.
+ *
+ * With 'LeftoverValueType::SquaredArea', the value of a leftover is the
+ * square of its volume (the sum of the squares of the volumes of its pieces
+ * if it is cut).
+ * With 'LeftoverValueType::Depth', it is the integral, over its points, of
+ * their distance to its edge (see 'algorithms/leftover.hpp'): its volume
+ * times the average distance of its points to its edge, so a compact
+ * leftover is worth more than a thin one of the same volume. An empty bin is
+ * worth 'leftover_value(leftover_value_type, leftover_mode, bin, 0, 0, 0)'.
+ *
+ * For 'LeftoverMode::Staircase', the value depends on the staircase of the
+ * items (see 'staircase_leftover_value'); this function returns the value of
+ * the leftover of 'XYZ', which is the same for an empty bin.
+ */
+double leftover_value(
+        LeftoverValueType leftover_value_type,
+        LeftoverMode leftover_mode,
+        const Box& bin,
+        Length x_max,
+        Length y_max,
+        Length z_max);
 
 ////////////////////////////////////////////////////////////////////////////////
 ///////////////////////// Item type, Bin type, Defect //////////////////////////
@@ -348,6 +437,12 @@ struct Parameters
     LeftoverMode leftover_mode = LeftoverMode::XYZ;
 
     /**
+     * How the value of the leftover of a bin is computed, for the
+     * BinPackingWithLeftovers objective (see 'LeftoverValueType').
+     */
+    LeftoverValueType leftover_value_type = LeftoverValueType::SquaredArea;
+
+    /**
      * For the BinPackingWithLeftovers objective, also compare the solutions
      * on the sum of the leftover values of the bins and on the sum of their
      * staircase leftover values, after the leftover value and the staircase
@@ -458,6 +553,32 @@ public:
 
     /** Get a bin type. */
     inline const BinType& bin_type(BinTypeId bin_type_id) const { return bin_types_[bin_type_id]; }
+
+    /**
+     * Get the factor which converts a leftover value into a space, for the
+     * 'VariableSizedBinPackingWithLeftovers' objective: the minimum, over the
+     * bin types, of the volume of the bin divided by its leftover
+     * value when it is empty.
+     */
+    inline double leftover_value_factor() const { return leftover_value_factor_; }
+
+    /**
+     * Get the refund of a leftover of a bin, for the
+     * 'VariableSizedBinPackingWithLeftovers' objective: the price of the bin
+     * per unit of volume, times the space equivalent to the value of
+     * the leftover.
+     *
+     * The refund of an empty bin is at most its cost; it is equal for the
+     * bin types which define 'leftover_value_factor()'.
+     */
+    inline Profit leftover_refund(
+            BinTypeId bin_type_id,
+            double leftover_value) const
+    {
+        const BinType& bin_type = this->bin_type(bin_type_id);
+        double space = (double)bin_type.volume();
+        return bin_type.cost / space * leftover_value_factor_ * leftover_value;
+    }
 
     /** Get the number of bins. */
     inline BinPos number_of_bins() const { return bin_type_ids_.size(); }
@@ -618,6 +739,9 @@ private:
 
     /** Bin types. */
     std::vector<BinType> bin_types_;
+
+    /** Factor which converts a leftover value into a space. */
+    double leftover_value_factor_ = 0;
 
     /** Item types. */
     std::vector<ItemType> item_types_;

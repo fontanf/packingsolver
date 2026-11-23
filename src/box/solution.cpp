@@ -2,6 +2,7 @@
 
 #include "box/static_stability.hpp"
 
+#include "algorithms/leftover.hpp"
 #include "algorithms/staircase.hpp"
 
 #include "optimizationtools/utils/utils.hpp"
@@ -115,23 +116,47 @@ void Solution::update_indicators(
     }
 
     // Update the leftover values. The volume used in a bin is the box from
-    // its origin to its items, the rest of the bin being the leftover (see
-    // 'LeftoverMode').
+    // its origin to its items (see 'LeftoverMode').
     Box used_box = leftover_mode_used_box(
             instance().parameters().leftover_mode,
             bin_type.box,
             bin_x_max,
             bin_y_max,
             bin_z_max);
-    bin.leftover_value = bin_type.volume() - used_box.volume();
+    bin.leftover_value = (instance().parameters().leftover_mode == LeftoverMode::Staircase)?
+        box::staircase_leftover_value(
+            instance().parameters().leftover_value_type,
+            bin_type.box,
+            staircase.extents()):
+        box::leftover_value(
+            instance().parameters().leftover_value_type,
+            instance().parameters().leftover_mode,
+            bin_type.box,
+            bin_x_max,
+            bin_y_max,
+            bin_z_max);
     bin.staircase_leftover_value = bin_type.volume() - staircase.volume();
-    total_leftover_value_ += bin.copies * bin.leftover_value;
-    total_staircase_leftover_value_ += bin.copies * bin.staircase_leftover_value;
+    leftover_value_loss_ += bin.copies * (
+            box::leftover_value(
+                instance().parameters().leftover_value_type,
+                instance().parameters().leftover_mode,
+                bin_type.box,
+                0,
+                0,
+                0)
+            - bin.leftover_value);
+    net_cost_ += bin.copies * (
+            bin_type.cost
+            - instance().leftover_refund(bin.bin_type_id, bin.leftover_value));
+    staircase_dominated_volume_ += bin.copies * staircase.volume();
     if (bin_pos == (BinPos)bins_.size() - 1) {
         x_max_ = bin_x_max;
         y_max_ = bin_y_max;
         z_max_ = bin_z_max;
-        volume_ = bin_volume_ - bin.leftover_value;
+        Volume used_volume = (instance().parameters().leftover_mode == LeftoverMode::Staircase)?
+            staircase.volume():
+            used_box.volume();
+        volume_ = bin_volume_ - (bin_type.volume() - used_volume);
         leftover_value_ = bin.leftover_value;
         staircase_leftover_value_ = bin.staircase_leftover_value;
     }
@@ -206,6 +231,24 @@ void Solution::append_empty_bin(
     update_indicators(bins_.size() - 1);
 }
 
+double Solution::total_leftover_value() const
+{
+    double value = 0;
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < instance().number_of_bin_types();
+            ++bin_type_id) {
+        const BinType& bin_type = instance().bin_type(bin_type_id);
+        value += bin_type.copies * box::leftover_value(
+                instance().parameters().leftover_value_type,
+                instance().parameters().leftover_mode,
+                bin_type.box,
+                0,
+                0,
+                0);
+    }
+    return value - leftover_value_loss_;
+}
+
 bool Solution::operator<(const Solution& solution) const
 {
     // Check feasibility.
@@ -220,8 +263,11 @@ bool Solution::operator<(const Solution& solution) const
     } case Objective::BinPackingWithLeftovers: {
         if (solution.number_of_bins() != number_of_bins())
             return solution.number_of_bins() < number_of_bins();
-        if (solution.leftover_value() != leftover_value())
-            return solution.leftover_value() > leftover_value();
+        LeftoverValueType leftover_value_type = instance().parameters().leftover_value_type;
+        if (strictly_greater_leftover_value(leftover_value_type, solution.leftover_value(), leftover_value()))
+            return true;
+        if (strictly_greater_leftover_value(leftover_value_type, leftover_value(), solution.leftover_value()))
+            return false;
         // Tie-breaks: the staircase leftover value of the last bin, then, if
         // 'leftover_all_bins', the leftover value and the staircase leftover
         // value of all the bins.
@@ -229,9 +275,14 @@ bool Solution::operator<(const Solution& solution) const
             return solution.staircase_leftover_value() > staircase_leftover_value();
         if (!instance().parameters().leftover_all_bins)
             return false;
-        if (solution.total_leftover_value() != total_leftover_value())
-            return solution.total_leftover_value() > total_leftover_value();
-        return solution.total_staircase_leftover_value() > total_staircase_leftover_value();
+        // The leftover values of all the bins, used or not, are compared
+        // through the value lost in the used bins, the values of the bins
+        // being the same for both solutions.
+        if (strictly_greater_leftover_value(leftover_value_type, leftover_value_loss_, solution.leftover_value_loss_))
+            return true;
+        if (strictly_greater_leftover_value(leftover_value_type, solution.leftover_value_loss_, leftover_value_loss_))
+            return false;
+        return solution.staircase_dominated_volume_ < staircase_dominated_volume_;
     } case Objective::OpenDimensionX: {
         return solution.x_max() < x_max();
     } case Objective::OpenDimensionY: {
@@ -244,6 +295,15 @@ bool Solution::operator<(const Solution& solution) const
         return strictly_greater_profit(solution.profit(), profit());
     } case Objective::VariableSizedBinPacking: {
         return strictly_lesser_cost(solution.cost(), cost());
+    } case Objective::VariableSizedBinPackingWithLeftovers: {
+        // The net cost: the cost of the bins minus the refunds of their
+        // leftovers (see 'Instance::leftover_refund'), and then the staircase
+        // leftover values.
+        if (strictly_lesser_cost(solution.net_cost(), net_cost()))
+            return true;
+        if (strictly_lesser_cost(net_cost(), solution.net_cost()))
+            return false;
+        return solution.staircase_dominated_volume_ < staircase_dominated_volume_;
     } default: {
         std::stringstream ss;
         ss << FUNC_SIGNATURE << ": "
@@ -328,6 +388,7 @@ nlohmann::json Solution::to_json() const
         {"LeftoverValue", leftover_value()},
         {"StaircaseLeftoverValue", staircase_leftover_value()},
         {"TotalLeftoverValue", total_leftover_value()},
+        {"NetCost", net_cost()},
         {"TotalStaircaseLeftoverValue", total_staircase_leftover_value()},
         {"Waste", waste()},
         {"WastePercentage", waste_percentage()},
@@ -372,6 +433,7 @@ void Solution::format(
             << "Leftover value:                  " << leftover_value() << std::endl
             << "Staircase leftover value:        " << staircase_leftover_value() << std::endl
             << "Total leftover value:            " << total_leftover_value() << std::endl
+            << "Net cost:                        " << net_cost() << std::endl
             << "Total staircase leftover value:  " << total_staircase_leftover_value() << std::endl
             ;
     }

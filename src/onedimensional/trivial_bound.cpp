@@ -118,7 +118,7 @@ void trivial_bound_impl(
         return;
     }
 
-    if (instance.objective() == Objective::VariableSizedBinPacking) {
+    if (is_variable_sized_bin_packing(instance.objective())) {
         // Same bin-selection knapsack as the one solved by the dichotomic
         // search (see 'algorithms/dichotomic_search.hpp'), but solved once
         // at zero waste instead of iteratively: a real solution can never

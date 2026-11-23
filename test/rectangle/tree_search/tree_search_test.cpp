@@ -80,6 +80,16 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "rectangle" / "tests" / "bin_packing_with_leftovers_area" / "parameters.csv",
                 fs::path("data") / "rectangle" / "tests" / "bin_packing_with_leftovers_area" / "solution.csv",
             }, {
+                // The same instance with the leftover value type 'Depth': the
+                // items are packed in two columns, leaving a single 6 x 10
+                // rectangle, instead of a 3 x 3 block leaving an L-shape of
+                // larger area.
+                fs::path("data") / "rectangle" / "tests" / "bin_packing_with_leftovers_depth" / "items.csv",
+                fs::path("data") / "rectangle" / "tests" / "bin_packing_with_leftovers_depth" / "bins.csv",
+                fs::path(""),
+                fs::path("data") / "rectangle" / "tests" / "bin_packing_with_leftovers_depth" / "parameters.csv",
+                fs::path("data") / "rectangle" / "tests" / "bin_packing_with_leftovers_depth" / "solution.csv",
+            }, {
                 fs::path("data") / "rectangle" / "tests" / "bin_packing_with_leftovers_x" / "items.csv",
                 fs::path("data") / "rectangle" / "tests" / "bin_packing_with_leftovers_x" / "bins.csv",
                 fs::path(""),

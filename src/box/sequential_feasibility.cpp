@@ -29,7 +29,7 @@ int shrunk_dimension(
         return 2;
     } default: {
         switch (instance.parameters().leftover_mode) {
-        case LeftoverMode::Y: case LeftoverMode::YZ: {
+        case LeftoverMode::Y: case LeftoverMode::YZ: case LeftoverMode::YZCut: {
             return 1;
         } case LeftoverMode::Z: {
             return 2;

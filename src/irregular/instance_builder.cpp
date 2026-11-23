@@ -1,4 +1,6 @@
 #include "packingsolver/irregular/instance_builder.hpp"
+
+#include "irregular/leftover.hpp"
 #include "irregular/instance_cache.hpp"
 
 #include <cmath>
@@ -643,6 +645,11 @@ void InstanceBuilder::read(
                     json_parameters["leftover_mode"].get<std::string>(),
                     "leftover_mode");
             set_leftover_mode(leftover_mode);
+        }
+        if (json_parameters.contains("leftover_value_type")) {
+            set_leftover_value_type(read_enum<LeftoverValueType>(
+                        json_parameters["leftover_value_type"].get<std::string>(),
+                        "leftover_value_type"));
         }
         if (json_parameters.contains("leftover_all_bins"))
             set_leftover_all_bins(json_parameters["leftover_all_bins"]);
@@ -1345,6 +1352,22 @@ Instance InstanceBuilder::build()
     if (original_instance_ != nullptr) {
         copy_cache_from_original_instance();
         copy_periodic_packings_from_original_instance();
+    }
+
+    // Compute the factor which converts a leftover value into a space.
+    instance_.leftover_value_factor_ = 0;
+    for (const BinType& bin_type: instance_.bin_types_) {
+        double space = (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min)
+                * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min);
+        double value = irregular::leftover_value(
+                instance_.parameters_.leftover_value_type,
+                bin_type.aabb_orig);
+        if (value <= 0)
+            continue;
+        if (instance_.leftover_value_factor_ == 0
+                || space / value < instance_.leftover_value_factor_) {
+            instance_.leftover_value_factor_ = space / value;
+        }
     }
 
     return std::move(instance_);

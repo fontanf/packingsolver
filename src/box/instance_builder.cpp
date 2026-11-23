@@ -712,6 +712,8 @@ void InstanceBuilder::read_parameters(
         } else if (name == "leftover_mode") {
             LeftoverMode leftover_mode = read_enum<LeftoverMode>(value, name);
             set_leftover_mode(leftover_mode);
+        } else if (name == "leftover_value_type") {
+            set_leftover_value_type(read_enum<LeftoverValueType>(value, name));
         } else if (name == "leftover_all_bins") {
             set_leftover_all_bins(value == "1" || value == "true");
         } else if (name == "static_stability") {
@@ -939,6 +941,11 @@ void InstanceBuilder::read(
                 leftover_mode_string,
                 "leftover_mode");
         set_leftover_mode(leftover_mode);
+    }
+    if (j.contains("leftover_value_type")) {
+        set_leftover_value_type(read_enum<LeftoverValueType>(
+                    j["leftover_value_type"].get<std::string>(),
+                    "leftover_value_type"));
     }
     if (j.contains("leftover_all_bins"))
         set_leftover_all_bins(j["leftover_all_bins"]);
@@ -1297,6 +1304,25 @@ Instance InstanceBuilder::build()
     instance_.blocks_cache_ = std::make_shared<BlocksCache>();
     if (original_instance_ != nullptr)
         copy_cache_from_original_instance();
+
+    // Compute the factor which converts a leftover value into a space.
+    instance_.leftover_value_factor_ = 0;
+    for (const BinType& bin_type: instance_.bin_types_) {
+        double space = (double)bin_type.volume();
+        double value = box::leftover_value(
+                instance_.parameters_.leftover_value_type,
+                instance_.parameters_.leftover_mode,
+                bin_type.box,
+                0,
+                0,
+                0);
+        if (value <= 0)
+            continue;
+        if (instance_.leftover_value_factor_ == 0
+                || space / value < instance_.leftover_value_factor_) {
+            instance_.leftover_value_factor_ = space / value;
+        }
+    }
 
     return std::move(instance_);
 }

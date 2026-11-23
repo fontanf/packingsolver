@@ -65,6 +65,9 @@ public:
     /** Set the leftover mode. */
     void set_leftover_mode(LeftoverMode leftover_mode) { instance_.parameters_.leftover_mode = leftover_mode; }
 
+    /** Set how the value of the leftover of a bin is computed. */
+    void set_leftover_value_type(LeftoverValueType leftover_value_type) { instance_.parameters_.leftover_value_type = leftover_value_type; }
+
     /** Set whether the leftover values of all the bins are compared. */
     void set_leftover_all_bins(bool leftover_all_bins) { instance_.parameters_.leftover_all_bins = leftover_all_bins; }
 

@@ -1,9 +1,11 @@
-"""The leftover modes of the 'box' and 'boxstacks' problem types, and the
-nested length of the items of the 'onedimensional' problem type."""
+"""The leftover modes of the 'box' and 'boxstacks' problem types, the
+leftover value types, and the nested length of the items of the
+'onedimensional' problem type."""
 
 import packingsolver.box as psb
 import packingsolver.boxstacks as psbs
 import packingsolver.onedimensional as pso
+import packingsolver.rectangle as psr
 
 
 def solve(module, instance):
@@ -13,8 +15,8 @@ def solve(module, instance):
 
 
 def test_box_leftover_modes():
-    # 12 items of 30 x 20 x 10 in a 100 x 50 x 40 bin: the best leftover of
-    # each mode.
+    # 12 items of 30 x 20 x 10 in a 100 x 50 x 40 bin: the volume of the best
+    # leftover of each mode (its value is its squared volume).
     expected = {
         psb.LeftoverMode.X: 40 * 50 * 40,
         psb.LeftoverMode.Y: 100 * 30 * 40,
@@ -29,7 +31,7 @@ def test_box_leftover_modes():
         instance_builder.add_item_type(30, 20, 10, copies=12)
         solution = solve(psb, instance_builder.build())
         assert solution.number_of_bins() == 1
-        assert solution.leftover_value() == leftover_value, leftover_mode
+        assert solution.leftover_value() == leftover_value ** 2, leftover_mode
 
 
 def test_boxstacks_leftover_modes():
@@ -44,7 +46,27 @@ def test_boxstacks_leftover_modes():
         instance_builder.add_item_type(30, 20, 10, copies=12)
         solution = solve(psbs, instance_builder.build())
         assert solution.number_of_bins() == 1
-        assert solution.leftover_value() >= leftover_value, leftover_mode
+        assert solution.leftover_value() >= leftover_value ** 2, leftover_mode
+
+
+def test_rectangle_leftover_value_type():
+    # Nine 3 x 2 items in a 12 x 10 bin. Valued by its squared area, the best
+    # leftover is the L-shape around a 9 x 6 block (area 66). Valued by depth,
+    # it is the 6 x 10 rectangle on the right of two columns of items (area
+    # 60, value 6^2 (3 * 10 - 6) / 12 = 72).
+    expected = {
+        psr.LeftoverValueType.SquaredArea: 66 ** 2,
+        psr.LeftoverValueType.Depth: 72,
+    }
+    for leftover_value_type, leftover_value in expected.items():
+        instance_builder = psr.InstanceBuilder()
+        instance_builder.set_objective(psr.Objective.BinPackingWithLeftovers)
+        instance_builder.set_leftover_value_type(leftover_value_type)
+        instance_builder.add_bin_type(12, 10, copies=1)
+        instance_builder.add_item_type(3, 2, oriented=True, copies=9)
+        solution = solve(psr, instance_builder.build())
+        assert solution.number_of_bins() == 1
+        assert abs(solution.leftover_value() - leftover_value) <= 1e-6, leftover_value_type
 
 
 def test_onedimensional_item_nested_length():

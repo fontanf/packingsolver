@@ -190,7 +190,7 @@ SequentialValueCorrectionOutput<Instance, Solution, Output> sequential_value_cor
     // boost the initial profits of the item types competing for scarce bins.
     std::vector<ItemTypeId> item_type_ids_by_decreasing_space;
     std::vector<std::vector<bool>> item_type_fits_bin_type;
-    if (instance.objective() == Objective::VariableSizedBinPacking
+    if (is_variable_sized_bin_packing(instance.objective())
             && (parameters.restrict_bin_types
                 || parameters.scarce_item_types_profit_factor_exponent != 0.0)) {
         item_type_ids_by_decreasing_space.resize(instance.number_of_item_types());
@@ -334,7 +334,7 @@ SequentialValueCorrectionOutput<Instance, Solution, Output> sequential_value_cor
 
             // Find bin types to try.
             std::vector<BinTypeId> bin_type_ids;
-            if (instance.objective() == Objective::VariableSizedBinPacking) {
+            if (is_variable_sized_bin_packing(instance.objective())) {
                 // Start with mandatory bins (bin types with copies_min > 0).
                 BinTypeId smallest_mandatory_bin_type_id = -1;
                 for (BinTypeId bin_type_id = 0;
@@ -418,7 +418,7 @@ SequentialValueCorrectionOutput<Instance, Solution, Output> sequential_value_cor
                 for (const auto& fixed_item: bin_type.fixed_items)
                     bin_fixed_copies[fixed_item.item_type_id]++;
 
-                if (instance.objective() == Objective::VariableSizedBinPacking
+                if (is_variable_sized_bin_packing(instance.objective())
                         && solutions_cur[bin_type_id].first.number_of_items() > 0) {
                     // Check if previous solution is still valid.
                     bool valid = true;
@@ -558,7 +558,7 @@ SequentialValueCorrectionOutput<Instance, Solution, Output> sequential_value_cor
                 // If the objective is VariableSizedBinPacking and the
                 // current solution is full, check if it is the new best
                 // solution.
-                if (instance.objective() == Objective::VariableSizedBinPacking
+                if (is_variable_sized_bin_packing(instance.objective())
                         && solution.number_of_items()
                         + number_of_copies * kp_solution.number_of_items()
                         == instance.number_of_items()) {
@@ -623,7 +623,7 @@ SequentialValueCorrectionOutput<Instance, Solution, Output> sequential_value_cor
                 // above already tries every not-yet-exhausted bin type as a
                 // candidate every iteration, so none of them being useful
                 // here genuinely does mean none ever will be.
-                if (instance.objective() == Objective::VariableSizedBinPacking)
+                if (is_variable_sized_bin_packing(instance.objective()))
                     break;
                 solution.append_empty_bin(bin_type_ids[0], 1);
                 continue;

@@ -56,6 +56,40 @@ std::ostream& packingsolver::operator<<(
 
 std::istream& packingsolver::operator>>(
         std::istream& in,
+        LeftoverValueType& leftover_value_type)
+{
+    std::string token;
+    in >> token;
+    if (token == "squared-area"
+            || token == "SquaredArea") {
+        leftover_value_type = LeftoverValueType::SquaredArea;
+    } else if (token == "depth"
+            || token == "Depth") {
+        leftover_value_type = LeftoverValueType::Depth;
+    } else  {
+        in.setstate(std::ios_base::failbit);
+    }
+    return in;
+}
+
+std::ostream& packingsolver::operator<<(
+        std::ostream& os,
+        LeftoverValueType leftover_value_type)
+{
+    switch (leftover_value_type) {
+    case LeftoverValueType::SquaredArea: {
+        os << "SquaredArea";
+        break;
+    } case LeftoverValueType::Depth: {
+        os << "Depth";
+        break;
+    }
+    }
+    return os;
+}
+
+std::istream& packingsolver::operator>>(
+        std::istream& in,
         ProblemType& problem_type)
 {
     std::string token;
@@ -160,6 +194,10 @@ std::istream& packingsolver::operator>>(
             || token == "VariableSizedBinPacking"
             || token == "VBPP") {
         objective = Objective::VariableSizedBinPacking;
+    } else if (token == "variable-sized-bin-packing-with-leftovers"
+            || token == "VariableSizedBinPackingWithLeftovers"
+            || token == "VBPPL") {
+        objective = Objective::VariableSizedBinPackingWithLeftovers;
     } else if (token == "sequential-onedimensional-rectangle-subproblem"
             || token == "SequentialOneDimensionalRectangleSubproblem"
             || token == "BDRS") {
@@ -205,6 +243,9 @@ std::ostream& packingsolver::operator<<(
         break;
     } case Objective::VariableSizedBinPacking: {
         os << "VariableSizedBinPacking";
+        break;
+    } case Objective::VariableSizedBinPackingWithLeftovers: {
+        os << "VariableSizedBinPackingWithLeftovers";
         break;
     } case Objective::SequentialOneDimensionalRectangleSubproblem: {
         os << "SequentialOneDimensionalRectangleSubproblem";

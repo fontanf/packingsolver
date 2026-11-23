@@ -21,6 +21,28 @@ using namespace shape;
 ///////////////////////// Item type, Bin type, Defect //////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
+/**
+ * Leftover of a bin, for the 'BinPackingWithLeftovers' objective.
+ *
+ * The leftover is the bounding box of the bin minus the rectangle used by
+ * the items:
+ * - with a corner mode ('BottomLeft', ...), the rectangle between this
+ *   corner and the opposite corner of the bounding box of the items; the
+ *   leftover is an L-shape
+ * - with a side mode ('Left', ...), the rectangle between this side and the
+ *   opposite side of the bounding box of the items; the leftover is a
+ *   rectangle
+ * - with a corner mode ending with 'Cut' ('BottomLeftCut', ...), the
+ *   L-shape of the corner mode is cut into two rectangles, along the best of
+ *   the two cuts
+ * - with a corner mode ending with 'Staircase' ('BottomLeftStaircase', ...),
+ *   the leftover is the bounding box of the bin minus the union of the
+ *   rectangles between the corner and the opposite corner of the bounding
+ *   box of each item: a staircase
+ *
+ * The value of the leftover is computed from its shape (see
+ * 'leftover_value').
+ */
 enum class LeftoverMode
 {
     BottomLeft,
@@ -31,7 +53,56 @@ enum class LeftoverMode
     Right,
     Bottom,
     Top,
+    BottomLeftCut,
+    BottomRightCut,
+    TopLeftCut,
+    TopRightCut,
+    BottomLeftStaircase,
+    BottomRightStaircase,
+    TopLeftStaircase,
+    TopRightStaircase,
 };
+
+/**
+ * Get the corner or side mode of a leftover mode: for a mode ending with
+ * 'Cut' or 'Staircase', the corner mode it derives from, otherwise the mode
+ * itself.
+ *
+ * The items are packed the same way for all of them, towards the same corner
+ * or side; only the shape of the leftover differs.
+ */
+inline LeftoverMode leftover_mode_base(LeftoverMode leftover_mode)
+{
+    switch (leftover_mode) {
+    case LeftoverMode::BottomLeftCut: return LeftoverMode::BottomLeft;
+    case LeftoverMode::BottomRightCut: return LeftoverMode::BottomRight;
+    case LeftoverMode::TopLeftCut: return LeftoverMode::TopLeft;
+    case LeftoverMode::TopRightCut: return LeftoverMode::TopRight;
+    case LeftoverMode::BottomLeftStaircase: return LeftoverMode::BottomLeft;
+    case LeftoverMode::BottomRightStaircase: return LeftoverMode::BottomRight;
+    case LeftoverMode::TopLeftStaircase: return LeftoverMode::TopLeft;
+    case LeftoverMode::TopRightStaircase: return LeftoverMode::TopRight;
+    default: return leftover_mode;
+    }
+}
+
+/** Return 'true' iff the leftover of a leftover mode is cut into rectangles. */
+inline bool leftover_mode_cut(LeftoverMode leftover_mode)
+{
+    return (leftover_mode == LeftoverMode::BottomLeftCut
+            || leftover_mode == LeftoverMode::BottomRightCut
+            || leftover_mode == LeftoverMode::TopLeftCut
+            || leftover_mode == LeftoverMode::TopRightCut);
+}
+
+/** Return 'true' iff the leftover of a leftover mode is a staircase. */
+inline bool leftover_mode_staircase(LeftoverMode leftover_mode)
+{
+    return (leftover_mode == LeftoverMode::BottomLeftStaircase
+            || leftover_mode == LeftoverMode::BottomRightStaircase
+            || leftover_mode == LeftoverMode::TopLeftStaircase
+            || leftover_mode == LeftoverMode::TopRightStaircase);
+}
 
 std::istream& operator>>(
         std::istream& in,
@@ -56,6 +127,12 @@ struct Parameters
 
     /** Reference corner/edge to compute the leftover value. */
     LeftoverMode leftover_mode = LeftoverMode::BottomLeft;
+
+    /**
+     * How the value of the leftover of a bin is computed, for the
+     * BinPackingWithLeftovers objective (see 'LeftoverValueType').
+     */
+    LeftoverValueType leftover_value_type = LeftoverValueType::SquaredArea;
 
     /**
      * For the BinPackingWithLeftovers objective, also compare the solutions
@@ -475,6 +552,33 @@ public:
     /** Get bin type i. */
     inline const BinType& bin_type(BinTypeId bin_type_id) const { return bin_types_[bin_type_id]; }
 
+    /**
+     * Get the factor which converts a leftover value into a space, for the
+     * 'VariableSizedBinPackingWithLeftovers' objective: the minimum, over the
+     * bin types, of the area of the bounding box of the bin divided by its leftover
+     * value when it is empty.
+     */
+    inline double leftover_value_factor() const { return leftover_value_factor_; }
+
+    /**
+     * Get the refund of a leftover of a bin, for the
+     * 'VariableSizedBinPackingWithLeftovers' objective: the price of the bin
+     * per unit of area of the bounding box, times the space equivalent to the value of
+     * the leftover.
+     *
+     * The refund of an empty bin is at most its cost; it is equal for the
+     * bin types which define 'leftover_value_factor()'.
+     */
+    inline Profit leftover_refund(
+            BinTypeId bin_type_id,
+            double leftover_value) const
+    {
+        const BinType& bin_type = this->bin_type(bin_type_id);
+        double space = (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min)
+            * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min);
+        return bin_type.cost / space * leftover_value_factor_ * leftover_value;
+    }
+
     /** Get the scaled item_bin_minimum_spacing of bin type 'bin_type_id'. */
     inline LengthDbl bin_spacing_scaled(BinTypeId bin_type_id) const
     {
@@ -688,6 +792,9 @@ private:
 
     /** Bin types. */
     std::vector<BinType> bin_types_;
+
+    /** Factor which converts a leftover value into a space. */
+    double leftover_value_factor_ = 0;
 
     /** Item types. */
     std::vector<ItemType> item_types_;

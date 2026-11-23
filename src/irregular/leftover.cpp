@@ -1,43 +1,90 @@
 #include "irregular/leftover.hpp"
 
+#include "algorithms/leftover.hpp"
+
 using namespace packingsolver;
 using namespace packingsolver::irregular;
 
-AreaDbl packingsolver::irregular::leftover_value(
+namespace
+{
+
+/**
+ * Get the dimensions of the rectangle used by the items of a bin, from the
+ * corner (or the side) of the leftover mode to the opposite corner (or side)
+ * of the bounding box of the items.
+ */
+std::array<double, 2> used_dimensions(
         LeftoverMode leftover_mode,
         const AxisAlignedBoundingBox& bin_aabb,
         const AxisAlignedBoundingBox& items_aabb)
 {
     LengthDbl width = bin_aabb.x_max - bin_aabb.x_min;
     LengthDbl height = bin_aabb.y_max - bin_aabb.y_min;
-    switch (leftover_mode) {
+    LengthDbl from_left = (std::max)(0.0, (std::min)(width, items_aabb.x_max - bin_aabb.x_min));
+    LengthDbl from_right = (std::max)(0.0, (std::min)(width, bin_aabb.x_max - items_aabb.x_min));
+    LengthDbl from_bottom = (std::max)(0.0, (std::min)(height, items_aabb.y_max - bin_aabb.y_min));
+    LengthDbl from_top = (std::max)(0.0, (std::min)(height, bin_aabb.y_max - items_aabb.y_min));
+    switch (leftover_mode_base(leftover_mode)) {
     case LeftoverMode::BottomLeft: {
-        return width * height
-            - (items_aabb.x_max - bin_aabb.x_min) * (items_aabb.y_max - bin_aabb.y_min);
+        return {from_left, from_bottom};
     } case LeftoverMode::BottomRight: {
-        return width * height
-            - (bin_aabb.x_max - items_aabb.x_min) * (items_aabb.y_max - bin_aabb.y_min);
+        return {from_right, from_bottom};
     } case LeftoverMode::TopLeft: {
-        return width * height
-            - (items_aabb.x_max - bin_aabb.x_min) * (bin_aabb.y_max - items_aabb.y_min);
+        return {from_left, from_top};
     } case LeftoverMode::TopRight: {
-        return width * height
-            - (bin_aabb.x_max - items_aabb.x_min) * (bin_aabb.y_max - items_aabb.y_min);
+        return {from_right, from_top};
     } case LeftoverMode::Left: {
-        return width * height
-            - (items_aabb.x_max - bin_aabb.x_min) * height;
+        return {from_left, height};
     } case LeftoverMode::Right: {
-        return width * height
-            - (bin_aabb.x_max - items_aabb.x_min) * height;
+        return {from_right, height};
     } case LeftoverMode::Bottom: {
-        return width * height
-            - width * (items_aabb.y_max - bin_aabb.y_min);
+        return {width, from_bottom};
     } case LeftoverMode::Top: {
-        return width * height
-            - width * (bin_aabb.y_max - items_aabb.y_min);
+        return {width, from_top};
+    } default: {
+        return {0, 0};
     }
     }
-    return 0;
+}
+
+}
+
+double packingsolver::irregular::leftover_value(
+        LeftoverValueType leftover_value_type,
+        LeftoverMode leftover_mode,
+        const AxisAlignedBoundingBox& bin_aabb,
+        const AxisAlignedBoundingBox& items_aabb)
+{
+    std::array<double, 2> bin = {
+        bin_aabb.x_max - bin_aabb.x_min,
+        bin_aabb.y_max - bin_aabb.y_min};
+    std::array<double, 2> used = used_dimensions(leftover_mode, bin_aabb, items_aabb);
+    return packingsolver::leftover_value(
+            leftover_value_type,
+            bin,
+            used,
+            leftover_mode_cut(leftover_mode));
+}
+
+AreaDbl packingsolver::irregular::leftover_area(
+        LeftoverMode leftover_mode,
+        const AxisAlignedBoundingBox& bin_aabb,
+        const AxisAlignedBoundingBox& items_aabb)
+{
+    std::array<double, 2> used = used_dimensions(leftover_mode, bin_aabb, items_aabb);
+    return (bin_aabb.x_max - bin_aabb.x_min) * (bin_aabb.y_max - bin_aabb.y_min)
+        - used[0] * used[1];
+}
+
+double packingsolver::irregular::leftover_value(
+        LeftoverValueType leftover_value_type,
+        const AxisAlignedBoundingBox& bin_aabb)
+{
+    return packingsolver::leftover_value<2>(
+            leftover_value_type,
+            {bin_aabb.x_max - bin_aabb.x_min, bin_aabb.y_max - bin_aabb.y_min},
+            {0, 0},
+            false);
 }
 
 void Staircase::add_item(
@@ -52,7 +99,7 @@ void Staircase::add_item(
     LengthDbl width = bin_aabb.x_max - bin_aabb.x_min;
     LengthDbl height = bin_aabb.y_max - bin_aabb.y_min;
     std::pair<LengthDbl, LengthDbl> extent;
-    switch (leftover_mode) {
+    switch (leftover_mode_base(leftover_mode)) {
     case LeftoverMode::BottomLeft: {
         extent = {from_left, from_bottom};
         break;
@@ -120,4 +167,18 @@ AreaDbl Staircase::leftover_value(
     return (bin_aabb.x_max - bin_aabb.x_min)
         * (bin_aabb.y_max - bin_aabb.y_min)
         - dominated_area();
+}
+
+double Staircase::value(
+        LeftoverValueType leftover_value_type,
+        const AxisAlignedBoundingBox& bin_aabb) const
+{
+    std::vector<std::array<double, 2>> extents;
+    extents.reserve(extents_.size());
+    for (const auto& extent: extents_)
+        extents.push_back({extent.first, extent.second});
+    return packingsolver::staircase_leftover_value<2>(
+            leftover_value_type,
+            {bin_aabb.x_max - bin_aabb.x_min, bin_aabb.y_max - bin_aabb.y_min},
+            extents);
 }

@@ -1056,7 +1056,7 @@ const packingsolver::rectangleguillotine::TreeSearchMaximalSpacesOutput packings
             << "does not support instances with more than one bin.";
         throw std::logic_error(ss.str());
     }
-    if (instance.objective() == Objective::VariableSizedBinPacking) {
+    if (is_variable_sized_bin_packing(instance.objective())) {
         std::stringstream ss;
         ss << FUNC_SIGNATURE << ": "
             << "algorithm 'rectangleguillotine::tree_search_maximal_spaces' "

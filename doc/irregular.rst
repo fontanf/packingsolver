@@ -22,6 +22,7 @@ Features:
   * Open dimension Y
   * Open dimension XY
   * Variable-sized bin packing
+  * Variable-sized bin packing with leftovers
   * Feasibility
 
 * Item types
@@ -73,13 +74,13 @@ An instance is a JSON object with the following fields:
    * - Field
      - Description
    * - ``objective``
-     - **Mandatory**. One of ``knapsack``, ``bin-packing``, ``bin-packing-with-leftovers``, ``open-dimension-x``, ``open-dimension-y``, ``open-dimension-xy``, ``variable-sized-bin-packing``, ``feasibility``; see :ref:`objectives`
+     - **Mandatory**. One of ``knapsack``, ``bin-packing``, ``bin-packing-with-leftovers``, ``open-dimension-x``, ``open-dimension-y``, ``open-dimension-xy``, ``variable-sized-bin-packing``, ``variable-sized-bin-packing-with-leftovers``, ``feasibility``; see :ref:`objectives`
    * - ``knapsack_goal``
      - For the ``knapsack`` objective, the search stops as soon as a solution reaches this profit. Default: none
    * - ``knapsack_cutoff``
      - For the ``knapsack`` objective, the solutions whose profit is below this value are not useful: the search stops as soon as the bound proves that no solution reaches it. Default: none
    * - ``parameters``
-     - An object with the optional fields ``item_item_minimum_spacing`` (see :ref:`irregular-item-item-spacing`), ``open_dimension_xy_aspect_ratio`` (the ratio height / width of the bin for the ``open-dimension-xy`` objective), and ``leftover_mode`` (the corner or side from which the leftover is measured, for the ``bin-packing-with-leftovers`` objective: ``bottom-left`` (default), ``bottom-right``, ``top-left``, ``top-right``, ``left``, ``right``, ``bottom``, ``top``)
+     - An object with the optional fields ``item_item_minimum_spacing`` (see :ref:`irregular-item-item-spacing`), ``open_dimension_xy_aspect_ratio`` (the ratio height / width of the bin for the ``open-dimension-xy`` objective), ``leftover_mode`` (the corner or side towards which the items are packed, which defines the shape of the leftover, for the ``bin-packing-with-leftovers`` objective (see :ref:`leftovers`): ``bottom-left`` (default), ``bottom-right``, ``top-left``, ``top-right``, ``left``, ``right``, ``bottom``, ``top``, and ``bottom-left-cut``, ``bottom-right-cut``, ``top-left-cut``, ``top-right-cut`` (the L-shape of the corner, cut into two rectangles), and ``bottom-left-staircase``, ``bottom-right-staircase``, ``top-left-staircase``, ``top-right-staircase`` (the bounding box of the bin minus the rectangles between the corner and the opposite corner of the bounding box of each item)), and ``leftover_value_type`` (how the value of the leftover is computed, for the ``bin-packing-with-leftovers`` objective: ``squared-area`` (default) or ``depth``; see :ref:`leftovers`)
    * - ``bin_types``
      - **Mandatory**. The bin types (array)
    * - ``item_types``

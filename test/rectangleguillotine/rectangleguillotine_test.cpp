@@ -331,6 +331,104 @@ TEST(RectangleGuillotine, SolutionItemInSoftTrim)
     EXPECT_TRUE(solution_2.feasible());
 }
 
+TEST(RectangleGuillotine, VariableSizedBinPackingWithLeftovers)
+{
+    // A 100 x 100 bin with 2 copies, a 60 x 60 bin and two 50 x 50 items.
+    // The leftovers of a bin are the plate after its last 1-cut and the
+    // sub-plate after the last 2-cut of its last first-level sub-plate. The
+    // leftover value factor is 1 / 10000.
+    for (bool costs: {false, true}) {
+        InstanceBuilder instance_builder;
+        instance_builder.set_objective(packingsolver::Objective::VariableSizedBinPackingWithLeftovers);
+        packingsolver::BinTypeId large_bin_type_id = instance_builder.add_bin_type(100, 100);
+        instance_builder.set_bin_type_copies(large_bin_type_id, 2);
+        packingsolver::BinTypeId small_bin_type_id = instance_builder.add_bin_type(60, 60);
+        if (costs) {
+            instance_builder.set_bin_type_cost(large_bin_type_id, 1);
+            instance_builder.set_bin_type_cost(small_bin_type_id, 10);
+        }
+        packingsolver::ItemTypeId item_type_id = instance_builder.add_item_type(50, 50);
+        instance_builder.set_item_type_copies(item_type_id, 2);
+        const Instance instance = instance_builder.build();
+        EXPECT_DOUBLE_EQ(instance.leftover_value_factor(), 1.0 / 10000);
+
+        // One item in the small bin and one item in a large bin.
+        SolutionBuilder small_solution_builder(instance);
+        small_solution_builder.add_bin(small_bin_type_id, 1, CutOrientation::Vertical);
+        small_solution_builder.add_node(1, 50);
+        small_solution_builder.add_node(2, 50);
+        small_solution_builder.set_last_node_item(item_type_id);
+        small_solution_builder.add_bin(large_bin_type_id, 1, CutOrientation::Vertical);
+        small_solution_builder.add_node(1, 50);
+        small_solution_builder.add_node(2, 50);
+        small_solution_builder.set_last_node_item(item_type_id);
+        const Solution small_solution = small_solution_builder.build();
+        // Both items in the same large bin.
+        SolutionBuilder large_solution_builder(instance);
+        large_solution_builder.add_bin(large_bin_type_id, 1, CutOrientation::Vertical);
+        large_solution_builder.add_node(1, 50);
+        large_solution_builder.add_node(2, 50);
+        large_solution_builder.set_last_node_item(item_type_id);
+        large_solution_builder.add_node(2, 100);
+        large_solution_builder.set_last_node_item(item_type_id);
+        const Solution large_solution = large_solution_builder.build();
+        // Each item in its own large bin: the leftovers of the first bin,
+        // which isn't the last one, count as well.
+        SolutionBuilder two_solution_builder(instance);
+        for (int bin_pos = 0; bin_pos < 2; ++bin_pos) {
+            two_solution_builder.add_bin(large_bin_type_id, 1, CutOrientation::Vertical);
+            two_solution_builder.add_node(1, 50);
+            two_solution_builder.add_node(2, 50);
+            two_solution_builder.set_last_node_item(item_type_id);
+        }
+        const Solution two_solution = two_solution_builder.build();
+        ASSERT_TRUE(small_solution.feasible());
+        ASSERT_TRUE(large_solution.feasible());
+        ASSERT_TRUE(two_solution.feasible());
+
+        // The stock left.
+        double large_bin = 10000.0 * 10000.0;
+        double used_large_bin = 5000.0 * 5000.0 + 2500.0 * 2500.0;
+        double full_large_bin = 5000.0 * 5000.0;
+        double small_bin = 3600.0 * 3600.0;
+        double used_small_bin = 600.0 * 600.0 + 500.0 * 500.0;
+        EXPECT_EQ(small_solution.total_leftover_value(), large_bin + used_large_bin + used_small_bin);
+        EXPECT_EQ(large_solution.total_leftover_value(), large_bin + full_large_bin + small_bin);
+        EXPECT_EQ(two_solution.total_leftover_value(), 2 * used_large_bin + small_bin);
+        if (costs) {
+            // The large bins are much cheaper.
+            double small_price = 10.0 / 3600;
+            double large_price = 1.0 / 10000;
+            EXPECT_NEAR(small_solution.net_cost(),
+                    10 - small_price * used_small_bin / 10000
+                    + 1 - large_price * used_large_bin / 10000, 1e-9);
+            EXPECT_NEAR(large_solution.net_cost(), 1 - large_price * full_large_bin / 10000, 1e-9);
+            EXPECT_NEAR(two_solution.net_cost(), 2 * (1 - large_price * used_large_bin / 10000), 1e-9);
+            EXPECT_TRUE(small_solution < large_solution);
+            EXPECT_TRUE(two_solution < large_solution);
+            EXPECT_TRUE(small_solution < two_solution);
+        } else {
+            // The cost of a bin is its area.
+            EXPECT_NEAR(small_solution.net_cost(),
+                    3600 - used_small_bin / 10000 + 10000 - used_large_bin / 10000, 1e-9);
+            EXPECT_NEAR(large_solution.net_cost(), 10000 - full_large_bin / 10000, 1e-9);
+            EXPECT_NEAR(two_solution.net_cost(), 2 * (10000 - used_large_bin / 10000), 1e-9);
+            EXPECT_TRUE(small_solution < large_solution);
+            EXPECT_TRUE(two_solution < small_solution);
+            EXPECT_FALSE(large_solution < small_solution);
+            EXPECT_FALSE(small_solution < two_solution);
+
+            OptimizeParameters parameters;
+            parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytimeSequential;
+            const Output output = optimize(instance, parameters);
+            ASSERT_TRUE(output.solution_pool.best().feasible());
+            EXPECT_EQ(output.solution_pool.best().number_of_items(), 2);
+            EXPECT_EQ(output.solution_pool.best().total_leftover_value(), large_bin + full_large_bin + small_bin);
+            EXPECT_NEAR(output.solution_pool.best().net_cost(), 10000 - full_large_bin / 10000, 1e-9);
+        }
+    }
+}
+
 TEST(RectangleGuillotine, SolutionRoadef2018ExtraCut)
 {
     // With the 'Roadef2018' cut type, the extra cut of the last stage

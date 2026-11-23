@@ -137,7 +137,7 @@ double BarRelaxationPricingSolver::price_bars(
             break;
         } case Objective::Feasibility:
           case Objective::BinPacking:
-          case Objective::VariableSizedBinPacking: {
+          case Objective::VariableSizedBinPacking: case Objective::VariableSizedBinPackingWithLeftovers: {
             profit = duals[link_row[variant_id]];
             break;
         } default: {
@@ -187,7 +187,7 @@ double BarRelaxationPricingSolver::price_bars(
                 break;
             } case Objective::Feasibility:
               case Objective::BinPacking:
-              case Objective::VariableSizedBinPacking: {
+              case Objective::VariableSizedBinPacking: case Objective::VariableSizedBinPackingWithLeftovers: {
                 profit = duals[link_row[variant_id]];
                 break;
             } default: {
@@ -205,7 +205,7 @@ double BarRelaxationPricingSolver::price_bars(
         break;
     } case Objective::Feasibility:
       case Objective::BinPacking:
-      case Objective::VariableSizedBinPacking: {
+      case Objective::VariableSizedBinPacking: case Objective::VariableSizedBinPackingWithLeftovers: {
         reduced_cost = -achieved - duals[cap_row];
         break;
     } default: {
@@ -278,7 +278,7 @@ columngenerationsolver::PricingSolver::PricingOutput BarRelaxationPricingSolver:
             break;
         } case Objective::Feasibility:
           case Objective::BinPacking:
-          case Objective::VariableSizedBinPacking: {
+          case Objective::VariableSizedBinPacking: case Objective::VariableSizedBinPackingWithLeftovers: {
             overcost += (std::min)(0.0, reduced_cost_row)
                 * (double)bin_type.rect.y * (double)bin_type.copies;
             break;
@@ -303,7 +303,7 @@ columngenerationsolver::PricingSolver::PricingOutput BarRelaxationPricingSolver:
             break;
         } case Objective::Feasibility:
           case Objective::BinPacking:
-          case Objective::VariableSizedBinPacking: {
+          case Objective::VariableSizedBinPacking: case Objective::VariableSizedBinPackingWithLeftovers: {
             overcost += (std::min)(0.0, reduced_cost_col)
                 * (double)bin_type.rect.x * (double)bin_type.copies;
             break;
@@ -326,7 +326,7 @@ BarRelaxationOutput packingsolver::rectangle::bar_relaxation(
     if (instance.objective() != Objective::Knapsack
             && instance.objective() != Objective::Feasibility
             && instance.objective() != Objective::BinPacking
-            && instance.objective() != Objective::VariableSizedBinPacking)
+            && !is_variable_sized_bin_packing(instance.objective()))
         throw std::invalid_argument(FUNC_SIGNATURE);
     // For 'BinPacking' with several bin types, the objective value (a total
     // cost) would no longer convert to a bin *count* by a single division:
@@ -383,7 +383,7 @@ BarRelaxationOutput packingsolver::rectangle::bar_relaxation(
         break;
     } case Objective::Feasibility:
       case Objective::BinPacking:
-      case Objective::VariableSizedBinPacking: {
+      case Objective::VariableSizedBinPacking: case Objective::VariableSizedBinPackingWithLeftovers: {
         model.objective_sense = optimizationtools::ObjectiveDirection::Minimize;
         break;
     } default: {
@@ -486,7 +486,7 @@ BarRelaxationOutput packingsolver::rectangle::bar_relaxation(
             k_column.objective_coefficient = 0.0;
             break;
         } case Objective::BinPacking:
-          case Objective::VariableSizedBinPacking: {
+          case Objective::VariableSizedBinPacking: case Objective::VariableSizedBinPackingWithLeftovers: {
             k_column.objective_coefficient = bin_type.cost;
             break;
         } default: {
@@ -533,7 +533,7 @@ BarRelaxationOutput packingsolver::rectangle::bar_relaxation(
                 break;
             } case Objective::Feasibility:
               case Objective::BinPacking:
-              case Objective::VariableSizedBinPacking: {
+              case Objective::VariableSizedBinPacking: case Objective::VariableSizedBinPackingWithLeftovers: {
                 n_column.objective_coefficient = 0.0;
                 break;
             } default: {
@@ -618,7 +618,7 @@ BarRelaxationOutput packingsolver::rectangle::bar_relaxation(
             break;
         } case Objective::Feasibility: {
             break;
-        } case Objective::VariableSizedBinPacking: {
+        } case Objective::VariableSizedBinPacking: case Objective::VariableSizedBinPackingWithLeftovers: {
             algorithm_formatter.update_variable_sized_bin_packing_bound(cgs_output.bound);
             break;
         } case Objective::BinPacking: {

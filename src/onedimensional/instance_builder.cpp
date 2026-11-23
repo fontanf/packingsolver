@@ -980,6 +980,13 @@ void InstanceBuilder::resolve_item_types_unlimited_copies()
 
 Instance InstanceBuilder::build()
 {
+    if (instance_.objective() == Objective::VariableSizedBinPackingWithLeftovers) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "the objective 'VariableSizedBinPackingWithLeftovers' is not "
+                "available for the problem type 'onedimensional'.");
+    }
+
     // Compute the tolerances of the resources which haven't been set (see
     // 'Resource::tolerance').
     for (BinType& bin_type: instance_.bin_types_)

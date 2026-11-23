@@ -433,12 +433,13 @@ BranchingScheme::Node BranchingScheme::child_tmp(
         }
         const BinType& bin_type_orig = this->instance().bin_type(bin_type_id);
         LeftoverMode leftover_mode = this->instance().parameters().leftover_mode;
-        node.leftover_value = bin_type_orig.volume() - leftover_mode_used_box(
+        node.leftover_value = leftover_value(
+                this->instance().parameters().leftover_value_type,
                 leftover_mode,
                 bin_type_orig.box,
                 x_max,
                 y_max,
-                z_max).volume();
+                z_max);
 
         // Update the staircase of the last bin.
         if (insertion.new_bin > 0) {  // New bin.
@@ -467,6 +468,12 @@ BranchingScheme::Node BranchingScheme::child_tmp(
                 item_used_box.z);
         node.last_bin_staircase_leftover_value
             = bin_type_orig.volume() - node.last_bin_staircase.volume();
+        if (leftover_mode == LeftoverMode::Staircase) {
+            node.leftover_value = staircase_leftover_value(
+                    this->instance().parameters().leftover_value_type,
+                    bin_type_orig.box,
+                    node.last_bin_staircase.extents());
+        }
     }
 
     node.id = node_id_++;
@@ -780,7 +787,7 @@ bool BranchingScheme::better(
         const std::shared_ptr<Node>& node_2) const
 {
     switch (instance().objective()) {
-    case Objective::BinPacking: case Objective::VariableSizedBinPacking: {
+    case Objective::BinPacking: case Objective::VariableSizedBinPacking: case Objective::VariableSizedBinPackingWithLeftovers: {
         if (!leaf(node_1))
             return false;
         if (!leaf(node_2))
@@ -840,7 +847,7 @@ bool BranchingScheme::bound(
         const std::shared_ptr<Node>& node_2) const
 {
     switch (instance().objective()) {
-    case Objective::BinPacking: case Objective::VariableSizedBinPacking: {
+    case Objective::BinPacking: case Objective::VariableSizedBinPacking: case Objective::VariableSizedBinPackingWithLeftovers: {
         if (!leaf(node_2))
             return false;
         BinPos bin_pos = -1;
