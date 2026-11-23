@@ -22,11 +22,12 @@ Largest bin cost:      500
         Time       Waste   Waste (%)                         Comment
         ----       -----   ---------                         -------
        0.001         280       22.58                        SVC it 0
-       0.002         200       17.24                        SVC it 1
+       0.001         200       17.24                        SVC it 1
 
 Final statistics
 ----------------
-Time (s):  5.00722
+Time (s):              5.00351
+Is proven infeasible:  0
 
 Solution
 --------

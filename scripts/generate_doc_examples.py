@@ -56,6 +56,21 @@ subprocess.run([
     "--scale", "0.5",
 ])
 
+print("objective_variable_sized_bin_packing_with_leftovers")
+subprocess.run([
+    os.path.join(bin_dir, "packingsolver_rectangle"),
+    "--input", os.path.join(ex, "rectangle", "objective_variable_sized_bin_packing_with_leftovers", "instance.json"),
+    "--certificate", os.path.join(ex, "rectangle", "objective_variable_sized_bin_packing_with_leftovers", "solution.csv"),
+    "--time-limit", "5",
+], stdout=open(os.path.join(ex, "rectangle", "objective_variable_sized_bin_packing_with_leftovers", "output.txt"), "w"), stderr=subprocess.STDOUT)
+subprocess.run([
+    sys.executable, os.path.join("scripts", "visualize_rectangle.py"),
+    os.path.join(ex, "rectangle", "objective_variable_sized_bin_packing_with_leftovers", "solution.csv"),
+    "--output", os.path.join(img, "objective_variable_sized_bin_packing_with_leftovers_solution.png"),
+    "--columns", "1",
+    "--scale", "0.5",
+])
+
 print("objective_open_dimension_x")
 subprocess.run([
     os.path.join(bin_dir, "packingsolver_rectangle"),

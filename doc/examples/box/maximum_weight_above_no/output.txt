@@ -32,7 +32,7 @@ Largest bin cost:      6000
 
 Final statistics
 ----------------
-Time (s):              0.00140142
+Time (s):              0.00448965
 Is proven infeasible:  0
 Primal bound:          1
 Dual bound:            1
@@ -63,5 +63,5 @@ Y max:                           20
 Z max:                           30
 Leftover value:                  0
 Staircase leftover value:        0
-Total leftover value:            0
-Total staircase leftover value:  0
+Total leftover value:            3.24e+08
+Total staircase leftover value:  54000

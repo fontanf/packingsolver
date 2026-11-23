@@ -34,23 +34,30 @@ Largest bin cost:             3600
 
 Final statistics
 ----------------
-Time (s):  0.00488532
+Time (s):              0.00308202
+Is proven infeasible:  0
+Primal bound:          1
+Dual bound:            1
+Gap:                   0%
 
 Solution
 --------
-Number of items:  2 / 2 (100%)
-Item area:        3200 / 3200 (100%)
-Item profit:      3200 / 3200 (100%)
-Number of bins:   1 / 2 (50%)
-Bin area:         3600 / 7200 (50%)
-Bin cost:         3600
-Full waste:       400
-Full waste (%):   11.1111
-X min:            0
-Y min:            0
-X max:            60
-Y max:            60
-Density X:        0.888889
-Density Y:        0.888889
-ODXY area:        3600
-Leftover value:   0
+Number of items:                 2 / 2 (100%)
+Item area:                       3200 / 3200 (100%)
+Item profit:                     3200 / 3200 (100%)
+Number of bins:                  1 / 2 (50%)
+Bin area:                        3600 / 7200 (50%)
+Bin cost:                        3600
+Full waste:                      400
+Full waste (%):                  11.1111
+X min:                           0
+Y min:                           0
+X max:                           60
+Y max:                           60
+Density X:                       0.888889
+Density Y:                       0.888889
+ODXY area:                       3600
+Leftover value:                  0
+Staircase leftover value:        0
+Total leftover value:            1.296e+07
+Total staircase leftover value:  3600

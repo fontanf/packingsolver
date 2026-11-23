@@ -36,17 +36,18 @@ Largest bin cost:                      3200
 
         Time      # bins       Waste   Waste (%)                         Comment
         ----      ------       -----   ---------                         -------
-       0.000           2         949       15.82           TS g 0 d Vertical q 1
-       0.003           2         869       14.68          TS g 0 d Vertical q 13
-       0.003           2         869       14.68          TS g 0 d Vertical q 13
-       0.003           2         589       10.44          TS g 0 d Vertical q 13
-       0.016           2         389        7.15                        SVC it 0
-       0.031           2         349        6.46                        SVC it 1
-       0.473           2         349        6.46        TS g 1 d Vertical q 1599
+       0.009           2         949       15.82           TS g 0 d Vertical q 1
+       0.012           2         869       14.68          TS g 0 d Vertical q 13
+       0.019           2         869       14.68          TS g 1 d Vertical q 19
+       0.024           2         789       13.51          TS g 0 d Vertical q 14
+       0.028           2         389        7.15                        SVC it 0
+       0.041           2         349        6.46                        SVC it 1
+       0.403           2         349        6.46        TS g 1 d Vertical q 1599
 
 Final statistics
 ----------------
-Time (s):  10.0808
+Time (s):              10.0599
+Is proven infeasible:  0
 
 Solution
 --------
@@ -75,5 +76,6 @@ Feasible:                  1
     Max. no. 2-cuts:       1
     Stacks:                1
     Defects:               1
+    Trims:                 1
     Cut through defects:   1
     Item copies:           1

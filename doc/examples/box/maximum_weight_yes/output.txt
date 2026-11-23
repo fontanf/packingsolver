@@ -24,36 +24,44 @@ Smallest item y:       10
 Smallest item z:       10
 Total bin volume:      40000
 Total bin weight:      2000
-Largest bin cost:      400
+Largest bin cost:      4000
 
         Time    Bins  Full waste (%)                         Comment
         ----    ----  --------------                         -------
-       0.000       2           50.00                  TS g 0 d X q 1
+       0.001       2           50.00                  TS g 0 d X q 1
 
 Final statistics
 ----------------
-Time (s):  0.000955456
+Time (s):              0.00843129
+Is proven infeasible:  0
+Primal bound:          2
+Dual bound:            2
+Gap:                   0%
 
 Solution
 --------
-Number of items:   4 / 4 (100%)
-Item volume:       4000 / 4000 (100%)
-Item weight:       400 / 400 (100%)
-Item profit:       4000 / 4000 (100%)
-Number of stacks:  0
-Stack area:        0
-Number of bins:    2 / 10 (20%)
-Bin volume:        8000 / 40000 (20%)
-Bin area:          800 / 4000 (20%)
-Bin weight:        400 / 2000 (20%)
-Bin cost:          800
-Waste:             2000
-Waste (%):         33.3333
-Full waste:        4000
-Full waste (%):    50
-Volume load:       0.1
-Area load:         0
-Weight load:       0.2
-X max:             20
-Y max:             10
-Z max:             10
+Number of items:                 4 / 4 (100%)
+Item volume:                     4000 / 4000 (100%)
+Item weight:                     400 / 400 (100%)
+Item profit:                     4000 / 4000 (100%)
+Number of stacks:                0
+Stack area:                      0
+Number of bins:                  2 / 10 (20%)
+Bin volume:                      8000 / 40000 (20%)
+Bin area:                        800 / 4000 (20%)
+Bin weight:                      400 / 2000 (20%)
+Bin cost:                        8000
+Waste:                           2000
+Waste (%):                       33.3333
+Full waste:                      4000
+Full waste (%):                  50
+Volume load:                     0.1
+Area load:                       0
+Weight load:                     0.2
+X max:                           20
+Y max:                           10
+Z max:                           10
+Leftover value:                  4e+06
+Staircase leftover value:        2000
+Total leftover value:            1.36e+08
+Total staircase leftover value:  36000

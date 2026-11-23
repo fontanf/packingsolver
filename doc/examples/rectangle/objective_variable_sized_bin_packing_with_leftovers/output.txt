@@ -1,0 +1,67 @@
+=================================
+          PackingSolver          
+=================================
+
+Problem type
+------------
+Rectangle
+
+Instance
+--------
+Objective:             VariableSizedBinPackingWithLeftovers
+Number of item types:  2
+Number of items:       22
+Number of bin types:   2
+Number of bins:        20
+Number of groups:      1
+Number of defects:     0
+Unloading constraint:  None
+Total item area:       615000
+Mean item width:       222.727
+Mean item height:      122.727
+Smallest item width:   100
+Smallest item height:  100
+Total item profit:     615000
+Largest item profit:   37500
+Total item weight:     0
+Largest item copies:   12
+Total bin area:        7800000
+Total bin weight:      inf
+Largest bin cost:      500000
+
+        Time          Cost  # bins  Full waste (%)                         Comment
+        ----          ----  ------  --------------                         -------
+       0.003        780000       2           21.15                    DS q 1 w 0.1
+       0.006        780000       2           21.15                        SSK it 0
+
+Final statistics
+----------------
+Time (s):              5.01225
+Is proven infeasible:  0
+Primal bound:          780000
+Dual bound:            780000
+Gap:                   0%
+
+Solution
+--------
+Number of items:                 22 / 22 (100%)
+Item area:                       615000 / 615000 (100%)
+Item weight:                     0 / 0 (-nan%)
+Item profit:                     615000 / 615000 (100%)
+Number of bins:                  2 / 20 (10%)
+Bin area:                        780000 / 7800000 (10%)
+Bin weight:                      inf / inf (-nan%)
+Bin cost:                        780000
+Waste:                           65000
+Waste (%):                       9.55882
+Full waste:                      165000
+Full waste (%):                  21.1538
+Area load:                       0.0788462
+Weight load:                     0
+X max:                           450
+Y max:                           400
+Leftover value:                  1e+10
+Staircase leftover value:        165000
+Total leftover value:            2.9656e+12
+Net cost:                        760000
+Total staircase leftover value:  7185000

@@ -30,27 +30,34 @@ Largest bin cost:             4800
 
         Time    Bins  Full waste (%)                         Comment
         ----    ----  --------------                         -------
-       0.002       2           51.62                  TS g 0 d 0 q 1
+       0.001       2           51.62                  TS g 1 d 0 q 1
 
 Final statistics
 ----------------
-Time (s):  0.0157571
+Time (s):              0.0130667
+Is proven infeasible:  0
+Primal bound:          2
+Dual bound:            2
+Gap:                   0%
 
 Solution
 --------
-Number of items:  3 / 3 (100%)
-Item area:        4644 / 4644 (100%)
-Item profit:      4644 / 4644 (100%)
-Number of bins:   2 / 2 (100%)
-Bin area:         9600 / 9600 (100%)
-Bin cost:         9600
-Full waste:       4956
-Full waste (%):   51.625
-X min:            0
-Y min:            0
-X max:            40
-Y max:            60
-Density X:        0.645
-Density Y:        0.48375
-ODXY area:        2400
-Leftover value:   2400
+Number of items:                 3 / 3 (100%)
+Item area:                       4644 / 4644 (100%)
+Item profit:                     4644 / 4644 (100%)
+Number of bins:                  2 / 2 (100%)
+Bin area:                        9600 / 9600 (100%)
+Bin cost:                        9600
+Full waste:                      4956
+Full waste (%):                  51.625
+X min:                           0
+Y min:                           0
+X max:                           38
+Y max:                           38
+Density X:                       0.655932
+Density Y:                       0.592347
+ODXY area:                       1444
+Leftover value:                  1.12627e+07
+Staircase leftover value:        3356
+Total leftover value:            1.12627e+07
+Total staircase leftover value:  3356

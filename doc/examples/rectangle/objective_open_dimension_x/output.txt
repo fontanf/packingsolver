@@ -17,8 +17,8 @@ Number of groups:      1
 Number of defects:     0
 Unloading constraint:  None
 Total item area:       772500
-Total item width:      7000
-Total item height:     3600
+Mean item width:       205.882
+Mean item height:      105.882
 Smallest item width:   75
 Smallest item height:  75
 Total item profit:     772500
@@ -31,32 +31,39 @@ Largest bin cost:      1e+06
 
         Time           X                         Comment
         ----           -                         -------
-       0.000        1750                  TS g 1 d X q 1
-       0.001        1675                  TS g 0 d X q 2
-       0.001        1600                  TS g 0 d X q 2
-       0.009        1575                 TS g 1 d X q 13
-       0.080        1550                 TS g 1 d X q 94
+       0.001        1750                  TS g 0 d X q 1
+       0.005        1675                  TS g 0 d X q 2
+       0.009        1600                  TS g 0 d X q 2
+       0.021        1575                 TS g 1 d X q 13
+       0.076        1550                 TS g 1 d X q 94
 
 Final statistics
 ----------------
-Time (s):  5.00327
+Time (s):              5.00652
+Is proven infeasible:  0
+Primal bound:          1550
+Dual bound:            1545
+Gap:                   0.322581%
 
 Solution
 --------
-Number of items:  34 / 34 (100%)
-Item area:        772500 / 772500 (100%)
-Item weight:      0 / 0 (-nan%)
-Item profit:      772500 / 772500 (100%)
-Number of bins:   1 / 1 (100%)
-Bin area:         1000000 / 1000000 (100%)
-Bin weight:       inf / inf (-nan%)
-Bin cost:         1e+06
-Waste:            2500
-Waste (%):        0.322581
-Full waste:       227500
-Full waste (%):   22.75
-Area load:        0.7725
-Weight load:      0
-X max:            1550
-Y max:            500
-Leftover value:   225000
+Number of items:                 34 / 34 (100%)
+Item area:                       772500 / 772500 (100%)
+Item weight:                     0 / 0 (-nan%)
+Item profit:                     772500 / 772500 (100%)
+Number of bins:                  1 / 1 (100%)
+Bin area:                        1000000 / 1000000 (100%)
+Bin weight:                      inf / inf (-nan%)
+Bin cost:                        1e+06
+Waste:                           2500
+Waste (%):                       0.322581
+Full waste:                      227500
+Full waste (%):                  22.75
+Area load:                       0.7725
+Weight load:                     0
+X max:                           1550
+Y max:                           500
+Leftover value:                  5.0625e+10
+Staircase leftover value:        225000
+Total leftover value:            5.0625e+10
+Total staircase leftover value:  225000

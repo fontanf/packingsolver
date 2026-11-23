@@ -21,11 +21,15 @@ Largest bin cost:      500
 
         Time    Bins  Full waste (%)                         Comment
         ----    ----  --------------                         -------
-       0.000       1          -12.00                        SVC it 0
+       0.000       1            2.00                        SVC it 0
 
 Final statistics
 ----------------
-Time (s):  0.000627353
+Time (s):              0.00365059
+Is proven infeasible:  0
+Primal bound:          1
+Dual bound:            1
+Gap:                   0%
 
 Solution
 --------
@@ -35,7 +39,7 @@ Item profit:      560 / 560 (100%)
 Number of bins:   1 / 10 (10%)
 Bin length:       500 / 5000 (10%)
 Bin cost:         500
-Waste:            -70
-Waste (%):        -14.2857
-Full waste:       -60
-Full waste (%):   -12
+Waste:            0
+Waste (%):        0
+Full waste:       10
+Full waste (%):   2

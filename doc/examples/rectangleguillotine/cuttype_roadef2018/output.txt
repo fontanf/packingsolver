@@ -36,21 +36,23 @@ Largest bin cost:                      3200
 
         Time      # bins       Waste   Waste (%)                         Comment
         ----      ------       -----   ---------                         -------
-       0.000           2         869       14.68           TS g 1 d Vertical q 1
-       0.002           2         749       12.91           TS g 1 d Vertical q 4
-       0.002           2         589       10.44           TS g 0 d Vertical q 3
-       0.010           2         589       10.44           TS g 0 d Vertical q 5
-       0.012           2         549        9.80          TS g 1 d Vertical q 13
-       0.016           2         349        6.46          TS g 1 d Vertical q 28
-       0.027           2         349        6.46          TS g 1 d Vertical q 63
-       0.027           2         349        6.46          TS g 1 d Vertical q 63
-       0.027           2         309        5.76          TS g 1 d Vertical q 63
-       0.037           2         309        5.76          TS g 1 d Vertical q 94
-       0.073           2         309        5.76         TS g 1 d Vertical q 211
+       0.007           2        1349       21.08           TS g 0 d Vertical q 1
+       0.008           2         869       14.68           TS g 1 d Vertical q 1
+       0.013           2         589       10.44           TS g 0 d Vertical q 3
+       0.017           2         589       10.44           TS g 0 d Vertical q 5
+       0.020           2         549        9.80          TS g 1 d Vertical q 13
+       0.024           2         349        6.46                        SVC it 0
+       0.028           2         349        6.46          TS g 1 d Vertical q 28
+       0.036           2         349        6.46          TS g 0 d Vertical q 94
+       0.042           2         349        6.46          TS g 1 d Vertical q 63
+       0.045           2         309        5.76          TS g 1 d Vertical q 63
+       0.051           2         309        5.76         TS g 0 d Vertical q 141
+       0.085           2         309        5.76         TS g 1 d Vertical q 156
 
 Final statistics
 ----------------
-Time (s):  10.0722
+Time (s):              10.0699
+Is proven infeasible:  0
 
 Solution
 --------
@@ -79,5 +81,6 @@ Feasible:                  1
     Max. no. 2-cuts:       1
     Stacks:                1
     Defects:               1
+    Trims:                 1
     Cut through defects:   1
     Item copies:           1

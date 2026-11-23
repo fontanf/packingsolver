@@ -17,8 +17,8 @@ Number of groups:      1
 Number of defects:     0
 Unloading constraint:  None
 Total item area:       240000
-Total item width:      1200
-Total item height:     800
+Mean item width:       300
+Mean item height:      200
 Smallest item width:   200
 Smallest item height:  200
 Total item profit:     240000
@@ -31,28 +31,35 @@ Largest bin cost:      240000
 
         Time    Bins  Full waste (%)                         Comment
         ----    ----  --------------                         -------
-       0.000       2           50.00                  TS g 1 d Y q 1
+       0.001       2           50.00                  TS g 0 d X q 1
 
 Final statistics
 ----------------
-Time (s):  0.00078615
+Time (s):              0.00717125
+Is proven infeasible:  0
+Primal bound:          2
+Dual bound:            2
+Gap:                   0%
 
 Solution
 --------
-Number of items:  4 / 4 (100%)
-Item area:        240000 / 240000 (100%)
-Item weight:      400 / 400 (100%)
-Item profit:      240000 / 240000 (100%)
-Number of bins:   2 / 10 (20%)
-Bin area:         480000 / 2400000 (20%)
-Bin weight:       400 / 2000 (20%)
-Bin cost:         480000
-Waste:            120000
-Waste (%):        33.3333
-Full waste:       240000
-Full waste (%):   50
-Area load:        0.1
-Weight load:      0.2
-X max:            300
-Y max:            400
-Leftover value:   120000
+Number of items:                 4 / 4 (100%)
+Item area:                       240000 / 240000 (100%)
+Item weight:                     400 / 400 (100%)
+Item profit:                     240000 / 240000 (100%)
+Number of bins:                  2 / 10 (20%)
+Bin area:                        480000 / 2400000 (20%)
+Bin weight:                      400 / 2000 (20%)
+Bin cost:                        480000
+Waste:                           120000
+Waste (%):                       33.3333
+Full waste:                      240000
+Full waste (%):                  50
+Area load:                       0.1
+Weight load:                     0.2
+X max:                           600
+Y max:                           200
+Leftover value:                  1.44e+10
+Staircase leftover value:        120000
+Total leftover value:            4.896e+11
+Total staircase leftover value:  2160000

@@ -17,8 +17,8 @@ Number of groups:      1
 Number of defects:     0
 Unloading constraint:  None
 Total item area:       106
-Total item width:      24
-Total item height:     18
+Mean item width:       6
+Mean item height:      4.5
 Smallest item width:   4
 Smallest item height:  3
 Total item profit:     106
@@ -31,29 +31,35 @@ Largest bin cost:      108
 
         Time    Bins  Full waste (%)                         Comment
         ----    ----  --------------                         -------
-       0.000       2           50.93                  TS g 1 d Y q 1
-       0.001       1            1.85                        SVC it 0
+       0.010       1            1.85                                
 
 Final statistics
 ----------------
-Time (s):  0.00139759
+Time (s):              0.0123242
+Is proven infeasible:  0
+Primal bound:          1
+Dual bound:            1
+Gap:                   0%
 
 Solution
 --------
-Number of items:  4 / 4 (100%)
-Item area:        106 / 106 (100%)
-Item weight:      0 / 0 (-nan%)
-Item profit:      106 / 106 (100%)
-Number of bins:   1 / 2 (50%)
-Bin area:         108 / 216 (50%)
-Bin weight:       inf / inf (-nan%)
-Bin cost:         108
-Waste:            2
-Waste (%):        1.85185
-Full waste:       2
-Full waste (%):   1.85185
-Area load:        0.490741
-Weight load:      0
-X max:            12
-Y max:            9
-Leftover value:   0
+Number of items:                 4 / 4 (100%)
+Item area:                       106 / 106 (100%)
+Item weight:                     0 / 0 (-nan%)
+Item profit:                     106 / 106 (100%)
+Number of bins:                  1 / 2 (50%)
+Bin area:                        108 / 216 (50%)
+Bin weight:                      inf / inf (-nan%)
+Bin cost:                        108
+Waste:                           2
+Waste (%):                       1.85185
+Full waste:                      2
+Full waste (%):                  1.85185
+Area load:                       0.490741
+Weight load:                     0
+X max:                           12
+Y max:                           9
+Leftover value:                  0
+Staircase leftover value:        0
+Total leftover value:            11664
+Total staircase leftover value:  108
