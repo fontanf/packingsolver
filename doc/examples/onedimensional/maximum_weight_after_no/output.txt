@@ -25,7 +25,8 @@ Largest bin cost:      500
 
 Final statistics
 ----------------
-Time (s):  5.01685
+Time (s):              5.00597
+Is proven infeasible:  0
 
 Solution
 --------

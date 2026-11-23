@@ -21,11 +21,15 @@ Largest bin cost:      800
 
         Time    Bins  Full waste (%)                         Comment
         ----    ----  --------------                         -------
-       0.000       1            0.00                        SVC it 0
+       0.000       1            0.00                                
 
 Final statistics
 ----------------
-Time (s):  0.000591389
+Time (s):              0.00952082
+Is proven infeasible:  0
+Primal bound:          1
+Dual bound:            1
+Gap:                   0%
 
 Solution
 --------

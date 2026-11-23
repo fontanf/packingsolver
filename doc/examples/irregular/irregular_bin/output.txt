@@ -30,97 +30,103 @@ Largest bin cost:             14882.1
 
         Time        Profit   # items                         Comment
         ----        ------   -------                         -------
-       0.005            27         1                  TS g 5 d 0 q 1
-       0.005            53         1                  TS g 5 d 0 q 1
-       0.008            91         1                  TS g 5 d 0 q 1
-       0.012           318         1                  TS g 5 d 0 q 1
-       0.017           320         1                  TS g 5 d 0 q 1
-       0.021           379         1                  TS g 5 d 0 q 1
-       0.025           387         2                  TS g 5 d 4 q 1
-       0.028           406         2                  TS g 5 d 0 q 1
-       0.031           411         2                  TS g 5 d 3 q 1
-       0.033           436         2                  TS g 4 d 7 q 1
-       0.037           591         2                  TS g 5 d 7 q 1
-       0.039           699         2                  TS g 5 d 7 q 1
-       0.042           708         3                  TS g 5 d 7 q 1
-       0.046           709         3                  TS g 5 d 7 q 1
-       0.050           712         3                  TS g 5 d 7 q 1
-       0.052           726         3                  TS g 5 d 3 q 1
-       0.056           790         3                  TS g 5 d 3 q 1
-       0.059           889         3                  TS g 5 d 3 q 1
-       0.064           895         3                  TS g 5 d 3 q 1
+       0.004            27         1                  TS g 5 d 4 q 1
+       0.004            53         1                  TS g 5 d 4 q 1
+       0.009           320         1                  TS g 5 d 4 q 1
+       0.011           379         1                  TS g 5 d 4 q 1
+       0.015           387         2                  TS g 5 d 4 q 1
+       0.018           395         2                  TS g 4 d 4 q 1
+       0.022           397         2                  TS g 5 d 4 q 1
+       0.027           403         3                  TS g 4 d 0 q 1
+       0.029           413         3                  TS g 4 d 4 q 1
+       0.034           470         2                  TS g 5 d 4 q 1
+       0.038           697         2                  TS g 5 d 4 q 1
+       0.043           699         2                  TS g 5 d 4 q 1
+       0.048           705         3                  TS g 5 d 0 q 1
+       0.051           706         3                  TS g 5 d 0 q 1
+       0.055           715         3                  TS g 5 d 4 q 1
+       0.058           724         3                  TS g 5 d 0 q 1
+       0.063           893         3                  TS g 5 d 4 q 1
        0.068           968         3                  TS g 5 d 4 q 1
-       0.074           976         4                  TS g 5 d 4 q 1
-       0.078           986         4                  TS g 5 d 4 q 1
-       0.080          1025         4                  TS g 5 d 4 q 1
-       0.084          1059         4                  TS g 5 d 4 q 1
-       0.089          1067         5                  TS g 5 d 4 q 1
-       0.094          1077         5                  TS g 5 d 4 q 1
-       0.099          1086         5                  TS g 5 d 4 q 1
-       0.105          1094         6                  TS g 5 d 4 q 1
-       0.109          1104         6                  TS g 5 d 4 q 1
-       0.112          1110         7                  TS g 5 d 4 q 1
-       0.115          1111         7                  TS g 5 d 4 q 1
-       0.121          1117         8                  TS g 5 d 4 q 1
-       0.127          1118         8                  TS g 5 d 4 q 1
-       0.132          1126         9                  TS g 5 d 4 q 1
-       0.137          1134        10                  TS g 5 d 4 q 1
-       0.143          1138        18                  TS g 5 d 0 q 1
-       0.159          1140         7                  TS g 5 d 0 q 2
-       0.161          1158         8                  TS g 5 d 0 q 2
-       0.168          1165         9                  TS g 5 d 0 q 2
-       0.171          1166         9                  TS g 5 d 0 q 2
-       0.178          1173         9                  TS g 5 d 0 q 2
-       0.183          1179         9                  TS g 5 d 0 q 2
-       0.188          1184         9                  TS g 5 d 0 q 2
-       0.195          1187        10                  TS g 5 d 0 q 2
-       0.200          1188        10                  TS g 5 d 0 q 2
-       0.205          1195        10                  TS g 5 d 0 q 2
-       0.211          1200        10                  TS g 5 d 0 q 2
-       0.216          1206        10                  TS g 5 d 0 q 2
-       0.221          1208        11                  TS g 5 d 0 q 2
-       0.227          1210        11                  TS g 5 d 0 q 2
-       0.232          1211        12                  TS g 5 d 0 q 2
-       0.238          1218        12                  TS g 5 d 0 q 2
-       0.244          1227        13                  TS g 5 d 0 q 2
-       0.250          1234        14                  TS g 5 d 0 q 2
-       0.255          1240        15                  TS g 5 d 0 q 2
-       0.262          1241        15                  TS g 5 d 0 q 2
-       0.272          1248        16                  TS g 5 d 0 q 2
-       0.277          1255        17                  TS g 5 d 0 q 2
-       0.387          1257        13                 TS g 5 d 4 q 13
-       0.389          1258        14                 TS g 5 d 4 q 13
-       0.439          1260        13                 TS g 5 d 4 q 19
-       0.440          1262        13                 TS g 5 d 4 q 19
-       0.448          1266        14                 TS g 5 d 4 q 19
+       0.073           976         4                  TS g 5 d 4 q 1
+       0.077           986         4                  TS g 5 d 4 q 1
+       0.083          1025         4                  TS g 5 d 4 q 1
+       0.087          1059         4                  TS g 5 d 4 q 1
+       0.092          1067         5                  TS g 5 d 4 q 1
+       0.096          1077         5                  TS g 5 d 4 q 1
+       0.101          1086         5                  TS g 5 d 4 q 1
+       0.107          1094         6                  TS g 5 d 4 q 1
+       0.113          1104         6                  TS g 5 d 4 q 1
+       0.119          1110         7                  TS g 5 d 4 q 1
+       0.124          1111         7                  TS g 5 d 4 q 1
+       0.130          1117         8                  TS g 5 d 4 q 1
+       0.136          1118         8                  TS g 5 d 4 q 1
+       0.141          1126         9                  TS g 5 d 4 q 1
+       0.146          1134        10                  TS g 5 d 4 q 1
+       0.152          1138        18                  TS g 5 d 0 q 1
+       0.166          1148         7                  TS g 5 d 4 q 3
+       0.167          1158         8                  TS g 5 d 0 q 2
+       0.173          1162         9                  TS g 5 d 4 q 3
+       0.179          1165         9                  TS g 5 d 0 q 2
+       0.186          1166         9                  TS g 5 d 0 q 2
+       0.192          1173         9                  TS g 5 d 0 q 2
+       0.199          1179         9                  TS g 5 d 0 q 2
+       0.205          1184         9                  TS g 5 d 0 q 2
+       0.211          1187        10                  TS g 5 d 0 q 2
+       0.217          1188        10                  TS g 5 d 0 q 2
+       0.223          1195        10                  TS g 5 d 0 q 2
+       0.229          1200        10                  TS g 5 d 0 q 2
+       0.234          1206        10                  TS g 5 d 0 q 2
+       0.240          1208        11                  TS g 5 d 0 q 2
+       0.246          1210        11                  TS g 5 d 0 q 2
+       0.252          1211        12                  TS g 5 d 0 q 2
+       0.258          1218        12                  TS g 5 d 0 q 2
+       0.265          1227        13                  TS g 5 d 0 q 2
+       0.271          1234        14                  TS g 5 d 0 q 2
+       0.277          1240        15                  TS g 5 d 0 q 2
+       0.283          1241        15                  TS g 5 d 0 q 2
+       0.289          1248        16                  TS g 5 d 0 q 2
+       0.296          1255        17                  TS g 5 d 0 q 2
+       0.361          1257        13                 TS g 5 d 4 q 13
+       0.362          1258        14                 TS g 5 d 4 q 13
+       0.401          1260        13                 TS g 5 d 4 q 19
+       0.402          1262        13                 TS g 5 d 4 q 19
+       0.411          1266        14                 TS g 5 d 4 q 19
        0.466          1270        17                 TS g 5 d 0 q 13
-       0.667          1272        15                 TS g 5 d 0 q 28
-       0.670          1278        16                 TS g 5 d 0 q 28
-       1.490          1282        16                 TS g 5 d 0 q 94
-       2.705          1285        15                TS g 5 d 0 q 211
-       2.716          1286        15                TS g 5 d 0 q 211
-       7.422          1291        16                TS g 5 d 4 q 711
-       7.759          1292        16                TS g 5 d 0 q 711
+       0.576          1272        15                 TS g 5 d 0 q 28
+       0.578          1278        16                 TS g 5 d 0 q 28
+       1.016          1282        16                 TS g 5 d 0 q 94
+       1.773          1285        15                TS g 5 d 0 q 211
+       1.779          1286        15                TS g 5 d 0 q 211
+       4.932          1292        16                TS g 5 d 0 q 711
+       8.810          1295        16               TS g 5 d 4 q 1066
 
 Final statistics
 ----------------
-Time (s):  10.0102
+Time (s):              10.0119
+Is proven infeasible:  0
+Primal bound:          1295
+Dual bound:            1535
+Gap:                   18.5328%
 
 Solution
 --------
-Number of items:  16 / 28 (57.1429%)
-Item area:        13463.4 / 29548 (45.5646%)
-Item profit:      1292 / 2810 (45.9786%)
-Number of bins:   1 / 1 (100%)
-Bin area:         14882 / 14882 (100%)
-Bin cost:         14882.1
-Full waste:       1418.71
-Full waste (%):   9.533
-X min:            0.3378
-Y min:            0.0363114
-X max:            136.539
-Y max:            128.211
-Density X:        0.768231
-Density Y:        0.76102
-ODXY area:        17457.6
-Leftover value:   204.936
+Number of items:                 16 / 28 (57.1429%)
+Item area:                       13477.5 / 29548 (45.6124%)
+Item profit:                     1295 / 2810 (46.0854%)
+Number of bins:                  1 / 1 (100%)
+Bin area:                        14882 / 14882 (100%)
+Bin cost:                        14882.1
+Full waste:                      1404.58
+Full waste (%):                  9.43801
+X min:                           0.3378
+Y min:                           0.0363114
+X max:                           137.861
+Y max:                           128.24
+Density X:                       0.761664
+Density Y:                       0.761653
+ODXY area:                       17630.9
+Leftover value:                  997.887
+Staircase leftover value:        797.572
+Total leftover value:            997.887
+Total staircase leftover value:  797.572

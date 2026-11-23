@@ -17,43 +17,51 @@ Number of defects:     0
 Total item volume:     840
 Total item profit:     840
 Largest item profit:   600
-Total item weight:     0
+Total item weight:     840
 Largest item copies:   1
 Smallest item x:       10
 Smallest item y:       4
 Smallest item z:       6
 Total bin volume:      2000
 Total bin weight:      inf
-Largest bin cost:      100
+Largest bin cost:      1000
 
         Time    Bins  Full waste (%)                         Comment
         ----    ----  --------------                         -------
-       0.000       2           58.00                  TS g 0 d Y q 1
+       0.000       2           58.00                                
 
 Final statistics
 ----------------
-Time (s):  0.00149094
+Time (s):              0.00268583
+Is proven infeasible:  0
+Primal bound:          2
+Dual bound:            2
+Gap:                   0%
 
 Solution
 --------
-Number of items:   2 / 2 (100%)
-Item volume:       840 / 840 (100%)
-Item weight:       0 / 0 (-nan%)
-Item profit:       840 / 840 (100%)
-Number of stacks:  0
-Stack area:        0
-Number of bins:    2 / 2 (100%)
-Bin volume:        2000 / 2000 (100%)
-Bin area:          200 / 200 (100%)
-Bin weight:        inf / inf (-nan%)
-Bin cost:          200
-Waste:             400
-Waste (%):         32.2581
-Full waste:        1160
-Full waste (%):    58
-Volume load:       0.42
-Area load:         0
-Weight load:       0
-X max:             10
-Y max:             4
-Z max:             6
+Number of items:                 2 / 2 (100%)
+Item volume:                     840 / 840 (100%)
+Item weight:                     840 / 840 (100%)
+Item profit:                     840 / 840 (100%)
+Number of stacks:                0
+Stack area:                      0
+Number of bins:                  2 / 2 (100%)
+Bin volume:                      2000 / 2000 (100%)
+Bin area:                        200 / 200 (100%)
+Bin weight:                      inf / inf (-nan%)
+Bin cost:                        2000
+Waste:                           400
+Waste (%):                       32.2581
+Full waste:                      1160
+Full waste (%):                  58
+Volume load:                     0.42
+Area load:                       0
+Weight load:                     0
+X max:                           10
+Y max:                           4
+Z max:                           6
+Leftover value:                  577600
+Staircase leftover value:        760
+Total leftover value:            737600
+Total staircase leftover value:  1160

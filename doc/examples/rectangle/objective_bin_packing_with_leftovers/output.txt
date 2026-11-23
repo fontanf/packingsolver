@@ -9,6 +9,9 @@ Rectangle
 Instance
 --------
 Objective:             BinPackingWithLeftovers
+Leftover mode:         Area
+Leftover value type:   SquaredArea
+Leftover all bins:     1
 Number of item types:  3
 Number of items:       34
 Number of bin types:   2
@@ -17,8 +20,8 @@ Number of groups:      1
 Number of defects:     0
 Unloading constraint:  None
 Total item area:       772500
-Total item width:      7000
-Total item height:     3600
+Mean item width:       205.882
+Mean item height:      105.882
 Smallest item width:   75
 Smallest item height:  75
 Total item profit:     772500
@@ -31,36 +34,44 @@ Largest bin cost:      500000
 
         Time      # bins    Leftover                         Comment
         ----      ------    --------                         -------
-       0.001           2       37500                TS g 1 d Any q 1
-       0.001           2       87500                TS g 1 d Any q 1
-       0.001           2      125000                TS g 1 d Any q 1
-       0.002           2      137500                TS g 1 d Any q 2
-       0.002           2      162500                TS g 0 d Any q 2
-       0.002           2      175000                        SSK it 0
-       0.002           2      200000                TS g 0 d Any q 2
-       0.003           2      212500                TS g 1 d Any q 4
-       2.235           2      225000             TS g 1 d Any q 1066
+       0.001           2 1.40625e+09                TS g 0 d Any q 1
+       0.002           2 7.65625e+09                TS g 0 d Any q 1
+       0.007           2  1.5625e+10                TS g 0 d Any q 1
+       0.012           2 2.64062e+10                TS g 0 d Any q 2
+       0.015           2       4e+10                        SSK it 0
+       0.020           2 4.51562e+10                TS g 1 d Any q 4
+       0.031           2 4.51562e+10                        SSK it 3
+       0.034           2 4.51562e+10               TS g 0 d Any q 19
+       0.042           2 4.51562e+10                        SSK it 4
+       0.045           2 4.51562e+10               TS g 0 d Any q 28
+       0.263           2 4.51562e+10              TS g 0 d Any q 156
+       0.788           2  5.0625e+10                        SSK it 8
+       1.910           2  5.0625e+10             TS g 1 d Any q 1066
 
 Final statistics
 ----------------
-Time (s):  5.00676
+Time (s):              5.00936
+Is proven infeasible:  0
 
 Solution
 --------
-Number of items:  34 / 34 (100%)
-Item area:        772500 / 772500 (100%)
-Item weight:      0 / 0 (-nan%)
-Item profit:      772500 / 772500 (100%)
-Number of bins:   2 / 20 (10%)
-Bin area:         1000000 / 7800000 (12.8205%)
-Bin weight:       inf / inf (-nan%)
-Bin cost:         1e+06
-Waste:            2500
-Waste (%):        0.322581
-Full waste:       227500
-Full waste (%):   22.75
-Area load:        0.0990385
-Weight load:      0
-X max:            550
-Y max:            500
-Leftover value:   225000
+Number of items:                 34 / 34 (100%)
+Item area:                       772500 / 772500 (100%)
+Item weight:                     0 / 0 (-nan%)
+Item profit:                     772500 / 772500 (100%)
+Number of bins:                  2 / 20 (10%)
+Bin area:                        1000000 / 7800000 (12.8205%)
+Bin weight:                      inf / inf (-nan%)
+Bin cost:                        1e+06
+Waste:                           2500
+Waste (%):                       0.322581
+Full waste:                      227500
+Full waste (%):                  22.75
+Area load:                       0.0990385
+Weight load:                     0
+X max:                           550
+Y max:                           500
+Leftover value:                  5.0625e+10
+Staircase leftover value:        226875
+Total leftover value:            2.83462e+12
+Total staircase leftover value:  7026875

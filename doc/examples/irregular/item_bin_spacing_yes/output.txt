@@ -20,6 +20,8 @@ Number of circular items:     0
 Item-item minimum spacing:    0
 Open dim. XY aspect ratio:    -1
 Leftover mode:                BottomLeft
+Leftover value type:          SquaredArea
+Leftover all bins:            1
 Total item area:              16000
 Smallest item area:           1600
 Largest item area:            1600
@@ -31,29 +33,33 @@ Largest bin cost:             16000
 
         Time      # bins    Leftover                         Comment
         ----      ------    --------                         -------
-       0.001           2        5791                  TS g 1 d 0 q 1
-       0.002           2        7451                  TS g 1 d 0 q 1
-       0.002           2        9111                  TS g 1 d 0 q 1
+       0.007           2 3.35357e+07                  TS g 1 d 0 q 1
+       0.008           2 5.55174e+07                  TS g 1 d 0 q 1
+       0.016           2 8.30103e+07                  TS g 1 d 0 q 1
 
 Final statistics
 ----------------
-Time (s):  10.0012
+Time (s):              10.0009
+Is proven infeasible:  0
 
 Solution
 --------
-Number of items:  10 / 10 (100%)
-Item area:        16000 / 16000 (100%)
-Item profit:      16000 / 16000 (100%)
-Number of bins:   2 / 3 (66.6667%)
-Bin area:         32000 / 48000 (66.6667%)
-Bin cost:         32000
-Full waste:       16000
-Full waste (%):   50
-X min:            3
-Y min:            3
-X max:            83
-Y max:            83
-Density X:        0.658436
-Density Y:        0.546448
-ODXY area:        6400
-Leftover value:   9111
+Number of items:                 10 / 10 (100%)
+Item area:                       16000 / 16000 (100%)
+Item profit:                     16000 / 16000 (100%)
+Number of bins:                  2 / 3 (66.6667%)
+Bin area:                        32000 / 48000 (66.6667%)
+Bin cost:                        32000
+Full waste:                      16000
+Full waste (%):                  50
+X min:                           3
+Y min:                           3
+X max:                           83
+Y max:                           83
+Density X:                       0.658436
+Density Y:                       0.546448
+ODXY area:                       6400
+Leftover value:                  8.30103e+07
+Staircase leftover value:        9111
+Total leftover value:            3.72546e+08
+Total staircase leftover value:  30902

@@ -20,6 +20,8 @@ Number of circular items:     0
 Item-item minimum spacing:    0
 Open dim. XY aspect ratio:    -1
 Leftover mode:                BottomLeft
+Leftover value type:          SquaredArea
+Leftover all bins:            1
 Total item area:              18400
 Smallest item area:           800
 Largest item area:            800
@@ -31,31 +33,35 @@ Largest bin cost:             19200
 
         Time      # bins    Leftover                         Comment
         ----      ------    --------                         -------
-       0.001           2        9600                  TS g 1 d 0 q 1
-       0.002           2       14400                  TS g 1 d 0 q 1
-       0.005           2       16000                  TS g 0 d 0 q 2
-       0.007           2       17600                  TS g 0 d 0 q 3
-       0.147           1           0                        SSK it 4
+       0.002           2  1.6384e+08                  TS g 1 d 0 q 1
+       0.002           2  2.0736e+08                  TS g 0 d 0 q 1
+       0.011           2    2.56e+08                  TS g 0 d 0 q 2
+       0.017           2  3.0976e+08                  TS g 1 d 0 q 3
+       0.030           1           0                  TS g 1 d 0 q 9
 
 Final statistics
 ----------------
-Time (s):  8.00076
+Time (s):              8.0056
+Is proven infeasible:  0
 
 Solution
 --------
-Number of items:  23 / 23 (100%)
-Item area:        18400 / 18400 (100%)
-Item profit:      18400 / 18400 (100%)
-Number of bins:   1 / 3 (33.3333%)
-Bin area:         19200 / 57600 (33.3333%)
-Bin cost:         19200
-Full waste:       800
-Full waste (%):   4.16667
-X min:            0
-Y min:            0
-X max:            160
-Y max:            120
-Density X:        0.958333
-Density Y:        0.958333
-ODXY area:        19200
-Leftover value:   0
+Number of items:                 23 / 23 (100%)
+Item area:                       18400 / 18400 (100%)
+Item profit:                     18400 / 18400 (100%)
+Number of bins:                  1 / 3 (33.3333%)
+Bin area:                        19200 / 57600 (33.3333%)
+Bin cost:                        19200
+Full waste:                      800
+Full waste (%):                  4.16667
+X min:                           0
+Y min:                           0
+X max:                           160
+Y max:                           120
+Density X:                       0.958333
+Density Y:                       0.958333
+ODXY area:                       19200
+Leftover value:                  0
+Staircase leftover value:        0
+Total leftover value:            7.3728e+08
+Total staircase leftover value:  38400

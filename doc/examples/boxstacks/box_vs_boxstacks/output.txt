@@ -24,31 +24,39 @@ Total bin weight:      inf
 
         Time        Profit   # items                         Comment
         ----        ------   -------                         -------
-       0.064    4.7688e+10        36                        SOR it 0
+       0.008    4.7688e+10        36                  SOR X it 0 q 2
 
 Final statistics
 ----------------
-Time (s):  0.103086
+Time (s):              10.044
+Is proven infeasible:  0
+Primal bound:          4.7688e+10
+Dual bound:            4.8952e+10
+Gap:                   2.65056%
 
 Solution
 --------
-Number of items:   36 / 48 (75%)
-Item volume:       4.7688e+10 / 4.8952e+10 (97.4179%)
-Item weight:       0 / 0 (-nan%)
-Item profit:       4.7688e+10 / 4.8952e+10 (97.4179%)
-Number of stacks:  12
-Stack area:        18000000
-Number of bins:    1 / 1 (100%)
-Bin volume:        54000000000 / 54000000000 (100%)
-Bin area:          18000000 / 18000000 (100%)
-Bin weight:        inf / inf (-nan%)
-Bin cost:          1.8e+07
-Waste:             6312000000
-Waste (%):         11.6889
-Full waste:        6312000000
-Full waste (%):    11.6889
-Volume load:       0.883111
-Area load:         1
-Weight load:       0
-X max:             7500
-Y max:             2400
+Number of items:                 36 / 48 (75%)
+Item volume:                     4.7688e+10 / 4.8952e+10 (97.4179%)
+Item weight:                     0 / 0 (-nan%)
+Item profit:                     4.7688e+10 / 4.8952e+10 (97.4179%)
+Number of stacks:                12
+Stack area:                      18000000
+Number of bins:                  1 / 1 (100%)
+Bin volume:                      54000000000 / 54000000000 (100%)
+Bin area:                        18000000 / 18000000 (100%)
+Bin weight:                      inf / inf (-nan%)
+Bin cost:                        5.4e+10
+Waste:                           6312000000
+Waste (%):                       11.6889
+Full waste:                      6312000000
+Full waste (%):                  11.6889
+Volume load:                     0.883111
+Area load:                       1
+Weight load:                     0
+X max:                           7500
+Y max:                           2400
+Leftover value:                  0
+Staircase leftover value:        0
+Total leftover value:            0
+Total staircase leftover value:  0

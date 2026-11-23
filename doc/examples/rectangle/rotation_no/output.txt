@@ -9,6 +9,9 @@ Rectangle
 Instance
 --------
 Objective:             BinPackingWithLeftovers
+Leftover mode:         Area
+Leftover value type:   SquaredArea
+Leftover all bins:     1
 Number of item types:  1
 Number of items:       3
 Number of bin types:   1
@@ -17,8 +20,8 @@ Number of groups:      1
 Number of defects:     0
 Unloading constraint:  None
 Total item area:       240000
-Total item width:      1200
-Total item height:     600
+Mean item width:       400
+Mean item height:      200
 Smallest item width:   400
 Smallest item height:  200
 Total item profit:     240000
@@ -31,28 +34,32 @@ Largest bin cost:      350000
 
         Time      # bins    Leftover                         Comment
         ----      ------    --------                         -------
-       0.000           2      270000                  TS g 1 d Y q 1
+       0.004           2    7.29e+10                  TS g 0 d X q 1
 
 Final statistics
 ----------------
-Time (s):  5.0036
+Time (s):              5.0017
+Is proven infeasible:  0
 
 Solution
 --------
-Number of items:  3 / 3 (100%)
-Item area:        240000 / 240000 (100%)
-Item weight:      0 / 0 (-nan%)
-Item profit:      240000 / 240000 (100%)
-Number of bins:   2 / 2 (100%)
-Bin area:         700000 / 700000 (100%)
-Bin weight:       inf / inf (-nan%)
-Bin cost:         700000
-Waste:            190000
-Waste (%):        44.186
-Full waste:       460000
-Full waste (%):   65.7143
-Area load:        0.342857
-Weight load:      0
-X max:            400
-Y max:            200
-Leftover value:   270000
+Number of items:                 3 / 3 (100%)
+Item area:                       240000 / 240000 (100%)
+Item weight:                     0 / 0 (-nan%)
+Item profit:                     240000 / 240000 (100%)
+Number of bins:                  2 / 2 (100%)
+Bin area:                        700000 / 700000 (100%)
+Bin weight:                      inf / inf (-nan%)
+Bin cost:                        700000
+Waste:                           190000
+Waste (%):                       44.186
+Full waste:                      460000
+Full waste (%):                  65.7143
+Area load:                       0.342857
+Weight load:                     0
+X max:                           400
+Y max:                           200
+Leftover value:                  7.29e+10
+Staircase leftover value:        270000
+Total leftover value:            1.09e+11
+Total staircase leftover value:  460000

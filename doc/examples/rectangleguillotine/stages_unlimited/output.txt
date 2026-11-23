@@ -17,7 +17,7 @@ Number of stacks:                      12
 Number of defects:                     0
 Number of stages:                      120
 Cut type:                              Exact
-First stage orientation:               Vertical
+First stage orientation:               Any
 Minimum distance between 1-cuts:       0
 Maximum distance between 1-cuts:       -1
 Minimum distance between 2-cuts:       0
@@ -36,19 +36,18 @@ Largest bin cost:                      3200
 
         Time      # bins       Waste   Waste (%)                         Comment
         ----      ------       -----   ---------                         -------
-       0.000           3        1869       27.01           TS g 1 d Vertical q 1
-       0.001           3        1869       27.01           TS g 1 d Vertical q 2
-       0.008           3        1829       26.58           TS g 0 d Vertical q 3
-       0.014           2         909       15.25           TS g 1 d Vertical q 5
-       0.020           2         789       13.51           TS g 1 d Vertical q 5
-       0.026           2         669       11.70          TS g 0 d Vertical q 11
-       0.030           2         589       10.44          TS g 1 d Vertical q 28
-       0.411           2         469        8.50                        SVC it 0
-       0.911           2         349        6.46                        SVC it 1
+       0.005           3        1869       27.01           TS g 0 d Vertical q 1
+       0.006           3        1869       27.01           TS g 0 d Vertical q 2
+       0.011           2        1349       21.08         TS g 1 d Horizontal q 2
+       0.016           2         909       15.25           TS g 1 d Vertical q 6
+       0.020           2         789       13.51         TS g 1 d Horizontal q 6
+       0.027           2         669       11.70          TS g 1 d Vertical q 13
+       0.033           2         589       10.44          TS g 1 d Vertical q 28
 
 Final statistics
 ----------------
-Time (s):  10.1385
+Time (s):              10.0969
+Is proven infeasible:  0
 
 Solution
 --------
@@ -60,12 +59,12 @@ Number of different bins:  2
 Bin area:                  6400 / 22400 (28.5714%)
 Bin cost:                  6400
 Cutting cost:              0
-Waste:                     349 (6.46296%)
+Waste:                     589 (10.4433%)
 Full waste:                1349 (21.0781%)
-Width:                     55
+Width:                     61
 Height:                    40
-Second leftover value:     38
-Number of stages:          10
+Second leftover value:     57
+Number of stages:          3
 Feasible:                  1
     Number of stages:      1
     Min. waste length:     1
@@ -77,5 +76,6 @@ Feasible:                  1
     Max. no. 2-cuts:       1
     Stacks:                1
     Defects:               1
+    Trims:                 1
     Cut through defects:   1
     Item copies:           1

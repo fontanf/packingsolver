@@ -28,12 +28,12 @@ Largest bin cost:      2000
 
         Time    Bins  Full waste (%)                         Comment
         ----    ----  --------------                         -------
-       0.005       2           62.80                  TS g 1 d Z q 1
-       0.005       1           25.60                  TS g 1 d Z q 2
+       0.001       2           62.80                  TS g 0 d X q 1
+       0.004       1           25.60                        SVC it 0
 
 Final statistics
 ----------------
-Time (s):              0.0146918
+Time (s):              0.00764766
 Is proven infeasible:  0
 Primal bound:          1
 Dual bound:            1
@@ -62,7 +62,7 @@ Weight load:                     0
 X max:                           10
 Y max:                           10
 Z max:                           18
-Leftover value:                  200
+Leftover value:                  40000
 Staircase leftover value:        200
-Total leftover value:            200
-Total staircase leftover value:  200
+Total leftover value:            3.604e+07
+Total staircase leftover value:  18200

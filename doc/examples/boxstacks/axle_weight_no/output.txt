@@ -24,31 +24,39 @@ Total bin weight:      inf
 
         Time    Bins  Full waste (%)                         Comment
         ----    ----  --------------                         -------
-       0.010       1           52.26                     iteration 0
+       0.035       1           52.26                        SSK it 0
 
 Final statistics
 ----------------
-Time (s):  0.0105685
+Time (s):              0.0351971
+Is proven infeasible:  0
+Primal bound:          1
+Dual bound:            1
+Gap:                   0%
 
 Solution
 --------
-Number of items:   38 / 38 (100%)
-Item volume:       4.56e+10 / 4.56e+10 (100%)
-Item weight:       38000 / 38000 (100%)
-Item profit:       4.56e+10 / 4.56e+10 (100%)
-Number of stacks:  15
-Stack area:        18000000
-Number of bins:    1 / 2 (50%)
-Bin volume:        95526000000 / 191052000000 (50%)
-Bin area:          32940000 / 65880000 (50%)
-Bin weight:        inf / inf (-nan%)
-Bin cost:          3.294e+07
-Waste:             22329600000
-Waste (%):         32.8717
-Full waste:        49926000000
-Full waste (%):    52.2643
-Volume load:       0.238678
-Area load:         0.273224
-Weight load:       0
-X max:             9600
-Y max:             2000
+Number of items:                 38 / 38 (100%)
+Item volume:                     4.56e+10 / 4.56e+10 (100%)
+Item weight:                     38000 / 38000 (100%)
+Item profit:                     4.56e+10 / 4.56e+10 (100%)
+Number of stacks:                15
+Stack area:                      18000000
+Number of bins:                  1 / 2 (50%)
+Bin volume:                      95526000000 / 191052000000 (50%)
+Bin area:                        32940000 / 65880000 (50%)
+Bin weight:                      inf / inf (-nan%)
+Bin cost:                        9.5526e+10
+Waste:                           10080000000
+Waste (%):                       18.1034
+Full waste:                      49926000000
+Full waste (%):                  52.2643
+Volume load:                     0.238678
+Area load:                       0.273224
+Weight load:                     0
+X max:                           9600
+Y max:                           2000
+Leftover value:                  1.5877e+21
+Staircase leftover value:        43326000000
+Total leftover value:            1.07129e+22
+Total staircase leftover value:  138852000000

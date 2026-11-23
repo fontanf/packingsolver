@@ -17,8 +17,8 @@ Number of groups:      2
 Number of defects:     0
 Unloading constraint:  OnlyXMovements
 Total item area:       162500
-Total item width:      850
-Total item height:     550
+Mean item width:       283.333
+Mean item height:      183.333
 Smallest item width:   150
 Smallest item height:  150
 Total item profit:     162500
@@ -31,30 +31,37 @@ Largest bin cost:      320000
 
         Time           X                         Comment
         ----           -                         -------
-       0.000         700                  TS g 1 d X q 1
-       0.000         650                  TS g 1 d X q 1
-       0.001         500                  TS g 1 d X q 3
+       0.001         700                  TS g 1 d X q 1
+       0.004         650                  TS g 1 d X q 1
+       0.007         500                  TS g 1 d X q 3
 
 Final statistics
 ----------------
-Time (s):  0.000694229
+Time (s):              0.0110585
+Is proven infeasible:  0
+Primal bound:          500
+Dual bound:            500
+Gap:                   0%
 
 Solution
 --------
-Number of items:  3 / 3 (100%)
-Item area:        162500 / 162500 (100%)
-Item weight:      0 / 0 (-nan%)
-Item profit:      162500 / 162500 (100%)
-Number of bins:   1 / 1 (100%)
-Bin area:         320000 / 320000 (100%)
-Bin weight:       inf / inf (-nan%)
-Bin cost:         320000
-Waste:            37500
-Waste (%):        18.75
-Full waste:       157500
-Full waste (%):   49.2188
-Area load:        0.507812
-Weight load:      0
-X max:            500
-Y max:            400
-Leftover value:   120000
+Number of items:                 3 / 3 (100%)
+Item area:                       162500 / 162500 (100%)
+Item weight:                     0 / 0 (-nan%)
+Item profit:                     162500 / 162500 (100%)
+Number of bins:                  1 / 1 (100%)
+Bin area:                        320000 / 320000 (100%)
+Bin weight:                      inf / inf (-nan%)
+Bin cost:                        320000
+Waste:                           37500
+Waste (%):                       18.75
+Full waste:                      157500
+Full waste (%):                  49.2188
+Area load:                       0.507812
+Weight load:                     0
+X max:                           500
+Y max:                           400
+Leftover value:                  1.44e+10
+Staircase leftover value:        120000
+Total leftover value:            1.44e+10
+Total staircase leftover value:  120000

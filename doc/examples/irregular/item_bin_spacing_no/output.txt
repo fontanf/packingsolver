@@ -20,6 +20,8 @@ Number of circular items:     0
 Item-item minimum spacing:    0
 Open dim. XY aspect ratio:    -1
 Leftover mode:                BottomLeft
+Leftover value type:          SquaredArea
+Leftover all bins:            1
 Total item area:              16000
 Smallest item area:           1600
 Largest item area:            1600
@@ -31,28 +33,32 @@ Largest bin cost:             16000
 
         Time      # bins    Leftover                         Comment
         ----      ------    --------                         -------
-       0.001           2       13600                  TS g 1 d 0 q 1
-       0.002           1           0                  TS g 1 d 0 q 2
+       0.005           2  1.8496e+08                  TS g 1 d 0 q 1
+       0.006           1           0                  TS g 1 d 0 q 2
 
 Final statistics
 ----------------
-Time (s):  10.0011
+Time (s):              10.0009
+Is proven infeasible:  0
 
 Solution
 --------
-Number of items:  10 / 10 (100%)
-Item area:        16000 / 16000 (100%)
-Item profit:      16000 / 16000 (100%)
-Number of bins:   1 / 3 (33.3333%)
-Bin area:         16000 / 48000 (33.3333%)
-Bin cost:         16000
-Full waste:       0
-Full waste (%):   0
-X min:            0
-Y min:            0
-X max:            160
-Y max:            100
-Density X:        1
-Density Y:        1
-ODXY area:        16000
-Leftover value:   0
+Number of items:                 10 / 10 (100%)
+Item area:                       16000 / 16000 (100%)
+Item profit:                     16000 / 16000 (100%)
+Number of bins:                  1 / 3 (33.3333%)
+Bin area:                        16000 / 48000 (33.3333%)
+Bin cost:                        16000
+Full waste:                      0
+Full waste (%):                  0
+X min:                           0
+Y min:                           0
+X max:                           160
+Y max:                           100
+Density X:                       1
+Density Y:                       1
+ODXY area:                       16000
+Leftover value:                  0
+Staircase leftover value:        0
+Total leftover value:            5.12e+08
+Total staircase leftover value:  32000

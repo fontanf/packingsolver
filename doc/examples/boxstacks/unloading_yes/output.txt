@@ -9,6 +9,9 @@ BoxStacks
 Instance
 --------
 Objective:             BinPackingWithLeftovers
+Leftover mode:         XY
+Leftover value type:   SquaredArea
+Leftover all bins:     1
 Number of item types:  3
 Number of items:       3
 Number of bin types:   1
@@ -24,31 +27,36 @@ Total bin weight:      inf
 
         Time       Waste   Waste (%)                         Comment
         ----       -----   ---------                         -------
-       0.001 58100000000       80.69                     iteration 0
+       0.009 47600000000       77.40                        SVC it 0
 
 Final statistics
 ----------------
-Time (s):  5.00187
+Time (s):              5.00061
+Is proven infeasible:  0
 
 Solution
 --------
-Number of items:   3 / 3 (100%)
-Item volume:       1.39e+10 / 1.39e+10 (100%)
-Item weight:       0 / 0 (-nan%)
-Item profit:       1.39e+10 / 1.39e+10 (100%)
-Number of stacks:  3
-Stack area:        13900000
-Number of bins:    2 / 2 (100%)
-Bin volume:        108000000000 / 108000000000 (100%)
-Bin area:          36000000 / 36000000 (100%)
-Bin weight:        inf / inf (-nan%)
-Bin cost:          3.6e+07
-Waste:             58100000000
-Waste (%):         80.6944
-Full waste:        94100000000
-Full waste (%):    87.1296
-Volume load:       0.128704
-Area load:         0.386111
-Weight load:       0
-X max:             2500
-Y max:             1000
+Number of items:                 3 / 3 (100%)
+Item volume:                     1.39e+10 / 1.39e+10 (100%)
+Item weight:                     0 / 0 (-nan%)
+Item profit:                     1.39e+10 / 1.39e+10 (100%)
+Number of stacks:                3
+Stack area:                      13900000
+Number of bins:                  2 / 2 (100%)
+Bin volume:                      108000000000 / 108000000000 (100%)
+Bin area:                        36000000 / 36000000 (100%)
+Bin weight:                      inf / inf (-nan%)
+Bin cost:                        1.08e+11
+Waste:                           47600000000
+Waste (%):                       77.3984
+Full waste:                      94100000000
+Full waste (%):                  87.1296
+Volume load:                     0.128704
+Area load:                       0.386111
+Weight load:                     0
+X max:                           2500
+Y max:                           1000
+Leftover value:                  2.16225e+21
+Staircase leftover value:        46500000000
+Total leftover value:            2.27889e+21
+Total staircase leftover value:  66300000000

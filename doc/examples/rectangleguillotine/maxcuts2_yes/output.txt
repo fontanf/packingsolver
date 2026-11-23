@@ -36,11 +36,15 @@ Largest bin cost:                      200
 
         Time    Bins  Full waste (%)                         Comment
         ----    ----  --------------                         -------
-       0.000       2           50.00           TS g 0 d Vertical q 1
+       0.001       2           50.00           TS g 0 d Vertical q 1
 
 Final statistics
 ----------------
-Time (s):  0.00076164
+Time (s):              0.00556115
+Is proven infeasible:  0
+Primal bound:          2
+Dual bound:            1
+Gap:                   50%
 
 Solution
 --------
@@ -69,5 +73,6 @@ Feasible:                  1
     Max. no. 2-cuts:       1
     Stacks:                1
     Defects:               1
+    Trims:                 1
     Cut through defects:   1
     Item copies:           1

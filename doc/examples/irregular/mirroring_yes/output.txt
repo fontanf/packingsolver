@@ -34,23 +34,30 @@ Largest bin cost:             4800
 
 Final statistics
 ----------------
-Time (s):  0.00290785
+Time (s):              0.00344093
+Is proven infeasible:  0
+Primal bound:          1
+Dual bound:            1
+Gap:                   0%
 
 Solution
 --------
-Number of items:  3 / 3 (100%)
-Item area:        4644 / 4644 (100%)
-Item profit:      4644 / 4644 (100%)
-Number of bins:   1 / 2 (50%)
-Bin area:         4800 / 9600 (50%)
-Bin cost:         4800
-Full waste:       156
-Full waste (%):   3.25
-X min:            0
-Y min:            0
-X max:            80
-Y max:            60
-Density X:        0.9675
-Density Y:        0.9675
-ODXY area:        4800
-Leftover value:   0
+Number of items:                 3 / 3 (100%)
+Item area:                       4644 / 4644 (100%)
+Item profit:                     4644 / 4644 (100%)
+Number of bins:                  1 / 2 (50%)
+Bin area:                        4800 / 9600 (50%)
+Bin cost:                        4800
+Full waste:                      156
+Full waste (%):                  3.25
+X min:                           0
+Y min:                           0
+X max:                           80
+Y max:                           60
+Density X:                       0.9675
+Density Y:                       0.9675
+ODXY area:                       4800
+Leftover value:                  0
+Staircase leftover value:        0
+Total leftover value:            2.304e+07
+Total staircase leftover value:  4800

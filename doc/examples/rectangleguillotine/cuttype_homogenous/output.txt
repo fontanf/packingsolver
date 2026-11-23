@@ -36,23 +36,27 @@ Largest bin cost:                      3200
 
         Time      # bins       Waste   Waste (%)                         Comment
         ----      ------       -----   ---------                         -------
-       0.000           3        1869       27.01           TS g 0 d Vertical q 1
-       0.001           3        1869       27.01           TS g 0 d Vertical q 2
-       0.001           3        1829       26.58           TS g 0 d Vertical q 3
-       0.002           2         909       15.25           TS g 1 d Vertical q 5
-       0.003           2         789       13.51           TS g 1 d Vertical q 5
-       0.041           2         749       12.91         TS g 0 d Vertical q 141
-       0.042           2         749       12.91         TS g 0 d Vertical q 141
-       0.080           2         749       12.91         TS g 1 d Vertical q 316
-       0.194           2         749       12.91         TS g 0 d Vertical q 711
-       0.705           2         709       12.31        TS g 1 d Vertical q 2398
-       1.772           2         669       11.70        TS g 1 d Vertical q 5395
-       1.772           2         669       11.70        TS g 1 d Vertical q 5395
-       4.020           2         669       11.70       TS g 0 d Vertical q 12138
+       0.007           3        1869       27.01           TS g 0 d Vertical q 1
+       0.008           3        1869       27.01           TS g 0 d Vertical q 2
+       0.013           3        1829       26.58           TS g 0 d Vertical q 3
+       0.018           2         909       15.25           TS g 1 d Vertical q 5
+       0.023           2         789       13.51           TS g 1 d Vertical q 5
+       0.045           2         749       12.91         TS g 0 d Vertical q 141
+       0.049           2         749       12.91         TS g 0 d Vertical q 156
+       0.072           2         749       12.91         TS g 1 d Vertical q 316
+       0.124           2         749       12.91         TS g 0 d Vertical q 645
+       0.405           2         709       12.31        TS g 0 d Vertical q 2398
+       0.410           2         709       12.31        TS g 0 d Vertical q 2398
+       0.430           2         709       12.31        TS g 1 d Vertical q 2398
+       1.211           2         669       11.70        TS g 1 d Vertical q 4734
+       1.215           2         669       11.70        TS g 1 d Vertical q 4734
+       2.276           2         669       11.70       TS g 0 d Vertical q 12138
+       7.346           2         629       11.07       TS g 1 d Vertical q 27310
 
 Final statistics
 ----------------
-Time (s):  10.0928
+Time (s):              10.0922
+Is proven infeasible:  0
 
 Solution
 --------
@@ -64,11 +68,11 @@ Number of different bins:  2
 Bin area:                  6400 / 22400 (28.5714%)
 Bin cost:                  6400
 Cutting cost:              0
-Waste:                     669 (11.6958%)
+Waste:                     629 (11.0739%)
 Full waste:                1349 (21.0781%)
-Width:                     63
+Width:                     62
 Height:                    40
-Second leftover value:     48
+Second leftover value:     11
 Number of stages:          3
 Feasible:                  1
     Number of stages:      1
@@ -81,5 +85,6 @@ Feasible:                  1
     Max. no. 2-cuts:       1
     Stacks:                1
     Defects:               1
+    Trims:                 1
     Cut through defects:   1
     Item copies:           1
