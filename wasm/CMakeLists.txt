@@ -1,6 +1,9 @@
 add_executable(PackingSolver_wasm)
 target_sources(PackingSolver_wasm PRIVATE
     src/packingsolver_wasm.cpp)
+# The solution builders, to read the certificates, are in 'src'.
+target_include_directories(PackingSolver_wasm PRIVATE
+    ${PROJECT_SOURCE_DIR}/src)
 target_link_libraries(PackingSolver_wasm PRIVATE
     PackingSolver_rectangleguillotine
     PackingSolver_rectangle

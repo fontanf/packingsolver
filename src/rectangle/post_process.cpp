@@ -55,13 +55,48 @@ Solution packingsolver::rectangle::reoptimize_bin_leftovers(
     // Build instance.
     Instance bin_instance = bin_instance_builder.build();
 
+    // Retrieve a solution: the bins of 'solution', the bin at 'bin_pos' being
+    // replaced by a solution of the sub-instance.
+    auto retrieve_solution = [&instance, &solution, &bin, bin_pos, &bin_to_orig](
+            const Solution& bin_solution)
+    {
+        Solution new_solution(instance);
+        for (BinPos pos = 0;
+                pos < solution.number_of_different_bins();
+                ++pos) {
+            if (pos == bin_pos) {
+                new_solution.append_bin(
+                        bin_solution,
+                        0,
+                        bin.copies,
+                        {bin.bin_type_id},
+                        bin_to_orig);
+            } else {
+                new_solution.append_bin(solution, pos, solution.bin(pos).copies);
+            }
+        }
+        return new_solution;
+    };
+
     // Solve instance.
     OptimizeParameters bin_parameters = parameters;
     bin_parameters.messages_to_stdout = false;
     bin_parameters.messages_path = "";
     bin_parameters.messages_streams.clear();
     bin_parameters.write_json_output = false;
-    bin_parameters.new_solution_callback = [](const packingsolver::rectangle::Output&) { };
+    // The solutions found during the re-optimization, reported as solutions
+    // of the instance.
+    bin_parameters.new_solution_callback = [&parameters, &instance, &retrieve_solution](
+            const packingsolver::rectangle::Output& bin_output)
+    {
+        const Solution& bin_solution = bin_output.solution_pool.best();
+        if (!bin_solution.feasible() || !bin_solution.full())
+            return;
+        packingsolver::rectangle::Output output(instance);
+        output.solution_pool.add(retrieve_solution(bin_solution));
+        output.time = bin_output.time;
+        parameters.new_solution_callback(output);
+    };
     bin_parameters.verbosity_level = 0;
     // The sub-instance has a single bin: its post-process would re-optimize
     // this same bin again.
@@ -71,24 +106,7 @@ Solution packingsolver::rectangle::reoptimize_bin_leftovers(
     if (!bin_solution.feasible() || !bin_solution.full())
         return solution;
 
-    // Retrieve solution: the bins of 'solution', the bin at 'bin_pos' being
-    // replaced by the re-optimized one.
-    Solution new_solution(instance);
-    for (BinPos pos = 0;
-            pos < solution.number_of_different_bins();
-            ++pos) {
-        if (pos == bin_pos) {
-            new_solution.append_bin(
-                    bin_solution,
-                    0,
-                    bin.copies,
-                    {bin.bin_type_id},
-                    bin_to_orig);
-        } else {
-            new_solution.append_bin(solution, pos, solution.bin(pos).copies);
-        }
-    }
-    return new_solution;
+    return retrieve_solution(bin_solution);
 }
 
 namespace
@@ -103,6 +121,10 @@ Solution reoptimize_bins_leftovers(
         BinPos number_of_bins,
         const OptimizeParameters& parameters)
 {
+    // The solutions found while re-optimizing a bin are not reported: they
+    // may be worse than the solution with the bins re-optimized before.
+    OptimizeParameters bin_parameters = parameters;
+    bin_parameters.new_solution_callback = [](const packingsolver::rectangle::Output&) { };
     Solution new_solution = solution;
     for (BinPos bin_pos = 0;
             bin_pos < number_of_bins;
@@ -112,7 +134,7 @@ Solution reoptimize_bins_leftovers(
         Solution bin_solution = rectangle::reoptimize_bin_leftovers(
                 new_solution,
                 bin_pos,
-                parameters);
+                bin_parameters);
         // Only the bin at 'bin_pos' differs: the comparison is on its leftover
         // value, then on its staircase leftover value.
         if (!(bin_solution < new_solution)

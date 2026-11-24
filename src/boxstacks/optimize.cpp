@@ -552,6 +552,9 @@ void optimize_other_bins_post_process(
         return;
     }
     OptimizeParameters post_process_parameters = parameters;
+    // The solutions of the post-process are reported through the algorithm
+    // formatter.
+    post_process_parameters.new_solution_callback = [](const packingsolver::boxstacks::Output&) { };
     // For the objectives which don't value the leftovers, the algorithm
     // formatter ends as soon as the best solution is proven optimal, which
     // doesn't mean that its leftovers can't be improved: only the time limit

@@ -2,6 +2,8 @@
 
 #include "packingsolver/boxstacks/solution.hpp"
 
+#include <istream>
+
 namespace packingsolver
 {
 namespace boxstacks
@@ -15,8 +17,11 @@ public:
     /** Constructor. */
     SolutionBuilder(const Instance& instance): solution_(instance) { }
 
-    /** Read a solution from a file. */
+    /** Read a solution from a certificate file. */
     void read(const std::string& certificate_path);
+
+    /** Read a solution from a certificate stream. */
+    void read(std::istream& certificate_stream);
 
     /** Add a bin at the end of the solution. */
     BinPos add_bin(

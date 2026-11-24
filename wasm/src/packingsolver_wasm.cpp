@@ -25,6 +25,20 @@
  *   is an update each time the best solution or a bound improves, but only
  *   the latest one since the previous call is returned: an update may have
  *   the same solution as the previous one, or an empty solution.
+ *   'startReoptimizeBinLeftovers(problemType, instanceJson, certificate,
+ *   binPos, parametersJson)' re-optimizes instead the leftovers of the bin
+ *   'binPos' of a solution, given by its certificate (problem types
+ *   "rectangle", "box", "boxstacks" and "irregular"). There is an update,
+ *   in the format of the result, each time a solution with better leftovers
+ *   is found; the result is:
+ *
+ *       {
+ *           "solution": ...,     // 'Solution::to_json()'
+ *           "certificate": ...,
+ *           "improved": ...      // whether the leftovers are better
+ *       }
+ *
+ *   The solution is the given one if the leftovers aren't better.
  *
  * The threads of the algorithms run in a pool of Web Workers started when
  * the module is loaded.
@@ -50,6 +64,14 @@
 #include "packingsolver/onedimensional/optimize.hpp"
 #include "packingsolver/irregular/instance_builder.hpp"
 #include "packingsolver/irregular/optimize.hpp"
+#include "packingsolver/rectangle/post_process.hpp"
+#include "packingsolver/box/post_process.hpp"
+#include "packingsolver/boxstacks/post_process.hpp"
+#include "packingsolver/irregular/post_process.hpp"
+#include "rectangle/solution_builder.hpp"
+#include "box/solution_builder.hpp"
+#include "boxstacks/solution_builder.hpp"
+#include "irregular/solution_builder.hpp"
 
 #include <emscripten/bind.h>
 
@@ -104,6 +126,20 @@ nlohmann::json to_result(const Output& output)
 }
 
 /**
+ * Read an instance. It is shared: the results of the updates, computed
+ * later, need it.
+ */
+template <typename InstanceBuilder>
+auto read_instance(const std::string& instance_json)
+{
+    InstanceBuilder instance_builder;
+    std::istringstream instance_stream(instance_json);
+    instance_builder.read(instance_stream);
+    using Instance = typename std::decay<decltype(instance_builder.build())>::type;
+    return std::make_shared<const Instance>(instance_builder.build());
+}
+
+/**
  * Called each time the best solution or a bound improves, with a function
  * returning the result.
  *
@@ -125,25 +161,24 @@ nlohmann::json run(
         const SolutionCallback& solution_callback,
         bool* end)
 {
-    InstanceBuilder instance_builder;
-    std::istringstream instance_stream(instance_json);
-    instance_builder.read(instance_stream);
-    const auto instance = instance_builder.build();
+    const auto instance = read_instance<InstanceBuilder>(instance_json);
     OptimizeParameters parameters = read_parameters<OptimizeParameters>(parameters_json);
     // The timer starts when the parameters are constructed; start it now.
     parameters.timer.reset_time();
     if (end != nullptr)
         parameters.timer.add_end_boolean(end);
     if (solution_callback) {
-        parameters.new_solution_callback = [&solution_callback](const auto& output)
+        parameters.new_solution_callback = [&solution_callback, instance](const auto& output)
         {
             using OutputType = typename std::decay<decltype(output)>::type;
             std::shared_ptr<const OutputType> output_copy
                 = std::make_shared<const OutputType>(output);
-            solution_callback([output_copy]() { return to_result(*output_copy); });
+            // The instance is kept until the result is computed: it may be
+            // computed after the end of the optimization.
+            solution_callback([output_copy, instance]() { return to_result(*output_copy); });
         };
     }
-    const auto output = optimize_function(instance, parameters);
+    const auto output = optimize_function(*instance, parameters);
     return to_result(output);
 }
 
@@ -176,6 +211,131 @@ nlohmann::json run(
 #undef PACKINGSOLVER_WASM_RUN
     throw std::invalid_argument(
             "solve: unsupported problem type: \"" + problem_type + "\".");
+}
+
+/** Result of a re-optimization of the leftovers of a bin. */
+template <typename Solution>
+nlohmann::json reoptimize_result(
+        const Solution& solution,
+        bool improved)
+{
+    std::stringstream certificate;
+    solution.write(certificate);
+    nlohmann::json result;
+    result["solution"] = solution.to_json();
+    result["certificate"] = certificate.str();
+    result["improved"] = improved;
+    return result;
+}
+
+/**
+ * As in the leftover post-process: a solution is better if it is not worse
+ * and if its leftovers are better.
+ */
+template <typename Solution>
+bool better_leftovers(
+        const Solution& solution,
+        const Solution& reference)
+{
+    return !(solution < reference) && solution.leftovers_better(reference);
+}
+
+/**
+ * Read an instance and a solution of a problem type, re-optimize the
+ * leftovers of a bin of the solution and return the result.
+ *
+ * 'solution_callback', if set, is called each time a solution better than
+ * the given one and than the previous ones is found.
+ *
+ * 'end', if not null, stops the re-optimization when set to 'true'.
+ */
+template <typename InstanceBuilder, typename SolutionBuilder, typename OptimizeParameters, typename ReoptimizeFunction>
+nlohmann::json reoptimize_bin_leftovers(
+        ReoptimizeFunction reoptimize_function,
+        const std::string& instance_json,
+        const std::string& certificate,
+        int bin_pos,
+        const std::string& parameters_json,
+        const SolutionCallback& solution_callback,
+        bool* end)
+{
+    const auto instance = read_instance<InstanceBuilder>(instance_json);
+    SolutionBuilder solution_builder(*instance);
+    std::istringstream certificate_stream(certificate);
+    solution_builder.read(certificate_stream);
+    const auto solution = solution_builder.build();
+    using Solution = typename std::decay<decltype(solution)>::type;
+    if (bin_pos < 0 || bin_pos >= solution.number_of_different_bins()) {
+        throw std::invalid_argument(
+                "reoptimize_bin_leftovers: invalid bin: "
+                + std::to_string(bin_pos) + ".");
+    }
+    OptimizeParameters parameters = read_parameters<OptimizeParameters>(parameters_json);
+    parameters.timer.reset_time();
+    if (end != nullptr)
+        parameters.timer.add_end_boolean(end);
+
+    // The best solution reported, the given one at first.
+    std::mutex best_mutex;
+    std::shared_ptr<const Solution> best = std::make_shared<const Solution>(solution);
+    if (solution_callback) {
+        parameters.new_solution_callback = [&solution_callback, &best_mutex, &best, instance](
+                const auto& output)
+        {
+            const Solution& new_solution = output.solution_pool.best();
+            std::lock_guard<std::mutex> lock(best_mutex);
+            if (!better_leftovers(new_solution, *best))
+                return;
+            best = std::make_shared<const Solution>(new_solution);
+            std::shared_ptr<const Solution> best_copy = best;
+            // The instance is kept until the result is computed: it may be
+            // computed after the end of the re-optimization.
+            solution_callback([best_copy, instance]() { return reoptimize_result(*best_copy, true); });
+        };
+    }
+
+    const Solution new_solution = reoptimize_function(solution, bin_pos, parameters);
+    bool improved = better_leftovers(new_solution, solution);
+    return reoptimize_result((improved)? new_solution: solution, improved);
+}
+
+nlohmann::json reoptimize_bin_leftovers(
+        const std::string& problem_type,
+        const std::string& instance_json,
+        const std::string& certificate,
+        int bin_pos,
+        const std::string& parameters_json,
+        const SolutionCallback& solution_callback,
+        bool* end)
+{
+#define PACKINGSOLVER_WASM_REOPTIMIZE(problem_type_namespace) \
+    if (problem_type == #problem_type_namespace) { \
+        return reoptimize_bin_leftovers< \
+                problem_type_namespace::InstanceBuilder, \
+                problem_type_namespace::SolutionBuilder, \
+                problem_type_namespace::OptimizeParameters>( \
+                [](const problem_type_namespace::Solution& solution, \
+                    BinPos bin_pos, \
+                    const problem_type_namespace::OptimizeParameters& parameters) \
+                { \
+                    return problem_type_namespace::reoptimize_bin_leftovers( \
+                            solution, bin_pos, parameters); \
+                }, \
+                instance_json, \
+                certificate, \
+                bin_pos, \
+                parameters_json, \
+                solution_callback, \
+                end); \
+    }
+    PACKINGSOLVER_WASM_REOPTIMIZE(rectangle)
+    PACKINGSOLVER_WASM_REOPTIMIZE(box)
+    PACKINGSOLVER_WASM_REOPTIMIZE(boxstacks)
+    PACKINGSOLVER_WASM_REOPTIMIZE(irregular)
+#undef PACKINGSOLVER_WASM_REOPTIMIZE
+    throw std::invalid_argument(
+            "reoptimize_bin_leftovers: unsupported problem type: \""
+            + problem_type + "\".");
 }
 
 nlohmann::json error_result(const std::exception& e)
@@ -231,36 +391,42 @@ public:
             const std::string& instance_json,
             const std::string& parameters_json)
     {
-        if (started_) {
-            nlohmann::json result;
-            result["error"] = "Session.start: the session was already started.";
-            return result.dump();
-        }
-        started_ = true;
-        thread_ = std::thread([this, problem_type, instance_json, parameters_json]()
+        return start_task([this, problem_type, instance_json, parameters_json]()
         {
-            nlohmann::json result;
-            try {
-                result = run(
-                        problem_type,
-                        instance_json,
-                        parameters_json,
-                        [this](const std::function<nlohmann::json()>& solution)
-                        {
-                            // Only the latest update is kept: the page
-                            // only shows the latest one.
-                            std::lock_guard<std::mutex> lock(mutex_);
-                            latest_solution_ = solution;
-                        },
-                        &end_);
-            } catch (const std::exception& e) {
-                result = error_result(e);
-            }
-            std::lock_guard<std::mutex> lock(mutex_);
-            result_ = result;
-            done_ = true;
+            return run(
+                    problem_type,
+                    instance_json,
+                    parameters_json,
+                    queue_solution(),
+                    &end_);
         });
-        return "";
+    }
+
+    /**
+     * Start re-optimizing the leftovers of the bin 'bin_pos' of a solution,
+     * given by its certificate.
+     *
+     * Returns an empty string, or an error as JSON if the session was
+     * already started.
+     */
+    std::string start_reoptimize_bin_leftovers(
+            const std::string& problem_type,
+            const std::string& instance_json,
+            const std::string& certificate,
+            int bin_pos,
+            const std::string& parameters_json)
+    {
+        return start_task([this, problem_type, instance_json, certificate, bin_pos, parameters_json]()
+        {
+            return reoptimize_bin_leftovers(
+                    problem_type,
+                    instance_json,
+                    certificate,
+                    bin_pos,
+                    parameters_json,
+                    queue_solution(),
+                    &end_);
+        });
     }
 
     /**
@@ -301,6 +467,42 @@ public:
 
 private:
 
+    /** Callback queuing an update, returned by 'poll'. */
+    SolutionCallback queue_solution()
+    {
+        return [this](const std::function<nlohmann::json()>& solution)
+        {
+            // Only the latest update is kept: the page only shows the
+            // latest one.
+            std::lock_guard<std::mutex> lock(mutex_);
+            latest_solution_ = solution;
+        };
+    }
+
+    /** Run 'task' in the thread of the session; its result ends it. */
+    std::string start_task(const std::function<nlohmann::json()>& task)
+    {
+        if (started_) {
+            nlohmann::json result;
+            result["error"] = "Session.start: the session was already started.";
+            return result.dump();
+        }
+        started_ = true;
+        thread_ = std::thread([this, task]()
+        {
+            nlohmann::json result;
+            try {
+                result = task();
+            } catch (const std::exception& e) {
+                result = error_result(e);
+            }
+            std::lock_guard<std::mutex> lock(mutex_);
+            result_ = result;
+            done_ = true;
+        });
+        return "";
+    }
+
     /** Thread of the optimization. */
     std::thread thread_;
 
@@ -332,6 +534,7 @@ EMSCRIPTEN_BINDINGS(packingsolver)
     emscripten::class_<Session>("Session")
         .constructor<>()
         .function("start", &Session::start)
+        .function("startReoptimizeBinLeftovers", &Session::start_reoptimize_bin_leftovers)
         .function("poll", &Session::poll)
         .function("stop", &Session::stop);
 }
