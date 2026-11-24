@@ -323,10 +323,9 @@ enum class Objective
      * Variable-sized bin packing in which the leftovers of the bins are
      * valued (see 'LeftoverValueType').
      *
-     * If the cost of a bin type is set, the cost of the solution is minimized
-     * first; otherwise, the value of the stock left after packing the items
-     * (the leftovers of the bins of the solution and the bins which are not
-     * used) is maximized directly. The algorithms optimize it as
+     * The net cost of the solution is minimized: the cost of its bins minus a
+     * refund for each of their leftovers (see 'Instance::leftover_refund' of
+     * each problem type). The algorithms optimize it as
      * 'VariableSizedBinPacking'.
      */
     VariableSizedBinPackingWithLeftovers,
