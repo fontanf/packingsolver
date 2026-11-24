@@ -106,6 +106,14 @@ For the :code:`variable-sized-bin-packing-with-leftovers` objective, two solutio
 
 The solution also reports these values, in the fields ``LeftoverValue``, ``StaircaseLeftoverValue``, ``TotalLeftoverValue`` and ``TotalStaircaseLeftoverValue`` of the output. With the ``squared-area`` value type, ``LeftoverValue`` and ``TotalLeftoverValue`` are squared areas, while the staircase values are areas.
 
+Post-process
+------------
+
+In the not-anytime optimization modes, for the :ref:`rectangle<rectangle>`, :ref:`box<box>`, :ref:`box-stacks<boxstacks>` and :ref:`irregular<irregular>` problem types, the bins of the best solution are re-packed at the end to improve their leftovers. A re-packed bin keeps the same items, and it is kept only if its leftover is better.
+
+* With the :code:`bin-packing-with-leftovers` objective, the last bin is re-packed with the tree search, if it contains few items; then, if ``leftover_all_bins`` is enabled, the other bins are re-packed.
+* With the :code:`bin-packing`, :code:`variable-sized-bin-packing`, :code:`variable-sized-bin-packing-with-leftovers` and :code:`knapsack` objectives, all the bins are re-packed. Except for :code:`variable-sized-bin-packing-with-leftovers`, the value of the solution doesn't change: the re-packed solution only replaces the best one if the total leftover value of the bins is greater.
+
 .. _leftovers-rectangleguillotine:
 
 Rectangle guillotine

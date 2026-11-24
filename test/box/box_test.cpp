@@ -214,7 +214,7 @@ TEST(Box, LeftoverModeStaircase)
     }
 }
 
-TEST(Box, ReoptimizeNonLastBins)
+TEST(Box, ReoptimizeNonLastBinsLeftovers)
 {
     // Two 10 x 10 x 10 bins and three 5 x 5 x 5 items. In the first bin of
     // the solution, the two items are in opposite corners: the leftover value
@@ -245,7 +245,7 @@ TEST(Box, ReoptimizeNonLastBins)
         parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytimeSequential;
         parameters.use_tree_search = !use_tree_search_maximal_spaces;
         parameters.use_tree_search_maximal_spaces = use_tree_search_maximal_spaces;
-        const Solution new_solution = reoptimize_non_last_bins(solution, parameters);
+        const Solution new_solution = reoptimize_non_last_bins_leftovers(solution, parameters);
         ASSERT_TRUE(new_solution.feasible());
         EXPECT_EQ(new_solution.number_of_bins(), 2);
         EXPECT_EQ(new_solution.bin(0).leftover_value, (1000.0 - 250) * (1000.0 - 250))

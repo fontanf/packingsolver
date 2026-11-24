@@ -56,24 +56,25 @@ AnchorOutput anchor(
         const AnchorParameters& parameters = {});
 
 /**
- * Re-optimize the bin at 'bin_pos' of a solution, as its own single-bin
- * BinPackingWithLeftovers instance, with 'optimize' and 'parameters' (its
- * output and its post-process being disabled).
+ * Re-optimize the leftovers of the bin at 'bin_pos' of a solution, by solving
+ * that bin as its own single-bin BinPackingWithLeftovers instance, with
+ * 'optimize' and 'parameters' (its output and its post-process being
+ * disabled).
  *
  * Return the solution with that bin replaced by the re-optimized one, or the
- * solution itself if the re-optimization didn't pack all the items of the
- * bin.
+ * solution itself if the bin is empty or if the re-optimization didn't pack
+ * all the items of the bin.
  */
-Solution reoptimize_bin(
+Solution reoptimize_bin_leftovers(
         const Solution& solution,
         BinPos bin_pos,
         const OptimizeParameters& parameters = {});
 
 /**
- * Re-optimize each bin of a solution except the last one (see
- * 'reoptimize_bin'), and keep a re-optimized bin if its leftover value is
- * greater, or if its leftover value is the same and its staircase leftover
- * value is greater.
+ * Re-optimize the leftovers of each bin of a solution except the last one
+ * (see 'reoptimize_bin_leftovers'), and keep a re-optimized bin if its
+ * leftover value is greater, or if its leftover value is the same and its
+ * staircase leftover value is greater (see 'Solution::leftovers_better').
  *
  * With the algorithms selected as for any instance, a bin with many items
  * found quickly, for example by the tree search periodic packing, is
@@ -83,7 +84,18 @@ Solution reoptimize_bin(
  * bin in the objective, so the algorithms hardly try to keep the free space
  * of the other bins in a single region.
  */
-Solution reoptimize_non_last_bins(
+Solution reoptimize_non_last_bins_leftovers(
+        const Solution& solution,
+        const OptimizeParameters& parameters = {});
+
+/**
+ * Re-optimize the leftovers of each bin of a solution (see
+ * 'reoptimize_non_last_bins_leftovers').
+ *
+ * It is used by the leftover post-process for the objectives other than
+ * 'BinPackingWithLeftovers', for which the last bin plays no special role.
+ */
+Solution reoptimize_all_bins_leftovers(
         const Solution& solution,
         const OptimizeParameters& parameters = {});
 
