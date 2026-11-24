@@ -17,13 +17,19 @@ void SolutionBuilder::read(
                 "unable to open file \"" + certificate_path + "\".");
     }
 
+    read(file);
+}
+
+void SolutionBuilder::read(
+        std::istream& certificate_stream)
+{
     std::string tmp;
     std::vector<std::string> line;
     std::vector<std::string> labels;
 
-    getline(file, tmp);
+    getline(certificate_stream, tmp);
     labels = optimizationtools::split(tmp, ',');
-    while (getline(file, tmp)) {
+    while (getline(certificate_stream, tmp)) {
         line = optimizationtools::split(tmp, ',');
 
         std::string type = "";

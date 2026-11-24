@@ -67,8 +67,6 @@ void SolutionBuilder::add_item(
 void SolutionBuilder::read(
         const std::string& certificate_path)
 {
-    const Instance& instance = this->solution_.instance();
-
     std::ifstream file(certificate_path);
     if (!file.good()) {
         throw std::runtime_error(
@@ -76,13 +74,21 @@ void SolutionBuilder::read(
                 "unable to open file \"" + certificate_path + "\".");
     }
 
+    read(file);
+}
+
+void SolutionBuilder::read(
+        std::istream& certificate_stream)
+{
+    const Instance& instance = this->solution_.instance();
+
     std::string tmp;
     std::vector<std::string> line;
     std::vector<std::string> labels;
 
-    getline(file, tmp);
+    getline(certificate_stream, tmp);
     labels = optimizationtools::split(tmp, ',');
-    while (getline(file, tmp)) {
+    while (getline(certificate_stream, tmp)) {
         line = optimizationtools::split(tmp, ',');
 
         std::string type = "";

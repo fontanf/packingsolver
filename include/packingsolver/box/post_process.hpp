@@ -27,6 +27,11 @@ GroupIdenticalBinsOutput group_identical_bins(const Solution& solution);
  * 'optimize' and 'parameters' (its output and its post-process being
  * disabled).
  *
+ * Each time the re-optimization finds a better solution of the bin, the
+ * solution with that bin replaced is passed to
+ * 'parameters.new_solution_callback', in an output of the instance of
+ * 'solution'. It isn't compared with 'solution': its leftovers may be worse.
+ *
  * Return the solution with that bin replaced by the re-optimized one, or the
  * solution itself if the bin is empty or if the re-optimization didn't pack
  * all the items of the bin.
@@ -41,6 +46,8 @@ Solution reoptimize_bin_leftovers(
  * (see 'reoptimize_bin_leftovers'), and keep a re-optimized bin if its
  * leftover value is greater, or if its leftover value is the same and its
  * staircase leftover value is greater (see 'Solution::leftovers_better').
+ *
+ * 'parameters.new_solution_callback' isn't called.
  *
  * With the algorithms selected as for any instance, a bin with many items
  * found quickly is re-optimized quickly too.

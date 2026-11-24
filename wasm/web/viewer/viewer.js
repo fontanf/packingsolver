@@ -8,6 +8,10 @@
 //   isometric views, the view of a bin turned with its "Rotate" button (or the
 //   R key);
 // - for onedimensional, a row for each bin.
+//
+// 'binActions': buttons added to the view of a bin, '{label, title,
+// onClick(bin)}' each, 'bin' being the bin shown; they have the class
+// "viewer-bin-action".
 
 import {numberOfBins} from "./solution.js";
 import {binsFrame, renderBin, renderRows} from "./render.js";
@@ -30,8 +34,9 @@ function binsSummary(solution) {
 }
 
 // Show a solution in 'container' (its content is replaced). 'selected': the
-// index of the bin shown first. Returns '{select(index), selected()}'.
-export function createViewer(container, solution, {selected = 0} = {}) {
+// index of the bin shown first; 'binActions': see above. Returns
+// '{select(index), selected()}'.
+export function createViewer(container, solution, {selected = 0, binActions = []} = {}) {
     container.replaceChildren();
     container.classList.add("viewer");
     const summary = element("p", "viewer-summary", binsSummary(solution));
@@ -96,6 +101,14 @@ export function createViewer(container, solution, {selected = 0} = {}) {
             select(current);
         });
         header.appendChild(rotate);
+    }
+    for (const action of binActions) {
+        const button = element("button", "viewer-bin-action", action.label);
+        button.type = "button";
+        if (action.title)
+            button.title = action.title;
+        button.addEventListener("click", () => action.onClick(bins[current]));
+        header.appendChild(button);
     }
     const image = element("div", "viewer-detail-image");
     detail.append(header, image);

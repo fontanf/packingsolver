@@ -243,6 +243,9 @@ const state = {
     timeLimit: null,
     // Description of the best solution of the optimization ('null' if none).
     best: null,
+    // The re-optimization of the leftovers of a bin running ('{index,
+    // result, current}', see 'reoptimizeBinLeftovers'), 'null' if none.
+    reoptimizing: null,
     // Timer updating the status while solving.
     statusTimer: null,
     // Whether the results were scrolled into view during the optimization,
@@ -1306,6 +1309,7 @@ function setRunning(running) {
     state.running = running;
     $("solve").disabled = running || state.worker === null;
     $("stop").disabled = !running;
+    updateBinActions();
     clearInterval(state.statusTimer);
     state.statusTimer = null;
     if (running) {
@@ -1319,8 +1323,10 @@ function setRunning(running) {
 function updateSolvingStatus() {
     const seconds = (performance.now() - state.startTime) / 1000;
     const project = state.solvingProject;
+    const task = (state.reoptimizing !== null)?
+        `Re-optimizing the leftovers of bin ${state.reoptimizing.index}`: "Solving";
     let text = (project !== null && project !== state.current)?
-        `Solving "${project.name}"...`: "Solving...";
+        `${task} of "${project.name}"...`: `${task}...`;
     text += ` ${seconds.toFixed(1)} s`;
     if (state.timeLimit !== null)
         text += ` / ${format(state.timeLimit)} s`;
@@ -1570,8 +1576,9 @@ async function plotSolution() {
             state.viewer.selected(): 0;
         // Drawn again without moving the page.
         const scroll = window.scrollY;
-        state.viewer = createViewer($("plot"), solution, {selected});
+        state.viewer = createViewer($("plot"), solution, {selected, binActions: binActions(result)});
         state.viewerProject = state.current;
+        updateBinActions();
         if (window.scrollY !== scroll)
             window.scrollTo(0, scroll);
     } catch (error) {
@@ -1635,13 +1642,148 @@ function onWorkerMessage(event) {
         const seconds = (performance.now() - state.startTime) / 1000;
         setStatus(((project !== null && project !== state.current)? `"${project.name}": done`: "Done")
             + ` in ${seconds.toFixed(1)} s.`);
+    } else if (message.type === "reoptimization-solution") {
+        applyReoptimizedSolution(project, message);
+    } else if (message.type === "reoptimized") {
+        onReoptimized(project, message);
     } else if (message.type === "error") {
         setRunning(false);
         state.solvingProject = null;
+        state.reoptimizing = null;
         renderProjectList();
         renderProjectHeader();
         setStatus("Error: " + message.error, true);
     }
+}
+
+// The problem types whose leftovers can be re-optimized
+// ('reoptimizeBinLeftovers').
+const REOPTIMIZE_LEFTOVERS_PROBLEM_TYPES = ["rectangle", "box", "boxstacks", "irregular"];
+
+// The buttons of the view of a bin of the solution 'result' ('viewer.js').
+function binActions(result) {
+    if (!REOPTIMIZE_LEFTOVERS_PROBLEM_TYPES.includes(state.current.problemType)
+            || result.instance === undefined || result.instance === null)
+        return [];
+    return [{
+        label: "Re-optimize the leftovers",
+        title: "Pack the items of this bin again, keeping its free space in a "
+            + "single region as much as possible",
+        onClick: (bin) => reoptimizeBinLeftovers(bin),
+    }];
+}
+
+// The buttons of the view of a bin can't be used during an optimization.
+function updateBinActions() {
+    for (const button of document.querySelectorAll("#plot .viewer-bin-action"))
+        button.disabled = state.running || state.worker === null;
+}
+
+// Re-optimize the leftovers of a bin of the solution of the current project:
+// its items are packed again in the bin, as a single-bin instance of the
+// bin packing with leftovers objective. The solution is kept if its
+// leftovers are better.
+//
+// With the optimization mode of the form, but in anytime mode, with
+// "not-anytime" instead: in anytime mode, the re-optimization would run until
+// the time limit or until it is stopped, without showing anything meanwhile.
+function reoptimizeBinLeftovers(bin) {
+    const project = state.current;
+    const result = project.result;
+    if (state.running || result === null)
+        return;
+    const mode = $("optimization-mode").value;
+    const parameters = {optimization_mode: (mode === "anytime")? "not-anytime": mode};
+    const timeLimit = $("time-limit").value;
+    if (timeLimit !== "")
+        parameters.time_limit = Number(timeLimit);
+
+    state.solvingProject = project;
+    // 'result': the solution re-optimized; 'current': the solution of the
+    // project, replaced by the better ones found meanwhile.
+    state.reoptimizing = {index: bin.index, result, current: result};
+    state.startTime = performance.now();
+    state.timeLimit = (parameters.time_limit !== undefined)? parameters.time_limit: null;
+    state.best = null;
+    renderProjectList();
+    renderProjectHeader();
+    setRunning(true);
+    state.worker.postMessage({
+        type: "reoptimize-bin-leftovers",
+        problemType: project.problemType,
+        // The instance of the solution, not the one of the form, which may
+        // have changed since.
+        instance: result.instance,
+        certificate: result.certificate,
+        binPos: bin.index,
+        parameters,
+    });
+}
+
+// The change of the leftovers from the solution 'before' to the solution
+// 'after' (JSON outputs): of the leftover value, or, if it is the same, of
+// the staircase leftover value ('Solution::leftovers_better'). 'null' if
+// unknown.
+function leftoversChange(before, after) {
+    const valueChange = (key, label) => {
+        const valueBefore = before[key];
+        const valueAfter = after[key];
+        return (valueBefore === undefined || valueAfter === undefined || valueBefore === valueAfter)?
+            null: `${label}: ${format(valueBefore)} → ${format(valueAfter)}`;
+    };
+    return valueChange("TotalLeftoverValue", "total leftover value")
+        || valueChange("TotalStaircaseLeftoverValue", "total staircase leftover value");
+}
+
+// A solution with better leftovers found by a re-optimization of the
+// leftovers of a bin ('reoptimizeBinLeftovers'), during it or at its end:
+// it replaces the solution of the project at once.
+function applyReoptimizedSolution(project, message) {
+    const reoptimizing = state.reoptimizing;
+    // Only if the solution of the project is still the one re-optimized.
+    if (project === null || project.result !== reoptimizing.current)
+        return false;
+    if (message.certificate !== reoptimizing.current.certificate) {
+        // The bounds of the optimization are kept.
+        project.result = {...reoptimizing.result,
+            output: {...reoptimizing.result.output, Solution: message.solution},
+            certificate: message.certificate};
+        reoptimizing.current = project.result;
+        scheduleSave(project);
+        if (project === state.current)
+            showResult(project.result);
+    }
+    const change = leftoversChange(reoptimizing.result.output.Solution, message.solution);
+    state.best = (change !== null)? change: "better leftovers";
+    return true;
+}
+
+// The end of a re-optimization of the leftovers of a bin
+// ('reoptimizeBinLeftovers').
+function onReoptimized(project, message) {
+    const applied = message.improved && applyReoptimizedSolution(project, message);
+    const {index, result} = state.reoptimizing;
+    state.reoptimizing = null;
+    setRunning(false);
+    state.solvingProject = null;
+    let text = `Bin ${index}: `;
+    if (applied) {
+        saveProject(project);
+        const change = leftoversChange(result.output.Solution, message.solution);
+        text += "better leftovers found";
+        if (change !== null)
+            text += ` (${change})`;
+        text += ".";
+    } else if (message.improved) {
+        text += "the solution has changed in the meantime.";
+    } else {
+        text += "no better leftovers found.";
+    }
+    renderProjectList();
+    renderProjectHeader();
+    const seconds = (performance.now() - state.startTime) / 1000;
+    setStatus(((project !== null && project !== state.current)? `"${project.name}": `: "")
+        + text + ` (${seconds.toFixed(1)} s)`);
 }
 
 function download(name, type, content) {
@@ -1895,6 +2037,7 @@ async function init() {
     state.worker.onerror = (error) => {
         setRunning(false);
         state.solvingProject = null;
+        state.reoptimizing = null;
         renderProjectList();
         renderProjectHeader();
         setStatus("Error: " + error.message, true);

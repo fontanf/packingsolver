@@ -105,8 +105,14 @@ void SolutionBuilder::read(
                 "unable to open file \"" + certificate_path + "\".");
     }
 
+    read(file);
+}
+
+void SolutionBuilder::read(
+        std::istream& certificate_stream)
+{
     nlohmann::json j;
-    file >> j;
+    certificate_stream >> j;
 
     for (const auto& json_bin: j["bins"]) {
         BinPos bin_pos = add_bin(json_bin["id"], json_bin["copies"]);

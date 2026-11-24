@@ -13,7 +13,7 @@ This builds `build_wasm/wasm/packingsolver.js` and `packingsolver.wasm`.
 
 ## Contents
 
-- `src/packingsolver_wasm.cpp`: the JavaScript API of the module: `solve(problemType, instanceJson, parametersJson)`, which blocks, and `Session`, which doesn't. See the comment at the top of the file.
+- `src/packingsolver_wasm.cpp`: the JavaScript API of the module: `solve(problemType, instanceJson, parametersJson)`, which blocks, and `Session`, which doesn't and also re-optimizes the leftovers of a bin of a solution. See the comment at the top of the file.
 - `js/packingsolver_worker.js`: a Web Worker running sessions and posting the solutions to the page.
 - `web/`: the web page.
   - `viewer/`: the visualizer of the solutions of all the problem types: an overview of all the bins, with their numbers of copies, and a view of one bin below it (isometric views for box and boxstacks).

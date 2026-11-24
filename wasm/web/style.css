@@ -743,6 +743,7 @@ tr.placed-shapes-line.invalid .placed-shapes-label,
 
 .viewer-detail-header {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 0.75rem;
     margin-bottom: 0.5rem;
@@ -752,6 +753,12 @@ tr.placed-shapes-line.invalid .placed-shapes-label,
     margin: 0;
     padding: 0.2rem 0.8rem;
     font-size: 1.1rem;
+}
+
+/* The actions on the bin shown ("Re-optimize the leftovers"), after the
+   arrows and the title. */
+.viewer-detail-header .viewer-bin-action {
+    font-size: 0.9rem;
 }
 
 .viewer-detail-image svg {
