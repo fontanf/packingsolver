@@ -1,3 +1,4 @@
+#include "packingsolver/rectangle/algorithm_formatter.hpp"
 #include "packingsolver/rectangle/instance_builder.hpp"
 #include "packingsolver/rectangle/optimize.hpp"
 #include "packingsolver/rectangle/post_process.hpp"
@@ -11,7 +12,7 @@
 using namespace packingsolver::rectangle;
 namespace fs = boost::filesystem;
 
-TEST(Rectangle, ReoptimizeNonLastBins)
+TEST(Rectangle, ReoptimizeNonLastBinsLeftovers)
 {
     // Two 10 x 10 bins and three 5 x 5 items. In the first bin of the
     // solution, the two items are in opposite corners: the free space is
@@ -38,13 +39,122 @@ TEST(Rectangle, ReoptimizeNonLastBins)
 
     OptimizeParameters parameters;
     parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytimeSequential;
-    const Solution new_solution = reoptimize_non_last_bins(solution, parameters);
+    const Solution new_solution = reoptimize_non_last_bins_leftovers(solution, parameters);
     ASSERT_TRUE(new_solution.feasible());
     EXPECT_EQ(new_solution.number_of_bins(), 2);
     EXPECT_EQ(new_solution.bin(0).leftover_value, 50 * 50);
     EXPECT_EQ(new_solution.bin(0).staircase_leftover_value, 50);
     EXPECT_EQ(new_solution.leftover_value(), solution.leftover_value());
     EXPECT_TRUE(solution < new_solution);
+}
+
+namespace
+{
+
+/**
+ * Two 10 x 10 bins and three 5 x 5 items, for the 'BinPacking' objective: in
+ * each bin of the solution, the items are in opposite corners, so the free
+ * space is split into two regions.
+ */
+Solution scattered_solution(const Instance& instance)
+{
+    SolutionBuilder solution_builder(instance);
+    solution_builder.add_bin(0, 1);
+    solution_builder.add_item(0, 0, {0, 0}, false);
+    solution_builder.add_item(0, 0, {5, 5}, false);
+    solution_builder.add_bin(0, 1);
+    solution_builder.add_item(1, 0, {5, 5}, false);
+    return solution_builder.build();
+}
+
+Instance scattered_instance()
+{
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(packingsolver::Objective::BinPacking);
+    packingsolver::BinTypeId bin_type_id = instance_builder.add_bin_type(10, 10);
+    instance_builder.set_bin_type_copies(bin_type_id, 2);
+    packingsolver::ItemTypeId item_type_id = instance_builder.add_item_type(5, 5);
+    instance_builder.set_item_type_copies(item_type_id, 3);
+    return instance_builder.build();
+}
+
+}
+
+TEST(Rectangle, ReoptimizeAllBinsLeftovers)
+{
+    // Re-optimized, the items of the first bin are next to each other, and
+    // the item of the last bin is in the corner. The number of bins, i.e. the
+    // value of the solution, is the same, but the leftovers are better.
+    const Instance instance = scattered_instance();
+    const Solution solution = scattered_solution(instance);
+    ASSERT_TRUE(solution.feasible());
+    EXPECT_EQ(solution.bin(0).leftover_value, 0);
+    EXPECT_EQ(solution.bin(1).leftover_value, 0);
+
+    OptimizeParameters parameters;
+    parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytimeSequential;
+    const Solution new_solution = reoptimize_all_bins_leftovers(solution, parameters);
+    ASSERT_TRUE(new_solution.feasible());
+    EXPECT_EQ(new_solution.number_of_bins(), 2);
+    EXPECT_EQ(new_solution.bin(0).leftover_value, 50 * 50);
+    EXPECT_EQ(new_solution.bin(1).leftover_value, 75 * 75);
+    EXPECT_FALSE(solution < new_solution);
+    EXPECT_FALSE(new_solution < solution);
+    EXPECT_TRUE(new_solution.leftovers_better(solution));
+    EXPECT_FALSE(solution.leftovers_better(new_solution));
+}
+
+TEST(Rectangle, UpdateSolutionLeftovers)
+{
+    // A solution with the same value as the best one but better leftovers
+    // replaces it; a solution with worse leftovers doesn't.
+    const Instance instance = scattered_instance();
+    const Solution solution = scattered_solution(instance);
+    OptimizeParameters parameters;
+    parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytimeSequential;
+    parameters.verbosity_level = 0;
+    const Solution new_solution = reoptimize_all_bins_leftovers(solution, parameters);
+    ASSERT_TRUE(new_solution.leftovers_better(solution));
+
+    Output output(instance);
+    AlgorithmFormatter algorithm_formatter(instance, parameters, output);
+    algorithm_formatter.start();
+    algorithm_formatter.update_solution(solution, "scattered");
+    EXPECT_EQ(output.solution_pool.best_label(), "scattered");
+
+    // 'update_solution' only keeps strictly better solutions.
+    algorithm_formatter.update_solution(new_solution, "compact");
+    EXPECT_EQ(output.solution_pool.best_label(), "scattered");
+
+    algorithm_formatter.update_solution_leftovers(new_solution, "compact");
+    EXPECT_EQ(output.solution_pool.best_label(), "compact");
+    EXPECT_EQ(output.solution_pool.best().total_leftover_value(), new_solution.total_leftover_value());
+
+    algorithm_formatter.update_solution_leftovers(solution, "scattered");
+    EXPECT_EQ(output.solution_pool.best_label(), "compact");
+}
+
+TEST(Rectangle, LeftoverPostProcessBinPacking)
+{
+    // With the 'BinPacking' objective, the leftover post-process re-packs the
+    // bins of the best solution to concentrate their free space: two 5 x 5
+    // items in a 10 x 10 bin, next to each other, leave a 10 x 5 leftover.
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(packingsolver::Objective::BinPacking);
+    packingsolver::BinTypeId bin_type_id = instance_builder.add_bin_type(10, 10);
+    instance_builder.set_bin_type_copies(bin_type_id, 2);
+    packingsolver::ItemTypeId item_type_id = instance_builder.add_item_type(5, 5);
+    instance_builder.set_item_type_copies(item_type_id, 2);
+    const Instance instance = instance_builder.build();
+    OptimizeParameters parameters;
+    parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytimeSequential;
+    parameters.verbosity_level = 0;
+    const Output output = optimize(instance, parameters);
+    const Solution& solution = output.solution_pool.best();
+    ASSERT_TRUE(solution.feasible());
+    EXPECT_EQ(solution.number_of_bins(), 1);
+    EXPECT_EQ(solution.bin(0).leftover_value, 50.0 * 50);
+    EXPECT_EQ(solution.total_leftover_value(), 100.0 * 100 + 50.0 * 50);
 }
 
 TEST(Rectangle, LeftoverModeStaircase)

@@ -123,7 +123,7 @@ AnchorOutput packingsolver::irregular::anchor(
     return output;
 }
 
-Solution packingsolver::irregular::reoptimize_bin(
+Solution packingsolver::irregular::reoptimize_bin_leftovers(
         const Solution& solution,
         BinPos bin_pos,
         const OptimizeParameters& parameters)
@@ -137,6 +137,10 @@ Solution packingsolver::irregular::reoptimize_bin(
 
     // Add bin types.
     const SolutionBin& bin = solution.bin(bin_pos);
+    // An empty bin has nothing to re-optimize: its sub-instance would have no
+    // items, and its solution no bin.
+    if (bin.items.empty())
+        return solution;
     BinTypeId bin_type_id = bin_instance_builder.add_bin_type_from_original_instance(bin.bin_type_id);
     bin_instance_builder.set_bin_type_copies(bin_type_id, 1);
     bin_instance_builder.set_bin_type_copies_min(bin_type_id, 0);
@@ -196,24 +200,56 @@ Solution packingsolver::irregular::reoptimize_bin(
     return new_solution;
 }
 
-Solution packingsolver::irregular::reoptimize_non_last_bins(
+namespace
+{
+
+/**
+ * Re-optimize each of the first 'number_of_bins' bins of a solution, and keep
+ * a re-optimized bin if its leftovers are better.
+ */
+Solution reoptimize_bins_leftovers(
         const Solution& solution,
+        BinPos number_of_bins,
         const OptimizeParameters& parameters)
 {
     Solution new_solution = solution;
     for (BinPos bin_pos = 0;
-            bin_pos < solution.number_of_different_bins() - 1;
+            bin_pos < number_of_bins;
             ++bin_pos) {
         if (parameters.timer.needs_to_end())
             break;
-        Solution bin_solution = reoptimize_bin(
+        Solution bin_solution = irregular::reoptimize_bin_leftovers(
                 new_solution,
                 bin_pos,
                 parameters);
         // Only the bin at 'bin_pos' differs: the comparison is on its leftover
         // value, then on its staircase leftover value.
-        if (new_solution < bin_solution)
+        if (!(bin_solution < new_solution)
+                && bin_solution.leftovers_better(new_solution)) {
             new_solution = bin_solution;
+        }
     }
     return new_solution;
+}
+
+}
+
+Solution packingsolver::irregular::reoptimize_non_last_bins_leftovers(
+        const Solution& solution,
+        const OptimizeParameters& parameters)
+{
+    return reoptimize_bins_leftovers(
+            solution,
+            solution.number_of_different_bins() - 1,
+            parameters);
+}
+
+Solution packingsolver::irregular::reoptimize_all_bins_leftovers(
+        const Solution& solution,
+        const OptimizeParameters& parameters)
+{
+    return reoptimize_bins_leftovers(
+            solution,
+            solution.number_of_different_bins(),
+            parameters);
 }

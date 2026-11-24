@@ -349,6 +349,18 @@ double Solution::total_leftover_value() const
     return value - leftover_value_loss_;
 }
 
+bool Solution::leftovers_better(const Solution& solution) const
+{
+    // The total leftover values of all the bins of the instance are compared
+    // through the value lost in the used bins.
+    LeftoverValueType leftover_value_type = instance().parameters().leftover_value_type;
+    if (strictly_greater_leftover_value(leftover_value_type, solution.leftover_value_loss_, leftover_value_loss_))
+        return true;
+    if (strictly_greater_leftover_value(leftover_value_type, leftover_value_loss_, solution.leftover_value_loss_))
+        return false;
+    return staircase_dominated_volume_ < solution.staircase_dominated_volume_;
+}
+
 bool Solution::operator<(const Solution& solution) const
 {
     // Check feasibility.

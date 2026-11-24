@@ -75,7 +75,7 @@ LargeItemFirstOutput packingsolver::irregular::large_item_first(
     }
 
     // Build sub-parameters to pass to each sub-problem.
-    auto make_sub_parameters = [&parameters, &algorithm_formatter]() {
+    auto make_sub_parameters = [&instance, &parameters, &algorithm_formatter]() {
         OptimizeParameters sub_parameters;
         sub_parameters.seed = parameters.seed;
         sub_parameters.verbosity_level = 0;
@@ -88,6 +88,11 @@ LargeItemFirstOutput packingsolver::irregular::large_item_first(
             = parameters.not_anytime_tree_search_queue_size;
         sub_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
         sub_parameters.local_search_weighting_scheme = parameters.local_search_weighting_scheme;
+        // Only 'BinPackingWithLeftovers' post-processes the solutions of the
+        // phases; for the other objectives, the leftover post-process is
+        // applied to the solution of the whole instance.
+        sub_parameters.post_process = parameters.post_process
+            && instance.objective() == Objective::BinPackingWithLeftovers;
         sub_parameters.use_tree_search = parameters.use_tree_search;
         sub_parameters.use_local_search_linear_programming = parameters.use_local_search_linear_programming;
         sub_parameters.use_local_search_nonlinear_programming = parameters.use_local_search_nonlinear_programming;

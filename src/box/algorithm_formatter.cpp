@@ -242,6 +242,32 @@ void AlgorithmFormatter::update_solution(
     mutex_.unlock();
 }
 
+void AlgorithmFormatter::update_solution_leftovers(
+        const Solution& solution,
+        const std::string& s)
+{
+    mutex_.lock();
+    output_.time = parameters_.timer.elapsed_time();
+    const Solution& solution_best = output_.solution_pool.best();
+    bool updated = false;
+    if (solution_best < solution) {
+        updated = (output_.solution_pool.add(solution, s) == 1);
+    } else if (!(solution < solution_best)
+            && solution.leftovers_better(solution_best)) {
+        updated = output_.solution_pool.replace_best(solution, s);
+    }
+    if (updated) {
+        print(s);
+        if (parameters_.write_json_output)
+            output_.json["IntermediaryOutputs"].push_back(output_.to_json());
+        parameters_.new_solution_callback(output_);
+
+        if (output_.is_proven_optimal())
+            end_ = true;
+    }
+    mutex_.unlock();
+}
+
 void AlgorithmFormatter::update_is_proven_infeasible()
 {
     mutex_.lock();

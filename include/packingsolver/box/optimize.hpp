@@ -232,8 +232,9 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
     std::vector<Direction> tree_search_directions;
 
     /**
-     * Re-optimize the bins of the best solution at the end, for the
-     * BinPackingWithLeftovers objective in a not-anytime mode.
+     * Re-optimize the bins of the best solution at the end, to improve their
+     * leftovers, in a not-anytime mode, for the objectives of
+     * 'leftover_post_process_objective'.
      */
     bool post_process = true;
 

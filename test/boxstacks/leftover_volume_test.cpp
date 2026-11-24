@@ -171,7 +171,7 @@ TEST(BoxStacks, LeftoverModeRanksSolutions)
     EXPECT_TRUE(along_y < along_x);  // operator< means the right solution is better.
 }
 
-TEST(BoxStacks, ReoptimizeNonLastBins)
+TEST(BoxStacks, ReoptimizeNonLastBinsLeftovers)
 {
     // Two 10 x 10 x 10 bins and three 5 x 5 x 10 items. In the first bin of
     // the solution, the two stacks are in opposite corners: the leftover
@@ -200,7 +200,7 @@ TEST(BoxStacks, ReoptimizeNonLastBins)
 
     OptimizeParameters parameters;
     parameters.optimization_mode = OptimizationMode::NotAnytimeSequential;
-    const Solution new_solution = reoptimize_non_last_bins(solution, parameters);
+    const Solution new_solution = reoptimize_non_last_bins_leftovers(solution, parameters);
     ASSERT_TRUE(new_solution.feasible());
     EXPECT_EQ(new_solution.number_of_bins(), 2);
     EXPECT_EQ(new_solution.bin(0).leftover_value, ((100.0 - 50) * 10) * ((100.0 - 50) * 10));

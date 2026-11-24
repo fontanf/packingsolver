@@ -459,6 +459,27 @@ AreaDbl Solution::total_staircase_leftover_value() const
     return area - staircase_dominated_area_;
 }
 
+bool Solution::leftovers_better(const Solution& solution) const
+{
+    // The total leftover values of all the bins of the instance are compared
+    // through the value lost in the used bins, with the tolerances of
+    // 'Objective::BinPackingWithLeftovers'.
+    LeftoverValueType leftover_value_type = instance().parameters().leftover_value_type;
+    if (shape::strictly_lesser(
+                leftover_value_length_2d(leftover_value_type, leftover_value_loss_),
+                leftover_value_length_2d(leftover_value_type, solution.leftover_value_loss_))) {
+        return true;
+    }
+    if (shape::strictly_lesser(
+                leftover_value_length_2d(leftover_value_type, solution.leftover_value_loss_),
+                leftover_value_length_2d(leftover_value_type, leftover_value_loss_))) {
+        return false;
+    }
+    return shape::strictly_lesser(
+            std::sqrt(staircase_dominated_area_),
+            std::sqrt(solution.staircase_dominated_area_));
+}
+
 bool Solution::operator<(const Solution& solution) const
 {
     // Check feasibility.

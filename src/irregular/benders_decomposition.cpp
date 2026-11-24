@@ -176,6 +176,7 @@ const TreeSearchRelativePositionsResult& tree_search_relative_positions_result(
             selected_items,
             sub_to_orig);
     OptimizeParameters sub_parameters;
+    sub_parameters.post_process = false;
     sub_parameters.verbosity_level = 0;
     sub_parameters.timer = parameters.timer;
     if (parameters.optimization_mode == OptimizationMode::Exact) {
@@ -261,6 +262,7 @@ SelectionFeasibility selection_feasibility(
             selected_items,
             sub_to_orig);
     OptimizeParameters sub_parameters;
+    sub_parameters.post_process = false;
     sub_parameters.verbosity_level = 0;
     sub_parameters.timer = parameters.timer;
     sub_parameters.optimization_mode = subproblem_optimization_mode(parameters);

@@ -104,6 +104,7 @@ OptimizeParameters subproblem_parameters(
         const BendersDecompositionParameters& parameters)
 {
     OptimizeParameters sub_parameters;
+    sub_parameters.post_process = false;
     sub_parameters.verbosity_level = 0;
     sub_parameters.timer = parameters.timer;
     sub_parameters.optimization_mode

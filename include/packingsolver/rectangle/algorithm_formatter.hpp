@@ -45,6 +45,18 @@ public:
             const Solution& solution,
             const std::string& s);
 
+    /**
+     * Update the solution with a solution from the leftover post-process.
+     *
+     * The solution is added as with 'update_solution' if it is better for
+     * the objective. If it is equivalent to the best solution for the
+     * objective but its leftovers are better (see
+     * 'Solution::leftovers_better'), it replaces the best solution.
+     */
+    void update_solution_leftovers(
+            const Solution& solution,
+            const std::string& s);
+
     /** Mark the instance as proven infeasible. */
     void update_is_proven_infeasible();
 

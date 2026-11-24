@@ -217,6 +217,18 @@ public:
     inline Profit net_cost() const { return net_cost_; }
 
     /**
+     * Return 'true' iff the leftovers of the solution are better than the
+     * ones of another solution of the same instance: the total leftover value
+     * of all the bins of the instance is greater (see
+     * 'total_leftover_value'), or it is the same and the total staircase
+     * leftover value is greater.
+     *
+     * It doesn't depend on the objective of the instance; it is used by the
+     * leftover post-process.
+     */
+    bool leftovers_better(const Solution& solution) const;
+
+    /**
      * Get the sum of the staircase leftover values of all the bins of the
      * instance: the staircase leftover values of the bins of the solution,
      * and the areas of the bounding boxes of the bins which are not used.
