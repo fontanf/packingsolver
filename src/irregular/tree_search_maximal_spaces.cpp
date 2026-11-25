@@ -542,7 +542,8 @@ void BranchingSchemeMaximalSpaces::compute_blocks()
     std::vector<PeriodicBlock> periodic_blocks = compute_periodic_blocks(
             instance(),
             *instance().get_periodic_packings(optimizationtools::Timer()),
-            compute_item_type_rotations(instance())[bin_type_id]);
+            compute_item_type_rotations(instance())[bin_type_id],
+            &parameters_.timer);
     for (const PeriodicBlock& periodic_block: periodic_blocks) {
         if (periodic_block.packing_id < 0)
             continue;
