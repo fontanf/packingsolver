@@ -18,6 +18,7 @@
 #include <forward_list>
 #include <algorithm>
 #include <cmath>
+#include <map>
 
 using namespace packingsolver;
 using namespace packingsolver::irregular;
@@ -134,6 +135,208 @@ static void add_block_if_not_dominated(
 }
 
 /**
+ * Set of blocks, none of them dominated by another one (see 'dominates'):
+ * the same blocks as with 'add_block_if_not_dominated', but much faster when
+ * there are many blocks of a single item type.
+ *
+ * A block of a single item type with 'n' copies is dominated iff a block of
+ * this item type with at least 'n' copies is not larger in both dimensions.
+ * So, for each number of copies 'n', the blocks of the item type with at
+ * least 'n' copies are represented by the Pareto front of their dimensions:
+ * a staircase, in which the heights decrease as the widths increase. A block
+ * with 'n' copies is dominated iff a point of staircase 'n' is not larger in
+ * both dimensions, which is checked with a single lookup: the point with the
+ * largest width not larger than the width of the block, which has the
+ * smallest height among them. When a block with 'n' copies is added, it is
+ * added to the staircases 1 to 'n', removing their points it dominates. A
+ * point removed from the staircase of its own number of copies is dominated
+ * by the new block, so its block is removed.
+ *
+ * As with 'add_block_if_not_dominated', the blocks of a single item are always
+ * kept, and of two blocks which dominate each other, the first one is kept.
+ * The blocks of several item types are checked against each other one by one.
+ */
+class NonDominatedBlocks
+{
+
+public:
+
+    /** Return true iff 'block' is dominated by a block of the set. */
+    bool is_dominated(const PeriodicBlock& block) const
+    {
+        if (block.number_of_items == 1)
+            return false;
+        if (block.item_copies.size() != 1) {
+            for (std::size_t pos: multiple_item_types_block_positions_)
+                if (dominates(blocks_[pos], block))
+                    return true;
+            return false;
+        }
+        auto it = staircases_.find(block.item_copies[0].first);
+        if (it == staircases_.end())
+            return false;
+        ItemPos number_of_copies = block.item_copies[0].second;
+        if (number_of_copies >= (ItemPos)it->second.size())
+            return false;
+        return staircase_dominates(
+                it->second[number_of_copies],
+                block.bx,
+                block.by);
+    }
+
+    /**
+     * Add 'block' to the set, unless it is dominated by a block of the set,
+     * and remove the blocks it dominates.
+     */
+    void add(PeriodicBlock&& block)
+    {
+        if (block.number_of_items == 1) {
+            push(std::move(block));
+            return;
+        }
+
+        if (block.item_copies.size() != 1) {
+            if (is_dominated(block))
+                return;
+            for (auto it = multiple_item_types_block_positions_.begin();
+                    it != multiple_item_types_block_positions_.end();) {
+                if (dominates(block, blocks_[*it])) {
+                    remove(*it);
+                    it = multiple_item_types_block_positions_.erase(it);
+                } else {
+                    ++it;
+                }
+            }
+            multiple_item_types_block_positions_.push_back(blocks_.size());
+            push(std::move(block));
+            return;
+        }
+
+        if (is_dominated(block))
+            return;
+        std::vector<Staircase>& staircases = staircases_[block.item_copies[0].first];
+        ItemPos number_of_copies = block.item_copies[0].second;
+        if ((ItemPos)staircases.size() <= number_of_copies)
+            staircases.resize(number_of_copies + 1);
+        LengthDbl bx = block.bx;
+        LengthDbl by = block.by;
+        std::size_t block_pos = blocks_.size();
+        push(std::move(block));
+        for (ItemPos staircase_copies = number_of_copies;
+                staircase_copies >= 1;
+                --staircase_copies) {
+            Staircase& staircase = staircases[staircase_copies];
+            // Below its own number of copies, the block may be dominated by a
+            // point of the staircase, with fewer copies. Unless the block
+            // also dominates this point (the same dimensions), the points
+            // the block dominates are dominated by this point, so they are
+            // not in this staircase nor in the next ones: the block isn't
+            // added to them either.
+            auto it_dominating = staircase_dominating_point(staircase, bx, by);
+            if (it_dominating != staircase.end()
+                    && (shape::strictly_greater(bx, it_dominating->first)
+                        || shape::strictly_greater(by, it_dominating->second.first))) {
+                break;
+            }
+            // Remove the points dominated by the block: their widths are at
+            // least the width of the block, and their heights at least its
+            // height. Since the heights decrease, they are consecutive.
+            auto it = staircase.lower_bound(bx);
+            while (it != staircase.begin()
+                    && !shape::strictly_greater(bx, std::prev(it)->first)) {
+                --it;
+            }
+            while (it != staircase.end()
+                    && !shape::strictly_greater(by, it->second.first)) {
+                std::size_t pos = it->second.second;
+                if (blocks_[pos].item_copies[0].second == staircase_copies)
+                    remove(pos);
+                it = staircase.erase(it);
+            }
+            staircase.emplace(bx, std::make_pair(by, block_pos));
+        }
+    }
+
+    /** Get the blocks of the set, in the order they were added. */
+    std::vector<PeriodicBlock> blocks()
+    {
+        std::vector<PeriodicBlock> output;
+        for (std::size_t pos = 0; pos < blocks_.size(); ++pos)
+            if (!removed_[pos])
+                output.push_back(std::move(blocks_[pos]));
+        return output;
+    }
+
+private:
+
+    /**
+     * Staircase: for each width, the height of a point and the position of
+     * its block in 'blocks_'.
+     */
+    using Staircase = std::map<LengthDbl, std::pair<LengthDbl, std::size_t>>;
+
+    /**
+     * Get the point of 'staircase' with the largest width not larger than
+     * 'bx' if its height is not larger than 'by', 'staircase.end()'
+     * otherwise.
+     */
+    static Staircase::const_iterator staircase_dominating_point(
+            const Staircase& staircase,
+            LengthDbl bx,
+            LengthDbl by)
+    {
+        auto it = staircase.upper_bound(bx);
+        while (it != staircase.end()
+                && !shape::strictly_greater(it->first, bx)) {
+            ++it;
+        }
+        if (it == staircase.begin())
+            return staircase.end();
+        --it;
+        if (shape::strictly_greater(it->second.first, by))
+            return staircase.end();
+        return it;
+    }
+
+    static bool staircase_dominates(
+            const Staircase& staircase,
+            LengthDbl bx,
+            LengthDbl by)
+    {
+        return staircase_dominating_point(staircase, bx, by) != staircase.end();
+    }
+
+    void push(PeriodicBlock&& block)
+    {
+        blocks_.push_back(std::move(block));
+        removed_.push_back(false);
+    }
+
+    void remove(std::size_t pos)
+    {
+        removed_[pos] = true;
+        // Free the items of the block.
+        blocks_[pos].items = std::vector<SolutionItem>();
+    }
+
+    /** Blocks added, in the order they were added. */
+    std::vector<PeriodicBlock> blocks_;
+
+    /** For each block of 'blocks_', 'true' iff it has been removed. */
+    std::vector<bool> removed_;
+
+    /**
+     * For each item type, for each number of copies 'n', the staircase of
+     * the blocks of this item type with at least 'n' copies.
+     */
+    std::map<ItemTypeId, std::vector<Staircase>> staircases_;
+
+    /** Positions in 'blocks_' of the blocks of several item types kept. */
+    std::vector<std::size_t> multiple_item_types_block_positions_;
+
+};
+
+/**
  * Usable bin bounding-box dimension (scaled) along one axis: shrunk on
  * every side by instance.bin_spacing_scaled(bin_type_id), then grown back
  * by one extra instance.item_spacing_scaled(). See
@@ -184,7 +387,7 @@ static void add_aabb_grid_blocks_for_item_type(
         const Instance& instance,
         ItemTypeId item_type_id,
         const std::vector<ItemTypeRotation>& rotations,
-        std::vector<PeriodicBlock>& blocks)
+        NonDominatedBlocks& blocks)
 {
     const ItemType& item_type = instance.item_type(item_type_id);
     if (item_type.copies < 1)
@@ -255,7 +458,7 @@ static void add_aabb_grid_blocks_for_item_type(
                     }
                 }
 
-                add_block_if_not_dominated(blocks, std::move(block));
+                blocks.add(std::move(block));
             }
         }
     }
@@ -291,7 +494,7 @@ static bool add_clipped_lattice_blocks(
         const Instance& instance,
         int packing_id,
         const PeriodicItemPacking& packing,
-        std::vector<PeriodicBlock>& blocks,
+        NonDominatedBlocks& blocks,
         const optimizationtools::Timer* timer)
 {
     // Maximum number of copies of the items in the bin.
@@ -529,7 +732,7 @@ static bool add_clipped_lattice_blocks(
                 block.item_copies = std::vector<std::pair<ItemTypeId, ItemPos>>(
                         copies_map.begin(),
                         copies_map.end());
-                if (is_dominated(blocks, block))
+                if (blocks.is_dominated(block))
                     continue;
                 block.items.reserve(block_items.size());
                 for (ItemPos pos: block_items) {
@@ -539,7 +742,7 @@ static bool add_clipped_lattice_blocks(
                     placed_item.bl_corner.y += block_item.translation.y - block_aabb.y_min;
                     block.items.push_back(placed_item);
                 }
-                add_block_if_not_dominated(blocks, std::move(block));
+                blocks.add(std::move(block));
             }
             if (too_many_copies)
                 continue;
@@ -557,7 +760,7 @@ static void add_periodic_blocks_for_packing(
         const Instance& instance,
         int packing_id,
         const PeriodicItemPacking& packing,
-        std::vector<PeriodicBlock>& blocks,
+        NonDominatedBlocks& blocks,
         const optimizationtools::Timer* timer)
 {
     BinTypeId bin_type_id = instance.bin_type_id(0);
@@ -712,7 +915,7 @@ static void add_periodic_blocks_for_packing(
                 }
             }
 
-            add_block_if_not_dominated(blocks, std::move(block));
+            blocks.add(std::move(block));
         }
 
         // Stop growing nx once even the smallest possible block (ny = 1)
@@ -752,7 +955,7 @@ std::vector<PeriodicBlock> packingsolver::irregular::compute_periodic_blocks_for
     if (instance.number_of_bin_types() == 0)
         return {};
 
-    std::vector<PeriodicBlock> blocks;
+    NonDominatedBlocks blocks;
 
     for (int packing_id = 0; packing_id < (int)packings.size(); ++packing_id) {
         if (timer != nullptr && timer->needs_to_end())
@@ -766,12 +969,12 @@ std::vector<PeriodicBlock> packingsolver::irregular::compute_periodic_blocks_for
     }
 
     // Blocks are already pruned as they are generated (see
-    // add_block_if_not_dominated): 'blocks' only ever holds the current
+    // NonDominatedBlocks): 'blocks' only ever holds the current
     // Pareto-optimal set (across bx, by, and number of copies of this item
     // type), so there is nothing left to filter here.
     add_aabb_grid_blocks_for_item_type(instance, item_type_id, rotations, blocks);
 
-    return blocks;
+    return blocks.blocks();
 }
 
 /**
@@ -1434,7 +1637,7 @@ std::vector<PeriodicBlock> packingsolver::irregular::compute_periodic_blocks(
     }
 
     if (instance.number_of_bin_types() > 0) {
-        std::vector<PeriodicBlock> multiple_item_types_output;
+        NonDominatedBlocks multiple_item_types_blocks;
         for (int packing_id = 0; packing_id < (int)packings.size(); ++packing_id) {
             if (timer != nullptr && timer->needs_to_end())
                 break;
@@ -1444,9 +1647,11 @@ std::vector<PeriodicBlock> packingsolver::irregular::compute_periodic_blocks(
                     instance,
                     packing_id,
                     packings[packing_id],
-                    multiple_item_types_output,
+                    multiple_item_types_blocks,
                     timer);
         }
+        std::vector<PeriodicBlock> multiple_item_types_output
+            = multiple_item_types_blocks.blocks();
         output.insert(
                 output.end(),
                 std::make_move_iterator(multiple_item_types_output.begin()),
