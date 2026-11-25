@@ -444,6 +444,85 @@ TEST(OneDimensional, ItemNestedLength)
     EXPECT_EQ(solution.full_waste(), 310);
 }
 
+TEST(OneDimensional, VariableSizedBinPackingWithLeftovers)
+{
+    // A bin of length 100, a bin of length 50 and an item of length 50. In
+    // the first solution, the item is in the small bin, which is used
+    // entirely: the large bin is kept whole. In the second one, the item is
+    // in the large bin, which leaves a leftover of length 50, and the small
+    // bin is kept. The leftover value factor is 1 / 100: the leftover is
+    // refunded 50^2 / 100 = 25 units of length, at the price of the large
+    // bin.
+    for (bool costs: {false, true}) {
+        InstanceBuilder instance_builder;
+        instance_builder.set_objective(packingsolver::Objective::VariableSizedBinPackingWithLeftovers);
+        packingsolver::BinTypeId large_bin_type_id = instance_builder.add_bin_type(100);
+        packingsolver::BinTypeId small_bin_type_id = instance_builder.add_bin_type(50);
+        if (costs) {
+            instance_builder.set_bin_type_cost(large_bin_type_id, 1);
+            instance_builder.set_bin_type_cost(small_bin_type_id, 10);
+        }
+        packingsolver::ItemTypeId item_type_id = instance_builder.add_item_type(50);
+        const Instance instance = instance_builder.build();
+        EXPECT_DOUBLE_EQ(instance.leftover_value_factor(), 1.0 / 100);
+
+        SolutionBuilder small_solution_builder(instance);
+        small_solution_builder.add_bin(small_bin_type_id, 1);
+        small_solution_builder.add_item(0, item_type_id);
+        const Solution small_solution = small_solution_builder.build();
+        SolutionBuilder large_solution_builder(instance);
+        large_solution_builder.add_bin(large_bin_type_id, 1);
+        large_solution_builder.add_item(0, item_type_id);
+        const Solution large_solution = large_solution_builder.build();
+
+        EXPECT_EQ(small_solution.bin(0).leftover_value, 0);
+        EXPECT_EQ(large_solution.bin(0).leftover_value, 50 * 50);
+        if (costs) {
+            // The large bin is much cheaper: 1 - 25 / 100 against 10.
+            EXPECT_DOUBLE_EQ(small_solution.net_cost(), 10);
+            EXPECT_DOUBLE_EQ(large_solution.net_cost(), 1 - 0.25);
+            EXPECT_TRUE(small_solution < large_solution);
+            EXPECT_FALSE(large_solution < small_solution);
+        } else {
+            // 100 - 25 against 50: the large bin is kept whole.
+            EXPECT_DOUBLE_EQ(small_solution.net_cost(), 50);
+            EXPECT_DOUBLE_EQ(large_solution.net_cost(), 100 - 25);
+            EXPECT_TRUE(large_solution < small_solution);
+            EXPECT_FALSE(small_solution < large_solution);
+        }
+
+        OptimizeParameters parameters;
+        parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytimeSequential;
+        const Output output = optimize(instance, parameters);
+        ASSERT_TRUE(output.solution_pool.best().feasible());
+        EXPECT_EQ(output.solution_pool.best().number_of_bins(), 1);
+        EXPECT_EQ(output.solution_pool.best().bin(0).bin_type_id,
+                (costs)? large_bin_type_id: small_bin_type_id);
+        EXPECT_FALSE(output.is_proven_optimal());
+    }
+}
+
+TEST(OneDimensional, VariableSizedBinPackingWithLeftoversNesting)
+{
+    // 3 items of length 70 with a nesting length of 10 end at 190 in a bin
+    // of length 500: the leftover is 310 long.
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(packingsolver::Objective::VariableSizedBinPackingWithLeftovers);
+    instance_builder.add_bin_type(500);
+    packingsolver::ItemTypeId item_type_id = instance_builder.add_item_type(70);
+    instance_builder.set_item_type_nesting_length(item_type_id, 10);
+    instance_builder.set_item_type_copies(item_type_id, 3);
+    const Instance instance = instance_builder.build();
+    SolutionBuilder solution_builder(instance);
+    solution_builder.add_bin(0, 1);
+    for (int i = 0; i < 3; ++i)
+        solution_builder.add_item(0, item_type_id);
+    const Solution solution = solution_builder.build();
+    EXPECT_EQ(solution.bin(0).leftover_value, 310 * 310);
+    // 500 - 500 / 500 * 310^2 / 500.
+    EXPECT_DOUBLE_EQ(solution.net_cost(), 500 - 310.0 * 310.0 / 500);
+}
+
 TEST(Onedimensional, InstanceBuilderCropBinType)
 {
     InstanceBuilder instance_builder;

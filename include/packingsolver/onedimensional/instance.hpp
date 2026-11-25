@@ -313,6 +313,48 @@ public:
     /** Get the largest cost of the bins. */
     inline Profit largest_bin_cost() const { return largest_bin_cost_; }
 
+    /**
+     * Get the value of the leftover of a bin, for the
+     * 'VariableSizedBinPackingWithLeftovers' objective: the square of the
+     * length of the bin after the end of its last item.
+     *
+     * A leftover is a single segment, so the value types of the other
+     * problem types are equivalent: the depth value of a segment of length
+     * 'l' is 'l^2 / 4', which gives the same refunds.
+     */
+    inline double leftover_value(
+            BinTypeId bin_type_id,
+            Length end) const
+    {
+        double leftover_length = bin_type(bin_type_id).length - end;
+        return leftover_length * leftover_length;
+    }
+
+    /**
+     * Get the factor which converts a leftover value into a length, for the
+     * 'VariableSizedBinPackingWithLeftovers' objective: the minimum, over the
+     * bin types, of the length of the bin divided by its leftover value when
+     * it is empty, that is, one over the largest bin length.
+     */
+    inline double leftover_value_factor() const { return leftover_value_factor_; }
+
+    /**
+     * Get the refund of a leftover of a bin, for the
+     * 'VariableSizedBinPackingWithLeftovers' objective: the price of the bin
+     * per unit of length, times the length equivalent to the value of the
+     * leftover.
+     *
+     * The refund of an empty bin is at most its cost; it is equal for the
+     * largest bin types.
+     */
+    inline Profit leftover_refund(
+            BinTypeId bin_type_id,
+            double leftover_value) const
+    {
+        const BinType& bin_type = this->bin_type(bin_type_id);
+        return bin_type.cost / bin_type.length * leftover_value_factor_ * leftover_value;
+    }
+
     /** Get the absolute tolerance for bin weight comparisons. */
     inline Weight weight_tolerance() const { return parameters_.weight_tolerance; }
 
@@ -467,6 +509,9 @@ private:
 
     /** Largest bin cost. */
     Profit largest_bin_cost_ = 0.0;
+
+    /** Leftover value factor (see 'leftover_value_factor'). */
+    double leftover_value_factor_ = 0;
 
     /** Number of items. */
     ItemPos number_of_items_ = 0;

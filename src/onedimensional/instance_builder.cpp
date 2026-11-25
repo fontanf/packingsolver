@@ -980,13 +980,6 @@ void InstanceBuilder::resolve_item_types_unlimited_copies()
 
 Instance InstanceBuilder::build()
 {
-    if (instance_.objective() == Objective::VariableSizedBinPackingWithLeftovers) {
-        throw std::invalid_argument(
-                FUNC_SIGNATURE + ": "
-                "the objective 'VariableSizedBinPackingWithLeftovers' is not "
-                "available for the problem type 'onedimensional'.");
-    }
-
     // Compute the tolerances of the resources which haven't been set (see
     // 'Resource::tolerance').
     for (BinType& bin_type: instance_.bin_types_)
@@ -1187,6 +1180,21 @@ Instance InstanceBuilder::build()
         }
         for (const FixedItem& fixed_item: bin_type.fixed_items)
             instance_.item_types_[fixed_item.item_type_id].copies_fixed += bin_type.copies;
+    }
+
+    // Compute the factor which converts a leftover value into a length.
+    instance_.leftover_value_factor_ = 0;
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < instance_.number_of_bin_types();
+            ++bin_type_id) {
+        const BinType& bin_type = instance_.bin_type(bin_type_id);
+        double value = instance_.leftover_value(bin_type_id, 0);
+        if (value <= 0)
+            continue;
+        if (instance_.leftover_value_factor_ == 0
+                || bin_type.length / value < instance_.leftover_value_factor_) {
+            instance_.leftover_value_factor_ = bin_type.length / value;
+        }
     }
 
     return std::move(instance_);

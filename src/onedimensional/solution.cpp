@@ -134,6 +134,12 @@ void Solution::update_indicators(
     if (!bin.items.empty())
         length_ = bin_length_ - bin_type.length + bin.end;
 
+    // Update the leftover value and the net cost.
+    bin.leftover_value = instance().leftover_value(bin.bin_type_id, bin.end);
+    net_cost_ += bin.copies * (
+            bin_type.cost
+            - instance().leftover_refund(bin.bin_type_id, bin.leftover_value));
+
     // Check bin type usage order ('BinPacking' objective only): every bin
     // type used before the last used bin type must be used up entirely.
     // Computed once all bins have been added, since it depends on the final
@@ -257,8 +263,12 @@ bool Solution::operator<(const Solution& solution) const
         return strictly_greater_profit(solution.profit(), profit());
     } case Objective::Feasibility: {
         return strictly_greater_profit(solution.profit(), profit());
-    } case Objective::VariableSizedBinPacking: case Objective::VariableSizedBinPackingWithLeftovers: {
+    } case Objective::VariableSizedBinPacking: {
         return strictly_lesser_cost(solution.cost(), cost());
+    } case Objective::VariableSizedBinPackingWithLeftovers: {
+        // The net cost: the cost of the bins minus the refunds of their
+        // leftovers (see 'Instance::leftover_refund').
+        return strictly_lesser_cost(solution.net_cost(), net_cost());
     } default: {
         std::stringstream ss;
         ss << FUNC_SIGNATURE << ": "
@@ -322,6 +332,7 @@ nlohmann::json Solution::to_json() const
         {"NumberOfBins", number_of_bins()},
         {"BinLength", bin_length()},
         {"BinCost", cost()},
+        {"NetCost", net_cost()},
         {"Waste", waste()},
         {"WastePercentage", waste_percentage()},
         {"FullWaste", full_waste()},
@@ -341,6 +352,7 @@ void Solution::format(
             << "Number of bins:   " << optimizationtools::Ratio<BinPos>(number_of_bins(), instance().number_of_bins()) << std::endl
             << "Bin length:       " << optimizationtools::Ratio<BinPos>(bin_length(), instance().bin_length()) << std::endl
             << "Bin cost:         " << cost() << std::endl
+            << "Net cost:         " << net_cost() << std::endl
             << "Waste:            " << waste() << std::endl
             << "Waste (%):        " << 100 * waste_percentage() << std::endl
             << "Full waste:       " << full_waste() << std::endl

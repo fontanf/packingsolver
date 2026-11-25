@@ -83,7 +83,7 @@ The input is the same as the previous one. With the variable-sized bin packing o
 Variable-sized bin packing with leftovers
 -----------------------------------------
 
-The :code:`variable-sized-bin-packing-with-leftovers` objective also accounts for what goes back into stock after packing the items: the leftovers of the bins which are used (see :ref:`leftovers`). It is available for the :ref:`rectangle-guillotine<rectangleguillotine>`, :ref:`rectangle<rectangle>`, :ref:`box<box>`, :ref:`box-stacks<boxstacks>` and :ref:`irregular<irregular>` problem types.
+The :code:`variable-sized-bin-packing-with-leftovers` objective also accounts for what goes back into stock after packing the items: the leftovers of the bins which are used (see :ref:`leftovers`). It is available for all the problem types.
 
 The objective is to minimize the **net cost** of the bins: the cost of the bins which are used, minus a **refund** for each of their leftovers. A leftover is refunded at the price of its bin per unit of space (the cost of the bin divided by its area, or its volume), for the space equivalent to its value: the value of the leftover times a factor which makes the largest bin type worth its own space. With the default ``squared-area`` value type, a leftover of area :math:`a` in a bin of cost :math:`c` and area :math:`A` is refunded :math:`c / A \times a^2 / A_{\max}`, where :math:`A_{\max}` is the area of the largest bin type.
 

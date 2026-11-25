@@ -5,7 +5,7 @@ Leftovers
 
 With the :code:`bin-packing-with-leftovers` objective, the solver first minimizes the number of bins, and then maximizes the value of what remains in stock: the **leftover** of the last bin, and, as tie-breaks, the leftovers of the other bins. With the :code:`variable-sized-bin-packing-with-leftovers` objective, it minimizes the cost of the bins minus a refund for the value of their leftovers (see :ref:`objectives`).
 
-This page describes how a leftover is defined from a packing (its shape) and how its value is computed. It applies to the :ref:`rectangle<rectangle>`, :ref:`box<box>`, :ref:`box-stacks<boxstacks>` and :ref:`irregular<irregular>` problem types, and to the :ref:`rectangle-guillotine<rectangleguillotine>` problem type with the :code:`variable-sized-bin-packing-with-leftovers` objective (see :ref:`leftovers-rectangleguillotine`). The :ref:`one-dimensional<onedimensional>` problem type measures its leftovers directly by the length left in the bin.
+This page describes how a leftover is defined from a packing (its shape) and how its value is computed. It applies to the :ref:`rectangle<rectangle>`, :ref:`box<box>`, :ref:`box-stacks<boxstacks>` and :ref:`irregular<irregular>` problem types, and to the :ref:`rectangle-guillotine<rectangleguillotine>` problem type with the :code:`variable-sized-bin-packing-with-leftovers` objective (see :ref:`leftovers-rectangleguillotine`). The :ref:`one-dimensional<onedimensional>` problem type measures its leftovers directly by the length left in the bin (see :ref:`leftovers-onedimensional`).
 
 Shape of a leftover
 -------------------
@@ -122,3 +122,12 @@ Rectangle guillotine
 For the :ref:`rectangle-guillotine<rectangleguillotine>` problem type, the :code:`bin-packing-with-leftovers` objective minimizes the number of bins, then the waste (the area of the bins which is used, minus the area of the items, the plate after the last 1-cut of the last bin being the leftover), and then maximizes the area of the second leftover: the sub-plate after the last 2-cut of the last first-level sub-plate of the last bin.
 
 With the :code:`variable-sized-bin-packing-with-leftovers` objective, the leftovers of a bin are the pieces that its guillotine cuts already separate from the items: the plate after its last 1-cut, and the sub-plate after the last 2-cut of its last first-level sub-plate, when they are not used. Since they are rectangles, the leftovers of a bin are valued like a cut leftover: with ``squared-area``, their value is the sum of the squares of their areas. Two solutions are compared on their net cost: the cost of their bins minus the refunds of their leftovers (see :ref:`objectives`).
+
+.. _leftovers-onedimensional:
+
+One-dimensional
+---------------
+
+For the :ref:`one-dimensional<onedimensional>` problem type, the :code:`bin-packing-with-leftovers` objective minimizes the length used: the lengths of the bins, except for the last one, of which only the part up to the end of its last item counts. The leftover is the rest of the last bin.
+
+With the :code:`variable-sized-bin-packing-with-leftovers` objective, the leftover of a bin is the part of the bin after the end of its last item, taking the nesting lengths into account. Its value is the square of its length: a long leftover is worth more than several shorter ones of the same total length. There is no ``leftover_value_type`` option: since a leftover is a single segment, the depth value of a segment of length :math:`l` is :math:`l^2 / 4`, which gives the same refunds. A leftover of length :math:`l` in a bin of cost :math:`c` and length :math:`L` is refunded :math:`c / L \times l^2 / L_{\max}`, where :math:`L_{\max}` is the length of the largest bin type. Two solutions are compared on their net cost: the cost of their bins minus the refunds of their leftovers (see :ref:`objectives`).

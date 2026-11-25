@@ -361,6 +361,25 @@ def test_variable_sized_bin_packing():
         output.solution.bin_copies(2)
 
 
+def test_variable_sized_bin_packing_with_leftovers():
+    instance_builder = pso.InstanceBuilder()
+    instance_builder.set_objective(pso.Objective.VariableSizedBinPackingWithLeftovers)
+    # The large bin (cost 1) leaves a leftover of length 50, refunded
+    # 1 / 100 * 50^2 / 100 = 0.25: it is cheaper than the small bin (cost 10).
+    instance_builder.add_bin_type(100, cost=1)
+    instance_builder.add_bin_type(50, cost=10)
+    instance_builder.add_item_type(50)
+    output = pso.optimize(
+            instance_builder.build(),
+            quiet_parameters(optimization_mode=pso.OptimizationMode.NotAnytimeSequential))
+    assert output.solution.feasible()
+    assert output.solution.bin_copies(0) == 1
+    assert output.solution.cost() == 1
+    assert output.solution.net_cost() == pytest.approx(0.75)
+    assert output.solution.bin(0).leftover_value == 50 * 50
+    assert not output.is_proven_optimal()
+
+
 def test_resources():
     instance_builder = pso.InstanceBuilder()
     instance_builder.set_objective(pso.Objective.BinPacking)

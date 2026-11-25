@@ -306,15 +306,17 @@ bool Reduction::lift_item_lengths_applies(const Instance& instance)
     // Single bin type (the bin's own length must be unambiguous), no fixed
     // items (a fixed item sitting inside the claimed "provably empty"
     // margin would be invisible to this purely 1D argument), and not
-    // 'BinPackingWithLeftovers' (whose own leftover-length measurement is
-    // exactly what growing an item's declared length would corrupt), and
-    // not 'Knapsack' - see
+    // 'BinPackingWithLeftovers' nor 'VariableSizedBinPackingWithLeftovers'
+    // (whose own leftover-length measurement is exactly what growing an
+    // item's declared length would corrupt: a margin which no item can fill
+    // is still part of the leftover), and not 'Knapsack' - see
     // this class's own doc comment. Unlike 'full_bin_reduction_applies',
     // not restricted to 'BinPacking' and no weight/resource exclusion:
     // nothing is ever hidden from the reduced instance here.
     return instance.number_of_bin_types() == 1
         && instance.bin_type(0).fixed_items.empty()
         && instance.objective() != Objective::BinPackingWithLeftovers
+        && instance.objective() != Objective::VariableSizedBinPackingWithLeftovers
         && instance.objective() != Objective::Knapsack;
 }
 
