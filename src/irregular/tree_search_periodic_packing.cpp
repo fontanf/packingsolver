@@ -284,12 +284,15 @@ static void add_aabb_grid_blocks_for_item_type(
  * Return false, without adding any block, if the bin holds too many copies
  * of the items: the blocks are then built from whole unit cells instead
  * (see 'add_periodic_blocks_for_packing').
+ *
+ * If 'timer' needs to end, stop adding blocks and return true.
  */
 static bool add_clipped_lattice_blocks(
         const Instance& instance,
         int packing_id,
         const PeriodicItemPacking& packing,
-        std::vector<PeriodicBlock>& blocks)
+        std::vector<PeriodicBlock>& blocks,
+        const optimizationtools::Timer* timer)
 {
     // Maximum number of copies of the items in the bin.
     const ItemPos maximum_number_of_items = 500;
@@ -478,6 +481,10 @@ static bool add_clipped_lattice_blocks(
                     return items[pos_1].aabb.x_max < items[pos_2].aabb.x_max;
                 });
         for (LengthDbl top: tops) {
+            // Each top may build many blocks, each one checked against the
+            // blocks already built (see 'is_dominated').
+            if (timer != nullptr && timer->needs_to_end())
+                return true;
             optimizationtools::IndexedMap<ItemPos> copies_map(
                     instance.number_of_item_types(), 0);
             AxisAlignedBoundingBox block_aabb;
@@ -550,7 +557,8 @@ static void add_periodic_blocks_for_packing(
         const Instance& instance,
         int packing_id,
         const PeriodicItemPacking& packing,
-        std::vector<PeriodicBlock>& blocks)
+        std::vector<PeriodicBlock>& blocks,
+        const optimizationtools::Timer* timer)
 {
     BinTypeId bin_type_id = instance.bin_type_id(0);
     LengthDbl item_spacing = instance.item_spacing_scaled();
@@ -590,7 +598,7 @@ static void add_periodic_blocks_for_packing(
     if (max_total_cells < 1)
         return;
 
-    if (add_clipped_lattice_blocks(instance, packing_id, packing, blocks))
+    if (add_clipped_lattice_blocks(instance, packing_id, packing, blocks, timer))
         return;
 
     // Row (index j, stepped by vector_2) offset, with drift along
@@ -738,15 +746,24 @@ std::vector<PeriodicBlock> packingsolver::irregular::compute_periodic_blocks_for
         const Instance& instance,
         ItemTypeId item_type_id,
         const std::vector<PeriodicItemPacking>& packings,
-        const std::vector<ItemTypeRotation>& rotations)
+        const std::vector<ItemTypeRotation>& rotations,
+        const optimizationtools::Timer* timer)
 {
     if (instance.number_of_bin_types() == 0)
         return {};
 
     std::vector<PeriodicBlock> blocks;
 
-    for (int packing_id = 0; packing_id < (int)packings.size(); ++packing_id)
-        add_periodic_blocks_for_packing(instance, packing_id, packings[packing_id], blocks);
+    for (int packing_id = 0; packing_id < (int)packings.size(); ++packing_id) {
+        if (timer != nullptr && timer->needs_to_end())
+            break;
+        add_periodic_blocks_for_packing(
+                instance,
+                packing_id,
+                packings[packing_id],
+                blocks,
+                timer);
+    }
 
     // Blocks are already pruned as they are generated (see
     // add_block_if_not_dominated): 'blocks' only ever holds the current
@@ -1387,7 +1404,8 @@ static void add_framed_blocks(
 std::vector<PeriodicBlock> packingsolver::irregular::compute_periodic_blocks(
         const Instance& instance,
         const std::vector<PeriodicItemPacking>& packings,
-        const std::vector<std::vector<ItemTypeRotation>>& item_type_rotations)
+        const std::vector<std::vector<ItemTypeRotation>>& item_type_rotations,
+        const optimizationtools::Timer* timer)
 {
     // Group the packings of a single item type by item type, to build their
     // blocks together with the AABB-grid blocks of this item type. The
@@ -1407,7 +1425,8 @@ std::vector<PeriodicBlock> packingsolver::irregular::compute_periodic_blocks(
                     instance,
                     item_type_id,
                     packings_by_item_type[item_type_id],
-                    item_type_rotations[item_type_id]);
+                    item_type_rotations[item_type_id],
+                    timer);
         output.insert(
                 output.end(),
                 std::make_move_iterator(item_type_output.begin()),
@@ -1417,13 +1436,16 @@ std::vector<PeriodicBlock> packingsolver::irregular::compute_periodic_blocks(
     if (instance.number_of_bin_types() > 0) {
         std::vector<PeriodicBlock> multiple_item_types_output;
         for (int packing_id = 0; packing_id < (int)packings.size(); ++packing_id) {
+            if (timer != nullptr && timer->needs_to_end())
+                break;
             if (periodic_packing_has_single_item_type(packings[packing_id]))
                 continue;
             add_periodic_blocks_for_packing(
                     instance,
                     packing_id,
                     packings[packing_id],
-                    multiple_item_types_output);
+                    multiple_item_types_output,
+                    timer);
         }
         output.insert(
                 output.end(),
@@ -1479,7 +1501,11 @@ BranchingSchemePeriodicPacking::BranchingSchemePeriodicPacking(
     auto all_item_type_rotations = compute_item_type_rotations(instance_);
     const std::vector<std::vector<ItemTypeRotation>>& item_type_rotations
         = all_item_type_rotations[bin_type_id];
-    blocks_ = compute_periodic_blocks(instance_, packings, item_type_rotations);
+    blocks_ = compute_periodic_blocks(
+            instance_,
+            packings,
+            item_type_rotations,
+            &parameters_.timer);
 
     // Approximate the obstacles by rectangles. The empty spaces span the
     // bin's full bounding box (see usable_bin_bx()/by()'s comment), which
@@ -2280,9 +2306,12 @@ packingsolver::irregular::tree_search_periodic_packing(
     {
         BranchingSchemePeriodicPacking::Parameters branching_scheme_parameters;
         branching_scheme_parameters.maximum_approximation_ratio = parameters.maximum_approximation_ratio;
+        branching_scheme_parameters.timer = parameters.timer;
+        branching_scheme_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
         branching_schemes.push_back(BranchingSchemePeriodicPacking(
                 instance, branching_scheme_parameters));
-        if (branching_schemes.back().empty()) {
+        if (branching_scheme_parameters.timer.needs_to_end()
+                || branching_schemes.back().empty()) {
             algorithm_formatter.end();
             return output;
         }

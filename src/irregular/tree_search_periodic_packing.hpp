@@ -80,12 +80,16 @@ struct PeriodicBlock
  * sub-instances built from the same source item type; for that reason,
  * unlike periodic packings, results are never cached in the instance and
  * are always recomputed by the caller.
+ *
+ * If 'timer' needs to end, the computation stops and the blocks already
+ * computed are returned: they are valid, but some blocks may be missing.
  */
 std::vector<PeriodicBlock> compute_periodic_blocks_for_item_type(
         const Instance& instance,
         ItemTypeId item_type_id,
         const std::vector<PeriodicItemPacking>& packings,
-        const std::vector<ItemTypeRotation>& rotations);
+        const std::vector<ItemTypeRotation>& rotations,
+        const optimizationtools::Timer* timer = nullptr);
 
 /**
  * Compute the periodic blocks of all item types (see
@@ -94,11 +98,15 @@ std::vector<PeriodicBlock> compute_periodic_blocks_for_item_type(
  *
  * Their resource consumptions are computed, and the blocks which exceed the
  * capacity of a resource which is not penalized are discarded.
+ *
+ * If 'timer' needs to end, the computation stops and the blocks already
+ * computed are returned: they are valid, but some blocks may be missing.
  */
 std::vector<PeriodicBlock> compute_periodic_blocks(
         const Instance& instance,
         const std::vector<PeriodicItemPacking>& packings,
-        const std::vector<std::vector<ItemTypeRotation>>& item_type_rotations);
+        const std::vector<std::vector<ItemTypeRotation>>& item_type_rotations,
+        const optimizationtools::Timer* timer = nullptr);
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -224,6 +232,12 @@ public:
         double gamma_2 = 0.4732;
         double delta_2 = 0.0366;
         double configuration_switch_threshold = 0.6740;
+
+        /**
+         * Timer, checked while the blocks are built: if it needs to end,
+         * the branching scheme only has the blocks already built.
+         */
+        optimizationtools::Timer timer;
     };
 
     /**
