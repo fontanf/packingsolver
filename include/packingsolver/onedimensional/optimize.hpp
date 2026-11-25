@@ -57,7 +57,7 @@ struct Output: packingsolver::Output<Instance, Solution>
                 && (bin_packing_bound == solution_pool.best().number_of_bins()
                         || solution_pool.best().number_of_bins() <= bin_packing_goal);
         }
-        case Objective::VariableSizedBinPacking: case Objective::VariableSizedBinPackingWithLeftovers: {
+        case Objective::VariableSizedBinPacking: {
             Profit variable_sized_bin_packing_goal
                 = solution_pool.best().instance().variable_sized_bin_packing_goal();
             return solution_pool.best().feasible()
@@ -65,6 +65,9 @@ struct Output: packingsolver::Output<Instance, Solution>
                         || (variable_sized_bin_packing_goal > 0
                             && !strictly_lesser_cost(variable_sized_bin_packing_goal, solution_pool.best().cost())));
         }
+        case Objective::VariableSizedBinPackingWithLeftovers:
+            // There is no bound on the value of the leftovers.
+            return false;
         case Objective::Feasibility:
             return solution_pool.best().feasible();
         default:

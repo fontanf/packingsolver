@@ -252,7 +252,8 @@ void bind_onedimensional(nb::module_& m)
         .def_ro("items", &SolutionBin::items)
         .def_ro("maximum_number_of_items", &SolutionBin::maximum_number_of_items)
         .def_ro("remaining_weight", &SolutionBin::remaining_weight)
-        .def_ro("resource_consumption", &SolutionBin::resource_consumption);
+        .def_ro("resource_consumption", &SolutionBin::resource_consumption)
+        .def_ro("leftover_value", &SolutionBin::leftover_value);
 
     nb::class_<Solution>(m, "Solution")
         .def("feasible", &Solution::feasible)
@@ -282,6 +283,7 @@ void bind_onedimensional(nb::module_& m)
                 },
                 nb::arg("bin_type_id"))
         .def("cost", &Solution::cost)
+        .def("net_cost", &Solution::net_cost)
         .def("number_of_items", &Solution::number_of_items)
         .def("item_copies",
                 [](const Solution& solution, ItemTypeId item_type_id) {

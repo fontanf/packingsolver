@@ -47,6 +47,9 @@ struct SolutionBin
 
     /** Resource consumption, indexed by resource_id. */
     std::vector<double> resource_consumption;
+
+    /** Leftover value of the bin (see 'Instance::leftover_value'). */
+    double leftover_value = 0;
 };
 
 bool operator==(const SolutionBin& solution_bin_1, const SolutionBin& solution_bin_2);
@@ -162,6 +165,13 @@ public:
     /** Get the cost of the solution. */
     inline Profit cost() const { return bin_cost_; }
 
+    /**
+     * Get the net cost of the solution, for the
+     * 'VariableSizedBinPackingWithLeftovers' objective: the cost of its bins
+     * minus the refunds of their leftovers (see 'Instance::leftover_refund').
+     */
+    inline Profit net_cost() const { return net_cost_; }
+
     /** Get the length of the solution. */
     inline Volume length() const { return length_; }
 
@@ -270,6 +280,9 @@ private:
 
     /** Cost of the solution. */
     Profit bin_cost_ = 0;
+
+    /** Net cost of the solution. */
+    Profit net_cost_ = 0;
 
     /** Number of copies of each bin type in the solution. */
     std::vector<BinPos> bin_copies_;

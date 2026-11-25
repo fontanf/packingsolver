@@ -229,9 +229,10 @@ struct ReductionParameters: optimizationtools::Parameters
  *   its grown stand-in, leaving the provably-unusable margin as genuine
  *   empty space in the final solution. Because nothing is hidden, none of
  *   the weight/resource/precedence exclusions above apply here, and this
- *   runs for *any* objective except 'BinPackingWithLeftovers' (whose own
- *   leftover-length measurement is exactly what this reduction's growth
- *   would corrupt) and 'Knapsack'. Only ever applied to an item type that is the sole
+ *   runs for *any* objective except 'BinPackingWithLeftovers' and
+ *   'VariableSizedBinPackingWithLeftovers' (whose own leftover-length
+ *   measurement is exactly what this reduction's growth would corrupt) and
+ *   'Knapsack'. Only ever applied to an item type that is the sole
  *   occupant of its own final copy count - own 'copies' exactly '1' *and*
  *   no other item type merged into it (see 'lift_item_lengths' for why
  *   growing a type with more than one final copy would be unsound) - and

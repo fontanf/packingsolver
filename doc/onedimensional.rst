@@ -21,6 +21,7 @@ Features:
   * Bin packing
   * Bin packing with leftovers
   * Variable-sized bin packing
+  * Variable-sized bin packing with leftovers
 
 * Nesting length between consecutive items
 
@@ -58,7 +59,7 @@ An instance is a JSON object with the following fields:
    * - Field
      - Description
    * - ``objective``
-     - **Mandatory**. One of ``knapsack``, ``bin-packing``, ``bin-packing-with-leftovers``, ``variable-sized-bin-packing``; see :ref:`objectives`
+     - **Mandatory**. One of ``knapsack``, ``bin-packing``, ``bin-packing-with-leftovers``, ``variable-sized-bin-packing``, ``variable-sized-bin-packing-with-leftovers``; see :ref:`objectives` and, for the leftovers, :ref:`leftovers-onedimensional`
    * - ``bin_packing_goal``
      - For the ``bin-packing`` objective, the search stops as soon as a solution reaches this number of bins. Default: none
    * - ``knapsack_goal``

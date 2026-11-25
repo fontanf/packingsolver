@@ -362,8 +362,8 @@ inline bool leftover_post_process_objective(Objective objective)
 
 /**
  * Get the objective of a onedimensional sub-instance built from an instance
- * of another problem type: the onedimensional problem type doesn't value the
- * leftovers in variable-sized bin packing, so
+ * of another problem type: the leftovers of the onedimensional sub-instance
+ * are not those of the original instance, so
  * 'VariableSizedBinPackingWithLeftovers' becomes 'VariableSizedBinPacking'.
  */
 inline Objective onedimensional_subproblem_objective(Objective objective)
