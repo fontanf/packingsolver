@@ -1,0 +1,280 @@
+{
+    "objective": "knapsack",
+    "bin_types": [
+        {
+            "type": "rectangle",
+            "width": 20000,
+            "height": 5752,
+            "copies": 1
+        }
+    ],
+    "item_types": [
+        {
+            "type": "general",
+            "elements": [
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 0.0,
+                        "y": -7.222222
+                    },
+                    "end": {
+                        "x": 129.8,
+                        "y": -36.066667
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 129.8,
+                        "y": -36.066667
+                    },
+                    "end": {
+                        "x": 306.884615,
+                        "y": 22.961538
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 306.884615,
+                        "y": 22.961538
+                    },
+                    "end": {
+                        "x": 495.0,
+                        "y": 110.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 495.0,
+                        "y": 110.0
+                    },
+                    "end": {
+                        "x": 616.0,
+                        "y": 172.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 616.0,
+                        "y": 172.0
+                    },
+                    "end": {
+                        "x": 737.0,
+                        "y": 238.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 737.0,
+                        "y": 238.0
+                    },
+                    "end": {
+                        "x": 855.0,
+                        "y": 290.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 855.0,
+                        "y": 290.0
+                    },
+                    "end": {
+                        "x": 959.0,
+                        "y": 313.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 959.0,
+                        "y": 313.0
+                    },
+                    "end": {
+                        "x": 1071.0,
+                        "y": 306.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 1071.0,
+                        "y": 306.0
+                    },
+                    "end": {
+                        "x": 1275.0,
+                        "y": 255.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 1275.0,
+                        "y": 255.0
+                    },
+                    "end": {
+                        "x": 1260.0,
+                        "y": 394.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 1260.0,
+                        "y": 394.0
+                    },
+                    "end": {
+                        "x": 1250.0,
+                        "y": 499.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 1250.0,
+                        "y": 499.0
+                    },
+                    "end": {
+                        "x": 1260.0,
+                        "y": 606.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 1260.0,
+                        "y": 606.0
+                    },
+                    "end": {
+                        "x": 1275.0,
+                        "y": 745.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 1275.0,
+                        "y": 745.0
+                    },
+                    "end": {
+                        "x": 1071.0,
+                        "y": 694.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 1071.0,
+                        "y": 694.0
+                    },
+                    "end": {
+                        "x": 959.0,
+                        "y": 687.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 959.0,
+                        "y": 687.0
+                    },
+                    "end": {
+                        "x": 855.0,
+                        "y": 710.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 855.0,
+                        "y": 710.0
+                    },
+                    "end": {
+                        "x": 737.0,
+                        "y": 762.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 737.0,
+                        "y": 762.0
+                    },
+                    "end": {
+                        "x": 616.0,
+                        "y": 828.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 616.0,
+                        "y": 828.0
+                    },
+                    "end": {
+                        "x": 495.0,
+                        "y": 890.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 495.0,
+                        "y": 890.0
+                    },
+                    "end": {
+                        "x": 306.884615,
+                        "y": 977.038462
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 306.884615,
+                        "y": 977.038462
+                    },
+                    "end": {
+                        "x": 129.8,
+                        "y": 1036.066667
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 129.8,
+                        "y": 1036.066667
+                    },
+                    "end": {
+                        "x": 0.0,
+                        "y": 1007.222222
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 0.0,
+                        "y": 1007.222222
+                    },
+                    "end": {
+                        "x": 0.0,
+                        "y": -7.222222
+                    }
+                }
+            ],
+            "copies": 133,
+            "profit": 1,
+            "allowed_rotations": [
+                {
+                    "start": 0.0,
+                    "end": 360.0,
+                    "mirror": false
+                }
+            ]
+        }
+    ]
+}
