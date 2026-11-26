@@ -1403,26 +1403,34 @@ const packingsolver::irregular::TreeSearchMaximalSpacesOutput packingsolver::irr
             Direction::BottomToTopThenRightToLeft,
         };
     } else if (instance.objective() == Objective::BinPackingWithLeftovers) {
-        switch (leftover_mode_base(instance.parameters().leftover_mode)) {
-        case LeftoverMode::BottomLeft: {
+        switch (instance.parameters().leftover_mode) {
+        case LeftoverMode::BottomLeft:
+        case LeftoverMode::BottomLeftCut:
+        case LeftoverMode::BottomLeftStaircase: {
             directions = {
                 Direction::LeftToRightThenBottomToTop,
                 Direction::BottomToTopThenLeftToRight,
             };
             break;
-        } case LeftoverMode::BottomRight: {
+        } case LeftoverMode::BottomRight:
+        case LeftoverMode::BottomRightCut:
+        case LeftoverMode::BottomRightStaircase: {
             directions = {
                 Direction::RightToLeftThenBottomToTop,
                 Direction::BottomToTopThenRightToLeft,
             };
             break;
-        } case LeftoverMode::TopLeft: {
+        } case LeftoverMode::TopLeft:
+        case LeftoverMode::TopLeftCut:
+        case LeftoverMode::TopLeftStaircase: {
             directions = {
                 Direction::LeftToRightThenTopToBottom,
                 Direction::TopToBottomThenLeftToRight,
             };
             break;
-        } case LeftoverMode::TopRight: {
+        } case LeftoverMode::TopRight:
+        case LeftoverMode::TopRightCut:
+        case LeftoverMode::TopRightStaircase: {
             directions = {
                 Direction::RightToLeftThenTopToBottom,
                 Direction::TopToBottomThenRightToLeft,
@@ -1452,6 +1460,12 @@ const packingsolver::irregular::TreeSearchMaximalSpacesOutput packingsolver::irr
                 Direction::TopToBottomThenRightToLeft,
             };
             break;
+        } default: {
+            std::stringstream ss;
+            ss << FUNC_SIGNATURE << ": "
+                << "unsupported leftover mode \""
+                << instance.parameters().leftover_mode << "\".";
+            throw std::logic_error(ss.str());
         }
         }
     } else {

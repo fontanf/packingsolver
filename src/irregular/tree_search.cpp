@@ -54,20 +54,28 @@ Direction default_direction(
 {
     const BinType& bin_type = instance.bin_type(bin_type_id);
     bool lengthwise = (bin_type.aabb_scaled.x_max - bin_type.aabb_scaled.x_min) >= (bin_type.aabb_scaled.y_max - bin_type.aabb_scaled.y_min);
-    switch (leftover_mode_base(instance.parameters().leftover_mode)) {
-    case LeftoverMode::BottomLeft: {
+    switch (instance.parameters().leftover_mode) {
+    case LeftoverMode::BottomLeft:
+    case LeftoverMode::BottomLeftCut:
+    case LeftoverMode::BottomLeftStaircase: {
         return (lengthwise)?
             Direction::LeftToRightThenBottomToTop:
             Direction::BottomToTopThenLeftToRight;
-    } case LeftoverMode::BottomRight: {
+    } case LeftoverMode::BottomRight:
+    case LeftoverMode::BottomRightCut:
+    case LeftoverMode::BottomRightStaircase: {
         return (lengthwise)?
             Direction::RightToLeftThenBottomToTop:
             Direction::BottomToTopThenRightToLeft;
-    } case LeftoverMode::TopLeft: {
+    } case LeftoverMode::TopLeft:
+    case LeftoverMode::TopLeftCut:
+    case LeftoverMode::TopLeftStaircase: {
         return (lengthwise)?
             Direction::LeftToRightThenTopToBottom:
             Direction::TopToBottomThenLeftToRight;
-    } case LeftoverMode::TopRight: {
+    } case LeftoverMode::TopRight:
+    case LeftoverMode::TopRightCut:
+    case LeftoverMode::TopRightStaircase: {
         return (lengthwise)?
             Direction::RightToLeftThenTopToBottom:
             Direction::TopToBottomThenRightToLeft;
@@ -79,6 +87,12 @@ Direction default_direction(
         return Direction::BottomToTopThenLeftToRight;
     } case LeftoverMode::Top: {
         return Direction::TopToBottomThenLeftToRight;
+    } default: {
+        std::stringstream ss;
+        ss << FUNC_SIGNATURE << ": "
+            << "unsupported leftover mode \""
+            << instance.parameters().leftover_mode << "\".";
+        throw std::logic_error(ss.str());
     }
     }
     return Direction::LeftToRightThenBottomToTop;
@@ -2111,8 +2125,10 @@ const packingsolver::irregular::TreeSearchOutput packingsolver::irregular::tree_
         };
     } else if (instance.number_of_bins() == 1) {
         if (instance.objective() == Objective::BinPackingWithLeftovers) {
-            switch (leftover_mode_base(instance.parameters().leftover_mode)) {
-            case LeftoverMode::BottomLeft: {
+            switch (instance.parameters().leftover_mode) {
+            case LeftoverMode::BottomLeft:
+            case LeftoverMode::BottomLeftCut:
+            case LeftoverMode::BottomLeftStaircase: {
                 directions = {
                     Direction::LeftToRightThenBottomToTop,
                     Direction::BottomToTopThenLeftToRight,
@@ -2120,7 +2136,9 @@ const packingsolver::irregular::TreeSearchOutput packingsolver::irregular::tree_
                     //Direction::BottomToTopThenRightToLeft,
                 };
                 break;
-            } case LeftoverMode::BottomRight: {
+            } case LeftoverMode::BottomRight:
+            case LeftoverMode::BottomRightCut:
+            case LeftoverMode::BottomRightStaircase: {
                 directions = {
                     Direction::RightToLeftThenBottomToTop,
                     Direction::BottomToTopThenLeftToRight,
@@ -2128,7 +2146,9 @@ const packingsolver::irregular::TreeSearchOutput packingsolver::irregular::tree_
                     //Direction::BottomToTopThenRightToLeft,
                 };
                 break;
-            } case LeftoverMode::TopLeft: {
+            } case LeftoverMode::TopLeft:
+            case LeftoverMode::TopLeftCut:
+            case LeftoverMode::TopLeftStaircase: {
                 directions = {
                     Direction::LeftToRightThenBottomToTop,
                     Direction::TopToBottomThenLeftToRight,
@@ -2136,7 +2156,9 @@ const packingsolver::irregular::TreeSearchOutput packingsolver::irregular::tree_
                     //Direction::TopToBottomThenRightToLeft,
                 };
                 break;
-            } case LeftoverMode::TopRight: {
+            } case LeftoverMode::TopRight:
+            case LeftoverMode::TopRightCut:
+            case LeftoverMode::TopRightStaircase: {
                 directions = {
                     Direction::RightToLeftThenBottomToTop,
                     Direction::TopToBottomThenLeftToRight,
@@ -2168,6 +2190,12 @@ const packingsolver::irregular::TreeSearchOutput packingsolver::irregular::tree_
                     Direction::TopToBottomThenRightToLeft,
                 };
                 break;
+            } default: {
+                std::stringstream ss;
+                ss << FUNC_SIGNATURE << ": "
+                    << "unsupported leftover mode \""
+                    << instance.parameters().leftover_mode << "\".";
+                throw std::logic_error(ss.str());
             }
             }
         } else {
@@ -2179,17 +2207,25 @@ const packingsolver::irregular::TreeSearchOutput packingsolver::irregular::tree_
             };
         }
     } else {
-        switch (leftover_mode_base(instance.parameters().leftover_mode)) {
-        case LeftoverMode::BottomLeft: {
+        switch (instance.parameters().leftover_mode) {
+        case LeftoverMode::BottomLeft:
+        case LeftoverMode::BottomLeftCut:
+        case LeftoverMode::BottomLeftStaircase: {
             directions = {Direction::LeftToRightThenBottomToTop};
             break;
-        } case LeftoverMode::BottomRight: {
+        } case LeftoverMode::BottomRight:
+        case LeftoverMode::BottomRightCut:
+        case LeftoverMode::BottomRightStaircase: {
             directions = {Direction::RightToLeftThenBottomToTop};
             break;
-        } case LeftoverMode::TopLeft: {
+        } case LeftoverMode::TopLeft:
+        case LeftoverMode::TopLeftCut:
+        case LeftoverMode::TopLeftStaircase: {
             directions = {Direction::LeftToRightThenTopToBottom,};
             break;
-        } case LeftoverMode::TopRight: {
+        } case LeftoverMode::TopRight:
+        case LeftoverMode::TopRightCut:
+        case LeftoverMode::TopRightStaircase: {
             directions = {Direction::RightToLeftThenTopToBottom};
             break;
         } case LeftoverMode::Left: {
@@ -2204,6 +2240,12 @@ const packingsolver::irregular::TreeSearchOutput packingsolver::irregular::tree_
         } case LeftoverMode::Top: {
             directions = {Direction::TopToBottomThenLeftToRight};
             break;
+        } default: {
+            std::stringstream ss;
+            ss << FUNC_SIGNATURE << ": "
+                << "unsupported leftover mode \""
+                << instance.parameters().leftover_mode << "\".";
+            throw std::logic_error(ss.str());
         }
         }
     }
