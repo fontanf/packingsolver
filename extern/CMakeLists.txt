@@ -139,7 +139,7 @@ set(COLUMNGENERATIONSOLVER_BUILD_EXAMPLES OFF)
 FetchContent_Declare(
     columngenerationsolver
     GIT_REPOSITORY https://github.com/fontanf/columngenerationsolver.git
-    GIT_TAG c7073b643271623b52dfc8af7c91b47f2ab16b1a
+    GIT_TAG 599de99261a7e9cfe8b89bc257b388fa6c3fb3a6
     #SOURCE_DIR "${PROJECT_SOURCE_DIR}/../columngenerationsolver/"
     EXCLUDE_FROM_ALL)
 FetchContent_MakeAvailable(columngenerationsolver)
