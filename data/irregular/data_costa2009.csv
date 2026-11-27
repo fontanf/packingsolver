@@ -1,0 +1,8 @@
+Path,Shape,Sheet width,Sheet height,Single-lattice / Solution value,Double-lattice / Solution value,Best known solution value
+costa2009/cheng.json,Cheng and Rao (1999),200,200,418,464,464
+costa2009/stoyan.json,Stoyan and Pankratov (1999),900,700,75,80,80
+costa2009/swim1.json,SWIM piece 5,25000,5752,195,247,247
+costa2009/swim2.json,SWIM piece 6,20000,5752,96,116,116
+costa2009/swim3.json,SWIM piece 7,22000,5752,100,116,116
+costa2009/swim4.json,SWIM piece 8,17000,5752,202,247,247
+costa2009/swim5.json,SWIM piece 9,7000,5752,240,240,240

@@ -1,0 +1,236 @@
+{
+    "objective": "knapsack",
+    "bin_types": [
+        {
+            "type": "rectangle",
+            "width": 25000,
+            "height": 5752,
+            "copies": 1
+        }
+    ],
+    "item_types": [
+        {
+            "type": "general",
+            "elements": [
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 0.0,
+                        "y": 0.0
+                    },
+                    "end": {
+                        "x": 33.96,
+                        "y": -142.915
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 33.96,
+                        "y": -142.915
+                    },
+                    "end": {
+                        "x": 77.0,
+                        "y": -268.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 77.0,
+                        "y": -268.0
+                    },
+                    "end": {
+                        "x": 89.0,
+                        "y": -388.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 89.0,
+                        "y": -388.0
+                    },
+                    "end": {
+                        "x": -826.0,
+                        "y": -439.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": -826.0,
+                        "y": -439.0
+                    },
+                    "end": {
+                        "x": -824.0,
+                        "y": -598.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": -824.0,
+                        "y": -598.0
+                    },
+                    "end": {
+                        "x": 39.0,
+                        "y": -607.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 39.0,
+                        "y": -607.0
+                    },
+                    "end": {
+                        "x": 169.0,
+                        "y": -650.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 169.0,
+                        "y": -650.0
+                    },
+                    "end": {
+                        "x": 209.0,
+                        "y": -800.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 209.0,
+                        "y": -800.0
+                    },
+                    "end": {
+                        "x": 251.0,
+                        "y": -940.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 251.0,
+                        "y": -940.0
+                    },
+                    "end": {
+                        "x": 371.0,
+                        "y": -924.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 371.0,
+                        "y": -924.0
+                    },
+                    "end": {
+                        "x": 354.0,
+                        "y": -726.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 354.0,
+                        "y": -726.0
+                    },
+                    "end": {
+                        "x": 348.0,
+                        "y": -610.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 348.0,
+                        "y": -610.0
+                    },
+                    "end": {
+                        "x": 350.0,
+                        "y": -412.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 350.0,
+                        "y": -412.0
+                    },
+                    "end": {
+                        "x": 360.0,
+                        "y": -264.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 360.0,
+                        "y": -264.0
+                    },
+                    "end": {
+                        "x": 382.0,
+                        "y": -94.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 382.0,
+                        "y": -94.0
+                    },
+                    "end": {
+                        "x": 488.691229,
+                        "y": 232.112814
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 488.691229,
+                        "y": 232.112814
+                    },
+                    "end": {
+                        "x": 352.0,
+                        "y": 54.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 352.0,
+                        "y": 54.0
+                    },
+                    "end": {
+                        "x": 217.0,
+                        "y": 0.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 217.0,
+                        "y": 0.0
+                    },
+                    "end": {
+                        "x": 0.0,
+                        "y": 0.0
+                    }
+                }
+            ],
+            "copies": 339,
+            "profit": 1,
+            "allowed_rotations": [
+                {
+                    "start": 0.0,
+                    "end": 360.0,
+                    "mirror": false
+                }
+            ]
+        }
+    ]
+}

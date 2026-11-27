@@ -1,0 +1,214 @@
+{
+    "objective": "knapsack",
+    "bin_types": [
+        {
+            "type": "rectangle",
+            "width": 900,
+            "height": 700,
+            "copies": 1
+        }
+    ],
+    "item_types": [
+        {
+            "type": "general",
+            "elements": [
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": -73.15,
+                        "y": 7.5
+                    },
+                    "end": {
+                        "x": -69.65,
+                        "y": -3.3
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": -69.65,
+                        "y": -3.3
+                    },
+                    "end": {
+                        "x": -59.35,
+                        "y": -10.6
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": -59.35,
+                        "y": -10.6
+                    },
+                    "end": {
+                        "x": -5.25,
+                        "y": -16.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": -5.25,
+                        "y": -16.0
+                    },
+                    "end": {
+                        "x": 34.65,
+                        "y": -30.5
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 34.65,
+                        "y": -30.5
+                    },
+                    "end": {
+                        "x": 55.75,
+                        "y": -31.6
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 55.75,
+                        "y": -31.6
+                    },
+                    "end": {
+                        "x": 65.45,
+                        "y": -27.7
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 65.45,
+                        "y": -27.7
+                    },
+                    "end": {
+                        "x": 71.85,
+                        "y": -16.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 71.85,
+                        "y": -16.0
+                    },
+                    "end": {
+                        "x": 72.85,
+                        "y": -1.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 72.85,
+                        "y": -1.0
+                    },
+                    "end": {
+                        "x": 69.25,
+                        "y": 9.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 69.25,
+                        "y": 9.0
+                    },
+                    "end": {
+                        "x": 56.75,
+                        "y": 22.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 56.75,
+                        "y": 22.0
+                    },
+                    "end": {
+                        "x": 37.75,
+                        "y": 29.5
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 37.75,
+                        "y": 29.5
+                    },
+                    "end": {
+                        "x": 12.75,
+                        "y": 31.8
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 12.75,
+                        "y": 31.8
+                    },
+                    "end": {
+                        "x": -57.25,
+                        "y": 29.1
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": -57.25,
+                        "y": 29.1
+                    },
+                    "end": {
+                        "x": -68.35,
+                        "y": 22.1
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": -68.35,
+                        "y": 22.1
+                    },
+                    "end": {
+                        "x": -72.85,
+                        "y": 13.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": -72.85,
+                        "y": 13.0
+                    },
+                    "end": {
+                        "x": -73.25,
+                        "y": 10.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": -73.25,
+                        "y": 10.0
+                    },
+                    "end": {
+                        "x": -73.15,
+                        "y": 7.5
+                    }
+                }
+            ],
+            "copies": 93,
+            "profit": 1,
+            "allowed_rotations": [
+                {
+                    "start": 0.0,
+                    "end": 360.0,
+                    "mirror": false
+                }
+            ]
+        }
+    ]
+}
