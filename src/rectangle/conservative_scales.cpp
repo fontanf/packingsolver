@@ -7,7 +7,6 @@
 #include "mathoptsolverscmake/mathopt.hpp"
 #ifdef HIGHS_FOUND
 #include "mathoptsolverscmake/mathopt_highs.hpp"
-#include "algorithms/highs.hpp"
 #endif
 
 #include <cmath>
@@ -106,7 +105,10 @@ std::vector<double> solve_conservative_scale_lp(
         std::vector<double> solution;
 #ifdef HIGHS_FOUND
         Highs highs;
-        highs_use_single_thread(highs);
+        // A single thread: the simplex is serial, and a solve with several
+        // threads would create a thread pool each time (see
+        // 'mathoptsolverscmake::solve').
+        highs.setOptionValue("threads", 1);
         mathoptsolverscmake::reduce_printout(highs);
         mathoptsolverscmake::load(highs, model);
         mathoptsolverscmake::solve(highs);
