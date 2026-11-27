@@ -6,6 +6,7 @@
 #include "mathoptsolverscmake/mathopt.hpp"
 #ifdef HIGHS_FOUND
 #include "mathoptsolverscmake/mathopt_highs.hpp"
+#include "algorithms/highs.hpp"
 #endif
 
 #include <algorithm>
@@ -771,6 +772,7 @@ bool BinSeparationModel::solve_step(
     std::vector<double> solution;
 #ifdef HIGHS_FOUND
     Highs highs;
+    highs_use_single_thread(highs);
     mathoptsolverscmake::reduce_printout(highs);
     mathoptsolverscmake::set_time_limit(highs, timer.remaining_time());
     highs.setOptionValue("parallel", "off");

@@ -5,6 +5,7 @@
 #include "mathoptsolverscmake/mathopt.hpp"
 #ifdef HIGHS_FOUND
 #include "mathoptsolverscmake/mathopt_highs.hpp"
+#include "algorithms/highs.hpp"
 #endif
 
 #include <algorithm>
@@ -227,6 +228,7 @@ bool solve_equilibrium(
 
 #ifdef HIGHS_FOUND
     Highs highs;
+    highs_use_single_thread(highs);
     mathoptsolverscmake::reduce_printout(highs);
     mathoptsolverscmake::load(highs, model);
     mathoptsolverscmake::solve(highs);
