@@ -16,7 +16,6 @@
 #endif
 #ifdef HIGHS_FOUND
 #include "mathoptsolverscmake/mathopt_highs.hpp"
-#include "algorithms/highs.hpp"
 #endif
 #ifdef XPRESS_FOUND
 #include "mathoptsolverscmake/mathopt_xpress.hpp"
@@ -469,7 +468,10 @@ Solution solve_milp_raster_for_cell_size(
     if (parameters.solver == mathoptsolverscmake::SolverName::Highs) {
 #ifdef HIGHS_FOUND
         Highs highs;
-        HighsMilpThreads highs_threads(highs, parameters.optimization_mode);
+        // In 'NotAnytimeSequential' mode, a single thread, like the other
+        // HiGHS solves.
+        if (parameters.optimization_mode == OptimizationMode::NotAnytimeSequential)
+            highs.setOptionValue("threads", 1);
         mathoptsolverscmake::reduce_printout(highs);
         mathoptsolverscmake::set_time_limit(highs, parameters.timer.remaining_time());
         if (parameters.maximum_number_of_nodes >= 0)
@@ -928,7 +930,10 @@ void solve_milp_raster_bound_for_cell_size(
     if (parameters.solver == mathoptsolverscmake::SolverName::Highs) {
 #ifdef HIGHS_FOUND
         Highs highs;
-        HighsMilpThreads highs_threads(highs, parameters.optimization_mode);
+        // In 'NotAnytimeSequential' mode, a single thread, like the other
+        // HiGHS solves.
+        if (parameters.optimization_mode == OptimizationMode::NotAnytimeSequential)
+            highs.setOptionValue("threads", 1);
         mathoptsolverscmake::reduce_printout(highs);
         mathoptsolverscmake::set_time_limit(highs, parameters.timer.remaining_time());
         if (parameters.maximum_number_of_nodes >= 0)
