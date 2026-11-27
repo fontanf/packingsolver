@@ -5,6 +5,7 @@
 #include "mathoptsolverscmake/mathopt.hpp"
 #ifdef HIGHS_FOUND
 #include "mathoptsolverscmake/mathopt_highs.hpp"
+#include "algorithms/highs.hpp"
 #endif
 
 using namespace packingsolver;
@@ -357,6 +358,7 @@ OnedimensionalContiguityResult packingsolver::rectangle::onedimentional_contigui
     double bound = std::numeric_limits<double>::infinity();
 #ifdef HIGHS_FOUND
     Highs highs;
+    HighsMilpThreads highs_threads(highs, parameters.optimization_mode);
     mathoptsolverscmake::reduce_printout(highs);
     mathoptsolverscmake::set_time_limit(highs, parameters.timer.remaining_time());
     mathoptsolverscmake::load(highs, model);
