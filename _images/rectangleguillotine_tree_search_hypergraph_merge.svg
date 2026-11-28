@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="516" height="148" viewBox="-10 -138 516 148">
+<rect x="-10" y="-138" width="516" height="148" fill="#ffffff"/>
+<rect x="0" y="-48" width="80" height="48" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="40.0" y="-19.8">A</tspan></text>
+<rect x="0" y="-112" width="80" height="64" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="40.0" y="-75.8">B</tspan></text>
+<rect x="80" y="-128" width="64" height="128" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="112.0" y="-59.8">C</tspan></text>
+<rect x="144" y="-80" width="48" height="80" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="168.0" y="-35.8">D</tspan></text>
+<rect x="0" y="-128" width="192" height="128" fill="none" stroke="#000000" stroke-width="2"/>
+<rect x="0" y="-128" width="80" height="128" fill="none" stroke="#000000" stroke-width="3" stroke-dasharray="3 3"/>
+<rect x="216.0" y="-120.0" width="16" height="16" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#000000" text-anchor="start"><tspan x="240" y="-108.15">forward label of N(5, 3): {A}</tspan></text>
+<rect x="216.0" y="-84.8" width="16" height="16" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#000000" text-anchor="start"><tspan x="240" y="-72.95">forward label of S(5, 5): {B}</tspan></text>
+<rect x="216.0" y="-49.6" width="16" height="16" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#000000" text-anchor="start"><tspan x="240" y="-37.75">backward label of S(5, 8) (dashed): {C, D}</tspan></text>
+</svg>

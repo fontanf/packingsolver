@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="380.0" height="88.4" viewBox="-82.0 -46 380.0 88.4">
+<rect x="-82.0" y="-46" width="380.0" height="88.4" fill="#ffffff"/>
+<rect x="0" y="-36" width="108" height="36" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="54.0" y="-13.8">A</tspan></text>
+<rect x="108" y="-36" width="72" height="36" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="144.0" y="-13.8">B</tspan></text>
+<rect x="180" y="-36" width="72" height="36" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="216.0" y="-13.8">C</tspan></text>
+<rect x="0" y="-36" width="216" height="36" fill="none" stroke="#000000" stroke-width="2"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="108.0" y="25.8">A, B and C side by side: 7 &gt; W = 6</tspan></text>
+</svg>

@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="652.0" height="337.6" viewBox="-22.0 -116.4 652.0 337.6">
+<rect x="-22.0" y="-116.4" width="652.0" height="337.6" fill="#ffffff"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" font-weight="bold"><tspan x="304.0" y="-95.0">Root node: one insertion per item and supported part</tspan></text>
+<polygon points="80.0,0 128.0,0 80.0,-56.0" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<rect x="80.0" y="-80" width="128" height="80" fill="none" stroke="#000000" stroke-width="2"/>
+<polygon points="240.0,0 272.0,0 272.0,-32 240.0,-32" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<rect x="240.0" y="-80" width="128" height="80" fill="none" stroke="#000000" stroke-width="2"/>
+<polygon points="400.0,0 448.0,0 448.0,-32 432.0,-32 432.0,-16 400.0,-16" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<rect x="400.0" y="-80" width="128" height="80" fill="none" stroke="#000000" stroke-width="2"/>
+<polygon points="139.0,8.0 149.0,8.0 149.0,50.0 155.0,50.0 144.0,64.0 133.0,50.0 139.0,50.0" fill="#ffffff" stroke="#000000"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" font-weight="bold"><tspan x="304.0" y="81.0">Child node, with the triangle packed: its insertions (the one of the triangle is discarded: no copy left)</tspan></text>
+<polygon points="0,176 48,176 0,120.0" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<polygon points="48,176 80,176 80,144 48,144" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<polygon points="0,176 32,176 32,144 0,144" fill="none" stroke="#b85450" stroke-width="1" stroke-dasharray="3 3"/>
+<rect x="0" y="96" width="128" height="80" fill="none" stroke="#000000" stroke-width="2"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="64.0" y="193.8">from the parent node,</tspan><tspan x="64.0" y="208.2">slid to the right</tspan></text>
+<polygon points="160,176 208,176 160,120.0" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<polygon points="208,176 256,176 256,144 240,144 240,160 208,160" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<polygon points="160,176 208,176 208,144 192,144 192,160 160,160" fill="none" stroke="#b85450" stroke-width="1" stroke-dasharray="3 3"/>
+<rect x="160" y="96" width="128" height="80" fill="none" stroke="#000000" stroke-width="2"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="224.0" y="193.8">from the parent node,</tspan><tspan x="224.0" y="208.2">slid to the right</tspan></text>
+<polygon points="320,176 368,176 320,120.0" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<polyline points="320,120.0 368,176" fill="none" stroke="#82b366" stroke-width="4"/>
+<polygon points="326.86,128 358.86,128 358.86,96 326.86,96" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<polygon points="320,120.0 352,120.0 352,88.0 320,88.0" fill="none" stroke="#b85450" stroke-width="1" stroke-dasharray="3 3"/>
+<rect x="320" y="96" width="128" height="80" fill="none" stroke="#000000" stroke-width="2"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="384.0" y="193.8">new, on the hypotenuse,</tspan><tspan x="384.0" y="208.2">slid down</tspan></text>
+<polygon points="480,176 528,176 480,120.0" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<polyline points="480,120.0 528,176" fill="none" stroke="#82b366" stroke-width="4"/>
+<polygon points="486.86,128 534.86,128 534.86,96 518.86,96 518.86,112 486.86,112" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<polygon points="480,120.0 528,120.0 528,88.0 512,88.0 512,104.0 480,104.0" fill="none" stroke="#b85450" stroke-width="1" stroke-dasharray="3 3"/>
+<rect x="480" y="96" width="128" height="80" fill="none" stroke="#000000" stroke-width="2"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="544.0" y="193.8">new, on the hypotenuse,</tspan><tspan x="544.0" y="208.2">slid down</tspan></text>
+</svg>

@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512.0" height="368.0" viewBox="-10 -82 512.0 368.0">
+<rect x="-10" y="-82" width="512.0" height="368.0" fill="#ffffff"/>
+<polygon points="0,0 72,0 0,-72" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<polygon points="96,-24 120,-24 120,0 144,0 144,-24 168,-24 168,-48 144,-48 144,-72 120,-72 120,-48 96,-48" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<polygon points="192,0 216,0 216,-24 240,-24 240,-48 216,-48 216,-72 192,-72" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<polygon points="264,0 336,0 336,-48 312,-48 312,-24 264,-24" fill="#fff2cc" stroke="#d6b656" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start" font-weight="bold"><tspan x="348.0" y="-31.8">items</tspan></text>
+<polygon points="163.0,12.0 173.0,12.0 173.0,34.0 179.0,34.0 168.0,48.0 157.0,34.0 163.0,34.0" fill="#ffffff" stroke="#000000"/>
+<rect x="0" y="72" width="24" height="24" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<rect x="0" y="96" width="24" height="24" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<rect x="24" y="72" width="24" height="24" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<rect x="48" y="96" width="24" height="24" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<rect x="0" y="48" width="24" height="24" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<rect x="24" y="96" width="24" height="24" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<polygon points="0,120 72,120 0,48" fill="none" stroke="#000000" stroke-width="2"/>
+<rect x="96" y="72" width="24" height="24" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<rect x="120" y="48" width="24" height="24" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<rect x="144" y="72" width="24" height="24" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<rect x="120" y="72" width="24" height="24" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<rect x="120" y="96" width="24" height="24" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<polygon points="96,96 120,96 120,120 144,120 144,96 168,96 168,72 144,72 144,48 120,48 120,72 96,72" fill="none" stroke="#000000" stroke-width="2"/>
+<rect x="192" y="72" width="24" height="24" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<rect x="192" y="48" width="24" height="24" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<rect x="216" y="72" width="24" height="24" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<rect x="192" y="96" width="24" height="24" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<polygon points="192,120 216,120 216,96 240,96 240,72 216,72 216,48 192,48" fill="none" stroke="#000000" stroke-width="2"/>
+<rect x="288" y="96" width="24" height="24" fill="#fff2cc" stroke="#d6b656" stroke-width="1"/>
+<rect x="312" y="96" width="24" height="24" fill="#fff2cc" stroke="#d6b656" stroke-width="1"/>
+<rect x="312" y="72" width="24" height="24" fill="#fff2cc" stroke="#d6b656" stroke-width="1"/>
+<rect x="264" y="96" width="24" height="24" fill="#fff2cc" stroke="#d6b656" stroke-width="1"/>
+<polygon points="264,120 336,120 336,72 312,72 312,96 264,96" fill="none" stroke="#000000" stroke-width="2"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start" font-weight="bold"><tspan x="348.0" y="88.2">cells covered</tspan></text>
+<polygon points="163.0,132.0 173.0,132.0 173.0,154.0 179.0,154.0 168.0,168.0 157.0,154.0 163.0,154.0" fill="#ffffff" stroke="#000000"/>
+<polyline points="120.0,276.0 120.0,180.0" fill="none" stroke="#999999" stroke-width="1"/>
+<polyline points="144.0,276.0 144.0,180.0" fill="none" stroke="#999999" stroke-width="1"/>
+<polyline points="168.0,276.0 168.0,180.0" fill="none" stroke="#999999" stroke-width="1"/>
+<polyline points="192.0,276.0 192.0,180.0" fill="none" stroke="#999999" stroke-width="1"/>
+<polyline points="216.0,276.0 216.0,180.0" fill="none" stroke="#999999" stroke-width="1"/>
+<polyline points="96.0,252.0 240.0,252.0" fill="none" stroke="#999999" stroke-width="1"/>
+<polyline points="96.0,228.0 240.0,228.0" fill="none" stroke="#999999" stroke-width="1"/>
+<polyline points="96.0,204.0 240.0,204.0" fill="none" stroke="#999999" stroke-width="1"/>
+<rect x="96.0" y="228.0" width="24" height="24" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<rect x="96.0" y="252.0" width="24" height="24" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<rect x="120.0" y="228.0" width="24" height="24" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<rect x="144.0" y="252.0" width="24" height="24" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<rect x="96.0" y="204.0" width="24" height="24" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<rect x="120.0" y="252.0" width="24" height="24" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<rect x="120.0" y="204.0" width="24" height="24" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<rect x="144.0" y="180.0" width="24" height="24" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<rect x="168.0" y="204.0" width="24" height="24" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<rect x="144.0" y="204.0" width="24" height="24" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<rect x="144.0" y="228.0" width="24" height="24" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<rect x="192.0" y="204.0" width="24" height="24" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<rect x="192.0" y="180.0" width="24" height="24" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<rect x="216.0" y="204.0" width="24" height="24" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<rect x="192.0" y="228.0" width="24" height="24" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<rect x="192.0" y="252.0" width="24" height="24" fill="#fff2cc" stroke="#d6b656" stroke-width="1"/>
+<rect x="216.0" y="252.0" width="24" height="24" fill="#fff2cc" stroke="#d6b656" stroke-width="1"/>
+<rect x="216.0" y="228.0" width="24" height="24" fill="#fff2cc" stroke="#d6b656" stroke-width="1"/>
+<rect x="168.0" y="252.0" width="24" height="24" fill="#fff2cc" stroke="#d6b656" stroke-width="1"/>
+<polygon points="96.0,276.0 168.0,276.0 96.0,204.0" fill="none" stroke="#000000" stroke-width="2"/>
+<polygon points="120.0,228.0 144.0,228.0 144.0,252.0 168.0,252.0 168.0,228.0 192.0,228.0 192.0,204.0 168.0,204.0 168.0,180.0 144.0,180.0 144.0,204.0 120.0,204.0" fill="none" stroke="#000000" stroke-width="2"/>
+<polygon points="192.0,252.0 216.0,252.0 216.0,228.0 240.0,228.0 240.0,204.0 216.0,204.0 216.0,180.0 192.0,180.0" fill="none" stroke="#000000" stroke-width="2"/>
+<polygon points="168.0,276.0 240.0,276.0 240.0,228.0 216.0,228.0 216.0,252.0 168.0,252.0" fill="none" stroke="#000000" stroke-width="2"/>
+<rect x="96.0" y="180.0" width="144" height="96" fill="none" stroke="#000000" stroke-width="2"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start" font-weight="bold"><tspan x="348.0" y="225.0">placements in the bin</tspan><tspan x="348.0" y="239.4">without common cell</tspan></text>
+</svg>

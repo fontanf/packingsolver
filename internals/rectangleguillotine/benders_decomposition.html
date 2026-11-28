@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Benders decomposition &#8212; PackingSolver</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../_static/classic.css?v=14e077c0" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=6a604523" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=a00afc7f" />
+    
+    <script src="../../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script data-sd-tabs-storage-prefix="sphinx-design-tab-id-" src="../../_static/design-tabs.js?v=fcb327ea"></script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="box algorithms" href="../box.html" />
+    <link rel="prev" title="Tree search hypergraph with infinite copies" href="tree_search_hypergraph_infinite_copies.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../box.html" title="box algorithms"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="tree_search_hypergraph_infinite_copies.html" title="Tree search hypergraph with infinite copies"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../overview.html" >Solver internals</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../rectangleguillotine.html" accesskey="U"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> algorithms</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Benders decomposition</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="benders-decomposition">
+<span id="internals-rectangleguillotine-benders-decomposition"></span><h1>Benders decomposition<a class="headerlink" href="#benders-decomposition" title="Link to this heading">¶</a></h1>
+<section id="objectives">
+<h2>Objectives<a class="headerlink" href="#objectives" title="Link to this heading">¶</a></h2>
+<p>This algorithm solves the <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code> objective, with one or several bins, and the <code class="code docutils literal notranslate"><span class="pre">bin-packing</span></code> and <code class="code docutils literal notranslate"><span class="pre">variable-sized-bin-packing</span></code> objectives. It supports the resources of the bins (the penalized ones only when they count the copies of item types up to a threshold: an integer capacity, and consumption schedules <span class="math notranslate nohighlight">\((1, \ldots, 1, 0)\)</span>), but not the stacks of several item types.</p>
+<p>It is an exact method: when it converges, the solution found is optimal.</p>
+</section>
+<section id="principle">
+<h2>Principle<a class="headerlink" href="#principle" title="Link to this heading">¶</a></h2>
+<p>It is a copy of the <a class="reference internal" href="../rectangle/benders_decomposition.html#internals-rectangle-benders-decomposition"><span class="std std-ref">Benders decomposition of the rectangle problem type</span></a>, with guillotine feasibility subproblems.</p>
+<p>The master problem and its cuts are built on the <em>relaxation</em> of the instance: the rectangle instance with the same item types and bin types, the bins without their hard trims, and the same resources. Every guillotine packing of a selection of items in a bin is a packing of this selection in the bin of the relaxation, so the cuts of the rectangle Benders decomposition (the dual feasible function cuts, the incompatible pairs and triplets, and the lifting of the no-good cuts with the bar relaxation) are valid for the guillotine problem; they are computed on the relaxation with the functions of the rectangle problem type. The other features of the instance (the guillotine cuts, the number of stages, the cut thickness, the soft trims and the defects) only restrict the packings: they are left to the subproblems.</p>
+<p>For each bin of the solution of the master problem, the feasibility subproblem checks whether the items of the bin have a guillotine packing in it: it is a <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code> instance with the parameters of the instance, solved by the rectangleguillotine algorithms, mostly the <a class="reference internal" href="tree_search_hypergraph.html#internals-rectangleguillotine-tree-search-hypergraph"><span class="std std-ref">tree search hypergraph</span></a>, which finds a packing of all the items or proves that there is none in a single search. With guillotine cuts, a selection of 3 items which fits without guillotine cuts may not fit, for example with 2 stages: the search of the minimal infeasible subsets also checks the selections of at most 3 items, and the bins with 3 items are not packed directly in a guillotine arrangement as in the rectangle problem type.</p>
+</section>
+<section id="search-parameters">
+<h2>Search parameters<a class="headerlink" href="#search-parameters" title="Link to this heading">¶</a></h2>
+<p>They are the ones of the <a class="reference internal" href="../rectangle/benders_decomposition.html#internals-rectangle-benders-decomposition"><span class="std std-ref">rectangle Benders decomposition</span></a>. In the <code class="code docutils literal notranslate"><span class="pre">exact</span></code> mode, its master problem and its feasibility subproblems are also solved in <code class="code docutils literal notranslate"><span class="pre">exact</span></code> mode, so that their results are proven.</p>
+</section>
+<section id="automatic-selection">
+<h2>Automatic selection<a class="headerlink" href="#automatic-selection" title="Link to this heading">¶</a></h2>
+<p>It is not selected automatically. It can be selected with <code class="code docutils literal notranslate"><span class="pre">--use-benders-decomposition</span> <span class="pre">1</span></code> (CLI) or <code class="code docutils literal notranslate"><span class="pre">use_benders_decomposition</span></code> (Python).</p>
+</section>
+<section id="source-files">
+<h2>Source files<a class="headerlink" href="#source-files" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">src/rectangleguillotine/benders_decomposition.hpp</span></code>, <code class="code docutils literal notranslate"><span class="pre">src/rectangleguillotine/benders_decomposition.cpp</span></code>: the decomposition</p></li>
+</ul>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+<h3><a href="../../index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">PackingSolver’s documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../objectives.html">Objectives</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../leftovers.html">Leftovers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../optimization_modes.html">Optimization modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> solver</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../overview.html">Solver internals</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../tree_search.html">Tree search</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> algorithms</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> algorithms</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="tree_search.html">Tree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tree_search_maximal_spaces.html">Tree search with maximal spaces</a></li>
+<li class="toctree-l3"><a class="reference internal" href="column_generation_strips.html">Column generation strips</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sequential_strips_onedimensional.html">Sequential strips / one-dimensional</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tree_search_hypergraph.html">Tree search hypergraph</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tree_search_hypergraph_infinite_copies.html">Tree search hypergraph with infinite copies</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Benders decomposition</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../rectangleguillotine.html#dual-feasible-functions">Dual feasible functions</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generic_algorithms.html">Generic algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../algorithm_selection.html">Algorithm selection</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../box.html" title="box algorithms"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="tree_search_hypergraph_infinite_copies.html" title="Tree search hypergraph with infinite copies"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../overview.html" >Solver internals</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../rectangleguillotine.html" ><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> algorithms</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Benders decomposition</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2019-2024, Florian Fontan.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.2.0.
+    </div>
+  </body>
+</html>

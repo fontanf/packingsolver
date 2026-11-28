@@ -1,0 +1,16 @@
+/* Let a specific wide table (e.g. a CSV example with many columns) scroll
+   horizontally within its own box instead of stretching the whole page.
+   Opt in per-table with ":class: wide-table" on the list-table directive,
+   so other tables keep their normal (centered, auto-sized) layout. */
+table.wide-table {
+    table-layout: fixed;
+    width: 100%;
+}
+
+table.wide-table td {
+    overflow-x: auto;
+}
+
+table.wide-table pre {
+    white-space: pre;
+}

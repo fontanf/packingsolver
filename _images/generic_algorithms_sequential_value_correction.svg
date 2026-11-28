@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="703.4" height="366.8" viewBox="-10 -37.2 703.4 366.8">
+<rect x="-10" y="-37.2" width="703.4" height="366.8" fill="#ffffff"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start" font-weight="bold"><tspan x="0" y="-12.8">Bins of length 10</tspan></text>
+<rect x="0" y="-3.4" width="107.1" height="27.2" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="53.55" y="14.4">A</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start"><tspan x="112.2" y="14.4">length 7, 5 copies</tspan></text>
+<rect x="0" y="34.0" width="30.6" height="27.2" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="15.3" y="51.8">B</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start"><tspan x="35.7" y="51.8">length 2, 5 copies</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start" font-weight="bold"><tspan x="0" y="116.4">profits</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start" font-weight="bold"><tspan x="122.4" y="116.4">bins</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start" font-weight="bold"><tspan x="360.4" y="109.2">adjusted space</tspan><tspan x="360.4" y="123.6">of a copy</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start" font-weight="bold"><tspan x="496.4" y="109.2">corrected</tspan><tspan x="496.4" y="123.6">profits</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start" font-weight="bold"><tspan x="0" y="140.2">pass 1</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start"><tspan x="0" y="162.3">A: 8.50</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start"><tspan x="0" y="179.3">B: 2.14</tspan></text>
+<rect x="122.4" y="146.2" width="153.0" height="27.2" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<rect x="122.4" y="146.2" width="30.6" height="27.2" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="137.7" y="164.0">B</tspan></text>
+<rect x="153.0" y="146.2" width="30.6" height="27.2" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="168.3" y="164.0">B</tspan></text>
+<rect x="183.6" y="146.2" width="30.6" height="27.2" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="198.9" y="164.0">B</tspan></text>
+<rect x="214.2" y="146.2" width="30.6" height="27.2" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="229.5" y="164.0">B</tspan></text>
+<rect x="244.8" y="146.2" width="30.6" height="27.2" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="260.1" y="164.0">B</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start"><tspan x="282.2" y="164.0">x 1</tspan></text>
+<rect x="122.4" y="183.6" width="153.0" height="27.2" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<rect x="122.4" y="183.6" width="107.1" height="27.2" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="175.95" y="201.4">A</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start"><tspan x="282.2" y="201.4">x 5</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start"><tspan x="122.4" y="228.6">6 bins</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start"><tspan x="360.4" y="162.3">A: 10.00</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start"><tspan x="496.4" y="162.3">A: (8.50 + 10.00) / 2 = 9.25</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start"><tspan x="360.4" y="179.3">B: 2.00</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start"><tspan x="496.4" y="179.3">B: (2.14 + 2.00) / 2 = 2.07</tspan></text>
+<polyline points="0,244.8 680,244.8" fill="none" stroke="#999999" stroke-width="1" stroke-dasharray="3 3"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start" font-weight="bold"><tspan x="0" y="262.6">pass 2</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start"><tspan x="0" y="284.7">A: 9.25</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start"><tspan x="0" y="301.7">B: 2.07</tspan></text>
+<rect x="122.4" y="268.6" width="153.0" height="27.2" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+<rect x="122.4" y="268.6" width="107.1" height="27.2" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="175.95" y="286.4">A</tspan></text>
+<rect x="229.5" y="268.6" width="30.6" height="27.2" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="244.8" y="286.4">B</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start"><tspan x="282.2" y="286.4">x 5</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start"><tspan x="122.4" y="313.6">5 bins</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start"><tspan x="360.4" y="284.7">A: 7.78</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start"><tspan x="496.4" y="284.7">A: (9.25 + 7.78) / 2 = 8.51</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start"><tspan x="360.4" y="301.7">B: 2.22</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start"><tspan x="496.4" y="301.7">B: (2.07 + 2.22) / 2 = 2.15</tspan></text>
+</svg>

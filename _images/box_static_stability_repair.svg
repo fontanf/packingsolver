@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="878.0" height="239.2" viewBox="-28.0 -190 878.0 239.2">
+<rect x="-28.0" y="-190" width="878.0" height="239.2" fill="#ffffff"/>
+<rect x="0" y="-60" width="80" height="60" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="40.0" y="-25.8">A</tspan></text>
+<rect x="80" y="-40" width="80" height="40" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="120.0" y="-15.8">B</tspan></text>
+<rect x="160" y="-80" width="80" height="80" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="200.0" y="-35.8">D</tspan></text>
+<rect x="0" y="-120" width="100" height="40" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="50.0" y="-95.8">C</tspan></text>
+<rect x="80" y="-160" width="80" height="40" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="120.0" y="-135.8">E</tspan></text>
+<rect x="100" y="-180" width="40" height="20" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="120.0" y="-165.8">F</tspan></text>
+<rect x="0" y="-180" width="240" height="180" fill="none" stroke="#000000" stroke-width="2"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="120.0" y="16.2">x</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="-12.0" y="-85.8">z</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="120.0" y="36.2">solution of the search</tspan></text>
+<rect x="300" y="-60" width="80" height="60" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="340.0" y="-25.8">A</tspan></text>
+<rect x="380" y="-40" width="80" height="40" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="420.0" y="-15.8">B</tspan></text>
+<rect x="460" y="-80" width="80" height="80" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="500.0" y="-35.8">D</tspan></text>
+<rect x="300" y="-100" width="100" height="40" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="350.0" y="-75.8">C</tspan></text>
+<rect x="380" y="-140" width="80" height="40" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="420.0" y="-115.8">E</tspan></text>
+<rect x="400" y="-160" width="40" height="20" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="420.0" y="-145.8">F</tspan></text>
+<polyline points="420.0,-100 420.0,-70.0" fill="none" stroke="#b85450" stroke-width="2" stroke-dasharray="3 3"/>
+<rect x="300" y="-180" width="240" height="180" fill="none" stroke="#000000" stroke-width="2"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="420.0" y="16.2">x</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="288.0" y="-85.8">z</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="420.0" y="36.2">after the drop</tspan></text>
+<rect x="600" y="-60" width="80" height="60" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="640.0" y="-25.8">A</tspan></text>
+<rect x="680" y="-40" width="80" height="40" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="720.0" y="-15.8">B</tspan></text>
+<rect x="760" y="-80" width="80" height="80" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="800.0" y="-35.8">D</tspan></text>
+<rect x="600" y="-100" width="100" height="40" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="650.0" y="-75.8">C</tspan></text>
+<rect x="600" y="-180" width="240" height="180" fill="none" stroke="#000000" stroke-width="2"/>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="720.0" y="16.2">x</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="588.0" y="-85.8">z</tspan></text>
+<text font-family="Helvetica, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle"><tspan x="720.0" y="36.2">after the removal</tspan></text>
+</svg>
