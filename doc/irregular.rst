@@ -140,6 +140,8 @@ The solution is written (command-line option ``--certificate``, ``Solution.write
 * ``shape``: its shape;
 * ``items``: its items, each with ``id``, its item type; ``x``, ``y``, the position of its reference point; ``angle``, its rotation angle in degrees; ``mirror``, whether it is mirrored; ``item_shapes``, its shapes once placed; and, for a fixed item of the bin type, ``fixed_item_pos``, its position in the ``fixed_items`` of the bin type. When a certificate is read, an item with a ``fixed_item_pos`` is placed at the position of that fixed item.
 
+A certificate can be given back as the initial solution of a run: command-line option ``--initial-solution``; in Python ``parameters.initial_solution = psi.Solution.read(instance, path)``; in C++ ``OptimizeParameters::initial_solution``. It is reported first, and the local search starts from it, so a local search must be selected (for example ``use_local_search_direct_trigonometry``); it must be feasible, and the instance is then not reduced.
+
 To visualize a solution, open it in the `solution viewer <https://packingsolver.pages.dev/viewer.html>`_, or run:
 
 .. code-block:: shell

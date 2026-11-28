@@ -647,3 +647,38 @@ def test_add_item_type_invalid_shapes():
     instance_builder = psi.InstanceBuilder()
     with pytest.raises(TypeError):
         instance_builder.add_item_type(3)
+
+
+def test_initial_solution(tmp_path):
+    """A certificate read with 'Solution.read' starts the local search; an overlapping one is rejected."""
+    instance_builder = psi.InstanceBuilder()
+    instance_builder.set_objective(psi.Objective.Knapsack)
+    instance_builder.add_bin_type(square(110))
+    instance_builder.add_item_type(item_shapes(square(50)), copies=4)
+    instance = instance_builder.build()
+
+    def certificate(name, xs):
+        path = tmp_path / name
+        path.write_text(
+                '{"bins": [{"id": 0, "copies": 1, "items": ['
+                + ", ".join(
+                    '{"id": 0, "x": %d, "y": 0, "angle": 0, "mirror": false}' % x
+                    for x in xs)
+                + "]}]}")
+        return str(path)
+
+    initial_solution = psi.Solution.read(instance, certificate("two.json", [0, 55]))
+    assert initial_solution.number_of_items() == 2
+    parameters = quiet_parameters(use_local_search_direct_trigonometry=True)
+    parameters.initial_solution = initial_solution
+    del initial_solution
+    gc.collect()  # the parameters keep the initial solution alive
+    output = psi.optimize(instance, parameters)
+    assert output.solution.feasible()
+    assert output.solution.profit() >= 2 * 2500
+
+    parameters.initial_solution = psi.Solution.read(instance, certificate("overlapping.json", [0, 20]))
+    with pytest.raises(ValueError):
+        psi.optimize(instance, parameters)
+    parameters.initial_solution = None
+    assert parameters.initial_solution is None

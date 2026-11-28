@@ -30,6 +30,8 @@ if(PACKINGSOLVER_USE_CLP)
 else()
     target_compile_definitions(_packingsolver PRIVATE PACKINGSOLVER_PYTHON_USE_CLP=0)
 endif()
+# 'Solution.read' builds the solution with the internal 'SolutionBuilder'.
+target_include_directories(_packingsolver PRIVATE ${PROJECT_SOURCE_DIR}/src)
 target_link_libraries(_packingsolver PRIVATE
     PackingSolver_rectangleguillotine
     PackingSolver_rectangle
